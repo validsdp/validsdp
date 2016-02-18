@@ -1,0 +1,18 @@
+Dependencies
+------------
+
+- Coq (http://coq.inria.fr, only tested with 8.4pl5)
+- SSReflect library
+  (http://http://www.msr-inria.fr/projects/mathematical-components-2/)
+- Flocq library (http://flocq.gforge.inria.fr/,
+  required only to compile binary64.v and binary64_infnan.v)
+
+Compilation
+-----------
+
+% make
+
+Documentation
+-------------
+
+Documentation is in html/toc.html (make doc to generate).

@@ -42,7 +42,8 @@ tramp
 *.vo
 *.glob
 *.v.d
-
+.*.aux
+.depend
 
 ### OCaml ###
 *.annot
