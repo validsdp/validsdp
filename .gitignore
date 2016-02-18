@@ -66,3 +66,7 @@ _build/
 # oasis generated files
 setup.data
 setup.log
+
+# Misc
+/cholesky/coqgraph
+/cholesky/html/
