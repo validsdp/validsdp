@@ -1,0 +1,10 @@
+* TODO Fonctions à rendre effectives
+- [X] en s'appuyant sur l'implantation Float_spec dans binary64_infnan.v
+- [ ] fsum_l2r_rec
+- [ ] fsum_l2r
+- [ ] fcmdotprod_l2r
+- [ ] stilde
+- [ ] ytilded
+- [ ] ytildes
+- [ ] inner_loop
+- [ ] outer_loop
