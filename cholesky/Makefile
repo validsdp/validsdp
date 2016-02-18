@@ -21,7 +21,7 @@ depend: .depend
 	rm -f ./.depend
 	coqdep -I . *.v > ./.depend
 
-include .depend
+-include .depend
 
 clean:
 	rm -rf .depend *~ *.vo *.glob html coqgraph coqgraph.cmi coqgraph.cmo
