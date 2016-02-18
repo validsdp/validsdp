@@ -144,7 +144,8 @@ destruct (Rle_or_lt (bpow radix2 (emin + prec - 1)) (Rabs xy)) as [Hxy|Hxy].
   now rewrite Rmult_comm. }
 exists (bounded_0 eps_pos); rewrite Rplus_0_r, Rmult_1_l.
 assert (Hxy' : Rabs (fxy - xy) <= / 2 * ulp radix2 fexp xy).
-{ now apply ulp_half_error, FLT_exp_valid. }
+unfold fxy; unfold frnd ; simpl.
+{ now apply error_le_half_ulp, FLT_exp_valid. }
 assert (Hxy'' : format (fxy - xy)).
 { now apply plus_error;
   [apply FLT_exp_valid|apply FLT_exp_monotone|apply F_prop|apply F_prop]. }
@@ -159,8 +160,10 @@ assert (Hexy : (exy <= fexp exy)%Z).
   apply (Zle_trans _ (canonic_exp radix2 fexp xy)).
   { apply (ln_beta_le_bpow _ _ _ Nzxy'), (Rle_lt_trans _ _ _ Hxy').
     apply (Rmult_lt_reg_l 2); [lra|rewrite <- Rmult_assoc, Rinv_r; [|lra]].
-    fold (ulp radix2 fexp xy); rewrite Rmult_plus_distr_r, Rmult_1_l.
-    rewrite <- Rplus_0_r at 1; apply Rplus_lt_compat_l, bpow_gt_0. }
+    rewrite ulp_neq_0; [|easy].
+    rewrite Rmult_plus_distr_r, Rmult_1_l.
+    rewrite <- Rplus_0_r at 1.
+    apply Rplus_lt_compat_l, bpow_gt_0. }
   unfold canonic_exp, fexp, FLT_exp.
   rewrite Zmax_right; [now apply Zle_refl|].
   apply (Zplus_le_reg_r _ _ prec); ring_simplify.
