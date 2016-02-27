@@ -1,5 +1,12 @@
 let output_filename_string = function Some s -> s | None -> "stdout"
 
+let pp_list ~sep f fmt l =
+  let rec aux fmt = function
+    | []   -> ()
+    | [e]  -> f fmt e
+    | x::r -> Format.fprintf fmt "%a%(%)%a" f x sep aux r in
+  aux fmt l
+
 let with_out_ch output_filename f =
   let out_ch =
     match output_filename with
@@ -37,3 +44,10 @@ let with_in_ch input_filename f =
         Report.error_loc Location.dummy "%s." s
   end;
   res
+
+let profile f =
+  let be = Unix.gettimeofday () in
+  let r = f () in
+  let en = Unix.gettimeofday () in
+  let elapsed_time = en -. be in
+  r, elapsed_time

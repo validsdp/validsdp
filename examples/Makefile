@@ -1,4 +1,4 @@
-OCAMLBUILD=ocamlbuild -classic-display -no-links
+OCAMLBUILD=ocamlbuild -use-ocamlfind -classic-display -no-links
 
 trmx:
 	$(OCAMLBUILD) main.native
