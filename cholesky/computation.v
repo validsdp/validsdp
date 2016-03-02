@@ -65,6 +65,7 @@ Require Import Fcalc_ops.
 
 Definition half := b64_normalize (Float radix2 1 (-1)).
 Definition one := b64_plus mode_NE half half.
+(**
 Time Eval vm_compute in B2F one.
 
 Time Eval vm_compute in B2F (fisqrt (Z2B 4)).
@@ -72,7 +73,7 @@ Time Eval vm_compute in B2F (fisqrt (Z2B 4)).
 Time Eval vm_compute in is_finite _ _ (b64_normalize (Float radix2 1 4096)).
 
 Time Eval vm_compute in is_nan _ _ (fisqrt (b64_normalize (Float radix2 (-1) 0))).
-
+*)
 Definition F64 := binary64_infnan.
 
 Require Import matrix seqmatrix refinements.
@@ -108,7 +109,7 @@ Fixpoint store T m i j (v : T) :=
 Definition m_id := [:: [:: one; FI0]; [:: FI0; one]].
 Definition m_0 := [:: [:: FI0; FI0]; [:: FI0; FI0]].
 
-Time Eval vm_compute in map (map B2F) (store m_id 0 1 half).
+(** Time Eval vm_compute in map (map B2F) (store m_id 0 1 half). *)
 
 Require Import Recdef.
 
@@ -173,11 +174,11 @@ Definition cholesky A :=
   let sz := size A in
   outer_loop sz A A 0.
 
-Time Eval vm_compute in map (map B2F) (cholesky m_id).
+(** Time Eval vm_compute in map (map B2F) (cholesky m_id). *)
 
 Definition m2 := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; [:: Z2B 1; Z2B 0; Z2B 5]].
 
-Time Eval vm_compute in map (map B2F) (cholesky m2).
+(** Time Eval vm_compute in map (map B2F) (cholesky m2). *)
 
 (* returns approx:
 
@@ -194,7 +195,7 @@ then R is almost:
 
 (* ================================================================ *)
 (* Require Import String. Eval compute in "Début des tests."%string. *)
-Goal True. idtac "Début des tests". done. Qed.
+(* Goal True. idtac "Début des tests". done. Qed. *)
 (* ================================================================ *)
 
 (* size 6, unknown *)
