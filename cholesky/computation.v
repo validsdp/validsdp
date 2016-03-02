@@ -76,8 +76,6 @@ Time Eval vm_compute in is_nan _ _ (fisqrt (b64_normalize (Float radix2 (-1) 0))
 *)
 Definition F64 := binary64_infnan.
 
-Require Import matrix seqmatrix refinements.
-
 Section seq_cholesky.
 
 Fixpoint seq_stilde k c a b :=
@@ -7209,6 +7207,8 @@ Definition m12 := map (map b64_normalize)
 Time Eval vm_compute in map (map B2F) (cholesky m12).
 
 End seq_cholesky.
+
+Require Import matrix seqmatrix refinements.
 
 Section GenericFcmdotprod.
 
