@@ -115,35 +115,60 @@ Require Import Recdef.
 (* note: R is transposed with respect to cholesky.v *)
 Section InnerLoop.
 Variable j : nat.
-Function inner_loop A R (i : nat)
+Function inner_loop0 A R (i : nat)
          {measure (fun i => (j - i)%N) i} :=
   if (i < j)%N then
     let R := store R j i (seq_ytilded i (nth FI0 (nth [::] A i) j)
                                       (nth [::] R i) (nth [::] R j)
                                       (nth FI0 (nth [::] R i) i)) in
-    inner_loop A R (i + 1)
+    inner_loop0 A R (i + 1)
   else
     R.
 move=> _ _ i H; apply /ltP; rewrite addn1 subnSK //.
 Defined.
+
+Fixpoint inner_loop_rec (k : nat) A R (i : nat) {struct k} :=
+  match k with
+  | O (* i >= j) *) => R
+  | S k => let R := store R j i (seq_ytilded i (nth FI0 (nth [::] A i) j)
+                                             (nth [::] R i) (nth [::] R j)
+                                             (nth FI0 (nth [::] R i) i)) in
+           inner_loop_rec k A R (S i)
+  end.
+Definition inner_loop A R i := inner_loop_rec (j - i) A R i.
+
 End InnerLoop.
 
 Section OuterLoop.
 Variable n : nat.
-Function outer_loop A R (j : nat)
+Function outer_loop0 A R (j : nat)
          {measure (fun i => (n - j)%N) j} :=
   if (j < n)%N then
     let R := inner_loop j A R 0 in
     let R := store R j j (seq_ytildes j (nth FI0 (nth [::] A j) j)
                                       (nth [::] R j)) in
-    outer_loop A R (j + 1)
+    outer_loop0 A R (j + 1)
   else
     R.
 move=> _ _ j H; apply /ltP; rewrite addn1 subnSK //.
 Defined.
+
+Fixpoint outer_loop_rec k A R (j : nat) {struct k} :=
+  match k with
+  | O (* j >= n *) => R
+  | S k =>
+    let R := inner_loop j A R 0 in
+    let R := store R j j (seq_ytildes j (nth FI0 (nth [::] A j) j)
+                                      (nth [::] R j)) in
+    outer_loop_rec k A R (j + 1)
+  end.
+Definition outer_loop A R j := outer_loop_rec (n - j) A R j.
 End OuterLoop.
 
 (* note: the result is transposed with respect to cholesky.v *)
+Definition cholesky0 A :=
+  let sz := size A in
+  outer_loop0 sz A A 0.
 Definition cholesky A :=
   let sz := size A in
   outer_loop sz A A 0.
@@ -166,6 +191,11 @@ then R is almost:
                0,  1, 3;
                0,  0, 0 ]
 *)
+
+(* ================================================================ *)
+(* Require Import String. Eval compute in "Début des tests."%string. *)
+Goal True. idtac "Début des tests". done. Qed.
+(* ================================================================ *)
 
 (* size 6, unknown *)
 Definition m0 := map (map b64_normalize)
