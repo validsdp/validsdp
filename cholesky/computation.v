@@ -17,7 +17,7 @@ Require Import Rstruct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Open Scope R_scope.
 Open Scope ring_scope.
@@ -30,6 +30,13 @@ Require Import binary64_infnan.
 
 Require Import ZArith.
 Require Import Fcore Fappli_IEEE Fappli_IEEE_bits.
+
+(** Tip to leverage a Boolean condition *)
+Definition optb (b : bool) : option (is_true b) :=
+  if b then Some erefl else None.
+Definition sumb (b : bool) : {b = true} + {b = false} :=
+  if b is true
+  then left erefl else right erefl.
 
 (* Slow!
 
@@ -197,7 +204,7 @@ Open Scope hetero_computable_scope.
 Section seq_algos_over_T.
 Variable T : Type.
 
-Context `{!zero T, !one T, !add T, !opp T, !sub T, !div T, !mul T, !sqrt T}.
+Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
 
 Fixpoint seq_stilde3 k c a b :=
   match k, a, b with
@@ -304,6 +311,194 @@ End seq_algos_over_T.
 Definition map64 := map (map b64_normalize).
 
 Section test_m8_over_float.
+
+(** This could (should) be generalized *)
+Let prec := 53%Z.
+Let emax := 1024%Z.
+
+Notation emin := (3 - emax - prec)%Z (only parsing).
+Notation fexp := (FLT_exp emin prec) (only parsing).
+
+Arguments B754_zero [prec] [emax] _.
+Arguments B754_infinity [prec] [emax] _.
+Arguments B754_nan [prec] [emax] _ _.
+Arguments B754_finite [prec] [emax] _ _ _ _.
+
+(*
+Inductive binary_float_raw (prec emax : Z) : Type :=
+    B_zero : bool -> binary_float_raw prec emax
+  | B_infinity : bool -> binary_float_raw prec emax
+  | B_nan : bool -> positive -> binary_float_raw prec emax
+  | B_finite : bool -> positive -> Z -> binary_float_raw prec emax.
+
+Arguments B_zero [prec] [emax] _.
+Arguments B_infinity [prec] [emax] _.
+Arguments B_nan [prec] [emax] _ _.
+Arguments B_finite [prec] [emax] _ _ _.
+
+Definition B2raw (x : binary_float prec emax) : @binary_float_raw prec emax :=
+  match x with
+  | B754_zero b => B_zero b
+  | B754_infinity b => B_infinity b
+  | B754_nan b pl => B_nan b (proj1_sig pl)
+  | B754_finite b m e _ => B_finite b m e
+  end.
+
+Instance : Prec_gt_0 prec.
+Proof. done. Qed.
+
+Lemma prec_lt_emax : (prec < emax)%Z.
+Proof. done. Qed.
+
+Let prf1 : (Z.pos (Fcore_digits.digits2_pos 1%positive) <? prec)%Z.
+Proof. done. Qed.
+
+Definition dummy_nan_pl pos : nan_pl prec :=
+  match sumb (Z.pos (Fcore_digits.digits2_pos pos) <? prec)%Z with
+  | left prf => @exist _ _ pos prf
+  | right _ => @exist _ _ 1%positive prf1
+  end.
+
+Definition raw2B (x : binary_float_raw prec emax) : @binary_float prec emax :=
+  match x with
+  | B_zero b => B754_zero b
+  | B_infinity b => B754_infinity b
+  | B_nan b p => B754_nan b (dummy_nan_pl p)
+  | B_finite b m e =>
+    if b
+    then FF2B _ _ _ (proj1 (binary_round_correct _ _ _ prec_lt_emax mode_NE true m e))
+    else FF2B _ _ _ (proj1 (binary_round_correct _ _ _ prec_lt_emax mode_NE false m e))
+  end.
+
+Lemma non_pl_inj (n : Z) (p1 p2 : nan_pl n) :
+  proj1_sig p1 = proj1_sig p2 -> p1 = p2.
+Proof.
+intros H; destruct p1 as [r1 H1]; destruct p2 as [r2 H2].
+simpl in H; revert H1; rewrite H; intros H1; f_equal.
+now apply eqbool_irrelevance.
+Qed.
+
+Lemma B2rawK : raw2B \o B2raw =1 id.
+Proof.
+case =>//.
+- simpl=> b [p Hp] /=.
+  congr B754_nan; apply: non_pl_inj; simpl.
+  rewrite /dummy_nan_pl.
+  by case: sumb Hp =>//->.
+- move=> b m e Hme; rewrite /B2raw /raw2B.
+  simpl.
+  case: b.
+  rewrite /FF2B.
+  unfold binary_round_correct.
+rewrite Hme.
+  case: b.
+  simpl.
+Abort.
+*)
+
+Check (FF2B, B2FF, FF2B_B2FF, B2FF_inj, valid_binary_B2FF).
+
+Arguments FF2B [prec] [emax] _ _.
+Arguments B2FF [prec] [emax] _.
+
+Definition FF2B' prec emax x : binary_float prec emax :=
+  match sumb (valid_binary prec emax x) with
+  | left prf => FF2B x prf
+  | right _ => (* DUMMY *) B754_zero false
+  end.
+
+Arguments FF2B' [prec] [emax] _.
+
+Lemma non_pl_inj (n : Z) (p1 p2 : nan_pl n) :
+  proj1_sig p1 = proj1_sig p2 -> p1 = p2.
+Proof.
+intros H; destruct p1 as [r1 H1]; destruct p2 as [r2 H2].
+simpl in H; revert H1; rewrite H; intros H1; f_equal.
+now apply eqbool_irrelevance.
+Qed.
+
+Lemma FF2B'_B2FF : (@FF2B' prec emax) \o (@B2FF prec emax) =1 id.
+Proof.
+case=>//.
+- simpl=> b [p Hp]; rewrite /FF2B'.
+  case: sumb => prf.
+  - congr B754_nan.
+    exact: non_pl_inj.
+  - rewrite /valid_binary in prf.
+    by rewrite Hp in prf.
+- move=> b m e Hme /=; rewrite /FF2B'.
+  case: sumb => prf /=.
+  - congr B754_finite; exact: eqbool_irrelevance.
+  - rewrite /valid_binary in prf.
+    by rewrite Hme in prf.
+Qed.
+
+(** Now let us focus on the instantiation of [seq_algos_over_T] *)
+Local Notation T := full_float.
+
+(*
+(* Laurent.Théry's trick *)
+Definition hide_let (A B : Type) (a : A) (v : A -> B) := let x := a in v x.
+
+Definition add0 : add T :=
+  fun x y =>
+  (hide_let (FF2B' x) (fun x' =>
+  (hide_let (FF2B' y) (fun y' =>
+    B2FF (fiplus x' y'))))).
+Definition add1 :=
+  Eval cbv beta iota zeta delta [add0 B2FF fiplus b64_plus Bplus] in add0.
+Definition add2 :=
+  Eval cbv beta delta [add1 hide_let] in add1.
+Print add2.
+
+(* But it is even better not to unfold any zeta *)
+*)
+
+Definition add' : add T :=
+  Eval cbv beta iota delta [B2FF fiplus b64_plus Bplus] in
+  fun x y => B2FF (fiplus (FF2B' x) (FF2B' y)).
+Existing Instance add'.
+
+Definition opp' : opp T :=
+  Eval cbv beta iota delta [B2FF fiopp b64_opp Bopp] in
+  fun x => B2FF (fiopp (FF2B' x)).
+Existing Instance opp'.
+
+Definition mul' : mul T :=
+  Eval cbv beta iota delta [B2FF fimult b64_mult Bmult] in
+  fun x y => B2FF (fimult (FF2B' x) (FF2B' y)).
+Existing Instance mul'.
+
+Definition div' : div T :=
+  Eval cbv beta iota delta [B2FF fidiv b64_div Bdiv] in
+  fun x y => B2FF (fidiv (FF2B' x) (FF2B' y)).
+Existing Instance div'.
+
+Definition sqrt' : sqrt T :=
+  Eval cbv beta iota delta [B2FF fisqrt b64_sqrt Bsqrt] in
+  fun x => B2FF (fisqrt (FF2B' x)).
+Existing Instance sqrt'.
+
+Definition zero' : zero T :=
+  Eval cbv in B2FF FI0.
+Existing Instance zero'.
+
+Definition one' : one T :=
+  Eval cbv in B2FF (Z2B 1).
+Existing Instance one'.
+
+Definition F2FF (f : float radix2) : full_float :=
+  Eval cbv beta iota delta [B2FF binary_normalize] zeta in
+  B2FF (binary_normalize prec emax (refl_equal Lt) (refl_equal Lt) mode_NE (Fnum f) (Fexp f) false).
+
+Definition mapFF := map (map F2FF).
+
+Definition FF2F (x : full_float) : float radix2 :=
+  match x with
+  | F754_finite s m e => Float radix2 (cond_Zopp s (Zpos m)) e
+  (* Warning: loss of information *)
+  | _ => Float radix2 0 0
+  end.
 
 (* size 45, positive definite *)
 Definition m8' := (* map (map b64_normalize) *)
@@ -717,7 +912,12 @@ Definition m8' := (* map (map b64_normalize) *)
           Float radix2 (4947016939814436) (-55); Float radix2 (5222506801138606) (-55); Float radix2 (5151532197835158) (-54); Float radix2 (7400737766417018) (-55); Float radix2 (4861057341471284) (-56);
           Float radix2 (5793337377927518) (-55); Float radix2 (6087921752663004) (-56); Float radix2 (5251605121861420) (-54); Float radix2 (7517649830094456) (-55); Float radix2 (6866660949825620) (-51)]].
 
-Time Eval vm_compute in map (map B2F) (cholesky2 (map64 m8')).
+Time Eval vm_compute in map (map B2F) (cholesky2 (map64 m8')). (* ~13 s *)
+Time Eval vm_compute in let res := map (map B2F) (cholesky2 (map64 m8')) in tt. (* ~12.7 s *)
+(* [Time Eval vm_compute in let res := _ in tt] to skip pretty-printing time *)
+
+Time Eval vm_compute in let res := map (map FF2F) (cholesky3 (mapFF m8')) in tt. (* ~12 s *)
+Time Eval vm_compute in let res := cholesky3 (mapFF m8') in tt. (* ~11.8 s *)
 
 End test_m8_over_float.
 
