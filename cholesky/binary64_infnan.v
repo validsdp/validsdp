@@ -39,14 +39,14 @@ Definition finite (x : FI) := is_finite prec emax x = true.
 
 Lemma finite0 : finite FI0.
 Proof. now unfold finite, is_finite, FI0. Qed.
-  
+
 Definition fis := binary64.binary64 (fun m => negb (Zeven m)).
 
 Definition m := bpow radix2 emax.
 
 Lemma m_ge_2 : 2 <= m.
 Proof. now change 2 with (bpow radix2 1); apply bpow_le. Qed.
-  
+
 Definition FI2F (x : FI) : F fis :=
   {| F_val := B2R prec emax x; F_prop := generic_format_B2R prec emax x |}.
 
@@ -55,7 +55,7 @@ Proof. case x; unfold finite; auto. Qed.
 
 Lemma FI2F0 : FI2F (FI0) = F0 fis :> R.
 Proof. now simpl. Qed.
-  
+
 Definition firnd (x : R) : FI :=
   binary_normalize
     prec emax (@eq_refl comparison Lt) (@eq_refl comparison Lt)
@@ -70,7 +70,7 @@ intro Frx.
 unfold FI2F, firnd; simpl.
 set (mx := round_mode mode_NE (scaled_mantissa binary64.radix2 fexp x)).
 set (ex := canonic_exp binary64.radix2 fexp x).
-assert (H := binary_normalize_correct prec emax 
+assert (H := binary_normalize_correct prec emax
                                       (@eq_refl comparison Lt) (@eq_refl comparison Lt)
                                       mode_NE mx ex false).
 revert H; case (Rlt_bool (Rabs _) _).
@@ -87,7 +87,7 @@ Proof.
 intro Hm.
 set (mx := round_mode mode_NE (scaled_mantissa binary64.radix2 fexp x)).
 set (ex := canonic_exp binary64.radix2 fexp x).
-assert (H := binary_normalize_correct prec emax 
+assert (H := binary_normalize_correct prec emax
                                       (@eq_refl comparison Lt) (@eq_refl comparison Lt)
                                       mode_NE mx ex false).
 revert H.
