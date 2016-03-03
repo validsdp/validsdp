@@ -176,6 +176,8 @@ Definition cholesky2 A :=
   let sz := size A in
   outer_loop2 sz A A 0.
 
+End seq_cholesky.
+
 (********************************************************************)
 (** Test #3 using CoqEAL and operational Type Classes               *)
 (********************************************************************)
@@ -716,6 +718,8 @@ Definition m8' := (* map (map b64_normalize) *)
           Float radix2 (5793337377927518) (-55); Float radix2 (6087921752663004) (-56); Float radix2 (5251605121861420) (-54); Float radix2 (7517649830094456) (-55); Float radix2 (6866660949825620) (-51)]].
 
 Time Eval vm_compute in map (map B2F) (cholesky2 (map64 m8')).
+
+End test_m8_over_float.
 
 (*
 (* Class hmulvB {I} B T := hmulvB_op : forall n : I, T -> B n -> B n -> T.
@@ -7796,5 +7800,3 @@ Definition m12 := (* map (map b64_normalize) *)
           Float radix2 (5897280879185818) (-53)]].
 
 Time Eval vm_compute in map (map B2F) (cholesky2 (map64 m12)).
-
-End seq_cholesky.
