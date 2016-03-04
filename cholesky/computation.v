@@ -7659,76 +7659,136 @@ Time Eval vm_compute in let res := cholesky3 m12 in true.
 
 End test_m8_over_CoqInterval.
 
-Section test_instrumented_CoqInterval.
+Section test_CoqInterval_add.
 
-Local Notation T0 := F.type.
+Local Notation T := F.type.
 
-Record args := mka { args_add : seq (T0 * T0) ;
-                  args_sqrt : seq T0 ;
-                  args_mul : seq (T0 * T0) ;
-                  args_div : seq (T0 * T0) }.
+Instance add''' : add T := fun a b =>
+  let r1 := F.add rnd_NE 53%bigZ a b in
+  let r2 := F.add rnd_NE 53%bigZ a b in
+  r2.
+Instance : mul T := F.mul rnd_NE 53%bigZ.
+Instance : mul T := F.mul rnd_NE 53%bigZ.
+Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
+Instance : div T := F.div rnd_NE 53%bigZ.
+Instance : opp T := F.neg.
+Instance : zero T := F.zero.
+Instance : one T := Float 1%bigZ 0%bigZ.
 
-Local Notation T := (T0 * args)%type.
+Time Eval vm_compute in let res := cholesky3 m12 in true.
 
-Definition T02T (t : T0) := (t, mka [::] [::] [::] [::]).
+End test_CoqInterval_add.
 
-Infix "++" := catrev.
+Section test_CoqInterval_mul.
 
-Instance add''' : add T :=
-  fun x y => let (a, a') := x in let (b, b') := y in
-  (F.add rnd_NE 53%bigZ a b, mka ((a, b) :: args_add a' ++ args_add b')
-                                 (args_sqrt a' ++ args_sqrt b')
-                                 (args_mul a' ++ args_mul b')
-                                 (args_div a' ++ args_div b')).
+Local Notation T := F.type.
 
-Instance mul''' : mul T :=
-  fun x y => let (a, a') := x in let (b, b') := y in
-  (F.mul rnd_NE 53%bigZ a b, mka (args_add a' ++ args_add b')
-                                 (args_sqrt a' ++ args_sqrt b')
-                                 ((a, b) :: args_mul a' ++ args_mul b')
-                                 (args_div a' ++ args_div b')).
-Instance sqrt''' : sqrt T :=
-  fun x => let (a, a') := x in
-  (F.sqrt rnd_NE 53%bigZ a, mka (args_add a')
-                                 (a :: args_sqrt a')
-                                 (args_mul a')
-                                 (args_div a')).
+Instance mul''' : mul T := fun a b =>
+  let r1 := F.mul rnd_NE 53%bigZ a b in
+  let r2 := F.mul rnd_NE 53%bigZ a b in
+  r2.
+Instance : add T := F.add rnd_NE 53%bigZ.
+Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
+Instance : div T := F.div rnd_NE 53%bigZ.
+Instance : opp T := F.neg.
+Instance : zero T := F.zero.
+Instance : one T := Float 1%bigZ 0%bigZ.
 
-Instance div''' : div T :=
-  fun x y => let (a, a') := x in let (b, b') := y in
-  (F.div rnd_NE 53%bigZ a b, mka (args_add a' ++ args_add b')
-                                 (args_sqrt a' ++ args_sqrt b')
-                                 (args_mul a' ++ args_mul b')
-                                 ((a, b) :: args_div a' ++ args_div b')).
+Time Eval vm_compute in let res := cholesky3 m12 in true.
 
-Instance opp''' : opp T :=
-  fun x => let (a, a') := x in
-  (F.neg a, a').
+End test_CoqInterval_mul.
 
-Instance zero''' : zero T :=
-  (F.zero, mka [::] [::] [::] [::]).
+Section test_CoqInterval_div.
 
-Instance one''' : one T :=
-  (Float 1%bigZ 0%bigZ, mka [::] [::] [::] [::]).
+Local Notation T := F.type.
 
-Definition get_args (s : seq (seq T)) : args :=
-  let s' := map (@snd _ _) (flatten s) in
-  foldl (fun l x =>
-  let '{| args_add := a ; args_sqrt := s ; args_mul := m ; args_div := d |} := x in
-  let '{| args_add := la ; args_sqrt := ls ; args_mul := lm ; args_div := ld |} := l in
-  {| args_add := a ++ la ; args_sqrt := s ++ ls ; args_mul := m ++ lm ; args_div := d ++ ld |})
-  {| args_add := [::] ; args_sqrt := [::] ; args_mul := [::] ; args_div := [::] |} s'.
+Instance div''' : div T := fun a b =>
+  let r1 := F.div rnd_NE 53%bigZ a b in
+  let r2 := F.div rnd_NE 53%bigZ a b in
+  r2.
+Instance : add T := F.add rnd_NE 53%bigZ.
+Instance : mul T := F.mul rnd_NE 53%bigZ.
+Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
+Instance : div T := F.div rnd_NE 53%bigZ.
+Instance : opp T := F.neg.
+Instance : zero T := F.zero.
+Instance : one T := Float 1%bigZ 0%bigZ.
 
-Definition Z2T n := T02T (Float n 0).
+Time Eval vm_compute in let res := cholesky3 m12 in true.
 
-Definition m2'' := [:: [:: Z2T 2; Z2T (-3); Z2T 1]; [:: Z2T (-3); Z2T 5; Z2T 0]; [:: Z2T 1; Z2T 0; Z2T 5]].
+End test_CoqInterval_div.
 
-Definition m2''args := Eval vm_compute in get_args (cholesky3 m2'').
+Section test_CoqInterval_sqrt.
 
-(* Definition m8'args := Eval vm_compute in get_args (cholesky3 (map (map T02T) m4)). *)
+Local Notation T := F.type.
 
-(* Eval vm_compute in seq.size (args_sqrt m8'args). *)
+Instance : div T := F.div rnd_NE 53%bigZ.
+Instance : add T := F.add rnd_NE 53%bigZ.
+Instance : mul T := F.mul rnd_NE 53%bigZ.
+Instance : sqrt T := fun a =>
+  let r1 := F.sqrt rnd_NE 53%bigZ a in
+  let r2 := F.sqrt rnd_NE 53%bigZ a in
+  r2.
+Instance : div T := F.div rnd_NE 53%bigZ.
+Instance : opp T := F.neg.
+Instance : zero T := F.zero.
+Instance : one T := Float 1%bigZ 0%bigZ.
 
-(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
+Time Eval vm_compute in let res := cholesky3 m12 in true.
 
-End test_instrumented_CoqInterval.
+End test_CoqInterval_sqrt.
+
+Section test_CoqInterval_opp.
+
+Local Notation T := F.type.
+
+Instance : div T := F.div rnd_NE 53%bigZ.
+Instance : add T := F.add rnd_NE 53%bigZ.
+Instance : mul T := F.mul rnd_NE 53%bigZ.
+Instance : opp T := fun a =>
+  let r1 := F.neg a in
+  let r2 := F.neg a in
+  r2.
+Instance : div T := F.div rnd_NE 53%bigZ.
+Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
+Instance : zero T := F.zero.
+Instance : one T := Float 1%bigZ 0%bigZ.
+
+Time Eval vm_compute in let res := cholesky3 m12 in true.
+
+End test_CoqInterval_opp.
+
+Section test_CoqInterval_all.
+
+Local Notation T := F.type.
+
+Instance : div T := fun a b =>
+  let r1 := F.div rnd_NE 53%bigZ a b in
+  let r2 := F.div rnd_NE 53%bigZ a b in
+  r2.
+Instance : add T := fun a b =>
+  let r1 := F.add rnd_NE 53%bigZ a b in
+  let r2 := F.add rnd_NE 53%bigZ a b in
+  r2.
+Instance : mul T := fun a b =>
+  let r1 := F.mul rnd_NE 53%bigZ a b in
+  let r2 := F.mul rnd_NE 53%bigZ a b in
+  r2.
+Instance : opp T := fun a =>
+  let r1 := F.neg a in
+  let r2 := F.neg a in
+  r2.
+Instance : div T := fun a b =>
+  let r1 := F.div rnd_NE 53%bigZ a b in
+  let r2 := F.div rnd_NE 53%bigZ a b in
+  r2.
+Instance : sqrt T := fun a =>
+  let r1 := F.sqrt rnd_NE 53%bigZ a in
+  let r2 := F.sqrt rnd_NE 53%bigZ a in
+  r2.
+Instance : zero T := F.zero.
+Instance : one T := Float 1%bigZ 0%bigZ.
+
+Time Eval vm_compute in let res := cholesky3 m12 in true.
+
+End test_CoqInterval_all.
