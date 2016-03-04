@@ -83,6 +83,56 @@ Time Eval vm_compute in is_nan _ _ (fisqrt (b64_normalize (Float radix2 (-1) 0))
 *)
 Definition F64 := binary64_infnan.
 
+
+(** This could (should) be generalized *)
+Let prec := 53%Z.
+Let emax := 1024%Z.
+
+Notation emin := (3 - emax - prec)%Z (only parsing).
+Notation fexp := (FLT_exp emin prec) (only parsing).
+
+Arguments B754_zero [prec] [emax] _.
+Arguments B754_infinity [prec] [emax] _.
+Arguments B754_nan [prec] [emax] _ _.
+Arguments B754_finite [prec] [emax] _ _ _ _.
+
+Check (FF2B, B2FF, FF2B_B2FF, B2FF_inj, valid_binary_B2FF).
+
+Arguments FF2B [prec] [emax] _ _.
+Arguments B2FF [prec] [emax] _.
+
+Definition FF2B' prec emax x : binary_float prec emax :=
+  match sumb (valid_binary prec emax x) with
+  | left prf => FF2B x prf
+  | right _ => (* DUMMY *) B754_zero false
+  end.
+
+Arguments FF2B' [prec] [emax] _.
+
+Lemma non_pl_inj (n : Z) (p1 p2 : nan_pl n) :
+  proj1_sig p1 = proj1_sig p2 -> p1 = p2.
+Proof.
+intros H; destruct p1 as [r1 H1]; destruct p2 as [r2 H2].
+simpl in H; revert H1; rewrite H; intros H1; f_equal.
+now apply eqbool_irrelevance.
+Qed.
+
+Lemma FF2B'_B2FF : (@FF2B' prec emax) \o (@B2FF prec emax) =1 id.
+Proof.
+case=>//.
+- simpl=> b [p Hp]; rewrite /FF2B'.
+  case: sumb => prf.
+  - congr B754_nan.
+    exact: non_pl_inj.
+  - rewrite /valid_binary in prf.
+    by rewrite Hp in prf.
+- move=> b m e Hme /=; rewrite /FF2B'.
+  case: sumb => prf /=.
+  - congr B754_finite; exact: eqbool_irrelevance.
+  - rewrite /valid_binary in prf.
+    by rewrite Hme in prf.
+Qed.
+
 (********************************************************************)
 (** Test #1 (Function) & #2 (Fixpoint) using [binary_float 53 1024] *)
 (********************************************************************)
@@ -329,17 +379,134 @@ Import Refinements.Op.
 
 Class sqrt T := sqrt_op : T -> T.
 
+Class store_class A I B :=
+  store : forall (m n : nat), B m n -> I m -> I n -> A -> B m n.
+
+Class dotmulB0_class A I B :=
+  dotmulB0 : forall n : nat, I n -> A -> B 1%nat n -> B 1%nat n -> A.
+
 (*
 Local Open Scope ring_scope.
 Open Scope computable_scope.
 Open Scope hetero_computable_scope.
 *)
 
-Section seq_algos_over_T.
+Section generic_algos.
 Variable T : Type.
+Variable I : nat -> Type.
+Variable mxT : nat -> nat -> Type.
+Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
+Context `{!fun_of T I mxT, !row_class I mxT, !store_class T I mxT, !dotmulB0_class T I mxT}.
 
+Variable n : nat.
+
+Definition ytilded3 (k : I n) c a b bk := (dotmulB0 k c a b / bk)%C.
+
+Definition ytildes3 (k : I n) c a := (sqrt_op (dotmulB0 k c a a)).
+
+(*
+Definition m_id_v3 : seq (seq T) := [:: [:: 1%C; 0%C]; [:: 0%C; 1%C]].
+Definition m_0_v3 := [:: [:: 0%C; 0%C]; [:: 0%C; 0%C]].
+*)
+
+(** Time Eval vm_compute in map (map B2F) (store m_id 0 1 half). *)
+
+(** Require Import Recdef. **)
+
+Local Open Scope nat_scope.
+Variable nat_of : I n -> nat.
+Variable succ0 : I n -> I n.
+Variable I0 : I n.
+(*
+Definition succ0 (n : nat) (i : 'I_n.+1) : 'I_n.+1 :=
+  match sumb ((val i).+1 < n.+1)%N with
+  | left prf => Ordinal prf
+  | right _ => ord0
+  end.
+*)
+Hypothesis Hsucc0 : forall i : I n, (nat_of i).+1 < n -> nat_of (succ0 i) = (nat_of i).+1.
+
+(* note: R is transposed with respect to cholesky.v *)
+Section InnerLoop.
+Variable j : I n.
+
+(*
+Function inner_loop0 A R (i : nat)
+         {measure (fun i => (j - i)%N) i} :=
+  if (i < j)%N then
+    let R := store R j i (seq_ytilded i (nth FI0 (nth [::] A i) j)
+                                      (nth [::] R i) (nth [::] R j)
+                                      (nth FI0 (nth [::] R i) i)) in
+    inner_loop0 A R (i + 1)
+  else
+    R.
+move=> _ _ i H; apply /ltP; rewrite addn1 subnSK //.
+Defined.
+*)
+Fixpoint inner_loop_rec3 (k : nat) A R (i : I n) {struct k} :=
+  match k with
+  | O (* i >= j) *) => R
+  | S k => let R := store R j i (ytilded3 i (fun_of_matrix A i j)
+                                          (row i R) (row j R)
+                                          (fun_of_matrix R i i)) in
+           inner_loop_rec3 k A R (succ0 i)
+  end.
+Definition inner_loop3 A R i := inner_loop_rec3 (nat_of j - nat_of i) A R i.
+
+End InnerLoop.
+
+Section OuterLoop.
+(*
+Function outer_loop0 A R (j : nat)
+         {measure (fun i => (n - j)%N) j} :=
+  if (j < n)%N then
+    let R := inner_loop j A R 0 in
+    let R := store R j j (seq_ytildes j (nth FI0 (nth [::] A j) j)
+                                      (nth [::] R j)) in
+    outer_loop0 A R (j + 1)
+  else
+    R.
+move=> _ _ j H; apply /ltP; rewrite addn1 subnSK //.
+Defined.
+*)
+Fixpoint outer_loop_rec3 k A R (j : I n) {struct k} :=
+  match k with
+  | O (* j >= n *) => R
+  | S k =>
+    let R := inner_loop3 j A R I0 in
+    let R := store R j j (ytildes3 j (fun_of_matrix A j j)
+                                    (row j R)) in
+    outer_loop_rec3 k A R (succ0 j)
+  end.
+Definition outer_loop3 A R j := outer_loop_rec3 (n - nat_of j) A R j.
+End OuterLoop.
+
+(* note: the result is transposed with respect to cholesky.v *)
+(*
+Definition cholesky0 A :=
+  let sz := size A in
+  outer_loop0 sz A A 0.
+*)
+Definition cholesky3 A :=
+  outer_loop3 A A I0.
+
+End generic_algos.
+
+Section inst_seq.
+
+Variable T : Type.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
 
+Let I (n : nat) := nat.
+Let mxT (m n : nat) := seq (seq T).
+
+Instance : fun_of T I mxT := fun m n M i j =>
+  nth 0%C (nth [::] M i) j.
+
+Instance : row_class I mxT := fun m n i M =>
+  [:: nth [::] M i].
+
+(* seq_stilde3 *)
 Fixpoint seq_stilde3 k c a b :=
   match k, a, b with
     | O, _, _ => c
@@ -348,9 +515,8 @@ Fixpoint seq_stilde3 k c a b :=
     | S k, a1 :: a2, b1 :: b2 => seq_stilde3 k (c + (- (a1 * b1)))%C a2 b2
   end.
 
-Definition seq_ytilded3 k c a b bk := (seq_stilde3 k c a b / bk)%C.
-
-Definition seq_ytildes3 k c a := (sqrt_op (seq_stilde3 k c a a)).
+Instance : dotmulB0_class T I mxT :=
+  fun n k c a b => seq_stilde3 k c (head [::] a) (head [::] b).
 
 Fixpoint seq_store3 T s n (v : T) :=
   match n, s with
@@ -366,136 +532,18 @@ Fixpoint store3 T m i j (v : T) :=
     | S i, h :: t => h :: store3 t i j v
   end.
 
-Definition m_id_v3 : seq (seq T) := [:: [:: 1%C; 0%C]; [:: 0%C; 1%C]].
-Definition m_0_v3 := [:: [:: 0%C; 0%C]; [:: 0%C; 0%C]].
+Instance : !store_class T I mxT :=
+  fun m n M i j v =>
+  store3 M i j v.
 
-(** Time Eval vm_compute in map (map B2F) (store m_id 0 1 half). *)
+Definition cholesky4 (n : nat) :=
+  @cholesky3 T _ _ _ _ _ _ _ _ n id S O.
 
-(** Require Import Recdef. **)
-
-(* note: R is transposed with respect to cholesky.v *)
-Section InnerLoop.
-Variable j : nat.
-
-(*
-Function inner_loop0 A R (i : nat)
-         {measure (fun i => (j - i)%N) i} :=
-  if (i < j)%N then
-    let R := store R j i (seq_ytilded i (nth FI0 (nth [::] A i) j)
-                                      (nth [::] R i) (nth [::] R j)
-                                      (nth FI0 (nth [::] R i) i)) in
-    inner_loop0 A R (i + 1)
-  else
-    R.
-move=> _ _ i H; apply /ltP; rewrite addn1 subnSK //.
-Defined.
-*)
-
-Fixpoint inner_loop_rec3 (k : nat) A R (i : nat) {struct k} :=
-  match k with
-  | O (* i >= j) *) => R
-  | S k => let R := store3 R j i (seq_ytilded3 i (nth 0%C (nth [::] A i) j)
-                                             (nth [::] R i) (nth [::] R j)
-                                             (nth 0%C (nth [::] R i) i)) in
-           inner_loop_rec3 k A R (S i)
-  end.
-Definition inner_loop3 A R i := inner_loop_rec3 (j - i) A R i.
-
-End InnerLoop.
-
-Section OuterLoop.
-Variable n : nat.
-(*
-Function outer_loop0 A R (j : nat)
-         {measure (fun i => (n - j)%N) j} :=
-  if (j < n)%N then
-    let R := inner_loop j A R 0 in
-    let R := store R j j (seq_ytildes j (nth FI0 (nth [::] A j) j)
-                                      (nth [::] R j)) in
-    outer_loop0 A R (j + 1)
-  else
-    R.
-move=> _ _ j H; apply /ltP; rewrite addn1 subnSK //.
-Defined.
-*)
-Fixpoint outer_loop_rec3 k A R (j : nat) {struct k} :=
-  match k with
-  | O (* j >= n *) => R
-  | S k =>
-    let R := inner_loop3 j A R 0 in
-    let R := store3 R j j (seq_ytildes3 j (nth 0%C (nth [::] A j) j)
-                                      (nth [::] R j)) in
-    outer_loop_rec3 k A R (j + 1)
-  end.
-Definition outer_loop3 A R j := outer_loop_rec3 (n - j) A R j.
-End OuterLoop.
-
-(* note: the result is transposed with respect to cholesky.v *)
-(*
-Definition cholesky0 A :=
-  let sz := size A in
-  outer_loop0 sz A A 0.
-*)
-Definition cholesky3 A :=
-  let sz := seq.size A in
-  outer_loop3 sz A A 0.
-
-End seq_algos_over_T.
+End inst_seq.
 
 Section test_m8_over_float.
 
-(** This could (should) be generalized *)
-Let prec := 53%Z.
-Let emax := 1024%Z.
-
-Notation emin := (3 - emax - prec)%Z (only parsing).
-Notation fexp := (FLT_exp emin prec) (only parsing).
-
-Arguments B754_zero [prec] [emax] _.
-Arguments B754_infinity [prec] [emax] _.
-Arguments B754_nan [prec] [emax] _ _.
-Arguments B754_finite [prec] [emax] _ _ _ _.
-
-Check (FF2B, B2FF, FF2B_B2FF, B2FF_inj, valid_binary_B2FF).
-
-Arguments FF2B [prec] [emax] _ _.
-Arguments B2FF [prec] [emax] _.
-
-Definition FF2B' prec emax x : binary_float prec emax :=
-  match sumb (valid_binary prec emax x) with
-  | left prf => FF2B x prf
-  | right _ => (* DUMMY *) B754_zero false
-  end.
-
-Arguments FF2B' [prec] [emax] _.
-
-Lemma non_pl_inj (n : Z) (p1 p2 : nan_pl n) :
-  proj1_sig p1 = proj1_sig p2 -> p1 = p2.
-Proof.
-intros H; destruct p1 as [r1 H1]; destruct p2 as [r2 H2].
-simpl in H; revert H1; rewrite H; intros H1; f_equal.
-now apply eqbool_irrelevance.
-Qed.
-
-Lemma FF2B'_B2FF : (@FF2B' prec emax) \o (@B2FF prec emax) =1 id.
-Proof.
-case=>//.
-- simpl=> b [p Hp]; rewrite /FF2B'.
-  case: sumb => prf.
-  - congr B754_nan.
-    exact: non_pl_inj.
-  - rewrite /valid_binary in prf.
-    by rewrite Hp in prf.
-- move=> b m e Hme /=; rewrite /FF2B'.
-  case: sumb => prf /=.
-  - congr B754_finite; exact: eqbool_irrelevance.
-  - rewrite /valid_binary in prf.
-    by rewrite Hme in prf.
-Qed.
-
-(** Now let us focus on the instantiation of [seq_algos_over_T] *)
 Local Notation T := full_float.
-
 (*
 (* Laurent.Théry's trick *)
 Definition hide_let (A B : Type) (a : A) (v : A -> B) := let x := a in v x.
@@ -7655,7 +7703,7 @@ Instance opp'' : opp T := F.neg.
 Instance zero'' : zero T := F.zero.
 Instance one'' : one T := Float 1%bigZ 0%bigZ.
 
-Time Eval vm_compute in let res := cholesky3 m12 in true.
+(* Fail Time Eval vm_compute in let res := cholesky3 m12 in true. *)
 
 End test_m8_over_CoqInterval.
 
@@ -7674,7 +7722,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-Time Eval vm_compute in let res := cholesky3 m12 in true.
+(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
 
 End test_CoqInterval_add.
 
@@ -7693,7 +7741,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-Time Eval vm_compute in let res := cholesky3 m12 in true.
+(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
 
 End test_CoqInterval_mul.
 
@@ -7712,7 +7760,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-Time Eval vm_compute in let res := cholesky3 m12 in true.
+(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
 
 End test_CoqInterval_div.
 
@@ -7731,7 +7779,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-Time Eval vm_compute in let res := cholesky3 m12 in true.
+(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
 
 End test_CoqInterval_sqrt.
 
@@ -7750,7 +7798,7 @@ Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-Time Eval vm_compute in let res := cholesky3 m12 in true.
+(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
 
 End test_CoqInterval_opp.
 
@@ -7781,7 +7829,7 @@ Instance : sqrt T := fun a =>
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-Time Eval vm_compute in let res := cholesky3 m12 in true.
+(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
 
 End test_CoqInterval_all.
 
@@ -7802,6 +7850,6 @@ Instance : sqrt T := fun a =>
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-Time Eval vm_compute in let res := cholesky3 m12 in true.
+(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
 
 End test_CoqInterval_none.
