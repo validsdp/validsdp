@@ -16,7 +16,7 @@
 ** TODO Data refinement proof: Get a similar proof with the seq-seq instantiation :Erik:
 - Use cholesky_prog.v and/or CoqEAL
 ** TODO Make all computation effective (small functions to write)      :Erik:
- - Use the propos Rounding mode
+- Use the proper Rounding mode
 ** TODO Design a reflexive tactic for posdef			       :Erik:
 ** TODO Make more benchmarks					:Pierre:Erik:
 * SOS/SDP
