@@ -1,10 +1,22 @@
-* TODO Fonctions à rendre effectives
+* Cholesky
+** DONE Fonctions à rendre effectives
+   CLOSED: [2016-03-04 Fri 15:51]
 - [X] en s'appuyant sur l'implantation Float_spec dans binary64_infnan.v
-- [ ] fsum_l2r_rec
-- [ ] fsum_l2r
-- [ ] fcmdotprod_l2r
-- [ ] stilde
-- [ ] ytilded
-- [ ] ytildes
-- [ ] inner_loop
-- [ ] outer_loop
+- [X] fsum_l2r_rec
+- [X] fsum_l2r
+- [X] fcmdotprod_l2r
+- [X] stilde
+- [X] ytilded
+- [X] ytildes
+- [X] inner_loop
+- [X] outer_loop
+** TODO [#A] Instantiate cholesky3 with ssr matrices		     :Pierre:
+** TODO [#A] Restate cholesky.v theorem/corollary with this ssr matrices instantiation :Pierre:
+** TODO Prove previous item					     :Pierre:
+** TODO Data refinement proof: Get a similar proof with the seq-seq instantiation :Erik:
+- Use cholesky_prog.v and/or CoqEAL
+** TODO Make all computation effective (small functions to write)      :Erik:
+ - Use the propos Rounding mode
+** TODO Design a reflexive tactic for posdef			       :Erik:
+** TODO Make more benchmarks					:Pierre:Erik:
+* SOS/SDP
