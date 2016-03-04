@@ -7658,3 +7658,77 @@ Instance one'' : one T := Float 1%bigZ 0%bigZ.
 Time Eval vm_compute in let res := cholesky3 m12 in true.
 
 End test_m8_over_CoqInterval.
+
+Section test_instrumented_CoqInterval.
+
+Local Notation T0 := F.type.
+
+Record args := mka { args_add : seq (T0 * T0) ;
+                  args_sqrt : seq T0 ;
+                  args_mul : seq (T0 * T0) ;
+                  args_div : seq (T0 * T0) }.
+
+Local Notation T := (T0 * args)%type.
+
+Definition T02T (t : T0) := (t, mka [::] [::] [::] [::]).
+
+Infix "++" := catrev.
+
+Instance add''' : add T :=
+  fun x y => let (a, a') := x in let (b, b') := y in
+  (F.add rnd_NE 53%bigZ a b, mka ((a, b) :: args_add a' ++ args_add b')
+                                 (args_sqrt a' ++ args_sqrt b')
+                                 (args_mul a' ++ args_mul b')
+                                 (args_div a' ++ args_div b')).
+
+Instance mul''' : mul T :=
+  fun x y => let (a, a') := x in let (b, b') := y in
+  (F.mul rnd_NE 53%bigZ a b, mka (args_add a' ++ args_add b')
+                                 (args_sqrt a' ++ args_sqrt b')
+                                 ((a, b) :: args_mul a' ++ args_mul b')
+                                 (args_div a' ++ args_div b')).
+Instance sqrt''' : sqrt T :=
+  fun x => let (a, a') := x in
+  (F.sqrt rnd_NE 53%bigZ a, mka (args_add a')
+                                 (a :: args_sqrt a')
+                                 (args_mul a')
+                                 (args_div a')).
+
+Instance div''' : div T :=
+  fun x y => let (a, a') := x in let (b, b') := y in
+  (F.div rnd_NE 53%bigZ a b, mka (args_add a' ++ args_add b')
+                                 (args_sqrt a' ++ args_sqrt b')
+                                 (args_mul a' ++ args_mul b')
+                                 ((a, b) :: args_div a' ++ args_div b')).
+
+Instance opp''' : opp T :=
+  fun x => let (a, a') := x in
+  (F.neg a, a').
+
+Instance zero''' : zero T :=
+  (F.zero, mka [::] [::] [::] [::]).
+
+Instance one''' : one T :=
+  (Float 1%bigZ 0%bigZ, mka [::] [::] [::] [::]).
+
+Definition get_args (s : seq (seq T)) : args :=
+  let s' := map (@snd _ _) (flatten s) in
+  foldl (fun l x =>
+  let '{| args_add := a ; args_sqrt := s ; args_mul := m ; args_div := d |} := x in
+  let '{| args_add := la ; args_sqrt := ls ; args_mul := lm ; args_div := ld |} := l in
+  {| args_add := a ++ la ; args_sqrt := s ++ ls ; args_mul := m ++ lm ; args_div := d ++ ld |})
+  {| args_add := [::] ; args_sqrt := [::] ; args_mul := [::] ; args_div := [::] |} s'.
+
+Definition Z2T n := T02T (Float n 0).
+
+Definition m2'' := [:: [:: Z2T 2; Z2T (-3); Z2T 1]; [:: Z2T (-3); Z2T 5; Z2T 0]; [:: Z2T 1; Z2T 0; Z2T 5]].
+
+Definition m2''args := Eval vm_compute in get_args (cholesky3 m2'').
+
+(* Definition m8'args := Eval vm_compute in get_args (cholesky3 (map (map T02T) m4)). *)
+
+(* Eval vm_compute in seq.size (args_sqrt m8'args). *)
+
+(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
+
+End test_instrumented_CoqInterval.
