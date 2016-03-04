@@ -96,7 +96,7 @@ Arguments B754_infinity [prec] [emax] _.
 Arguments B754_nan [prec] [emax] _ _.
 Arguments B754_finite [prec] [emax] _ _ _ _.
 
-Check (FF2B, B2FF, FF2B_B2FF, B2FF_inj, valid_binary_B2FF).
+(* Check (FF2B, B2FF, FF2B_B2FF, B2FF_inj, valid_binary_B2FF). *)
 
 Arguments FF2B [prec] [emax] _ _.
 Arguments B2FF [prec] [emax] _.
@@ -298,8 +298,6 @@ Fixpoint eval_op_l2 A (bop : A -> A -> A) l :=
 
 Definition m2_sub := Eval vm_compute in map B2F (cholesky2_args m2').1.1.1.2.
 
-Print m2_sub.
-
 Require Import Interval_float_sig.
 Require Import Interval_specific_ops.
 Require Import Interval_interval.
@@ -308,7 +306,7 @@ Require Import Interval_bigint_carrier.
 Require Import Interval_definitions.
 Module F := SpecificFloat BigIntRadix2.
 Require Import BigZ.
-Print Module F.
+(* Print Module F. *)
 Local Open Scope bigZ_scope.
 
 (* Time Eval vm_compute in map (map B2F) (cholesky2 (map64 m8')). (* ~13 s *) *)
@@ -327,7 +325,7 @@ Definition F2bigF (f : float radix2) :=
 
 Definition m2_sub' := Eval vm_compute in map F2bigF m2_sub.
 
-Time Eval vm_compute in eval_op_l2 (fun a b => F.add rnd_NE 53%bigZ a (F.neg b)) m2_sub'.
+(* Time Eval vm_compute in eval_op_l2 (fun a b => F.add rnd_NE 53%bigZ a (F.neg b)) m2_sub'. *)
 
 End test_CoqInterval_0.
 
@@ -7712,7 +7710,9 @@ Instance opp'' : opp T := F.neg.
 Instance zero'' : zero T := F.zero.
 Instance one'' : one T := Float 1%bigZ 0%bigZ.
 
+Goal True. idtac "test_CoqInterval". done. Qed.
 Time Eval vm_compute in let res := cholesky4 m12 in tt.
+(* 6.7 s on Erik's laptop *)
 
 End test_CoqInterval.
 
@@ -7731,6 +7731,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
+Goal True. idtac "test_CoqInterval_add". done. Qed.
 Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_add.
@@ -7750,6 +7751,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
+Goal True. idtac "test_CoqInterval_mul". done. Qed.
 Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_mul.
@@ -7769,6 +7771,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
+Goal True. idtac "test_CoqInterval_div". done. Qed.
 Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_div.
@@ -7788,6 +7791,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
+Goal True. idtac "test_CoqInterval_sqrt". done. Qed.
 Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_sqrt.
@@ -7807,6 +7811,7 @@ Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
+Goal True. idtac "test_CoqInterval_opp". done. Qed.
 Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_opp.
@@ -7838,6 +7843,7 @@ Instance : sqrt T := fun a =>
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
+Goal True. idtac "test_CoqInterval_all". done. Qed.
 Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_all.
@@ -7859,6 +7865,7 @@ Instance : sqrt T := fun a =>
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
+Goal True. idtac "test_CoqInterval_none". done. Qed.
 Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_none.
