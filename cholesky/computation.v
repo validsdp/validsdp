@@ -385,6 +385,21 @@ Class store_class A I B :=
 Class dotmulB0_class A I B :=
   dotmulB0 : forall n : nat, I n -> A -> B 1%nat n -> B 1%nat n -> A.
 
+Implicit Types n : nat.
+
+Class I0_class I n := I0 : I n.
+Class succ0_class I n := succ0 : I n -> I n.
+(*
+Example of instantiation for SSR matrices:
+
+Definition succ0 (n : nat) (i : 'I_n.+1) : 'I_n.+1 :=
+  match sumb ((val i).+1 < n.+1)%N with
+  | left prf => Ordinal prf
+  | right _ => ord0
+  end.
+*)
+Class nat_of_class I n := nat_of : I n -> nat.
+
 (*
 Local Open Scope ring_scope.
 Open Scope computable_scope.
@@ -395,10 +410,12 @@ Section generic_algos.
 Variable T : Type.
 Variable I : nat -> Type.
 Variable mxT : nat -> nat -> Type.
-Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
+Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !mul T, !div T, !sqrt T}.
 Context `{!fun_of T I mxT, !row_class I mxT, !store_class T I mxT, !dotmulB0_class T I mxT}.
 
 Variable n : nat.
+Context `{!I0_class I n, !succ0_class I n, !nat_of_class I n}.
+Local Open Scope nat_scope.
 
 Definition ytilded3 (k : I n) c a b bk := (dotmulB0 k c a b / bk)%C.
 
@@ -413,17 +430,6 @@ Definition m_0_v3 := [:: [:: 0%C; 0%C]; [:: 0%C; 0%C]].
 
 (** Require Import Recdef. **)
 
-Local Open Scope nat_scope.
-Variable nat_of : I n -> nat.
-Variable succ0 : I n -> I n.
-Variable I0 : I n.
-(*
-Definition succ0 (n : nat) (i : 'I_n.+1) : 'I_n.+1 :=
-  match sumb ((val i).+1 < n.+1)%N with
-  | left prf => Ordinal prf
-  | right _ => ord0
-  end.
-*)
 Hypothesis Hsucc0 : forall i : I n, (nat_of i).+1 < n -> nat_of (succ0 i) = (nat_of i).+1.
 
 (* note: R is transposed with respect to cholesky.v *)
@@ -500,6 +506,12 @@ Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T
 Let I (n : nat) := nat.
 Let mxT (m n : nat) := seq (seq T).
 
+Variable n : nat.
+
+Instance : I0_class I n := O.
+Instance : succ0_class I n := S.
+Instance : nat_of_class I n := id.
+
 Instance : fun_of T I mxT := fun m n M i j =>
   nth 0%C (nth [::] M i) j.
 
@@ -537,7 +549,7 @@ Instance : !store_class T I mxT :=
   store3 M i j v.
 
 Definition cholesky4 (n : nat) :=
-  @cholesky3 T _ _ _ _ _ _ _ _ n id S O.
+  Eval simpl in @cholesky3 T _ _ _ _ _ _ _ _ n O S id.
 
 End inst_seq.
 
@@ -607,7 +619,6 @@ Definition FF2F (x : full_float) : float radix2 :=
   (* Warning: loss of information *)
   | _ => Fcore_defs.Float radix2 0 0
   end.
-
 
 End test_m8_over_float.
 
@@ -7691,7 +7702,7 @@ Definition m12 := (* map (map b64_normalize) *)
 
 (* Time Eval vm_compute in map (map B2F) (cholesky2 (map64 m12)). *)
 
-Section test_m8_over_CoqInterval.
+Section test_CoqInterval.
 
 Local Notation T := F.type.
 
@@ -7703,9 +7714,11 @@ Instance opp'' : opp T := F.neg.
 Instance zero'' : zero T := F.zero.
 Instance one'' : one T := Float 1%bigZ 0%bigZ.
 
-(* Fail Time Eval vm_compute in let res := cholesky3 m12 in true. *)
+(* Fail Definition cholesky4' := Eval hnf in cholesky4. *)
 
-End test_m8_over_CoqInterval.
+(* Fail Time Eval vm_compute in let res := cholesky4 m12 in true. *)
+
+End test_CoqInterval.
 
 Section test_CoqInterval_add.
 
