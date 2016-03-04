@@ -242,7 +242,7 @@ Definition m2' := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; 
 
 Fixpoint eval_op_l2 A (bop : A -> A -> A) l :=
   match l with
-    | a1 :: a2 :: l => (bop a1 a2) :: l
+    | a1 :: a2 :: l => (bop a1 a2) :: eval_op_l2 bop l
     | _ => [::]
   end.
 
@@ -302,7 +302,7 @@ Definition m8_mul := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).1.1
 
 Eval vm_compute in length (m8_mul).
 
-Time Eval vm_compute in let res := map B2F (eval_op_l2 (fun a b => fiplus a (fiopp b)) (map b64_normalize m8_mul)) in true.
+Time Eval vm_compute in let res := map B2F (eval_op_l2 fimult (map b64_normalize m8_mul)) in true.
 
 Definition m8_div := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).1.2.
 
@@ -314,7 +314,7 @@ Definition m8_sqrt := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).2.
 
 Eval vm_compute in length (m8_sqrt).
 
-Time Eval vm_compute in let res := map B2F (map fisqrt (map b64_normalize m8_div)) in true.
+Time Eval vm_compute in let res := map B2F (map fisqrt (map b64_normalize m8_sqrt)) in true.
 
 End Test_m8_args.
 *)
