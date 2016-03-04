@@ -407,14 +407,12 @@ Open Scope hetero_computable_scope.
 *)
 
 Section generic_algos.
-Variable T : Type.
-Variable I : nat -> Type.
-Variable mxT : nat -> nat -> Type.
+Context {T : Type} {I : nat -> Type} {mxT : nat -> nat -> Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !mul T, !div T, !sqrt T}.
 Context `{!fun_of T I mxT, !row_class I mxT, !store_class T I mxT, !dotmulB0_class T I mxT}.
-
 Variable n : nat.
 Context `{!I0_class I n, !succ0_class I n, !nat_of_class I n}.
+
 Local Open Scope nat_scope.
 
 Definition ytilded3 (k : I n) c a b bk := (dotmulB0 k c a b / bk)%C.
@@ -500,17 +498,11 @@ End generic_algos.
 
 Section inst_seq.
 
-Variable T : Type.
+Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
 
 Let I (n : nat) := nat.
 Let mxT (m n : nat) := seq (seq T).
-
-Variable n : nat.
-
-Instance : I0_class I n := O.
-Instance : succ0_class I n := S.
-Instance : nat_of_class I n := id.
 
 Instance : fun_of T I mxT := fun m n M i j =>
   nth 0%C (nth [::] M i) j.
@@ -544,12 +536,18 @@ Fixpoint store3 T m i j (v : T) :=
     | S i, h :: t => h :: store3 t i j v
   end.
 
-Instance : !store_class T I mxT :=
+Instance : store_class T I mxT :=
   fun m n M i j v =>
   store3 M i j v.
 
-Definition cholesky4 (n : nat) :=
-  Eval simpl in @cholesky3 T _ _ _ _ _ _ _ _ n O S id.
+Variable M : seq (seq T).
+Let n := seq.size M.
+Instance : I0_class I n := O.
+Instance : succ0_class I n := S.
+Instance : nat_of_class I n := id.
+
+Definition cholesky4 : seq (seq T) :=
+  @cholesky3 T I mxT _ _ _ _ _ _ n O S id M.
 
 End inst_seq.
 
@@ -7704,7 +7702,7 @@ Definition m12 := (* map (map b64_normalize) *)
 
 Section test_CoqInterval.
 
-Local Notation T := F.type.
+Local Notation T := (s_float BigZ.t_ BigZ.t_).
 
 Instance add'' : add T := F.add rnd_NE 53%bigZ.
 Instance mul'' : mul T := F.mul rnd_NE 53%bigZ.
@@ -7714,9 +7712,7 @@ Instance opp'' : opp T := F.neg.
 Instance zero'' : zero T := F.zero.
 Instance one'' : one T := Float 1%bigZ 0%bigZ.
 
-(* Fail Definition cholesky4' := Eval hnf in cholesky4. *)
-
-(* Fail Time Eval vm_compute in let res := cholesky4 m12 in true. *)
+Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval.
 
@@ -7735,7 +7731,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
+Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_add.
 
@@ -7754,7 +7750,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
+Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_mul.
 
@@ -7773,7 +7769,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
+Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_div.
 
@@ -7792,7 +7788,7 @@ Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
+Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_sqrt.
 
@@ -7811,7 +7807,7 @@ Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
+Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_opp.
 
@@ -7842,7 +7838,7 @@ Instance : sqrt T := fun a =>
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
+Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_all.
 
@@ -7863,6 +7859,6 @@ Instance : sqrt T := fun a =>
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
-(* Time Eval vm_compute in let res := cholesky3 m12 in true. *)
+Time Eval vm_compute in let res := cholesky4 m12 in tt.
 
 End test_CoqInterval_none.
