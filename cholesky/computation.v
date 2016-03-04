@@ -7663,11 +7663,10 @@ Section test_CoqInterval_add.
 
 Local Notation T := F.type.
 
-Instance add''' : add T := fun a b =>
+Instance : add T := fun a b =>
   let r1 := F.add rnd_NE 53%bigZ a b in
   let r2 := F.add rnd_NE 53%bigZ a b in
   r2.
-Instance : mul T := F.mul rnd_NE 53%bigZ.
 Instance : mul T := F.mul rnd_NE 53%bigZ.
 Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
 Instance : div T := F.div rnd_NE 53%bigZ.
@@ -7683,7 +7682,7 @@ Section test_CoqInterval_mul.
 
 Local Notation T := F.type.
 
-Instance mul''' : mul T := fun a b =>
+Instance : mul T := fun a b =>
   let r1 := F.mul rnd_NE 53%bigZ a b in
   let r2 := F.mul rnd_NE 53%bigZ a b in
   r2.
@@ -7702,14 +7701,13 @@ Section test_CoqInterval_div.
 
 Local Notation T := F.type.
 
-Instance div''' : div T := fun a b =>
-  let r1 := F.div rnd_NE 53%bigZ a b in
-  let r2 := F.div rnd_NE 53%bigZ a b in
-  r2.
 Instance : add T := F.add rnd_NE 53%bigZ.
 Instance : mul T := F.mul rnd_NE 53%bigZ.
 Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
-Instance : div T := F.div rnd_NE 53%bigZ.
+Instance : div T := fun a b =>
+  let r1 := F.div rnd_NE 53%bigZ a b in
+  let r2 := F.div rnd_NE 53%bigZ a b in
+  r2.
 Instance : opp T := F.neg.
 Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
@@ -7722,7 +7720,6 @@ Section test_CoqInterval_sqrt.
 
 Local Notation T := F.type.
 
-Instance : div T := F.div rnd_NE 53%bigZ.
 Instance : add T := F.add rnd_NE 53%bigZ.
 Instance : mul T := F.mul rnd_NE 53%bigZ.
 Instance : sqrt T := fun a =>
@@ -7742,7 +7739,6 @@ Section test_CoqInterval_opp.
 
 Local Notation T := F.type.
 
-Instance : div T := F.div rnd_NE 53%bigZ.
 Instance : add T := F.add rnd_NE 53%bigZ.
 Instance : mul T := F.mul rnd_NE 53%bigZ.
 Instance : opp T := fun a =>
@@ -7762,10 +7758,6 @@ Section test_CoqInterval_all.
 
 Local Notation T := F.type.
 
-Instance : div T := fun a b =>
-  let r1 := F.div rnd_NE 53%bigZ a b in
-  let r2 := F.div rnd_NE 53%bigZ a b in
-  r2.
 Instance : add T := fun a b =>
   let r1 := F.add rnd_NE 53%bigZ a b in
   let r2 := F.add rnd_NE 53%bigZ a b in
@@ -7792,3 +7784,24 @@ Instance : one T := Float 1%bigZ 0%bigZ.
 Time Eval vm_compute in let res := cholesky3 m12 in true.
 
 End test_CoqInterval_all.
+
+Section test_CoqInterval_none.
+
+Local Notation T := F.type.
+
+Instance : add T := fun a b =>
+  a.
+Instance : mul T := fun a b =>
+  a.
+Instance : opp T := fun a =>
+  a.
+Instance : div T := fun a b =>
+  a.
+Instance : sqrt T := fun a =>
+  a.
+Instance : zero T := F.zero.
+Instance : one T := Float 1%bigZ 0%bigZ.
+
+Time Eval vm_compute in let res := cholesky3 m12 in true.
+
+End test_CoqInterval_none.
