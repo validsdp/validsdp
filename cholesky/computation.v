@@ -97,9 +97,32 @@ Fixpoint seq_stilde0 k c a b :=
     | S k, a1 :: a2, b1 :: b2 => seq_stilde0 k (fiplus c (fiopp (fimult a1 b1))) a2 b2
   end.
 
+(* retourne un triplet (résultat, args soustractions, args produits) *)
+Fixpoint seq_stilde0_args k c a b :=
+  match k, a, b with
+    | O, _, _ => c
+    | S k, [::], _ => c
+    | S k, _, [::] => c
+    | S k, a1 :: a2, b1 :: b2 =>
+      let m := fimult a1 b1 in
+      seq_stilde0_args k
+        ((fiplus c.1.1 (fiopp m)), (c.1.1 :: m :: c.1.2), (a1 :: b1 :: c.2))
+        a2 b2
+  end.
+
 Definition seq_ytilded0 k c a b bk := fidiv (seq_stilde0 k c a b) bk.
 
+(* retourne (résultat, args soustractions, args produits, args div) *)
+Definition seq_ytilded0_args k c a b bk :=
+  let st := seq_stilde0_args k c a b in
+  ((fidiv st.1.1 bk), st.1.2, st.2, [:: st.1.1; bk]).
+
 Definition seq_ytildes0 k c a := fisqrt (seq_stilde0 k c a a).
+
+(* retourne (résultat, args soustractions, args produits, args sqrt) *)
+Definition seq_ytildes0_args k c a :=
+  let st := seq_stilde0_args k c a a in
+  ((fisqrt st.1.1), st.1.2, st.2, [:: st.1.1]).
 
 Fixpoint seq_store0 T s n (v : T) :=
   match n, s with
@@ -147,6 +170,18 @@ Fixpoint inner_loop_rec2 (k : nat) A R (i : nat) {struct k} :=
   end.
 Definition inner_loop2 A R i := inner_loop_rec2 (j - i) A R i.
 
+(* retourne (résultat, args soustraction, args produit, args div) *)
+Fixpoint inner_loop_rec2_args (k : nat) A R a_sub a_mul a_div (i : nat) {struct k} :=
+  match k with
+  | O (* i >= j) *) => (R, a_sub, a_mul, a_div)
+  | S k => let st := (seq_ytilded0_args i ((nth FI0 (nth [::] A i) j), a_sub, a_mul)
+                                             (nth [::] R i) (nth [::] R j)
+                                             (nth FI0 (nth [::] R i) i)) in
+           let R := store0 R j i st.1.1.1 in
+           inner_loop_rec2_args k A R st.1.1.2 st.1.2 (st.2 ++ a_div) (S i)
+  end.
+Definition inner_loop2_args A R a_sub a_mul a_div i := inner_loop_rec2_args (j - i) A R a_sub a_mul a_div i.
+
 End InnerLoop.
 
 Section OuterLoop.
@@ -173,6 +208,19 @@ Fixpoint outer_loop_rec2 k A R (j : nat) {struct k} :=
     outer_loop_rec2 k A R (j + 1)
   end.
 Definition outer_loop2 A R j := outer_loop_rec2 (n - j) A R j.
+
+(* retourne (résultat, args soustraction, args produit, args div, args sqrt) *)
+Fixpoint outer_loop_rec2_args k A R a_sub a_mul a_div a_sqr (j : nat) {struct k} :=
+  match k with
+  | O (* j >= n *) => (R, a_sub, a_mul, a_div, a_sqr)
+  | S k =>
+    let '(R, a_sub, a_mul, a_div) := inner_loop2_args j A R a_sub a_mul a_div 0 in
+    let '(st, a_sub, a_mul, a_sqr') := seq_ytildes0_args j ((nth FI0 (nth [::] A j) j), a_sub, a_mul) (nth [::] R j) in
+    let R := store0 R j j st in
+    outer_loop_rec2_args k A R a_sub a_mul a_div (a_sqr' ++ a_sqr) (j + 1)
+  end.
+Definition outer_loop2_args A R a_sub a_mul a_div a_sqr j := outer_loop_rec2_args (n - j) A R a_sub a_mul a_div a_sqr j.
+
 End OuterLoop.
 
 (* note: the result is transposed with respect to cholesky.v *)
@@ -183,7 +231,26 @@ Definition cholesky2 A :=
   let sz := size A in
   outer_loop2 sz A A 0.
 
+(* retourne (résultat, args soustraction, args produit, args div, args sqrt) *)
+Definition cholesky2_args A :=
+  let sz := size A in
+  outer_loop2_args sz A A [::] [::] [::] [::] 0.
+
 End seq_cholesky.
+
+Definition m2' := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; [:: Z2B 1; Z2B 0; Z2B 5]].
+
+Fixpoint eval_op_l2 A (bop : A -> A -> A) l :=
+  match l with
+    | a1 :: a2 :: l => (bop a1 a2) :: l
+    | _ => [::]
+  end.
+
+Definition m2_sub := Eval vm_compute in map B2F (cholesky2_args m2').1.1.1.2.
+
+Print m2_sub.
+
+Time Eval vm_compute in map B2F (eval_op_l2 (fun a b => fiplus a (fiopp b)) (map b64_normalize m2_sub)).
 
 (********************************************************************)
 (** Test #3 using CoqEAL and operational Type Classes               *)
@@ -499,6 +566,8 @@ Definition FF2F (x : full_float) : float radix2 :=
   (* Warning: loss of information *)
   | _ => Float radix2 0 0
   end.
+
+
 
 (* size 45, positive definite *)
 Definition m8' := (* map (map b64_normalize) *)
@@ -912,12 +981,40 @@ Definition m8' := (* map (map b64_normalize) *)
           Float radix2 (4947016939814436) (-55); Float radix2 (5222506801138606) (-55); Float radix2 (5151532197835158) (-54); Float radix2 (7400737766417018) (-55); Float radix2 (4861057341471284) (-56);
           Float radix2 (5793337377927518) (-55); Float radix2 (6087921752663004) (-56); Float radix2 (5251605121861420) (-54); Float radix2 (7517649830094456) (-55); Float radix2 (6866660949825620) (-51)]].
 
-Time Eval vm_compute in map (map B2F) (cholesky2 (map64 m8')). (* ~13 s *)
-Time Eval vm_compute in let res := map (map B2F) (cholesky2 (map64 m8')) in tt. (* ~12.7 s *)
-(* [Time Eval vm_compute in let res := _ in tt] to skip pretty-printing time *)
+(* Time Eval vm_compute in map (map B2F) (cholesky2 (map64 m8')). (* ~13 s *) *)
+(* Time Eval vm_compute in let res := map (map B2F) (cholesky2 (map64 m8')) in tt. (* ~12.7 s *) *)
+(* (* [Time Eval vm_compute in let res := _ in tt] to skip pretty-printing time *) *)
 
-Time Eval vm_compute in let res := map (map FF2F) (cholesky3 (mapFF m8')) in tt. (* ~12 s *)
-Time Eval vm_compute in let res := cholesky3 (mapFF m8') in tt. (* ~11.8 s *)
+(* Time Eval vm_compute in let res := map (map FF2F) (cholesky3 (mapFF m8')) in tt. (* ~12 s *) *)
+(* Time Eval vm_compute in let res := cholesky3 (mapFF m8') in tt. (* ~11.8 s *) *)
+
+Section Test_m8_args.
+
+Definition m8_sub := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).1.1.1.2.
+
+Eval vm_compute in length (m8_sub).
+
+Time Eval vm_compute in let res := map B2F (eval_op_l2 fimult (map b64_normalize m8_sub)) in true.
+
+Definition m8_mul := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).1.1.2.
+
+Eval vm_compute in length (m8_mul).
+
+Time Eval vm_compute in let res := map B2F (eval_op_l2 (fun a b => fiplus a (fiopp b)) (map b64_normalize m8_mul)) in true.
+
+Definition m8_div := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).1.2.
+
+Eval vm_compute in length (m8_div).
+
+Time Eval vm_compute in let res := map B2F (eval_op_l2 fidiv (map b64_normalize m8_div)) in true.
+
+Definition m8_sqrt := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).2.
+
+Eval vm_compute in length (m8_sqrt).
+
+Time Eval vm_compute in let res := map B2F (map fisqrt (map b64_normalize m8_div)) in true.
+
+End Test_m8_args.
 
 End test_m8_over_float.
 
