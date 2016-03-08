@@ -19,7 +19,7 @@ depend: .depend
 
 .depend: *.v
 	rm -f ./.depend
-	coqdep -I . *.v > ./.depend
+	coqdep -I . -as "" *.v > ./.depend
 
 -include .depend
 

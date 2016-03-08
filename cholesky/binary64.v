@@ -10,14 +10,14 @@ Require Import Reals.
 
 Require Import float_spec.
 
-Require Import Fcore_Zaux.
-Require Import Fcore_Raux.
-Require Import Fcore_defs.
-Require Import Fcore_generic_fmt.
-Require Import Fcore_FLT.
-Require Import Fcore_ulp.
-Require Import Fprop_relative.
-Require Import Fprop_plus_error.
+Require Import Flocq.Core.Fcore_Zaux.
+Require Import Flocq.Core.Fcore_Raux.
+Require Import Flocq.Core.Fcore_defs.
+Require Import Flocq.Core.Fcore_generic_fmt.
+Require Import Flocq.Core.Fcore_FLT.
+Require Import Flocq.Core.Fcore_ulp.
+Require Import Flocq.Prop.Fprop_relative.
+Require Import Flocq.Prop.Fprop_plus_error.
 
 Require Import Psatz.
 

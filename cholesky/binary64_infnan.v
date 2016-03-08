@@ -8,15 +8,15 @@ Require Import Reals.
 
 Require Import float_spec binary64 float_infnan_spec.
 
-Require Import Fappli_IEEE.
-Require Import Fappli_IEEE_bits.
+Require Import Flocq.Appli.Fappli_IEEE.
+Require Import Flocq.Appli.Fappli_IEEE_bits.
 
-Require Import Fcore_Zaux.
-Require Import Fcore_Raux.
-Require Import Fcore_defs.
-Require Import Fcore_generic_fmt.
-Require Import Fcore_FLT.
-Require Import Fcore_float_prop.
+Require Import Flocq.Core.Fcore_Zaux.
+Require Import Flocq.Core.Fcore_Raux.
+Require Import Flocq.Core.Fcore_defs.
+Require Import Flocq.Core.Fcore_generic_fmt.
+Require Import Flocq.Core.Fcore_FLT.
+Require Import Flocq.Core.Fcore_float_prop.
 
 Require Import Psatz.
 
@@ -129,12 +129,16 @@ Lemma fiplus_spec x y : finite (fiplus x y) ->
 Proof.
 intro Fxy.
 assert (Fx := fiplus_spec_fl _ _ Fxy); assert (Fy := fiplus_spec_fr _ _ Fxy).
-unfold FI2F, fiplus, b64_plus, prec, emax; simpl.
+unfold FI2F, fiplus, b64_plus, prec, emax.
+change ((53 ?= 1024)%Z) with Lt; simpl.
 assert (H := Bplus_correct 53 1024
                            (@eq_refl comparison Lt) (@eq_refl comparison Lt)
                            binop_nan_pl64 mode_NE _ _ Fx Fy).
 revert H; case (Rlt_bool _ _); intro H; destruct H as (H, _); [now rewrite H|].
-casetype False; revert Fxy H; fold b64_plus; fold (fiplus x y).
+casetype False; revert Fxy H.
+change Lt with ((0 ?= 53)%Z) at 1.
+change Lt with ((53 ?= 1024)%Z).
+fold b64_plus; fold (fiplus x y).
 now case (fiplus x y).
 Qed.
 
@@ -166,12 +170,16 @@ Lemma fimult_spec x y : finite (fimult x y) ->
   FI2F (fimult x y) = fmult (FI2F x) (FI2F y) :> R.
 Proof.
 intro Fxy.
-unfold FI2F, fimult, b64_mult, prec, emax; simpl.
+unfold FI2F, fimult, b64_mult, prec, emax.
+change (53 ?= 1024)%Z with Lt; simpl.
 assert (H := Bmult_correct 53 1024
                            (@eq_refl comparison Lt) (@eq_refl comparison Lt)
                            binop_nan_pl64 mode_NE x y).
 revert H; case (Rlt_bool _ _); intro H; [now rewrite (proj1 H)|].
-casetype False; revert Fxy H; fold b64_mult; fold (fimult x y).
+casetype False; revert Fxy H.
+change Lt with ((0 ?= 53)%Z) at 1.
+change Lt with ((53 ?= 1024)%Z).
+fold b64_mult; fold (fimult x y).
 now case (fimult x y).
 Qed.
 
@@ -206,7 +214,8 @@ Qed.
 Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
   FI2F (fidiv x y) = fdiv (FI2F x) (FI2F y) :> R.
 Proof.
-unfold FI2F, fidiv, b64_div, prec, emax; simpl.
+unfold FI2F, fidiv, b64_div, prec, emax.
+change (53 ?= 1024)%Z with Lt; simpl.
 intros Fxy Fy.
 assert (Nzy : B2R prec emax y <> 0).
 { revert Fxy Fy; case x; case y; unfold finite, Bdiv, B2R; auto;
@@ -216,7 +225,11 @@ assert (H := Bdiv_correct 53 1024
                           binop_nan_pl64 mode_NE x _ Nzy).
 revert H; case (Rlt_bool _ _); intro H.
 { now rewrite (proj1 H). }
-casetype False; revert Fxy H; fold b64_div; fold (fidiv x y).
+casetype False; revert Fxy H.
+change Lt with ((0 ?= 53)%Z) at 1.
+change Lt with ((0 ?= 53)%Z) at 2.
+change Lt with ((53 ?= 1024)%Z).
+fold b64_div; fold (fidiv x y).
 now case (fidiv x y).
 Qed.
 
@@ -244,7 +257,8 @@ Qed.
 Lemma fisqrt_spec x : finite (fisqrt x) ->
   FI2F (fisqrt x) = fsqrt (FI2F x) :> R.
 Proof.
-unfold FI2F, fisqrt, b64_sqrt, prec, emax; simpl.
+unfold FI2F, fisqrt, b64_sqrt, prec, emax.
+change (53 ?= 1024)%Z with Lt; simpl.
 intros Fx.
 assert (H := Bsqrt_correct 53 1024
                            (@eq_refl comparison Lt) (@eq_refl comparison Lt)

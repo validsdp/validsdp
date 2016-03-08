@@ -2,14 +2,14 @@
 
     Notations are similar to the one in [fsum]. *)
 
-Require Import Reals Fcore_Raux.
+Require Import Reals Flocq.Core.Fcore_Raux.
 
 Require Import misc.
 
 Require Import Psatz.
 
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype finfun ssralg bigop.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
+Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.algebra.ssralg mathcomp.ssreflect.bigop.
 
 Require Import binary64_infnan.
 
@@ -29,7 +29,7 @@ Require Import gamma fsum.
 Require Import binary64_infnan.
 
 Require Import ZArith.
-Require Import Fcore Fappli_IEEE Fappli_IEEE_bits.
+Require Import Flocq.Core.Fcore Flocq.Appli.Fappli_IEEE Flocq.Appli.Fappli_IEEE_bits.
 
 (** Tip to leverage a Boolean condition *)
 Definition optb (b : bool) : option (is_true b) :=
@@ -68,7 +68,7 @@ Definition b64_finite_pos {p emax} (x : binary_float p emax) : bool :=
   end.
 *)
 
-Require Import Fcalc_ops.
+Require Import Flocq.Calc.Fcalc_ops.
 
 Definition half := b64_normalize (Float radix2 1 (-1)).
 Definition one := b64_plus mode_NE half half.
@@ -298,12 +298,12 @@ Fixpoint eval_op_l2 A (bop : A -> A -> A) l :=
 
 Definition m2_sub := Eval vm_compute in map B2F (cholesky2_args m2').1.1.1.2.
 
-Require Import Interval_float_sig.
-Require Import Interval_specific_ops.
-Require Import Interval_interval.
-Require Import Interval_interval_float_full.
-Require Import Interval_bigint_carrier.
-Require Import Interval_definitions.
+Require Import Interval.Interval_float_sig.
+Require Import Interval.Interval_specific_ops.
+Require Import Interval.Interval_interval.
+Require Import Interval.Interval_interval_float_full.
+Require Import Interval.Interval_bigint_carrier.
+Require Import Interval.Interval_definitions.
 Module F := SpecificFloat BigIntRadix2.
 Require Import BigZ.
 (* Print Module F. *)
@@ -371,7 +371,7 @@ End Test_m8_args.
 (** Test #3 using CoqEAL and operational Type Classes               *)
 (********************************************************************)
 
-Require Import matrix seqmatrix refinements.
+Require Import mathcomp.algebra.matrix CoqEAL_refinements.seqmatrix CoqEAL_refinements.refinements.
 
 Import Refinements.Op.
 

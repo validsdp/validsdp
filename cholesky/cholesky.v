@@ -5,14 +5,14 @@
     S.M. Rump: Verification of positive definiteness, 
     BIT Numerical Mathematics, 46:433-452, 2006. *)
 
-Require Import Reals Fcore_Raux.
+Require Import Reals Flocq.Core.Fcore_Raux.
 
 Require Import misc.
 
 Require Import Psatz.
 
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype finfun ssralg matrix bigop.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
+Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.algebra.ssralg mathcomp.algebra.matrix mathcomp.ssreflect.bigop.
 
 Require Import Rstruct.
 

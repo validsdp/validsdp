@@ -1,13 +1,13 @@
 (** * Type for real numbers with bounded absolute value. *)
 
-Require Import Reals Fcore_Raux.
+Require Import Reals Flocq.Core.Fcore_Raux.
 
 Require Import misc.
 
 Require Import Psatz.
 
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype finfun ssralg bigop.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
+Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.algebra.ssralg mathcomp.ssreflect.bigop.
 
 Require Import Rstruct.
 
@@ -156,7 +156,8 @@ Lemma bounded_scale (r1 r2 : R) (b1 : bounded r1) :
 Proof.
 move=> Hr2; case (Rle_or_lt r1 0) => Hr1.
 { exists (bounded_0 (Rlt_le _ _ Hr2)); rewrite Rmult_0_l.
-  by apply Rabs_0, Rle_antisym; [elim: b1 => b1 Hb1 /=; lra|apply Rabs_pos]. }
+  by apply Rabs_0, Rle_antisym;
+    [apply (Rle_trans _ _ _ (bounded_prop b1))|apply Rabs_pos]. }
 suff H : (Rabs (b1 * (r2 / r1)) <= r2).
 { exists (Build_bounded H); simpl; field; lra. }
 rewrite !Rabs_mult Rabs_Rinv; [|lra].
@@ -181,10 +182,12 @@ Lemma bounded_mult_proof (r1 r2 : R) (b1 : bounded r1) (b2 : bounded r2) :
   (Rabs (b1 * b2) <= r1 * r2)%Re.
 Proof.
 case (Rlt_or_le r1 0) => Hr1.
-{ casetype False; apply (Rlt_irrefl 0); elim: b1 => b1 Hb1 /=.
+{ casetype False; apply (Rlt_irrefl 0).
+  have Hb1 := bounded_prop b1.
   apply (Rle_lt_trans 0 (Rabs b1)); [apply Rabs_pos|lra]. }
 case (Rlt_or_le r2 0) => Hr2.
-{ casetype False; apply (Rlt_irrefl 0); elim: b2 => b2 Hb2 /=.
+{ casetype False; apply (Rlt_irrefl 0).
+  have Hb2 := bounded_prop b2.
   apply (Rle_lt_trans 0 (Rabs b2)); [apply Rabs_pos|lra]. }
 by rewrite Rabs_mult; apply Rmult_le_compat; try apply Rabs_pos;
   [case b1|case b2].

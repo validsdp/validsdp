@@ -1,13 +1,13 @@
 (** * Application: corollary of [ellipsid_error] considering overflows. *)
 
-Require Import Reals Fcore_Raux.
+Require Import Reals Flocq.Core.Fcore_Raux.
 
 Require Import misc.
 
 Require Import Psatz.
 
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype finfun ssralg matrix bigop.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
+Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.algebra.ssralg mathcomp.algebra.matrix mathcomp.ssreflect.bigop.
 
 Require Import Rstruct.
 
@@ -157,8 +157,8 @@ apply Rle_lt_trans with ((Rabs x + eta (fis fs) / 2)²).
   rewrite /Rdiv (Rmult_comm _ (/ 4)) 2!Rmult_plus_distr_l.
   rewrite -!(Rmult_assoc (/ 4)) !(Rmult_assoc (/ 4) 2) Rinv_l; [|lra].
   rewrite !Rmult_1_l -(Rplus_0_r (_ + _)) pow2_abs; apply Rplus_le_compat_l.
-  rewrite Rmult_1_r; do 2 (apply Rmult_le_pos; [|by apply Rlt_le, eta_pos]).
-  lra. }
+  unfold pow; rewrite Rmult_1_r.
+  do 2 (apply Rmult_le_pos; [|by apply Rlt_le, eta_pos]); lra. }
 rewrite (Rplus_comm (- _)) -(Rsqr_sqrt (_ + - _)).
 { apply Rsqr_lt_abs_1; rewrite Rabs_pos_eq.
   { rewrite (Rabs_pos_eq (sqrt _)); [|by apply sqrt_pos].
