@@ -7,7 +7,7 @@ doc: all html/deps.png
 
 html/deps.png: all coqgraph
 	mkdir -p html
-	coqdep -I . *.v | ./coqgraph - | tred | dot -Tpng > $@
+	coqdep -I . -as "" *.v | ./coqgraph - | tred | dot -Tpng > $@
 
 coqgraph: coqgraph.ml
 	ocamlc.opt -o coqgraph coqgraph.ml
