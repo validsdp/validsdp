@@ -16,7 +16,7 @@
 - [X] ytildes
 - [X] inner_loop
 - [X] outer_loop
-** TODO [#A] Instantiate cholesky3 with ssr matrices		     :Pierre:
+** DONE [#A] Instantiate cholesky3 with ssr matrices                 :Pierre:
 ** TODO [#A] Restate cholesky.v theorem/corollary with this ssr matrices instantiation :Pierre:
 ** TODO Prove previous item					     :Pierre:
 ** TODO Data refinement proof: Get a similar proof with the seq-seq instantiation :Erik:
