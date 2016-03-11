@@ -494,6 +494,51 @@ Definition cholesky3 A :=
 
 End generic_algos.
 
+Section inst_ssr_matrix.
+
+Context {T : Type}.
+Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
+
+Let I (n : nat) := 'I_n.
+Let mxT (m n : nat) := 'M[T]_(m, n).
+
+Instance : fun_of T I mxT := fun m n => @matrix.fun_of_matrix T m n.
+
+Instance : row_class I mxT := @matrix.row T.
+
+Fixpoint gen_fsum_l2r_rec n (c : T) : T ^ n -> T :=
+  match n with
+    | 0%N => fun _ => c
+    | n'.+1 =>
+      fun a => gen_fsum_l2r_rec (c + (a ord0))%C [ffun i => a (lift ord0 i)]
+  end.
+
+Definition gen_stilde3 n (c : T) (a b : T ^ n) : T :=
+  gen_fsum_l2r_rec c [ffun i => (- ((a i) * (b i)))%C].
+
+Instance : dotmulB0_class T I mxT :=
+  fun n k c a b => gen_stilde3 c [ffun k => a ord0 k] [ffun k => b ord0 k].
+
+Instance : store_class T I mxT :=
+  fun n m M i j v =>
+  \matrix_(i', j')
+    if ((nat_of_ord i' == i) && (nat_of_ord j' == j))%N then v else M i' j'.
+
+Variable n : nat.
+
+Instance : I0_class I n.+1 := ord0.
+Instance : succ0_class I n.+1 := fun i =>
+  match sumb ((val i).+1 < n.+1)%N with
+  | left prf => Ordinal prf
+  | right _ => ord0
+  end.
+Instance : nat_of_class I n.+1 := @nat_of_ord n.+1.
+
+Definition cholesky5 : 'M[T]_n.+1 -> 'M[T]_n.+1 :=
+  @cholesky3 T I mxT _ _ _ _ _ _ n.+1 ord0 succ0 nat_of.
+
+End inst_ssr_matrix.
+
 Section inst_seq.
 
 Context {T : Type}.
@@ -502,11 +547,9 @@ Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T
 Let I (n : nat) := nat.
 Let mxT (m n : nat) := seq (seq T).
 
-Instance : fun_of T I mxT := fun m n M i j =>
-  nth 0%C (nth [::] M i) j.
+Instance : fun_of T I mxT := fun m n => fun_of_seqmx m n.
 
-Instance : row_class I mxT := fun m n i M =>
-  [:: nth [::] M i].
+Instance : row_class I mxT := @rowseqmx T.
 
 (* seq_stilde3 *)
 Fixpoint seq_stilde3 k c a b :=
