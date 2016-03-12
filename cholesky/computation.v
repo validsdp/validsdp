@@ -502,9 +502,9 @@ Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T
 Let I (n : nat) := 'I_n.
 Let mxT (m n : nat) := 'M[T]_(m, n).
 
-Instance : fun_of T I mxT := fun m n => @matrix.fun_of_matrix T m n.
+Instance ssr_fun_of : fun_of T I mxT := fun m n => @matrix.fun_of_matrix T m n.
 
-Instance : row_class I mxT := @matrix.row T.
+Instance ssr_row : row_class I mxT := @matrix.row T.
 
 Fixpoint gen_fsum_l2r_rec n (c : T) : T ^ n -> T :=
   match n with
@@ -516,28 +516,289 @@ Fixpoint gen_fsum_l2r_rec n (c : T) : T ^ n -> T :=
 Definition gen_stilde3 n (c : T) (a b : T ^ n) : T :=
   gen_fsum_l2r_rec c [ffun i => (- ((a i) * (b i)))%C].
 
-Instance : dotmulB0_class T I mxT :=
-  fun n k c a b => gen_stilde3 c [ffun k => a ord0 k] [ffun k => b ord0 k].
+Definition gen_ytilded3 n (c : T) (a b : T ^ n) (bk : T) : T :=
+  (gen_stilde3 c a b / bk)%C.
 
-Instance : store_class T I mxT :=
-  fun n m M i j v =>
+Definition gen_ytildes3 n (c : T) (a : T ^ n) : T :=
+  sqrt_op (gen_stilde3 c a a).
+
+Check inord.
+
+Instance ssr_dotmulB0 : dotmulB0_class T I mxT :=
+  fun n =>
+    match n with
+      | 0%N => fun i c a b => c
+      | n'.+1 => fun i c a b => gen_stilde3 c
+                                            [ffun k : 'I_i => a ord0 (inord k)]
+                                            [ffun k : 'I_i => b ord0 (inord k)]
+    end.
+
+Definition ssr_store3 m n (M : 'M[T]_(m, n)) (i : 'I_m) (j : 'I_n) v :=
   \matrix_(i', j')
     if ((nat_of_ord i' == i) && (nat_of_ord j' == j))%N then v else M i' j'.
+
+Instance : store_class T I mxT := ssr_store3.
 
 Variable n : nat.
 
 Instance : I0_class I n.+1 := ord0.
-Instance : succ0_class I n.+1 := fun i =>
+Instance ssr_succ0 : succ0_class I n.+1 := fun i =>
   match sumb ((val i).+1 < n.+1)%N with
   | left prf => Ordinal prf
   | right _ => ord0
   end.
-Instance : nat_of_class I n.+1 := @nat_of_ord n.+1.
+Instance ssr_nat_of : nat_of_class I n.+1 := @nat_of_ord n.+1.
+
+Definition ytilded5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> 'M[T]_(1, n.+1) -> T ->
+                      T :=
+  @ytilded3 T I mxT _ _ _.
+  
+Definition ytildes5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> T :=
+  @ytildes3 T I mxT _ _ _.
+
+Definition inner_loop5 : 'I_n.+1 -> 'M[T]_n.+1 -> 'M[T]_n.+1 -> 'I_n.+1 ->
+  'M[T]_n.+1 :=
+  @inner_loop3 T I mxT _ _ _ _ _ _ _ _.
+
+Definition outer_loop5 : 'M[T]_n.+1 -> 'M[T]_n.+1 -> 'I_n.+1 ->
+  'M[T]_n.+1 :=
+  @outer_loop3 T I mxT _ _ _ _ _ _ _ _ _ _.
 
 Definition cholesky5 : 'M[T]_n.+1 -> 'M[T]_n.+1 :=
-  @cholesky3 T I mxT _ _ _ _ _ _ n.+1 ord0 succ0 nat_of.
+  @cholesky3 T I mxT _ _ _ _ _ _ _ _ _ _.
 
 End inst_ssr_matrix.
+
+Section proof_inst_ssr_matrix.
+
+Context {T : Type}.
+Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
+
+Variable n : nat.
+
+Lemma ssr_store3_eq (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
+  nat_of_ord i' = i -> nat_of_ord j' = j -> (ssr_store3 M i j v) i' j' = v.
+Proof. by move=> Hi Hj; rewrite mxE Hi Hj !eq_refl. Qed.
+
+Lemma ssr_store3_lt1 (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
+  (nat_of_ord i' < i)%N -> (ssr_store3 M i j v) i' j' = M i' j'.
+Proof. by move=> Hi; rewrite mxE (ltn_eqF Hi). Qed.
+
+Lemma ssr_store3_lt2 (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
+  (nat_of_ord j' < j)%N -> (ssr_store3 M i j v) i' j' = M i' j'.
+Proof. by move=> Hj; rewrite mxE (ltn_eqF Hj) Bool.andb_false_r. Qed.
+
+Lemma ssr_succ0_spec :
+  forall (i : 'I_n.+1), (i.+1 < n.+1 -> ssr_succ0 i = i.+1 :> nat)%N.
+Proof. by move=> i Hi; unfold ssr_succ0; case: sumb; [|rewrite Hi]. Qed.
+
+Lemma gen_fsum_l2r_rec_eq k (c1 : T) (a1 : T ^ k)
+      (c2 : T) (a2 : T ^ k) :
+  c1 = c2 -> (forall i, a1 i = a2 i) ->
+  gen_fsum_l2r_rec c1 a1 = gen_fsum_l2r_rec c2 a2.
+Proof.
+elim: k c1 a1 c2 a2 => [//|k IHk] c1 a1 c2 a2 Hc Ha.
+by apply IHk; [rewrite /fplus Hc Ha|move=> i; rewrite !ffunE].
+Qed.
+
+Lemma gen_stilde3_eq k
+      (c1 : T) (a1 b1 : T ^ k)
+      (c2 : T) (a2 b2 : T ^ k) :
+  c1 = c2 -> (forall i, a1 i = a2 i) ->
+  (forall i, b1 i = b2 i) ->
+  gen_stilde3 c1 a1 b1 = gen_stilde3 c2 a2 b2.
+Proof.
+move=> Hc Ha Hb.
+rewrite /gen_stilde3; apply gen_fsum_l2r_rec_eq; [by []|move=> i].
+by rewrite !ffunE; apply f_equal, f_equal2.
+Qed.
+
+Lemma gen_ytilded3_eq k
+      (c1 : T) (a1 b1 : T ^ k) (bk1 : T)
+      (c2 : T) (a2 b2 : T ^ k) (bk2 : T) :
+  c1 = c2 -> (forall i, a1 i = a2 i) ->
+  (forall i, b1 i = b2 i) -> (bk1 = bk2) ->
+  gen_ytilded3 c1 a1 b1 bk1 = gen_ytilded3 c2 a2 b2 bk2.
+Proof.
+move=> Hc Ha Hb Hbk.
+by rewrite /gen_ytilded3; apply f_equal2; [apply gen_stilde3_eq|].
+Qed.
+
+Lemma gen_ytildes3_eq k (c1 : T) (a1 : T ^ k) (c2 : T) (a2 : T ^ k) :
+  c1 = c2 -> (forall i, a1 i = a2 i) ->
+  gen_ytildes3 c1 a1 = gen_ytildes3 c2 a2.
+Proof.
+by move=> Hc Ha; rewrite /gen_ytildes3; apply f_equal, gen_stilde3_eq.
+Qed.
+
+Definition gen_cholesky_spec A R : Prop :=
+  (forall (j i : 'I_n.+1),
+     (i < j)%N ->
+     (R i j = gen_ytilded3 (A i j)
+                           [ffun k : 'I_i => R (inord k) i]
+                           [ffun k : 'I_i => R (inord k) j]
+                           (R i i)))
+  /\ (forall (j : 'I_n.+1),
+        (R j j = gen_ytildes3 (A j j)
+                              [ffun k : 'I_j => R (inord k) j])).
+
+(** *** Loop invariants. *)
+
+Definition outer_loop_inv (A R : 'M[T]_n.+1) j : Prop :=
+  (forall (j' i' : 'I_n.+1),
+     (j' < j)%N ->
+     (i' < j')%N ->
+     (R j' i' = gen_ytilded3 (A i' j')
+                  [ffun k : 'I_i' => R i' (inord k)]
+                  [ffun k : 'I_i' => R j' (inord k)]
+                  (R i' i')))
+  /\ (forall (j' : 'I_n.+1),
+        (j' < j)%N ->
+        (R j' j' = gen_ytildes3 (A j' j') [ffun k : 'I_j' => R j' (inord k)])).
+
+Definition inner_loop_inv (A R : 'M[T]_n.+1) j i : Prop :=
+  outer_loop_inv A R j /\
+  (forall (j' i' : 'I_n.+1),
+        nat_of_ord j' = j ->
+        (i' < i)%N ->
+        (i' < j)%N ->
+        (R j' i' = gen_ytilded3 (A i' j')
+                     [ffun k : 'I_i' => R i' (inord k)]
+                     [ffun k : 'I_i' => R j' (inord k)]
+                     (R i' i'))).
+
+Lemma inner_loop_correct (A Rt : 'M_n.+1) (j i : 'I_n.+1) :
+  inner_loop_inv A Rt j i -> inner_loop_inv A (inner_loop5 j A Rt i) j n.+1.
+Proof.
+move=> H.
+unfold inner_loop5, inner_loop3, nat_of, ssr_nat_of.
+set (k := (j - i)%N).
+have Hk : k = (j - i)%N; [by []|].
+move: i k Hk Rt H => i k; move: i; induction k => i Hk Rt H; simpl.
+{ split; [by apply H|]; move=> j' i' Hj' Hi' Hi'j.
+  apply H => //; apply (leq_trans Hi'j).
+  by rewrite -(addn0 i) -leq_subLR Hk. }
+have Hij : (i < j)%N by rewrite -(addn0 i) -ltn_subRL -Hk.
+have Hsisn : (i.+1 < n.+1)%N; [by move: (ltn_ord j); apply leq_ltn_trans|].
+apply IHk => {IHk}; destruct H as (Ho, Hi).
+{ apply /eqP; rewrite -(eqn_add2r 1) addn1 Hk.
+  by rewrite ssr_succ0_spec // -(addn1 i) subnDA subnK // ltn_subRL addn0. }
+split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
+{ rewrite ssr_store3_lt1 // (proj1 Ho _ _ Hj' Hi').
+  apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
+  { by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
+  { by rewrite ssr_store3_lt1. }
+  by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
+{ rewrite ssr_store3_lt1 // (proj2 Ho _ Hj').
+  by apply gen_ytildes3_eq => // i''; rewrite !ffunE ssr_store3_lt1. }
+move=> j' i' Hj' Hi' Hi'j; case (ltnP i' i) => Hii'.
+{ rewrite ssr_store3_lt2 // (Hi _ _ Hj' Hii' Hi'j).
+  apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
+  { by rewrite ssr_store3_lt1. }
+  { rewrite ssr_store3_lt2 //; apply ltn_trans with i'; [|by []].
+    have Hi'' := ltn_ord i''.
+    rewrite inordK //; apply (ltn_trans Hi''), ltn_ord. }
+    by rewrite ssr_store3_lt2. }
+have Hi'i : nat_of_ord i' = i.
+{ apply anti_leq; rewrite Hii' Bool.andb_true_r -ltnS.
+  by rewrite (ssr_succ0_spec Hsisn) in Hi'. }
+rewrite ssr_store3_eq // Hi'i.
+have Hini : inord i = i'; [by rewrite -Hi'i inord_val|].
+have Hinj : inord j = j'; [by rewrite -Hj' inord_val|].
+rewrite /ytilded3 /dotmulB0 /ssr_dotmulB0 /gen_ytilded3.
+apply f_equal2; [apply gen_stilde3_eq => [|i''|i'']|]; try rewrite !ffunE.
+{ by rewrite -Hini -Hinj !inord_val. }
+{ by rewrite ssr_store3_lt1 // mxE -Hini inord_val. }
+{ rewrite ssr_store3_lt2; [by rewrite mxE -Hinj inord_val|].
+  have Hi'' := ltn_ord i''.
+  rewrite inordK //; apply (ltn_trans Hi''); rewrite -Hi'i; apply ltn_ord. }
+by rewrite ssr_store3_lt1 -Hini inord_val.
+Qed.
+
+Lemma outer_loop_correct (A Rt : 'M_n.+1) (j : 'I_n.+1) :
+  outer_loop_inv A Rt j -> outer_loop_inv A (outer_loop5 A Rt j) n.+1.
+Proof.
+move=> H.
+unfold outer_loop5, outer_loop3, nat_of, ssr_nat_of.
+set (k := (n.+1 - j)%N).
+have Hk : k = (n.+1 - j)%N; [by []|].
+move: j k Hk Rt H => j k; move: j; induction k => j Hk Rt H; simpl.
+{ by move: (ltn_ord j); rewrite -(addn0 j) -ltn_subRL Hk ltnn. }
+have Hin_0 : inner_loop_inv A Rt j (@ord0 n); [by []|].
+have Hin_n := inner_loop_correct Hin_0.
+have Aux :
+  outer_loop_inv A
+    (ssr_store3 (inner_loop5 j A Rt ord0) j j
+       (ytildes5 j (ssr_fun_of A j j) (ssr_row j (inner_loop5 j A Rt ord0))))
+    j.+1.
+{ split; [move=> j' i' Hj' Hi'|move=> j' Hj'].
+  { case (ltnP j' j) => Hjj'.
+    { rewrite ssr_store3_lt1 // (proj1 (proj1 Hin_n) _ _ Hjj' Hi').
+      apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
+      { by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
+      { by rewrite ssr_store3_lt1. }
+      by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
+    have Hj'j : nat_of_ord j' = j.
+    { by apply anti_leq; rewrite Hjj' Bool.andb_true_r -ltnS. }
+    have Hi'j : (i' < j)%N; [by move: Hi'; rewrite Hj'j|].
+    rewrite ssr_store3_lt2 // (proj2 Hin_n _ _ Hj'j (ltn_ord i') Hi'j).
+    apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
+    { by rewrite ssr_store3_lt1. }
+    { have Hi'' := ltn_ord i''.
+      rewrite ssr_store3_lt2 //; move: Hi'j; apply ltn_trans; rewrite inordK //.
+      apply ltn_trans with i'; apply ltn_ord. }
+    by rewrite ssr_store3_lt2. }
+  case (ltnP j' j) => Hjj'.
+  { rewrite ssr_store3_lt2 // (proj2 (proj1 Hin_n) _ Hjj').
+    apply gen_ytildes3_eq => // j''; try rewrite !ffunE.
+    by rewrite ssr_store3_lt1. }
+  have Hj'j : nat_of_ord j' = j.
+  { by apply anti_leq; rewrite Hjj' Bool.andb_true_r -ltnS. }
+  have Hinjj' : inord j = j'; [by rewrite -Hj'j inord_val|].
+  rewrite ssr_store3_eq //.
+  rewrite /ytildes5 /ytildes3 /dotmulB0 /ssr_dotmulB0 /gen_ytildes3 Hj'j.
+  apply /f_equal /gen_stilde3_eq => [|j''|j'']; try rewrite !ffunE.
+  { by apply f_equal2; apply ord_inj. }
+  { rewrite ssr_store3_lt2; [by rewrite mxE -Hinjj' inord_val|].
+    have Hj'' := ltn_ord j''.
+    rewrite inordK //; apply (ltn_trans Hj''); rewrite -Hj'j; apply ltn_ord. }
+  rewrite ssr_store3_lt2; [by rewrite mxE -Hinjj' inord_val|].
+  have Hj'' := ltn_ord j''.
+  rewrite inordK //; apply (ltn_trans Hj''); rewrite -Hj'j; apply ltn_ord. }
+case (ltnP j n) => Hjn.
+{ have Hsjsn : (j.+1 < n.+1)%N by rewrite -(ltn_add2r 1) !addn1.
+  apply IHk => {IHk}.
+  { apply /eqP; rewrite -(eqn_add2r 1) addn1 Hk.
+      by rewrite ssr_succ0_spec // -(addn1 j) subnDA subnK // ltn_subRL addn0. }
+  rewrite (ssr_succ0_spec Hsjsn); apply Aux. }
+have Hj : (j = n :> nat).
+{ apply anti_leq; rewrite Hjn Bool.andb_true_r -ltnS; apply ltn_ord. }
+have Hk0 : k = 0%N.
+{ move: Hk; rewrite Hj subSnn -(add0n 1%N) -addn1 => Hk.
+  by apply /eqP; rewrite -(eqn_add2r 1%N); apply /eqP. }
+by rewrite Hk0 /=; move: Aux; rewrite Hj.
+Qed.
+
+(** *** The implementation satisfies the specification used in cholesky.v. *)
+
+Lemma cholesky_correct (A : 'M[T]_n.+1) : gen_cholesky_spec A (cholesky5 A)^T.
+Proof.
+split; [move=> j i Hij|move=> j]; rewrite !mxE.
+{ replace ((cholesky5 A) j i)
+  with (gen_ytilded3 (A i j)
+                     [ffun k : 'I_i => (cholesky5 A) i (inord k)]
+                     [ffun k : 'I_i => (cholesky5 A) j (inord k)]
+                     ((cholesky5 A) i i)).
+  { by apply /gen_ytilded3_eq => [|i'|i'|]; try rewrite !ffunE mxE. }
+  by apply sym_eq, outer_loop_correct; [|apply ltn_ord|]. }
+replace ((cholesky5 A) j j)
+with (gen_ytildes3 (A j j)
+                   [ffun k : 'I_j => (cholesky5 A) j (inord k)]).
+{ by apply /gen_ytildes3_eq => // j'; rewrite !ffunE mxE. }
+by apply sym_eq, outer_loop_correct; [|apply ltn_ord].
+Qed.
+
+End proof_inst_ssr_matrix.
 
 Section inst_seq.
 
