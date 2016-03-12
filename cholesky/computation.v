@@ -522,8 +522,6 @@ Definition gen_ytilded3 n (c : T) (a b : T ^ n) (bk : T) : T :=
 Definition gen_ytildes3 n (c : T) (a : T ^ n) : T :=
   sqrt_op (gen_stilde3 c a a).
 
-Check inord.
-
 Instance ssr_dotmulB0 : dotmulB0_class T I mxT :=
   fun n =>
     match n with
@@ -781,7 +779,7 @@ Qed.
 
 (** *** The implementation satisfies the specification used in cholesky.v. *)
 
-Lemma cholesky_correct (A : 'M[T]_n.+1) : gen_cholesky_spec A (cholesky5 A)^T.
+Lemma cholesky5_correct (A : 'M[T]_n.+1) : gen_cholesky_spec A (cholesky5 A)^T.
 Proof.
 split; [move=> j i Hij|move=> j]; rewrite !mxE.
 { replace ((cholesky5 A) j i)
@@ -799,6 +797,78 @@ by apply sym_eq, outer_loop_correct; [|apply ltn_ord].
 Qed.
 
 End proof_inst_ssr_matrix.
+
+Section proof_inst_ssr_matrix_float_infnan.
+
+Require Import float_infnan_spec cholesky_infnan.
+  
+Variable fs : Float_infnan_spec.
+
+Instance add_infnan : add (FI fs) := @fiplus fs.
+Instance mul_infnan : mul (FI fs) := @fimult fs.
+Instance sqrt_infnan : sqrt (FI fs) := @fisqrt fs.
+Instance div_infnan : div (FI fs) := @fidiv fs.
+Instance opp_infnan : opp (FI fs) := @fiopp fs.
+Instance zero_infnan : zero (FI fs) := @FI0 fs.
+Instance one_infnan : one (FI fs) := firnd fs 1.
+
+Lemma gen_stilde3_correct k (c : FI fs) (a b : FI fs ^ k) :
+  gen_stilde3 c a b = stilde_infnan c a b.
+Proof.
+elim: k c a b => [|k IHk] c a b; [by rewrite /gen_stilde3|].
+rewrite /gen_stilde3 /= -IHk.
+by apply gen_fsum_l2r_rec_eq; [|move=> i]; rewrite !ffunE.
+Qed.
+  
+Lemma gen_ytilded3_correct k (c : FI fs) (a b : FI fs ^ k) (bk : FI fs) :
+  gen_ytilded3 c a b bk = ytilded_infnan c a b bk.
+Proof.
+rewrite /gen_ytilded3 /ytilded_infnan; apply f_equal2 => //.
+apply gen_stilde3_correct.
+Qed.
+
+Lemma gen_ytildes3_correct k (c : FI fs) (a : FI fs ^ k) :
+  gen_ytildes3 c a = ytildes_infnan c a.
+Proof.
+rewrite /gen_ytildes3 /ytildes_infnan; apply f_equal => //.
+apply gen_stilde3_correct.
+Qed.
+
+Lemma gen_cholesky_spec_correct n (A R : 'M[FI fs]_n.+1) :
+  gen_cholesky_spec A R -> cholesky_spec_infnan A R.
+Proof.
+move=> H; split.
+{ by move=> j i Hij; rewrite (proj1 H) // gen_ytilded3_correct. }
+by move=> j; rewrite (proj2 H) // gen_ytildes3_correct.
+Qed.
+
+(** If [A] contains no infinity or NaN, then [MFI2F A] = [A] and
+    [posdef (MF2R (MFI2F A))] means that [A] is positive definite. *)
+Lemma gen_corollary_2_4_with_c_upper_bound_infnan :
+  forall n,
+  4 * INR n.+2 * eps (fis fs) < 1 ->  (* need a small program to check *)
+  forall A : 'M[FI fs]_n.+1,
+  A^T = A ->  (* need a small program to check *)
+  (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->  (* need a small program to check *)
+  forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->  (* need a small program to compute *)
+  forall c : R,
+  (/2 * gamma (fis fs) (2 * n.+2) * (\tr (cholesky.MF2R (MFI2F A)))
+   + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + maxdiag)
+   <= c)%Re ->  (* need a small program to comute (with directed rounding) *)
+  forall At : 'M[FI fs]_n.+1, At^T = At ->
+  ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
+   (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->  (* need a small program to comute (with directed rounding) *)
+  let Rt := cholesky5 At in
+  (forall i, (0 < FI2F (Rt i i))%Re) ->  (* need a small program to check *)
+  real_matrix.posdef (cholesky.MF2R (MFI2F A)).
+Proof.
+move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At SymAt HAt Rt HARt.
+apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At Rt^T;
+  try assumption; split; [|by move=> i; rewrite mxE].
+apply gen_cholesky_spec_correct, cholesky5_correct.
+Qed.
+
+End proof_inst_ssr_matrix_float_infnan.
 
 Section inst_seq.
 
@@ -853,6 +923,7 @@ Definition cholesky4 : seq (seq T) :=
 
 End inst_seq.
 
+(*
 Section test_m8_over_float.
 
 Local Notation T := full_float.
@@ -921,6 +992,7 @@ Definition FF2F (x : full_float) : float radix2 :=
   end.
 
 End test_m8_over_float.
+*)
 
 (*
 (* Class hmulvB {I} B T := hmulvB_op : forall n : I, T -> B n -> B n -> T.
@@ -991,6 +1063,8 @@ then R is almost:
 (* Require Import String. Eval compute in "Début des tests."%string. *)
 (* Goal True. idtac "Début des tests". done. Qed. *)
 (* ================================================================ *)
+
+Local Open Scope bigZ_scope.
 
 (* size 6, unknown *)
 Definition m0 := (* map (map b64_normalize) *)
