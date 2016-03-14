@@ -540,11 +540,7 @@ Instance : store_class T I mxT := ssr_store3.
 Variable n : nat.
 
 Instance : I0_class I n.+1 := ord0.
-Instance ssr_succ0 : succ0_class I n.+1 := fun i =>
-  match sumb ((val i).+1 < n.+1)%N with
-  | left prf => Ordinal prf
-  | right _ => ord0
-  end.
+Instance ssr_succ0 : succ0_class I n.+1 := fun i => inord i.+1.
 Instance ssr_nat_of : nat_of_class I n.+1 := @nat_of_ord n.+1.
 
 Definition ytilded5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> 'M[T]_(1, n.+1) -> T ->
@@ -588,7 +584,7 @@ Proof. by move=> Hj; rewrite mxE (ltn_eqF Hj) Bool.andb_false_r. Qed.
 
 Lemma ssr_succ0_spec :
   forall (i : 'I_n.+1), (i.+1 < n.+1 -> ssr_succ0 i = i.+1 :> nat)%N.
-Proof. by move=> i Hi; unfold ssr_succ0; case: sumb; [|rewrite Hi]. Qed.
+Proof. by move=> i Hi; rewrite inordK. Qed.
 
 Lemma gen_fsum_l2r_rec_eq k (c1 : T) (a1 : T ^ k)
       (c2 : T) (a2 : T ^ k) :
