@@ -288,6 +288,25 @@ Definition cholesky2_args A :=
 
 End seq_cholesky.
 
+(** Time Eval vm_compute in map (map B2F) (cholesky1 m_id). *)
+
+Definition m2 := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; [:: Z2B 1; Z2B 0; Z2B 5]].
+
+(** Time Eval vm_compute in map (map B2F) (cholesky1 m2). *)
+
+(* returns approx:
+
+[ sqrt 2,  -3,     1;
+  -2.1213, 0.7071, 0;
+  0.7071,  2.1213, 0 ]
+
+then R is almost:
+
+1 / sqrt 2 * [ 2, -3, 1;
+               0,  1, 3;
+               0,  0, 0 ]
+*)
+
 Definition m2' := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; [:: Z2B 1; Z2B 0; Z2B 5]].
 
 Fixpoint eval_op_l2 A (bop : A -> A -> A) l :=
@@ -371,7 +390,9 @@ End Test_m8_args.
 (** Test #3 using CoqEAL and operational Type Classes               *)
 (********************************************************************)
 
-Require Import mathcomp.algebra.matrix CoqEAL_refinements.seqmatrix CoqEAL_refinements.refinements.
+Require Import mathcomp.algebra.matrix.
+Require Import CoqEAL_refinements.seqmatrix.
+Require Import CoqEAL_refinements.refinements.
 
 Import Refinements.Op.
 
@@ -408,7 +429,7 @@ Section generic_algos.
 Context {T : Type} {I : nat -> Type} {mxT : nat -> nat -> Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !mul T, !div T, !sqrt T}.
 Context `{!fun_of T I mxT, !row_class I mxT, !store_class T I mxT, !dotmulB0_class T I mxT}.
-Variable n : nat.
+Context {n : nat}.
 Context `{!I0_class I n, !succ0_class I n, !nat_of_class I n}.
 
 Local Open Scope nat_scope.
@@ -531,13 +552,14 @@ Instance ssr_dotmulB0 : dotmulB0_class T I mxT :=
                                             [ffun k : 'I_i => b ord0 (inord k)]
     end.
 
+(* Erik: to rename ? *)
 Definition ssr_store3 m n (M : 'M[T]_(m, n)) (i : 'I_m) (j : 'I_n) v :=
   \matrix_(i', j')
     if ((nat_of_ord i' == i) && (nat_of_ord j' == j))%N then v else M i' j'.
 
 Instance : store_class T I mxT := ssr_store3.
 
-Variable n : nat.
+Context {n : nat}.
 
 Instance : I0_class I n.+1 := ord0.
 Instance ssr_succ0 : succ0_class I n.+1 := fun i => inord i.+1.
@@ -546,7 +568,7 @@ Instance ssr_nat_of : nat_of_class I n.+1 := @nat_of_ord n.+1.
 Definition ytilded5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> 'M[T]_(1, n.+1) -> T ->
                       T :=
   @ytilded3 T I mxT _ _ _.
-  
+
 Definition ytildes5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> T :=
   @ytildes3 T I mxT _ _ _.
 
@@ -797,7 +819,7 @@ End proof_inst_ssr_matrix.
 Section proof_inst_ssr_matrix_float_infnan.
 
 Require Import float_infnan_spec cholesky_infnan.
-  
+
 Variable fs : Float_infnan_spec.
 
 Instance add_infnan : add (FI fs) := @fiplus fs.
@@ -815,7 +837,7 @@ elim: k c a b => [|k IHk] c a b; [by rewrite /gen_stilde3|].
 rewrite /gen_stilde3 /= -IHk.
 by apply gen_fsum_l2r_rec_eq; [|move=> i]; rewrite !ffunE.
 Qed.
-  
+
 Lemma gen_ytilded3_correct k (c : FI fs) (a b : FI fs ^ k) (bk : FI fs) :
   gen_ytilded3 c a b bk = ytilded_infnan c a b bk.
 Proof.
@@ -919,141 +941,52 @@ Definition cholesky4 : seq (seq T) :=
 
 End inst_seq.
 
-(*
-Section test_m8_over_float.
+Section data_refinement.
+(* Aim: refinement proofs using seqmatrix.v *)
 
-Local Notation T := full_float.
-(*
-(* Laurent.Théry's trick *)
-Definition hide_let (A B : Type) (a : A) (v : A -> B) := let x := a in v x.
+Require Import CoqEAL_theory.hrel.
 
-Definition add0 : add T :=
-  fun x y =>
-  (hide_let (FF2B' x) (fun x' =>
-  (hide_let (FF2B' y) (fun y' =>
-    B2FF (fiplus x' y'))))).
-Definition add1 :=
-  Eval cbv beta iota zeta delta [add0 B2FF fiplus b64_plus Bplus] in add0.
-Definition add2 :=
-  Eval cbv beta delta [add1 hide_let] in add1.
-Print add2.
+(* Abstract types *)
+Context {A : Type}.
+Local Notation ordA := ordinal.
+Local Notation mxA := (fun m n => 'M[A]_(m, n)).
+Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A}.
 
-(* But it is even better not to unfold any zeta *)
-*)
+(* Concrete types *)
+Context {C : Type}.
+Context {(*ordC*) I : nat -> Type}.
+Context {mxC : nat -> nat -> Type}.
+Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
+Context `{!fun_of C I mxC, !row_class I mxC, !store_class C I mxC, !dotmulB0_class C I mxC}.
+Context {n : nat}.
+Context `{!I0_class I n, !succ0_class I n, !nat_of_class I n}.
 
-Definition add' : add T :=
-  Eval cbv beta iota delta [B2FF fiplus b64_plus Bplus] in
-  fun x y => B2FF (fiplus (FF2B' x) (FF2B' y)).
-Existing Instance add'.
+Context {RC : A -> C -> Prop}.
 
-Definition opp' : opp T :=
-  Eval cbv beta iota delta [B2FF fiopp b64_opp Bopp] in
-  fun x => B2FF (fiopp (FF2B' x)).
-Existing Instance opp'.
+Context {RmxC : forall {m n}, mxA m n -> mxC m n -> Prop}.
+Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
 
-Definition mul' : mul T :=
-  Eval cbv beta iota delta [B2FF fimult b64_mult Bmult] in
-  fun x y => B2FF (fimult (FF2B' x) (FF2B' y)).
-Existing Instance mul'.
+Context {RordC : forall m, 'I_m -> I m -> Prop}.
+Arguments RordC {m} _ _.
 
-Definition div' : div T :=
-  Eval cbv beta iota delta [B2FF fidiv b64_div Bdiv] in
-  fun x y => B2FF (fidiv (FF2B' x) (FF2B' y)).
-Existing Instance div'.
+Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC)
+  (@matrix.fun_of_matrix A m n) (@fun_of_matrix _ _ _ _ m n)}.
 
-Definition sqrt' : sqrt T :=
-  Eval cbv beta iota delta [B2FF fisqrt b64_sqrt Bsqrt] in
-  fun x => B2FF (fisqrt (FF2B' x)).
-Existing Instance sqrt'.
+Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
+  (@matrix.row A m n) (@row _ _ _ m n)}.
 
-Definition zero' : zero T :=
-  Eval cbv in B2FF FI0.
-Existing Instance zero'.
+Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC ==> RmxC)
+  (@ssr_store3 A m n) (@store _ _ _ _ m n)}.
 
-Definition one' : one T :=
-  Eval cbv in B2FF (Z2B 1).
-Existing Instance one'.
-
-Definition F2FF (f : float radix2) : full_float :=
-  Eval cbv beta iota delta [B2FF binary_normalize] zeta in
-  B2FF (binary_normalize prec emax (refl_equal Lt) (refl_equal Lt) mode_NE (Fnum f) (Fexp f) false).
-
-Definition mapFF := map (map F2FF).
-
-Definition FF2F (x : full_float) : float radix2 :=
-  match x with
-  | F754_finite s m e => Fcore_defs.Float radix2 (cond_Zopp s (Zpos m)) e
-  (* Warning: loss of information *)
-  | _ => Fcore_defs.Float radix2 0 0
-  end.
-
-End test_m8_over_float.
-*)
-
-(*
-(* Class hmulvB {I} B T := hmulvB_op : forall n : I, T -> B n -> B n -> T.
-Local Notation "*v%HC" := hmulv_op.
-Reserved Notation "A *v B" (at level 40, left associativity, format "A  *v  B").
-Local Notation "x *v y" := (hmulv_op x y) : hetero_computable_scope. *)
-
-Variable mxA : nat -> nat -> Type.
-Context `{!hadd mxA, !hopp mxA, !hsub mxA, !hmul mxA}.
-Context `{!ulsub mxA, !ursub mxA, !dlsub mxA, !drsub mxA, !block mxA}.
-Context `{!hmulvB (mxA 1) T, !scalar_mx_class T mxA}.
-*)
-
-(* Check forall n c (a b : mxA n 1), hmulvB_op c a b = c - \sum_i (a i * b i). *)
-
-(*
-(** Sum [c + \sum a_i] computed in float from left to right. *)
-Fixpoint fsum_l2r_rec n (c : F fs) : F fs ^ n -> F fs :=
-  match n with
-    | 0%N => fun _ => c
-    | n'.+1 =>
-      fun a => fsum_l2r_rec (fplus c (a ord0)) [ffun i => a (lift ord0 i)]
-  end.
-
-(** Sum [\sum a_i] computed in float from left to right. *)
-Definition fsum_l2r n : F fs ^ n -> F fs :=
-  match n with
-    | 0%N => fun _ => F0 fs
-    | n'.+1 =>
-      fun a => fsum_l2r_rec (a ord0) [ffun i => a (lift ord0 i)]
-  end.
-*)
-
-(** Definition gfcmdotprod_l2r n (c : T) (a b : mxA 1 n) : T :=
-hmulvB_op c a b. *)
+Context `{forall n, param (RordC ==> RC ==> RmxC ==> RmxC ==> RC)
+  (@ssr_dotmulB0 A _ _ _ n) (@dotmulB0 _ _ _ _ n)}.
 
 
+Fail Global Instance param_cholesky m n :
+  param (RmxC ==> RmxC)%rel cholesky5 cholesky4.
+(* WIP *)
 
-(*
-Fixpoint hmulvB n c {struct n} :=
-  match n return (mxA 1 n) -> (mxA 1 n) -> T with
-    | 0%N => fun _ _ => c
-    | n'.+1 => fun a b => hmulvB n' (c - (a ord0 * b ord0))%C (fun i => a (lift ord0 i)) (fun i => b (lift ord0 i))
-  end.
-*)
-
-
-(** Time Eval vm_compute in map (map B2F) (cholesky m_id). *)
-
-Definition m2 := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; [:: Z2B 1; Z2B 0; Z2B 5]].
-
-(** Time Eval vm_compute in map (map B2F) (cholesky m2). *)
-
-(* returns approx:
-
-[ sqrt 2,  -3,     1;
-  -2.1213, 0.7071, 0;
-  0.7071,  2.1213, 0 ]
-
-then R is almost:
-
-1 / sqrt 2 * [ 2, -3, 1;
-               0,  1, 3;
-               0,  0, 0 ]
-*)
+End data_refinement.
 
 (* ================================================================ *)
 (* Require Import String. Eval compute in "Début des tests."%string. *)
