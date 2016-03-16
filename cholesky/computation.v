@@ -390,7 +390,9 @@ End Test_m8_args.
 (** Test #3 using CoqEAL and operational Type Classes               *)
 (********************************************************************)
 
-Require Import mathcomp.algebra.matrix CoqEAL_refinements.seqmatrix CoqEAL_refinements.refinements.
+Require Import mathcomp.algebra.matrix.
+Require Import CoqEAL_refinements.seqmatrix.
+Require Import CoqEAL_refinements.refinements.
 
 Import Refinements.Op.
 
@@ -427,7 +429,7 @@ Section generic_algos.
 Context {T : Type} {I : nat -> Type} {mxT : nat -> nat -> Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !mul T, !div T, !sqrt T}.
 Context `{!fun_of T I mxT, !row_class I mxT, !store_class T I mxT, !dotmulB0_class T I mxT}.
-Variable n : nat.
+Context {n : nat}.
 Context `{!I0_class I n, !succ0_class I n, !nat_of_class I n}.
 
 Local Open Scope nat_scope.
@@ -550,13 +552,14 @@ Instance ssr_dotmulB0 : dotmulB0_class T I mxT :=
                                             [ffun k : 'I_i => b ord0 (inord k)]
     end.
 
+(* Erik: to rename ? *)
 Definition ssr_store3 m n (M : 'M[T]_(m, n)) (i : 'I_m) (j : 'I_n) v :=
   \matrix_(i', j')
     if ((nat_of_ord i' == i) && (nat_of_ord j' == j))%N then v else M i' j'.
 
 Instance : store_class T I mxT := ssr_store3.
 
-Variable n : nat.
+Context {n : nat}.
 
 Instance : I0_class I n.+1 := ord0.
 Instance ssr_succ0 : succ0_class I n.+1 := fun i => inord i.+1.
@@ -937,6 +940,53 @@ Definition cholesky4 : seq (seq T) :=
   @cholesky3 T I mxT _ _ _ _ _ _ n O S id M.
 
 End inst_seq.
+
+Section data_refinement.
+(* Aim: refinement proofs using seqmatrix.v *)
+
+Require Import CoqEAL_theory.hrel.
+
+(* Abstract types *)
+Context {A : Type}.
+Local Notation ordA := ordinal.
+Local Notation mxA := (fun m n => 'M[A]_(m, n)).
+Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A}.
+
+(* Concrete types *)
+Context {C : Type}.
+Context {(*ordC*) I : nat -> Type}.
+Context {mxC : nat -> nat -> Type}.
+Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
+Context `{!fun_of C I mxC, !row_class I mxC, !store_class C I mxC, !dotmulB0_class C I mxC}.
+Context {n : nat}.
+Context `{!I0_class I n, !succ0_class I n, !nat_of_class I n}.
+
+Context {RC : A -> C -> Prop}.
+
+Context {RmxC : forall {m n}, mxA m n -> mxC m n -> Prop}.
+Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
+
+Context {RordC : forall m, 'I_m -> I m -> Prop}.
+Arguments RordC {m} _ _.
+
+Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC)
+  (@matrix.fun_of_matrix A m n) (@fun_of_matrix _ _ _ _ m n)}.
+
+Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
+  (@matrix.row A m n) (@row _ _ _ m n)}.
+
+Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC ==> RmxC)
+  (@ssr_store3 A m n) (@store _ _ _ _ m n)}.
+
+Context `{forall n, param (RordC ==> RC ==> RmxC ==> RmxC ==> RC)
+  (@ssr_dotmulB0 A _ _ _ n) (@dotmulB0 _ _ _ _ n)}.
+
+
+Fail Global Instance param_cholesky m n :
+  param (RmxC ==> RmxC)%rel cholesky5 cholesky4.
+(* WIP *)
+
+End data_refinement.
 
 (* ================================================================ *)
 (* Require Import String. Eval compute in "Début des tests."%string. *)
