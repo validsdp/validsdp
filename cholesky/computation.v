@@ -288,6 +288,25 @@ Definition cholesky2_args A :=
 
 End seq_cholesky.
 
+(** Time Eval vm_compute in map (map B2F) (cholesky1 m_id). *)
+
+Definition m2 := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; [:: Z2B 1; Z2B 0; Z2B 5]].
+
+(** Time Eval vm_compute in map (map B2F) (cholesky1 m2). *)
+
+(* returns approx:
+
+[ sqrt 2,  -3,     1;
+  -2.1213, 0.7071, 0;
+  0.7071,  2.1213, 0 ]
+
+then R is almost:
+
+1 / sqrt 2 * [ 2, -3, 1;
+               0,  1, 3;
+               0,  0, 0 ]
+*)
+
 Definition m2' := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; [:: Z2B 1; Z2B 0; Z2B 5]].
 
 Fixpoint eval_op_l2 A (bop : A -> A -> A) l :=
@@ -918,142 +937,6 @@ Definition cholesky4 : seq (seq T) :=
   @cholesky3 T I mxT _ _ _ _ _ _ n O S id M.
 
 End inst_seq.
-
-(*
-Section test_m8_over_float.
-
-Local Notation T := full_float.
-(*
-(* Laurent.Théry's trick *)
-Definition hide_let (A B : Type) (a : A) (v : A -> B) := let x := a in v x.
-
-Definition add0 : add T :=
-  fun x y =>
-  (hide_let (FF2B' x) (fun x' =>
-  (hide_let (FF2B' y) (fun y' =>
-    B2FF (fiplus x' y'))))).
-Definition add1 :=
-  Eval cbv beta iota zeta delta [add0 B2FF fiplus b64_plus Bplus] in add0.
-Definition add2 :=
-  Eval cbv beta delta [add1 hide_let] in add1.
-Print add2.
-
-(* But it is even better not to unfold any zeta *)
-*)
-
-Definition add' : add T :=
-  Eval cbv beta iota delta [B2FF fiplus b64_plus Bplus] in
-  fun x y => B2FF (fiplus (FF2B' x) (FF2B' y)).
-Existing Instance add'.
-
-Definition opp' : opp T :=
-  Eval cbv beta iota delta [B2FF fiopp b64_opp Bopp] in
-  fun x => B2FF (fiopp (FF2B' x)).
-Existing Instance opp'.
-
-Definition mul' : mul T :=
-  Eval cbv beta iota delta [B2FF fimult b64_mult Bmult] in
-  fun x y => B2FF (fimult (FF2B' x) (FF2B' y)).
-Existing Instance mul'.
-
-Definition div' : div T :=
-  Eval cbv beta iota delta [B2FF fidiv b64_div Bdiv] in
-  fun x y => B2FF (fidiv (FF2B' x) (FF2B' y)).
-Existing Instance div'.
-
-Definition sqrt' : sqrt T :=
-  Eval cbv beta iota delta [B2FF fisqrt b64_sqrt Bsqrt] in
-  fun x => B2FF (fisqrt (FF2B' x)).
-Existing Instance sqrt'.
-
-Definition zero' : zero T :=
-  Eval cbv in B2FF FI0.
-Existing Instance zero'.
-
-Definition one' : one T :=
-  Eval cbv in B2FF (Z2B 1).
-Existing Instance one'.
-
-Definition F2FF (f : float radix2) : full_float :=
-  Eval cbv beta iota delta [B2FF binary_normalize] zeta in
-  B2FF (binary_normalize prec emax (refl_equal Lt) (refl_equal Lt) mode_NE (Fnum f) (Fexp f) false).
-
-Definition mapFF := map (map F2FF).
-
-Definition FF2F (x : full_float) : float radix2 :=
-  match x with
-  | F754_finite s m e => Fcore_defs.Float radix2 (cond_Zopp s (Zpos m)) e
-  (* Warning: loss of information *)
-  | _ => Fcore_defs.Float radix2 0 0
-  end.
-
-End test_m8_over_float.
-*)
-
-(*
-(* Class hmulvB {I} B T := hmulvB_op : forall n : I, T -> B n -> B n -> T.
-Local Notation "*v%HC" := hmulv_op.
-Reserved Notation "A *v B" (at level 40, left associativity, format "A  *v  B").
-Local Notation "x *v y" := (hmulv_op x y) : hetero_computable_scope. *)
-
-Variable mxA : nat -> nat -> Type.
-Context `{!hadd mxA, !hopp mxA, !hsub mxA, !hmul mxA}.
-Context `{!ulsub mxA, !ursub mxA, !dlsub mxA, !drsub mxA, !block mxA}.
-Context `{!hmulvB (mxA 1) T, !scalar_mx_class T mxA}.
-*)
-
-(* Check forall n c (a b : mxA n 1), hmulvB_op c a b = c - \sum_i (a i * b i). *)
-
-(*
-(** Sum [c + \sum a_i] computed in float from left to right. *)
-Fixpoint fsum_l2r_rec n (c : F fs) : F fs ^ n -> F fs :=
-  match n with
-    | 0%N => fun _ => c
-    | n'.+1 =>
-      fun a => fsum_l2r_rec (fplus c (a ord0)) [ffun i => a (lift ord0 i)]
-  end.
-
-(** Sum [\sum a_i] computed in float from left to right. *)
-Definition fsum_l2r n : F fs ^ n -> F fs :=
-  match n with
-    | 0%N => fun _ => F0 fs
-    | n'.+1 =>
-      fun a => fsum_l2r_rec (a ord0) [ffun i => a (lift ord0 i)]
-  end.
-*)
-
-(** Definition gfcmdotprod_l2r n (c : T) (a b : mxA 1 n) : T :=
-hmulvB_op c a b. *)
-
-
-
-(*
-Fixpoint hmulvB n c {struct n} :=
-  match n return (mxA 1 n) -> (mxA 1 n) -> T with
-    | 0%N => fun _ _ => c
-    | n'.+1 => fun a b => hmulvB n' (c - (a ord0 * b ord0))%C (fun i => a (lift ord0 i)) (fun i => b (lift ord0 i))
-  end.
-*)
-
-
-(** Time Eval vm_compute in map (map B2F) (cholesky m_id). *)
-
-Definition m2 := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; [:: Z2B 1; Z2B 0; Z2B 5]].
-
-(** Time Eval vm_compute in map (map B2F) (cholesky m2). *)
-
-(* returns approx:
-
-[ sqrt 2,  -3,     1;
-  -2.1213, 0.7071, 0;
-  0.7071,  2.1213, 0 ]
-
-then R is almost:
-
-1 / sqrt 2 * [ 2, -3, 1;
-               0,  1, 3;
-               0,  0, 0 ]
-*)
 
 (* ================================================================ *)
 (* Require Import String. Eval compute in "Début des tests."%string. *)
