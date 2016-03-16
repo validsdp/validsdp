@@ -565,7 +565,7 @@ Instance ssr_nat_of : nat_of_class I n.+1 := @nat_of_ord n.+1.
 Definition ytilded5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> 'M[T]_(1, n.+1) -> T ->
                       T :=
   @ytilded3 T I mxT _ _ _.
-  
+
 Definition ytildes5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> T :=
   @ytildes3 T I mxT _ _ _.
 
@@ -816,7 +816,7 @@ End proof_inst_ssr_matrix.
 Section proof_inst_ssr_matrix_float_infnan.
 
 Require Import float_infnan_spec cholesky_infnan.
-  
+
 Variable fs : Float_infnan_spec.
 
 Instance add_infnan : add (FI fs) := @fiplus fs.
@@ -834,7 +834,7 @@ elim: k c a b => [|k IHk] c a b; [by rewrite /gen_stilde3|].
 rewrite /gen_stilde3 /= -IHk.
 by apply gen_fsum_l2r_rec_eq; [|move=> i]; rewrite !ffunE.
 Qed.
-  
+
 Lemma gen_ytilded3_correct k (c : FI fs) (a b : FI fs ^ k) (bk : FI fs) :
   gen_ytilded3 c a b bk = ytilded_infnan c a b bk.
 Proof.
