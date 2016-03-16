@@ -299,6 +299,9 @@ unfold Xneg; case (FtoX _).
 intro r; apply Fcore_rnd_ne.round_NE_opp.
 Qed.
 
+Lemma fiopp_spec x : finite (fiopp x) -> FI2F (fiopp x) = fopp (FI2F x) :> R.
+Proof. intros _; apply fiopp_spec_aux. Qed.
+
 Lemma fiplus_proof (x y : FI) : mantissa_bounded (F.add rnd_NE 53%bigZ x y).
 Proof.
 unfold mantissa_bounded.
