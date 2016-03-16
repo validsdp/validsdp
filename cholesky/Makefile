@@ -1,4 +1,4 @@
-all: cholesky_infnan.vo cholesky_prog.vo ellipsoid_error_infnan.vo
+all: cholesky_infnan.vo cholesky_prog.vo ellipsoid_error_infnan.vo testsuite.vo
 
 doc: all html/deps.png
 	mkdir -p html
@@ -26,4 +26,4 @@ depend: .depend
 clean:
 	rm -rf .depend *~ *.vo *.glob html coqgraph coqgraph.cmi coqgraph.cmo
 
-.PHONY: clean
+.PHONY: all doc depend clean
