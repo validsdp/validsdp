@@ -147,32 +147,9 @@ Fixpoint seq_stilde0 k c a b :=
     | S k, a1 :: a2, b1 :: b2 => seq_stilde0 k (fiplus c (fiopp (fimult a1 b1))) a2 b2
   end.
 
-(* retourne un triplet (résultat, args soustractions, args produits) *)
-Fixpoint seq_stilde0_args k c a b :=
-  match k, a, b with
-    | O, _, _ => c
-    | S k, [::], _ => c
-    | S k, _, [::] => c
-    | S k, a1 :: a2, b1 :: b2 =>
-      let m := fimult a1 b1 in
-      seq_stilde0_args k
-        ((fiplus c.1.1 (fiopp m)), (c.1.1 :: m :: c.1.2), (a1 :: b1 :: c.2))
-        a2 b2
-  end.
-
 Definition seq_ytilded0 k c a b bk := fidiv (seq_stilde0 k c a b) bk.
 
-(* retourne (résultat, args soustractions, args produits, args div) *)
-Definition seq_ytilded0_args k c a b bk :=
-  let st := seq_stilde0_args k c a b in
-  ((fidiv st.1.1 bk), st.1.2, st.2, [:: st.1.1; bk]).
-
 Definition seq_ytildes0 k c a := fisqrt (seq_stilde0 k c a a).
-
-(* retourne (résultat, args soustractions, args produits, args sqrt) *)
-Definition seq_ytildes0_args k c a :=
-  let st := seq_stilde0_args k c a a in
-  ((fisqrt st.1.1), st.1.2, st.2, [:: st.1.1]).
 
 Fixpoint seq_store0 T s n (v : T) :=
   match n, s with
@@ -219,19 +196,6 @@ Fixpoint inner_loop_rec2 (k : nat) A R (i : nat) {struct k} :=
            inner_loop_rec2 k A R (S i)
   end.
 Definition inner_loop2 A R i := inner_loop_rec2 (j - i) A R i.
-
-(* retourne (résultat, args soustraction, args produit, args div) *)
-Fixpoint inner_loop_rec2_args (k : nat) A R a_sub a_mul a_div (i : nat) {struct k} :=
-  match k with
-  | O (* i >= j) *) => (R, a_sub, a_mul, a_div)
-  | S k => let st := (seq_ytilded0_args i ((nth FI0 (nth [::] A i) j), a_sub, a_mul)
-                                             (nth [::] R i) (nth [::] R j)
-                                             (nth FI0 (nth [::] R i) i)) in
-           let R := store0 R j i st.1.1.1 in
-           inner_loop_rec2_args k A R st.1.1.2 st.1.2 (st.2 ++ a_div) (S i)
-  end.
-Definition inner_loop2_args A R a_sub a_mul a_div i := inner_loop_rec2_args (j - i) A R a_sub a_mul a_div i.
-
 End InnerLoop.
 
 Section OuterLoop.
@@ -258,19 +222,6 @@ Fixpoint outer_loop_rec2 k A R (j : nat) {struct k} :=
     outer_loop_rec2 k A R (j + 1)
   end.
 Definition outer_loop2 A R j := outer_loop_rec2 (n - j) A R j.
-
-(* retourne (résultat, args soustraction, args produit, args div, args sqrt) *)
-Fixpoint outer_loop_rec2_args k A R a_sub a_mul a_div a_sqr (j : nat) {struct k} :=
-  match k with
-  | O (* j >= n *) => (R, a_sub, a_mul, a_div, a_sqr)
-  | S k =>
-    let '(R, a_sub, a_mul, a_div) := inner_loop2_args j A R a_sub a_mul a_div 0 in
-    let '(st, a_sub, a_mul, a_sqr') := seq_ytildes0_args j ((nth FI0 (nth [::] A j) j), a_sub, a_mul) (nth [::] R j) in
-    let R := store0 R j j st in
-    outer_loop_rec2_args k A R a_sub a_mul a_div (a_sqr' ++ a_sqr) (j + 1)
-  end.
-Definition outer_loop2_args A R a_sub a_mul a_div a_sqr j := outer_loop_rec2_args (n - j) A R a_sub a_mul a_div a_sqr j.
-
 End OuterLoop.
 
 (* note: the result is transposed with respect to cholesky.v *)
@@ -280,11 +231,6 @@ Definition cholesky1 A :=
 Definition cholesky2 A :=
   let sz := size A in
   outer_loop2 sz A A 0.
-
-(* retourne (résultat, args soustraction, args produit, args div, args sqrt) *)
-Definition cholesky2_args A :=
-  let sz := size A in
-  outer_loop2_args sz A A [::] [::] [::] [::] 0.
 
 End seq_cholesky.
 
@@ -307,16 +253,6 @@ then R is almost:
                0,  0, 0 ]
 *)
 
-Definition m2' := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; [:: Z2B 1; Z2B 0; Z2B 5]].
-
-Fixpoint eval_op_l2 A (bop : A -> A -> A) l :=
-  match l with
-    | a1 :: a2 :: l => (bop a1 a2) :: eval_op_l2 bop l
-    | _ => [::]
-  end.
-
-Definition m2_sub := Eval vm_compute in map B2F (cholesky2_args m2').1.1.1.2.
-
 Require Import Interval.Interval_float_sig.
 Require Import Interval.Interval_specific_ops.
 Require Import Interval.Interval_interval.
@@ -337,54 +273,10 @@ Local Open Scope bigZ_scope.
 
 Section test_CoqInterval_0.
 
-(* Time Eval vm_compute in map B2F (eval_op_l2 (fun a b => fiplus a (fiopp b)) (map b64_normalize m2_sub)). *)
-
 Definition F2bigF (f : float radix2) :=
   Float (BigZ.of_Z (Fnum f)) (BigZ.of_Z (Fexp f)).
 
-Definition m2_sub' := Eval vm_compute in map F2bigF m2_sub.
-
-(* Time Eval vm_compute in eval_op_l2 (fun a b => F.add rnd_NE 53%bigZ a (F.neg b)) m2_sub'. *)
-
 End test_CoqInterval_0.
-
-(*
-Section Test_m8_args.
-
-Definition map64 := map (map b64_normalize).
-
-Definition m8_sub := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).1.1.1.2.
-
-Eval vm_compute in length (m8_sub).
-
-Time Eval vm_compute in let res := map B2F (eval_op_l2 (fun a b => (fiplus a (fiopp b))) (map b64_normalize m8_sub)) in true.
-
-Definition m8_sub' := Eval vm_compute in map F2bigF m8_sub.
-
-Time Eval vm_compute in let res := eval_op_l2 (fun a b => F.add rnd_NE 53%bigZ a (F.neg b)) m8_sub' in seq.size res.
-
-map B2F (eval_op_l2 fimult (map b64_normalize m8_sub)) in true.
-
-Definition m8_mul := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).1.1.2.
-
-Eval vm_compute in length (m8_mul).
-
-Time Eval vm_compute in let res := map B2F (eval_op_l2 fimult (map b64_normalize m8_mul)) in true.
-
-Definition m8_div := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).1.2.
-
-Eval vm_compute in length (m8_div).
-
-Time Eval vm_compute in let res := map B2F (eval_op_l2 fidiv (map b64_normalize m8_div)) in true.
-
-Definition m8_sqrt := Eval vm_compute in map B2F (cholesky2_args (map64 m8')).2.
-
-Eval vm_compute in length (m8_sqrt).
-
-Time Eval vm_compute in let res := map B2F (map fisqrt (map b64_normalize m8_sqrt)) in true.
-
-End Test_m8_args.
-*)
 
 (********************************************************************)
 (** Test #3 using CoqEAL and operational Type Classes               *)
@@ -445,53 +337,24 @@ Definition m_0_v3 := [:: [:: 0%C; 0%C]; [:: 0%C; 0%C]].
 
 (** Time Eval vm_compute in map (map B2F) (store m_id 0 1 half). *)
 
-(** Require Import Recdef. **)
-
 Hypothesis Hsucc0 : forall i : I n, (nat_of i).+1 < n -> nat_of (succ0 i) = (nat_of i).+1.
 
 (* note: R is transposed with respect to cholesky.v *)
 Section InnerLoop.
 Variable j : I n.
 
-(*
-Function inner_loop0 A R (i : nat)
-         {measure (fun i => (j - i)%N) i} :=
-  if (i < j)%N then
-    let R := store R j i (seq_ytilded i (nth FI0 (nth [::] A i) j)
-                                      (nth [::] R i) (nth [::] R j)
-                                      (nth FI0 (nth [::] R i) i)) in
-    inner_loop0 A R (i + 1)
-  else
-    R.
-move=> _ _ i H; apply /ltP; rewrite addn1 subnSK //.
-Defined.
-*)
 Fixpoint inner_loop_rec3 (k : nat) A R (i : I n) {struct k} :=
   match k with
-  | O (* i >= j) *) => R
+  | O (* i >= j *) => R
   | S k => let R := store R j i (ytilded3 i (fun_of_matrix A i j)
                                           (row i R) (row j R)
                                           (fun_of_matrix R i i)) in
            inner_loop_rec3 k A R (succ0 i)
   end.
 Definition inner_loop3 A R i := inner_loop_rec3 (nat_of j - nat_of i) A R i.
-
 End InnerLoop.
 
 Section OuterLoop.
-(*
-Function outer_loop0 A R (j : nat)
-         {measure (fun i => (n - j)%N) j} :=
-  if (j < n)%N then
-    let R := inner_loop j A R 0 in
-    let R := store R j j (seq_ytildes j (nth FI0 (nth [::] A j) j)
-                                      (nth [::] R j)) in
-    outer_loop0 A R (j + 1)
-  else
-    R.
-move=> _ _ j H; apply /ltP; rewrite addn1 subnSK //.
-Defined.
-*)
 Fixpoint outer_loop_rec3 k A R (j : I n) {struct k} :=
   match k with
   | O (* j >= n *) => R
@@ -505,13 +368,7 @@ Definition outer_loop3 A R j := outer_loop_rec3 (n - nat_of j) A R j.
 End OuterLoop.
 
 (* note: the result is transposed with respect to cholesky.v *)
-(*
-Definition cholesky0 A :=
-  let sz := size A in
-  outer_loop0 sz A A 0.
-*)
-Definition cholesky3 A :=
-  outer_loop3 A A I0.
+Definition cholesky3 A := outer_loop3 A A I0.
 
 End generic_algos.
 
@@ -552,7 +409,8 @@ Instance ssr_dotmulB0 : dotmulB0_class T I mxT :=
                                             [ffun k : 'I_i => b ord0 (inord k)]
     end.
 
-(* Erik: to rename ? *)
+(* Erik: to rename ?
+   Pierre : oui, n'hésite pas, mes noms sont assez pourris. *)
 Definition ssr_store3 m n (M : 'M[T]_(m, n)) (i : 'I_m) (j : 'I_n) v :=
   \matrix_(i', j')
     if ((nat_of_ord i' == i) && (nat_of_ord j' == j))%N then v else M i' j'.
@@ -875,7 +733,7 @@ Lemma gen_corollary_2_4_with_c_upper_bound_infnan :
    <= c)%Re ->  (* need a small program to comute (with directed rounding) *)
   forall At : 'M[FI fs]_n.+1, At^T = At ->
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
-   (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->  (* need a small program to comute (with directed rounding) *)
+   (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->  (* need a small program to compute (with directed rounding) *)
   let Rt := cholesky5 At in
   (forall i, (0 < FI2F (Rt i i))%Re) ->  (* need a small program to check *)
   real_matrix.posdef (cholesky.MF2R (MFI2F A)).
