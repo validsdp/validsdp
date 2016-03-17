@@ -813,7 +813,7 @@ Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A
 (* Concrete types *)
 Context {C : Type}.
 Local Notation ordC := (fun _ : nat => nat).
-Local Notation mxC := (fun _ _ : nat => seq (seq C)).
+Local Notation mxC := (fun _ _ : nat => seqmatrix C).
 Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
 Context `{!fun_of C ordC mxC, !row_class ordC mxC, !store_class C ordC mxC, !dotmulB0_class C ordC mxC}.
 Context {n : nat}.
@@ -827,8 +827,15 @@ Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
 Context {RordC : forall m, 'I_m -> ordC m -> Prop}.
 Arguments RordC {m} _ _.
 
+(*
+Local Notation RmxC := Rseqmx. (* from seqmatrix.v *)
+Arguments RmxC {A m n} _ _. (* maximal implicit arguments *)
+Local Notation RordC := Rord.
+Arguments RordC {n} _ _.
+*)
+
 Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC)
-  (@matrix.fun_of_matrix A m n) (@fun_of_matrix _ _ _ _ m n)}.
+  (@matrix.fun_of_matrix A m n) (@fun_of_matrix _ _ mxC _ m n)}.
 
 Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
   (@matrix.row A m n) (@row _ _ _ m n)}.
