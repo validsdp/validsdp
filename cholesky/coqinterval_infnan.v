@@ -35,20 +35,6 @@ Section Coqinterval_infnan.
 
 Let prec := 53%Z.
 
-Check sum.  
-
-Check sumor.
-
-Check sumbool.
-
-Locate "+".
-
-Locate "|".
-
-Print sig.
-
-Check exist.
-
 Definition x_bounded (x : ExtendedR) : Set :=
   ( x = Xnan ) + { r | x = Xreal r & FLX_format radix2 53 r }.
 
@@ -100,36 +86,6 @@ intro s; destruct s as (r, Hr, Hr'); simpl; revert Hr.
 now unfold F.toF, FtoX; simpl; intro H; injection H.
 Qed.
 
-Lemma Zceil_lt n x : (n < Zceil x)%Z -> Z2R n < x.
-Proof.
-intro H.
-case (Rlt_or_le (Z2R n) x); [now auto|intro Hle; casetype False].
-now revert H; apply Zle_not_lt; rewrite <- Zceil_Z2R; apply Zceil_le.
-Qed.
-
-Lemma Zfloor_lt x n : (Zfloor x < n)%Z -> x < Z2R n.
-Proof.
-intro H.
-case (Rlt_or_le x (Z2R n)); [now auto|intro Hle; casetype False].
-now revert H; apply Zle_not_lt; rewrite <- (Zfloor_Z2R n); apply Zfloor_le.
-Qed.
-
-Lemma Ztrunc_gt_0 : forall x, (0 < Ztrunc x)%Z -> 0 < x.
-Proof.
-intros x Hx.
-case (Rlt_or_le 0 x); [now auto|intro Hle].
-rewrite (Ztrunc_ceil _ Hle) in Hx.
-now change 0 with (Z2R 0); apply Zceil_lt.
-Qed.
-
-Lemma Ztrunc_lt_0 : forall x, (Ztrunc x < 0)%Z -> x < 0.
-Proof.
-intros x Hx.
-case (Rlt_or_le x 0); [now auto|intro Hle].
-rewrite (Ztrunc_floor _ Hle) in Hx.
-now change 0 with (Z2R 0); apply Zfloor_lt.
-Qed.
-
 Lemma toF_fromF_id (x : float radix2) : F.toF (F.fromF x) = x.
 Proof.
 unfold F.toF, F.fromF.
@@ -157,7 +113,7 @@ Definition firnd_val (x : R) : F.type :=
     | Zneg p => Float true p e end in
   F.fromF f'.
 
-Lemma firnd_prop x : mantissa_bounded (firnd_val x).
+Lemma firnd_proof x : mantissa_bounded (firnd_val x).
 Proof.
 unfold mantissa_bounded, x_bounded, firnd_val; rewrite toF_fromF_id; right.
 exists (frnd fis x).
@@ -186,7 +142,7 @@ apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
 Definition firnd (x : R) : FI :=
-  {| FI_val := firnd_val x; FI_prop := firnd_prop x |}.
+  {| FI_val := firnd_val x; FI_prop := firnd_proof x |}.
 
 Lemma firnd_spec_aux x : FI2F (firnd x) = frnd fis x :> R.
 Proof.
@@ -252,11 +208,8 @@ Proof.
 unfold mantissa_bounded.
 rewrite F.neg_correct, Fneg_correct.
 assert (H := FI_prop x); revert H; unfold mantissa_bounded, x_bounded.
-intro Hx; destruct Hx as [Hx|(r, Hr, Hr')]; [left|right].
-{ now rewrite Hx. }
-exists (- r).
-{ now rewrite Hr. }
-SearchAbout FLX_format.
+intro Hx; destruct Hx as [Hx|(r, Hr, Hr')]; [now left; rewrite Hx|right].
+exists (- r); [now now rewrite Hr|].
 apply FLX_format_generic; [now simpl|].
 now apply generic_format_opp, generic_format_FLX.
 Qed.
