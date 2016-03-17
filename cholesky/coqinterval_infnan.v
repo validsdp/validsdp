@@ -23,7 +23,9 @@ Require Import Interval.Interval_generic.
 Require Import Interval.Interval_generic_proof.
 Require Import Interval.Interval_xreal.
 
-Module F := SpecificFloat BigIntRadix2.
+Module Bir := BigIntRadix2.
+
+Module F := SpecificFloat Bir.
 
 Require Import Psatz.
 
@@ -33,86 +35,70 @@ Section Coqinterval_infnan.
 
 Let prec := 53%Z.
 
-Definition mantissa_bounded (x : F.type) :=
-  match F.toF x with
-    | Fnan => True
-    | Fzero => True
-    | Float _ m e => (Zpos m < Z.pow 2 53)%Z
-  end.
+Check sum.  
+
+Check sumor.
+
+Check sumbool.
+
+Locate "+".
+
+Locate "|".
+
+Print sig.
+
+Check exist.
+
+Definition x_bounded (x : ExtendedR) : Set :=
+  ( x = Xnan ) + { r | x = Xreal r & FLX_format radix2 53 r }.
+
+Definition mantissa_bounded (x : F.type) := x_bounded (FtoX (F.toF x)).
 
 Record FI := { FI_val :> F.type; FI_prop : mantissa_bounded FI_val }.
 
 Definition FI0_proof : mantissa_bounded F.zero.
-Proof. now unfold mantissa_bounded, F.toF; simpl. Qed.
+Proof.
+unfold mantissa_bounded, x_bounded; simpl; right; exists 0; [now simpl|].
+apply FLX_format_generic; [now simpl|]; apply generic_format_0.
+Qed.
 
 Definition FI0 := Build_FI _ FI0_proof.
 
-Definition finite (x : FI) :=
-  match F.toF x with
-    | Fnan => False
-    | Fzero => True
-    | Float _ _ _ => True
-  end.
+Definition finite (x : FI) := F.real x = true.
 
 Lemma finite0 : finite FI0.
-Proof. now unfold finite, FI0. Qed.
+Proof. now unfold finite, FI0, F.real; simpl. Qed.
 
 Definition fis := flx64.flx64 (fun m => negb (Zeven m)).
 
-Definition m := 2.
+Definition m := 2.  (* anything larger or equal 2 would do the job *)
 
 Lemma m_ge_2 : 2 <= m.
 Proof. apply Rle_refl. Qed.
 
-Let FI2F_proof (s : bool) (m : positive) (e : Z)
-    (H : (Zpos m < Z.pow 2 53)%Z) :
-  generic_format radix2 (FLX_exp 53) (FtoR radix2 s m e).
-Proof.
-apply generic_format_FLX.
-unfold FLX_format.
-exists {| Fnum := if s then Z.neg m else Z.pos m; Fexp := e |}.
-split.
-{ unfold FtoR, F2R; simpl.
-  case e; [|intro p|intro p].
-  { now rewrite Rmult_1_r. }
-  { now rewrite Z2R_mult. }
-  now simpl. }
-simpl; case s.
-{ rewrite (Z.abs_neq _ (Pos2Z.neg_is_nonpos _)).
-  now rewrite Pos2Z.opp_neg. }
-now rewrite (Z.abs_eq _ (Zle_0_pos _)).
-Qed.
-
-(*
-Definition FI2F (x : FI) : F fis.
-case_eq (F.toF x).
-{ intros _; exact (F0 fis). }
-{ intros _; exact (F0 fis). }
-intros s m e Hx.
-set (H := FI_prop x).
-unfold FI_prop, mantissa_bounded in H.
-rewrite Hx in H.
-exact {| F_val := FtoR radix2 s m e; F_prop := FI2F_proof s m e H |}.
-Defined.
-*)
-
 Definition FI2F (x : FI) : F fis :=
-  match F.toF x with
-    | Fnan => F0 fis
-    | Fzero => F0 fis
-    | Float s m e =>
-      match Z_lt_ge_dec (Z.pos m) (2 ^ 53) with
-        | left H =>
-          {| F_val := FtoR radix2 s m e; F_prop := FI2F_proof s m e H |}
-        | right _ => F0 fis
-      end
+  match FI_prop x with
+    | inl _ => F0 fis
+    | inr (@exist2 _ _ _ r _ Hr) =>
+      {| F_val := r; F_prop := generic_format_FLX radix2 53 r Hr |}
   end.
 
 Lemma FI2F_spec x : (FI2F x <> 0 :> R) -> finite x.
-Proof. unfold finite, FI2F; case (F.toF x); auto; intros s m e. Qed.
+Proof.
+unfold FI2F, finite.
+case (FI_prop x).
+{ now intros _; simpl; intro H; casetype False; apply H. }
+intro s; destruct s as (r, Hr, Hr'); simpl; revert Hr.
+now unfold F.real, F.toF, FtoX; case (FI_val x).
+Qed.
 
 Lemma FI2F0 : FI2F (FI0) = F0 fis :> R.
-Proof. now simpl. Qed.
+Proof.
+unfold FI2F.
+case (FI_prop FI0); [now simpl|].
+intro s; destruct s as (r, Hr, Hr'); simpl; revert Hr.
+now unfold F.toF, FtoX; simpl; intro H; injection H.
+Qed.
 
 Lemma Zceil_lt n x : (n < Zceil x)%Z -> Z2R n < x.
 Proof.
@@ -149,11 +135,11 @@ Proof.
 unfold F.toF, F.fromF.
 case x; auto.
 intros s m e; case s; auto.
-{ unfold BigIntRadix2.mantissa_sign, BigIntRadix2.ZtoM; simpl.
+{ unfold Bir.mantissa_sign, Bir.ZtoM; simpl.
   unfold BigZ.BigZ.eqb; rewrite BigZ.BigZ.spec_compare; simpl.
   rewrite Cyclic31.spec_0, BigN.BigN.spec_of_pos; simpl.
-  unfold BigIntRadix2.MtoP; rewrite BigN.BigN.spec_of_pos.
-  now rewrite BigIntRadix2.ZtoE_correct. }
+  unfold Bir.MtoP; rewrite BigN.BigN.spec_of_pos.
+  now rewrite Bir.ZtoE_correct. }
 unfold BigIntRadix2.mantissa_sign, BigIntRadix2.ZtoM; simpl.
 unfold BigZ.BigZ.eqb; rewrite BigZ.BigZ.spec_compare; simpl.
 rewrite Cyclic31.spec_0, BigN.BigN.spec_of_pos; simpl.
@@ -173,23 +159,30 @@ Definition firnd_val (x : R) : F.type :=
 
 Lemma firnd_prop x : mantissa_bounded (firnd_val x).
 Proof.
-unfold mantissa_bounded, firnd_val; rewrite toF_fromF_id.
-set (m := scaled_mantissa _ _ _).
-assert (Hm : (Ztrunc (Rabs m) < 2 ^ 53)%Z).
-{ rewrite (Ztrunc_floor _ (Rabs_pos _)).
-  apply lt_Z2R, (Rle_lt_trans _ _ _ (Zfloor_lb _)).
-  apply (Rlt_le_trans _ _ _ (abs_scaled_mantissa_lt_bpow _ _ _)).
-  unfold canonic_exp, FLX_exp.
-  rewrite Z.sub_sub_distr, Z.sub_diag, Z.add_0_l.
-  now rewrite <- Z2R_Zpower; [apply Rle_refl|]. }
-set (zm := Ztrunc m).
-case_eq zm; auto; intros p Hp.
-{ rewrite <- Hp; unfold zm.
-  rewrite <- (Rabs_pos_eq m); [assumption|].
-  now apply Rlt_le, Ztrunc_gt_0; fold m zm; rewrite Hp. }
-rewrite <- Pos2Z.opp_neg, <- Hp; unfold m.
-rewrite <- Z.abs_neq; [|now rewrite Hp].
-now unfold zm; rewrite <- Ztrunc_abs.
+unfold mantissa_bounded, x_bounded, firnd_val; rewrite toF_fromF_id; right.
+exists (frnd fis x).
+{ set (f := frnd fis x).
+  set (fexp := FLX_exp 53).
+  assert (Hfr : Fcore_generic_fmt.round radix2 fexp Ztrunc f = f).
+  { rewrite round_generic; [now simpl|apply valid_rnd_ZR|].
+    apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N]. }
+  set (m := scaled_mantissa _ _ _).
+  set (zm := Ztrunc m).
+  unfold FtoX; case_eq zm.
+  { intro Hzm; rewrite <- Hfr; unfold Fcore_generic_fmt.round, F2R.
+    now fold m zm; rewrite Hzm, Rmult_0_l. }
+  { intros p Hp; rewrite <- Hfr at 2; unfold Fcore_generic_fmt.round.
+    unfold FtoR; case (canonic_exp radix2 fexp f).
+    { now fold m zm; rewrite <- Hp; unfold F2R; rewrite Rmult_1_r. }
+    { now intro p'; fold m zm; rewrite <- Hp, Z2R_mult; unfold F2R. }
+    now intro p'; fold m zm; rewrite <- Hp. }
+  intros p Hp; rewrite <- Hfr at 2; unfold Fcore_generic_fmt.round.
+  unfold FtoR; case (canonic_exp radix2 fexp f).
+  { now fold m zm; rewrite <- Hp; unfold F2R; rewrite Rmult_1_r. }
+  { now intro p'; fold m zm; rewrite <- Hp, Z2R_mult; unfold F2R. }
+  now intro p'; fold m zm; rewrite <- Hp. }
+apply FLX_format_generic; [now simpl|].
+apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
 Definition firnd (x : R) : FI :=
@@ -197,29 +190,50 @@ Definition firnd (x : R) : FI :=
 
 Lemma firnd_spec_aux x : FI2F (firnd x) = frnd fis x :> R.
 Proof.
-assert (Hx := FI_prop (firnd x)); revert Hx; unfold mantissa_bounded.
-unfold FI2F, firnd, firnd_val, finite; simpl; rewrite toF_fromF_id.
+unfold FI2F.
+case (FI_prop (firnd x)).
+{ unfold firnd, F.toF, firnd_val, F.fromF; simpl.
+  now case (Ztrunc _); [|intro p|intro p];
+  case (Bir.mantissa_sign _). }
+intro s; destruct s as (r, Hr, Hr'); simpl.
 set (f := Fcore_generic_fmt.round _ _ _ _).
-set (m := Ztrunc _).
-case_eq m; [intros Hm _|intros p Hp Frx|intros p Hp Frx]; simpl.
-{ rewrite <- (Rmult_0_l (bpow radix2 (canonic_exp radix2 (FLX_exp 53) f))).
-  change 0 with (Z2R 0); rewrite <- Hm.
-  change (_ * _) with (Fcore_generic_fmt.round radix2 (FLX_exp 53) Ztrunc f).
-  rewrite round_generic; auto; [now apply valid_rnd_ZR|].
-  now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]. }
-{ case (Z_lt_ge_dec _ _); intro H; simpl.
-  { rewrite Interval_generic_proof.FtoR_split, <- Hp.
-    change (F2R _) with (Fcore_generic_fmt.round radix2 (FLX_exp 53) Ztrunc f).
-    rewrite round_generic; auto; [now apply valid_rnd_ZR|].
-    now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]. }
-  now casetype False. }
-case (Z_lt_ge_dec _ _); intro H; simpl.
-{ rewrite Interval_generic_proof.FtoR_split.
-  unfold cond_Zopp, Z.opp; rewrite <- Hp.
-  change (F2R _) with (Fcore_generic_fmt.round radix2 (FLX_exp 53) Ztrunc f).
-  rewrite round_generic; auto; [now apply valid_rnd_ZR|].
-  now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]. }
-now casetype False.
+assert (Hfr : Fcore_generic_fmt.round radix2 (FLX_exp 53) Ztrunc f = f).
+{ rewrite round_generic; [now simpl|apply valid_rnd_ZR|].
+  apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N]. }
+cut (Xreal r = Xreal f); [now intro H; injection H|].
+rewrite <- Hr.
+unfold F.toF, firnd, firnd_val; simpl; fold f.
+set (m := scaled_mantissa _ _ _).
+set (e := canonic_exp _ _ _).
+set (zm := Ztrunc m).
+rewrite <- Hfr; unfold Fcore_generic_fmt.round, F2R; simpl; fold m zm e.
+unfold F.fromF, FtoX; case_eq zm.
+{ unfold Bir.mantissa_sign; rewrite BigZ.eqb_refl; intro Hm.
+  now rewrite <- (Rmult_0_l (bpow radix2 e)). }
+{ intros p Hp.
+  assert (H := Bir.mantissa_sign_correct (Bir.ZtoM (Z.pos p))).
+  revert H; case (Bir.mantissa_sign _).
+  { now rewrite Bir.ZtoM_correct, <- Hp; intro Hzm; rewrite Hzm, Rmult_0_l. }
+  intros s m' (Hm', Hm''); unfold FtoR.
+  set (ite := if s then _ else _).
+  assert (H : ite = Z.pos p); [|rewrite H; clear H].
+  { now unfold ite; revert Hm'; rewrite Bir.ZtoM_correct; case s. }
+  rewrite Bir.ZtoE_correct; case_eq e; [|intro e'|intro e']; intro He.
+  { now rewrite Rmult_1_r. }
+  { now rewrite Z2R_mult. }
+  now simpl. }
+intros p Hp.
+assert (H := Bir.mantissa_sign_correct (Bir.ZtoM (Z.neg p))).
+revert H; case (Bir.mantissa_sign _).
+{ now rewrite Bir.ZtoM_correct, <- Hp; intro Hzm; rewrite Hzm, Rmult_0_l. }
+intros s m' (Hm', Hm''); unfold FtoR.
+set (ite := if s then _ else _).
+assert (H : ite = Z.neg p); [|rewrite H; clear H].
+{ now unfold ite; revert Hm'; rewrite Bir.ZtoM_correct; case s. }
+rewrite Bir.ZtoE_correct; case_eq e; [|intro e'|intro e']; intro He.
+{ now rewrite Rmult_1_r. }
+{ now rewrite Z2R_mult. }
+now simpl.
 Qed.
 
 Lemma firnd_spec x : finite (firnd x) -> FI2F (firnd x) = frnd fis x :> R.
@@ -227,12 +241,52 @@ Proof. intros _; apply firnd_spec_aux. Qed.
 
 Lemma firnd_spec_f_aux x : finite (firnd x).
 Proof.
-unfold finite, firnd, firnd_val; simpl; rewrite toF_fromF_id.
-now case (Ztrunc _).
+now unfold finite, firnd, firnd_val, F.real, F.fromF; simpl; case (Ztrunc _).
 Qed.
 
 Lemma firnd_spec_f x : Rabs (frnd fis x) < m -> finite (firnd x).
 Proof. intros _; apply firnd_spec_f_aux. Qed.
+
+Lemma fiopp_proof (x : FI) : mantissa_bounded (F.neg x).
+Proof.
+unfold mantissa_bounded.
+rewrite F.neg_correct, Fneg_correct.
+assert (H := FI_prop x); revert H; unfold mantissa_bounded, x_bounded.
+intro Hx; destruct Hx as [Hx|(r, Hr, Hr')]; [left|right].
+{ now rewrite Hx. }
+exists (- r).
+{ now rewrite Hr. }
+SearchAbout FLX_format.
+apply FLX_format_generic; [now simpl|].
+now apply generic_format_opp, generic_format_FLX.
+Qed.
+
+Definition fiopp (x : FI) : FI :=
+  {| FI_val := F.neg x; FI_prop := fiopp_proof x |}.
+
+Definition X_real (x : ExtendedR) :=
+  match x with
+  | Xnan => false
+  | Xreal _ => true
+  end.
+
+Lemma FtoX_real (f : F.type) : F.real f = X_real (FtoX (F.toF f)).
+Proof.
+unfold F.real, X_real, FtoX, F.toF; simpl; case f; [now simpl|].
+now intros m e; case (Bir.mantissa_sign m).
+Qed.
+
+Lemma fiopp_spec_f1 x : finite (fiopp x) -> finite x.
+Proof.
+unfold finite, fiopp; simpl; do 2 rewrite FtoX_real.
+now rewrite F.neg_correct, Fneg_correct; case (FtoX _); [|intro r].
+Qed.
+
+Lemma fiopp_spec_f x : finite x -> finite (fiopp x).
+Proof.
+unfold finite, fiopp; simpl; do 2 rewrite FtoX_real.
+now rewrite F.neg_correct, Fneg_correct; case (FtoX _); [|intro r].
+Qed.
 
 Definition X2F (x : ExtendedR) : F fis :=
   match x with
@@ -242,173 +296,263 @@ Definition X2F (x : ExtendedR) : F fis :=
 
 Lemma FI2F_X2F_FtoX x : FI2F x = X2F (FtoX (F.toF x)) :> R.
 Proof.
-assert (Hx := FI_prop x); revert Hx; unfold mantissa_bounded.
-unfold FI2F; case (FI_val x); [now simpl|]; intros m e.
-unfold F.toF; case (BigIntRadix2.mantissa_sign m).
-{ now simpl; unfold frnd; rewrite round_0; [|apply valid_rnd_N]. }
-intros s m' Hm'.
-case (Z_lt_ge_dec _ _); [|now simpl].
-intro H; simpl.
-now rewrite round_generic; [|apply valid_rnd_N|apply FI2F_proof].
-Qed.
-
-Lemma fiopp_proof (x : FI) : mantissa_bounded (F.neg x).
-Proof.
-assert (Hx := FI_prop x); revert Hx; unfold mantissa_bounded.
-case (FI_val x); [now simpl|]; intros m e.
-unfold F.neg, F.toF.
-case_eq (BigIntRadix2.mantissa_sign m).
-{ now intro Hm; rewrite Hm. }
-intros s m' Hm Hm'.
-case s.
-{ unfold BigIntRadix2.mantissa_sign, BigIntRadix2.mantissa_pos.
-  now case_eq (BigZ.BigZ.eqb (BigZ.BigZ.Pos m') (BigZ.BigZ.Pos 0)). }
-unfold BigIntRadix2.mantissa_sign, BigIntRadix2.mantissa_neg.
-now case_eq (BigZ.BigZ.eqb (BigZ.BigZ.Neg m') (BigZ.BigZ.Pos 0)).
-Qed.
-
-Definition fiopp (x : FI) := {| FI_val := F.neg x; FI_prop := fiopp_proof x |}.
-
-Lemma fiopp_spec_f1 x : finite (fiopp x) -> finite x.
-Proof.
-unfold finite, fiopp; simpl.
-case (FI_val x); [now simpl|]; intros m e.
-unfold F.neg, F.toF; simpl.
-case (BigIntRadix2.mantissa_sign m); [now simpl|]; intros s m'.
-now case (BigIntRadix2.mantissa_sign _).
-Qed.
-
-Lemma fiopp_spec_f x : finite x -> finite (fiopp x).
-Proof.
-unfold finite, fiopp; simpl.
-case (FI_val x); [now simpl|]; intros m e.
-unfold F.neg, F.toF; simpl.
-case (BigIntRadix2.mantissa_sign m).
-{ now case (BigIntRadix2.mantissa_sign m). }
-intros s m' _.
-now case (BigIntRadix2.mantissa_sign _).
+unfold FI2F; case (FI_prop x).
+{ now intro H; rewrite H. }
+intro H; destruct H as (r, Hx, Hr); rewrite Hx; simpl.
+now apply sym_eq, round_generic; [apply valid_rnd_N|apply generic_format_FLX].
 Qed.
 
 Lemma fiopp_spec_aux x : FI2F (fiopp x) = fopp (FI2F x) :> R.
 Proof.
 rewrite (FI2F_X2F_FtoX _).
 unfold fiopp; simpl; rewrite F.neg_correct, Fneg_correct.
-change flx64.format with (format fis); rewrite (FI2F_X2F_FtoX _).
-unfold Xneg; case (FtoX _).
-{ now unfold X2F, F0; simpl; rewrite Ropp_0. }
-intro r; apply Fcore_rnd_ne.round_NE_opp.
+rewrite (FI2F_X2F_FtoX _); set (f := FtoX _).
+case f; simpl; [|intro r].
+{ now rewrite Ropp_0. }
+apply Fcore_rnd_ne.round_NE_opp.
 Qed.
+
+Lemma fiopp_spec x : finite (fiopp x) -> FI2F (fiopp x) = fopp (FI2F x) :> R.
+Proof. intros _; apply fiopp_spec_aux. Qed.
 
 Lemma fiplus_proof (x y : FI) : mantissa_bounded (F.add rnd_NE 53%bigZ x y).
 Proof.
-unfold mantissa_bounded.
-unfold F.add, F.add_slow.
-case_eq (FI_val x); [now simpl|]; intros mx ex Hx.
-case_eq (FI_val y); [now simpl|]; intros my ey Hy.
-assert (Hmx := BigIntRadix2.mantissa_sign_correct mx); revert Hmx.
-case (BigIntRadix2.mantissa_sign mx); [|intros sx mx']; intro Hmx.
-{ assert (Hmy := BigIntRadix2.mantissa_sign_correct my); revert Hmy.
-  case (BigIntRadix2.mantissa_sign my); [|intros sy my']; intro Hmy.
-  { unfold F.toF, BigIntRadix2.mantissa_sign.
-    rewrite BigZ.spec_eqb.
-    now unfold BigIntRadix2.MtoZ in Hmx; rewrite Hmx. }
-  SearchAbout F.round_aux.
-  assert (Hr := F.round_aux_correct rnd_NE 53%bigZ sy my' ey pos_Eq (proj2 Hmy)).
-  fold (mantissa_bounded (F.round_aux rnd_NE 53%bigZ sy my' ey pos_Eq)).
-Admitted.  (* ça a l'air super pénible à prouver *)
+unfold mantissa_bounded, x_bounded.
+rewrite F.add_correct, Fadd_correct; set (z := Xadd _ _).
+unfold xround; case z; [now left|intro r'; right].
+set (r'' := round _ _ _ _); exists r''; [now simpl|].
+apply FLX_format_generic; [now simpl|].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+Qed.
 
 Definition fiplus (x y : FI) : FI :=
   {| FI_val := F.add rnd_NE 53%bigZ x y; FI_prop := fiplus_proof x y |}.
 
 Lemma fiplus_spec_fl x y : finite (fiplus x y) -> finite x.
 Proof.
-unfold finite, fiplus; simpl.
-case (FI_val x); [now simpl|]; intros mx ex.
-case (FI_val y); [now simpl|]; intros my ey.
-unfold F.add, F.toF; simpl.
-case (BigIntRadix2.mantissa_sign mx); [now simpl|]; intros sx mx'.
-case (BigIntRadix2.mantissa_sign my); [now simpl|]; intros sy my'.
-Admitted.
+unfold finite, fiplus; simpl; do 2 rewrite FtoX_real.
+now rewrite F.add_correct, Fadd_correct; case (FtoX (F.toF x)); [|intro r].
+Qed.
 
 Lemma fiplus_spec_fr x y : finite (fiplus x y) -> finite y.
 Proof.
-Admitted.
+unfold finite, fiplus; simpl; do 2 rewrite FtoX_real.
+rewrite F.add_correct, Fadd_correct.
+now case (FtoX (F.toF y)); [|intro r]; case (FtoX (F.toF x)).
+Qed.
+
+Lemma fiplus_spec_f_aux x y : finite x -> finite y -> finite (fiplus x y).
+Proof.
+unfold finite, fiplus; simpl; do 3 rewrite FtoX_real.
+rewrite F.add_correct, Fadd_correct.
+now case (FtoX (F.toF y)); [|intro r]; case (FtoX (F.toF x)).
+Qed.
+
+Lemma fiplus_spec_f x y : finite x -> finite y ->
+  Rabs (fplus (FI2F x) (FI2F y)) < m -> finite (fiplus x y).
+Proof. now intros Fx Fy _; apply fiplus_spec_f_aux. Qed.
 
 Lemma fiplus_spec x y : finite (fiplus x y) ->
   FI2F (fiplus x y) = fplus (FI2F x) (FI2F y) :> R.
 Proof.
-Admitted.
-
-Lemma fiplus_spec_f x y : finite x -> finite y ->
-  Rabs (fplus (FI2F x) (FI2F y)) < m -> finite (fiplus x y).
-Proof.
-Admitted.
+unfold finite; rewrite (FI2F_X2F_FtoX _), FtoX_real.
+unfold fiplus; simpl; rewrite F.add_correct, Fadd_correct.
+set (z := Xadd _ _); case_eq z; [now simpl|]; intros r Hr _; simpl.
+rewrite round_generic; [|now apply valid_rnd_N|].
+{ apply f_equal; revert Hr; unfold z.
+  case_eq (FtoX (F.toF x)); [now simpl|]; intros rx Hrx.
+  case_eq (FtoX (F.toF y)); [now simpl|]; intros ry Hry.
+  do 2 rewrite FI2F_X2F_FtoX; rewrite Hrx, Hry; simpl.
+  rewrite round_generic; [|now apply valid_rnd_N|].
+  { rewrite round_generic; [|now apply valid_rnd_N|].
+    { now intro H; injection H. }
+    case (FI_prop y); [now rewrite Hry|].
+    intros (ry', Hry', Hry''); rewrite Hry in Hry'; injection Hry'.
+    now intro H; rewrite H; apply generic_format_FLX. }
+  case (FI_prop x); [now rewrite Hrx|].
+  intros (rx', Hrx', Hrx''); rewrite Hrx in Hrx'; injection Hrx'.
+  now intro H; rewrite H; apply generic_format_FLX. }
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+Qed.
 
 Lemma fimult_proof (x y : FI) : mantissa_bounded (F.mul rnd_NE 53%bigZ x y).
 Proof.
-Admitted.
+unfold mantissa_bounded, x_bounded.
+rewrite F.mul_correct, Fmul_correct; set (z := Xmul _ _).
+unfold xround; case z; [now left|intro r'; right].
+set (r'' := round _ _ _ _); exists r''; [now simpl|].
+apply FLX_format_generic; [now simpl|].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+Qed.
 
 Definition fimult (x y : FI) : FI :=
   {| FI_val := F.mul rnd_NE 53%bigZ x y; FI_prop := fimult_proof x y |}.
 
 Lemma fimult_spec_fl x y : finite (fimult x y) -> finite x.
 Proof.
-Admitted.
+unfold finite, fiplus; simpl; do 2 rewrite FtoX_real.
+now rewrite F.mul_correct, Fmul_correct; case (FtoX (F.toF x)); [|intro r].
+Qed.
 
 Lemma fimult_spec_fr x y : finite (fimult x y) -> finite y.
 Proof.
-Admitted.
+unfold finite, fiplus; simpl; do 2 rewrite FtoX_real.
+rewrite F.mul_correct, Fmul_correct.
+now case (FtoX (F.toF y)); [|intro r]; case (FtoX (F.toF x)).
+Qed.
+
+Lemma fimult_spec_f_aux x y : finite x -> finite y -> finite (fimult x y).
+Proof.
+unfold finite, fiplus; simpl; do 3 rewrite FtoX_real.
+rewrite F.mul_correct, Fmul_correct.
+now case (FtoX (F.toF y)); [|intro r]; case (FtoX (F.toF x)).
+Qed.
+
+Lemma fimult_spec_f x y : finite x -> finite y ->
+  Rabs (fmult (FI2F x) (FI2F y)) < m -> finite (fimult x y).
+Proof. now intros Fx Fy _; apply fimult_spec_f_aux. Qed.
 
 Lemma fimult_spec x y : finite (fimult x y) ->
   FI2F (fimult x y) = fmult (FI2F x) (FI2F y) :> R.
 Proof.
-Admitted.
-
-Lemma fimult_spec_f x y : finite x -> finite y ->
-  Rabs (fmult (FI2F x) (FI2F y)) < m -> finite (fimult x y).
-Proof.
-Admitted.
+unfold finite; rewrite (FI2F_X2F_FtoX _), FtoX_real.
+unfold fimult; simpl; rewrite F.mul_correct, Fmul_correct.
+set (z := Xmul _ _); case_eq z; [now simpl|]; intros r Hr _; simpl.
+rewrite round_generic; [|now apply valid_rnd_N|].
+{ apply f_equal; revert Hr; unfold z.
+  case_eq (FtoX (F.toF x)); [now simpl|]; intros rx Hrx.
+  case_eq (FtoX (F.toF y)); [now simpl|]; intros ry Hry.
+  do 2 rewrite FI2F_X2F_FtoX; rewrite Hrx, Hry; simpl.
+  rewrite round_generic; [|now apply valid_rnd_N|].
+  { rewrite round_generic; [|now apply valid_rnd_N|].
+    { now intro H; injection H. }
+    case (FI_prop y); [now rewrite Hry|].
+    intros (ry', Hry', Hry''); rewrite Hry in Hry'; injection Hry'.
+    now intro H; rewrite H; apply generic_format_FLX. }
+  case (FI_prop x); [now rewrite Hrx|].
+  intros (rx', Hrx', Hrx''); rewrite Hrx in Hrx'; injection Hrx'.
+  now intro H; rewrite H; apply generic_format_FLX. }
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+Qed.
 
 Lemma fidiv_proof (x y : FI) : mantissa_bounded (F.div rnd_NE 53%bigZ x y).
 Proof.
-Admitted.
+unfold mantissa_bounded, x_bounded.
+rewrite F.div_correct, Fdiv_correct; set (z := Xdiv _ _).
+unfold xround; case z; [now left|intro r'; right].
+set (r'' := round _ _ _ _); exists r''; [now simpl|].
+apply FLX_format_generic; [now simpl|].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+Qed.
 
 Definition fidiv (x y : FI) : FI :=
   {| FI_val := F.div rnd_NE 53%bigZ x y; FI_prop := fidiv_proof x y |}.
 
-Lemma fidiv_spec_fl x y : finite (fidiv x y) -> finite y -> finite x.
+Lemma fidiv_spec_fl_aux x y : finite (fidiv x y) -> finite x.
 Proof.
-Admitted.
+unfold finite, fidiv; simpl; do 2 rewrite FtoX_real.
+now rewrite F.div_correct, Fdiv_correct; case (FtoX (F.toF x)); [|intro r].
+Qed.
 
-Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
-  FI2F (fidiv x y) = fdiv (FI2F x) (FI2F y) :> R.
+Lemma fidiv_spec_fl x y : finite (fidiv x y) -> finite y -> finite x.
+Proof. now intros Fxy _; revert Fxy; apply fidiv_spec_fl_aux. Qed.
+
+Lemma fidiv_spec_f_aux x y : finite x -> (FI2F y <> 0 :> R) -> finite (fidiv x y).
 Proof.
-Admitted.
+unfold finite, fidiv; simpl; do 2 rewrite FtoX_real.
+rewrite F.div_correct, Fdiv_correct.
+case (FtoX (F.toF x)); [now simpl|]; intros r Hr.
+unfold FI2F; case (FI_prop y).
+{ now intros _ H; casetype False; apply H. }
+intros (r', Hr', Hr''); simpl; rewrite Hr'.
+assert (H := is_zero_spec r'); revert H; case (is_zero r'); [|now simpl].
+now intros H1 H2; casetype False; apply H2; destruct H1.
+Qed.
 
 Lemma fidiv_spec_f x y : finite x -> (FI2F y <> 0 :> R) ->
   Rabs (fdiv (FI2F x) (FI2F y)) < m -> finite (fidiv x y).
+Proof. intros Fx Nzy _; revert Fx Nzy; apply fidiv_spec_f_aux. Qed.
+
+Lemma fidiv_spec_aux x y : finite (fidiv x y) ->
+  FI2F (fidiv x y) = fdiv (FI2F x) (FI2F y) :> R.
 Proof.
-Admitted.
+unfold finite; rewrite (FI2F_X2F_FtoX _), FtoX_real.
+unfold fidiv; simpl; rewrite F.div_correct, Fdiv_correct.
+set (z := Xdiv _ _); case_eq z; [now simpl|]; intros r Hr _; simpl.
+rewrite round_generic; [|now apply valid_rnd_N|].
+{ apply f_equal; revert Hr; unfold z.
+  case_eq (FtoX (F.toF x)); [now simpl|]; intros rx Hrx.
+  case_eq (FtoX (F.toF y)); [now simpl|]; intros ry Hry.
+  do 2 rewrite FI2F_X2F_FtoX; rewrite Hrx, Hry; simpl.
+  rewrite round_generic; [|now apply valid_rnd_N|].
+  { rewrite round_generic; [|now apply valid_rnd_N|].
+    { case (is_zero ry); [now simpl|].
+      now intro H; injection H. }
+    case (FI_prop y); [now rewrite Hry|].
+    intros (ry', Hry', Hry''); rewrite Hry in Hry'; injection Hry'.
+    now intro H; rewrite H; apply generic_format_FLX. }
+  case (FI_prop x); [now rewrite Hrx|].
+  intros (rx', Hrx', Hrx''); rewrite Hrx in Hrx'; injection Hrx'.
+  now intro H; rewrite H; apply generic_format_FLX. }
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+Qed.
+
+Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
+  FI2F (fidiv x y) = fdiv (FI2F x) (FI2F y) :> R.
+Proof. now intros Fxy Fy; apply fidiv_spec_aux. Qed.
 
 Lemma fisqrt_proof (x : FI) : mantissa_bounded (F.sqrt rnd_NE 53%bigZ x).
 Proof.
-Admitted.
+unfold mantissa_bounded, x_bounded.
+rewrite F.sqrt_correct, Fsqrt_correct; set (z := Xsqrt _).
+unfold xround; case z; [now left|intro r'; right].
+set (r'' := round _ _ _ _); exists r''; [now simpl|].
+apply FLX_format_generic; [now simpl|].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+Qed.
 
 Definition fisqrt (x : FI) : FI :=
   {| FI_val := F.sqrt rnd_NE 53%bigZ x; FI_prop := fisqrt_proof x |}.
 
 Lemma fisqrt_spec_f1 x : finite (fisqrt x) -> finite x.
 Proof.
-Admitted.
+unfold finite, fisqrt; simpl; do 2 rewrite FtoX_real.
+now rewrite F.sqrt_correct, Fsqrt_correct; case (FtoX (F.toF x)); [|intro r].
+Qed.
+
+Lemma fisqrt_spec_f x : finite x -> FI2F x >= 0 -> finite (fisqrt x).
+Proof.
+unfold finite, fisqrt; simpl; do 2 rewrite FtoX_real; rewrite FI2F_X2F_FtoX.
+rewrite F.sqrt_correct, Fsqrt_correct.
+assert (H := FI_prop x); revert H; unfold mantissa_bounded, x_bounded.
+case (FtoX (F.toF x)); [now simpl|intros r Hr]; simpl.
+destruct Hr as [Hr|Hr]; [now simpl|]; destruct Hr as (r', Hr', Hr'').
+injection Hr'; intros Hr''' _; rewrite Hr''', round_generic.
+{ assert (H := is_negative_spec r'); revert H.
+  case (is_negative r'); [|now simpl]; intro H; destruct H; [|now simpl].
+  now intro H'; casetype False; revert H'; apply Rlt_not_ge. }
+{ now apply valid_rnd_N. }
+now apply generic_format_FLX.
+Qed.
 
 Lemma fisqrt_spec x : finite (fisqrt x) ->
   FI2F (fisqrt x) = fsqrt (FI2F x) :> R.
 Proof.
-Admitted.
-
-Lemma fisqrt_spec_f x : finite x -> FI2F x >= 0 -> finite (fisqrt x).
-Proof.
-Admitted.
+unfold finite; rewrite (FI2F_X2F_FtoX _), FtoX_real.
+unfold fisqrt; simpl; rewrite F.sqrt_correct, Fsqrt_correct.
+set (z := Xsqrt _); case_eq z; [now simpl|]; intros r Hr _; simpl.
+rewrite round_generic; [|now apply valid_rnd_N|].
+{ apply f_equal; revert Hr; unfold z.
+  case_eq (FtoX (F.toF x)); [now simpl|]; intros rx Hrx.
+  rewrite FI2F_X2F_FtoX; rewrite Hrx; simpl.
+  rewrite round_generic; [|now apply valid_rnd_N|].
+  { case (is_negative rx); [now simpl|].
+    now intro H; injection H. }
+  case (FI_prop x); [now rewrite Hrx|].
+  intros (rx', Hrx', Hrx''); rewrite Hrx in Hrx'; injection Hrx'.
+  now intro H; rewrite H; apply generic_format_FLX. }
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+Qed.
 
 Definition coqinterval_infnan : Float_infnan_spec :=
   @Build_Float_infnan_spec

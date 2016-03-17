@@ -13,7 +13,7 @@ Require Export float_spec.
 
 Record Float_infnan_spec := {
   (** Type of floating-point values (either finite, infinite or NaN). *)
-  FI : Set;
+  FI : Type;
 
   FI0 : FI;
   

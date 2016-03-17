@@ -1,4 +1,4 @@
-(** * CoqInterval floats satisfy hypothesis in [Float_infnan_spec] *)
+(** * FLX 53 satisfy hypothesis in [Float_spec] *)
 
 (** Uses the Flocq library (http://flocq.gforge.inria.fr) to build a
     record [Float_spec] corresponding to IEEE754 binary64 format with
