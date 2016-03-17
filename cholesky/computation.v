@@ -318,17 +318,17 @@ Open Scope hetero_computable_scope.
 *)
 
 Section generic_algos.
-Context {T : Type} {I : nat -> Type} {mxT : nat -> nat -> Type}.
+Context {T : Type} {ordT : nat -> Type} {mxT : nat -> nat -> Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !mul T, !div T, !sqrt T}.
-Context `{!fun_of T I mxT, !row_class I mxT, !store_class T I mxT, !dotmulB0_class T I mxT}.
+Context `{!fun_of T ordT mxT, !row_class ordT mxT, !store_class T ordT mxT, !dotmulB0_class T ordT mxT}.
 Context {n : nat}.
-Context `{!I0_class I n, !succ0_class I n, !nat_of_class I n}.
+Context `{!I0_class ordT n, !succ0_class ordT n, !nat_of_class ordT n}.
 
 Local Open Scope nat_scope.
 
-Definition ytilded3 (k : I n) c a b bk := (dotmulB0 k c a b / bk)%C.
+Definition ytilded3 (k : ordT n) c a b bk := (dotmulB0 k c a b / bk)%C.
 
-Definition ytildes3 (k : I n) c a := (sqrt_op (dotmulB0 k c a a)).
+Definition ytildes3 (k : ordT n) c a := (sqrt_op (dotmulB0 k c a a)).
 
 (*
 Definition m_id_v3 : seq (seq T) := [:: [:: 1%C; 0%C]; [:: 0%C; 1%C]].
@@ -337,13 +337,13 @@ Definition m_0_v3 := [:: [:: 0%C; 0%C]; [:: 0%C; 0%C]].
 
 (** Time Eval vm_compute in map (map B2F) (store m_id 0 1 half). *)
 
-Hypothesis Hsucc0 : forall i : I n, (nat_of i).+1 < n -> nat_of (succ0 i) = (nat_of i).+1.
+Hypothesis Hsucc0 : forall i : ordT n, (nat_of i).+1 < n -> nat_of (succ0 i) = (nat_of i).+1.
 
 (* note: R is transposed with respect to cholesky.v *)
 Section InnerLoop.
-Variable j : I n.
+Variable j : ordT n.
 
-Fixpoint inner_loop_rec3 (k : nat) A R (i : I n) {struct k} :=
+Fixpoint inner_loop_rec3 (k : nat) A R (i : ordT n) {struct k} :=
   match k with
   | O (* i >= j *) => R
   | S k => let R := store R j i (ytilded3 i (fun_of_matrix A i j)
@@ -355,7 +355,7 @@ Definition inner_loop3 A R i := inner_loop_rec3 (nat_of j - nat_of i) A R i.
 End InnerLoop.
 
 Section OuterLoop.
-Fixpoint outer_loop_rec3 k A R (j : I n) {struct k} :=
+Fixpoint outer_loop_rec3 k A R (j : ordT n) {struct k} :=
   match k with
   | O (* j >= n *) => R
   | S k =>
@@ -374,15 +374,17 @@ End generic_algos.
 
 Section inst_ssr_matrix.
 
+Context {n : nat}.
+
 Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
 
-Let I (n : nat) := 'I_n.
+Let ordT (n : nat) := 'I_n.
 Let mxT (m n : nat) := 'M[T]_(m, n).
 
-Instance ssr_fun_of : fun_of T I mxT := fun m n => @matrix.fun_of_matrix T m n.
+Instance ssr_fun_of : fun_of T ordT mxT := fun m n => @matrix.fun_of_matrix T m n.
 
-Instance ssr_row : row_class I mxT := @matrix.row T.
+Instance ssr_row : row_class ordT mxT := @matrix.row T.
 
 Fixpoint gen_fsum_l2r_rec n (c : T) : T ^ n -> T :=
   match n with
@@ -400,7 +402,7 @@ Definition gen_ytilded3 n (c : T) (a b : T ^ n) (bk : T) : T :=
 Definition gen_ytildes3 n (c : T) (a : T ^ n) : T :=
   sqrt_op (gen_stilde3 c a a).
 
-Instance ssr_dotmulB0 : dotmulB0_class T I mxT :=
+Instance ssr_dotmulB0 : dotmulB0_class T ordT mxT :=
   fun n =>
     match n with
       | 0%N => fun i c a b => c
@@ -415,31 +417,29 @@ Definition ssr_store3 m n (M : 'M[T]_(m, n)) (i : 'I_m) (j : 'I_n) v :=
   \matrix_(i', j')
     if ((nat_of_ord i' == i) && (nat_of_ord j' == j))%N then v else M i' j'.
 
-Instance : store_class T I mxT := ssr_store3.
+Instance : store_class T ordT mxT := ssr_store3.
 
-Context {n : nat}.
-
-Instance : I0_class I n.+1 := ord0.
-Instance ssr_succ0 : succ0_class I n.+1 := fun i => inord i.+1.
-Instance ssr_nat_of : nat_of_class I n.+1 := @nat_of_ord n.+1.
+Instance : I0_class ordT n.+1 := ord0.
+Instance ssr_succ0 : succ0_class ordT n.+1 := fun i => inord i.+1.
+Instance ssr_nat_of : nat_of_class ordT n.+1 := @nat_of_ord n.+1.
 
 Definition ytilded5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> 'M[T]_(1, n.+1) -> T ->
                       T :=
-  @ytilded3 T I mxT _ _ _.
+  @ytilded3 T ordT mxT _ _ _.
 
 Definition ytildes5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> T :=
-  @ytildes3 T I mxT _ _ _.
+  @ytildes3 T ordT mxT _ _ _.
 
 Definition inner_loop5 : 'I_n.+1 -> 'M[T]_n.+1 -> 'M[T]_n.+1 -> 'I_n.+1 ->
   'M[T]_n.+1 :=
-  @inner_loop3 T I mxT _ _ _ _ _ _ _ _.
+  @inner_loop3 T ordT mxT _ _ _ _ _ _ _ _.
 
 Definition outer_loop5 : 'M[T]_n.+1 -> 'M[T]_n.+1 -> 'I_n.+1 ->
   'M[T]_n.+1 :=
-  @outer_loop3 T I mxT _ _ _ _ _ _ _ _ _ _.
+  @outer_loop3 T ordT mxT _ _ _ _ _ _ _ _ _ _.
 
 Definition cholesky5 : 'M[T]_n.+1 -> 'M[T]_n.+1 :=
-  @cholesky3 T I mxT _ _ _ _ _ _ _ _ _ _.
+  @cholesky3 T ordT mxT _ _ _ _ _ _ _ _ _ _.
 
 End inst_ssr_matrix.
 
@@ -751,12 +751,12 @@ Section inst_seq.
 Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
 
-Let I (n : nat) := nat.
+Let ordT (n : nat) := nat.
 Let mxT (m n : nat) := seq (seq T).
 
-Instance : fun_of T I mxT := fun m n => fun_of_seqmx m n.
+Instance : fun_of T ordT mxT := fun m n => fun_of_seqmx m n.
 
-Instance : row_class I mxT := @rowseqmx T.
+Instance : row_class ordT mxT := @rowseqmx T.
 
 (* seq_stilde3 *)
 Fixpoint seq_stilde3 k c a b :=
@@ -767,7 +767,7 @@ Fixpoint seq_stilde3 k c a b :=
     | S k, a1 :: a2, b1 :: b2 => seq_stilde3 k (c + (- (a1 * b1)))%C a2 b2
   end.
 
-Instance : dotmulB0_class T I mxT :=
+Instance : dotmulB0_class T ordT mxT :=
   fun n k c a b => seq_stilde3 k c (head [::] a) (head [::] b).
 
 Fixpoint seq_store3 T s n (v : T) :=
@@ -784,18 +784,18 @@ Fixpoint store3 T m i j (v : T) :=
     | S i, h :: t => h :: store3 t i j v
   end.
 
-Instance : store_class T I mxT :=
+Instance : store_class T ordT mxT :=
   fun m n M i j v =>
   store3 M i j v.
 
 Variable M : seq (seq T).
 Let n := seq.size M.
-Instance : I0_class I n := O.
-Instance : succ0_class I n := S.
-Instance : nat_of_class I n := id.
+Instance : I0_class ordT n := O.
+Instance : succ0_class ordT n := S.
+Instance : nat_of_class ordT n := id.
 
 Definition cholesky4 : seq (seq T) :=
-  @cholesky3 T I mxT _ _ _ _ _ _ n O S id M.
+  @cholesky3 T ordT mxT _ _ _ _ _ _ n O S id M.
 
 End inst_seq.
 
@@ -812,19 +812,19 @@ Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A
 
 (* Concrete types *)
 Context {C : Type}.
-Context {(*ordC*) I : nat -> Type}.
-Context {mxC : nat -> nat -> Type}.
+Local Notation ordC := (fun _ : nat => nat).
+Local Notation mxC := (fun _ _ : nat => seq (seq C)).
 Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
-Context `{!fun_of C I mxC, !row_class I mxC, !store_class C I mxC, !dotmulB0_class C I mxC}.
+Context `{!fun_of C ordC mxC, !row_class ordC mxC, !store_class C ordC mxC, !dotmulB0_class C ordC mxC}.
 Context {n : nat}.
-Context `{!I0_class I n, !succ0_class I n, !nat_of_class I n}.
+Context `{!I0_class ordC n, !succ0_class ordC n, !nat_of_class ordC n}.
 
 Context {RC : A -> C -> Prop}.
 
 Context {RmxC : forall {m n}, mxA m n -> mxC m n -> Prop}.
 Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
 
-Context {RordC : forall m, 'I_m -> I m -> Prop}.
+Context {RordC : forall m, 'I_m -> ordC m -> Prop}.
 Arguments RordC {m} _ _.
 
 Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC)
@@ -839,10 +839,20 @@ Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC ==> RmxC)
 Context `{forall n, param (RordC ==> RC ==> RmxC ==> RmxC ==> RC)
   (@ssr_dotmulB0 A _ _ _ n) (@dotmulB0 _ _ _ _ n)}.
 
-
-Fail Global Instance param_cholesky m n :
-  param (RmxC ==> RmxC)%rel cholesky5 cholesky4.
-(* WIP *)
+Global Instance param_cholesky n :
+  param (RmxC ==> RmxC)%rel (cholesky5 (n := n)) cholesky4.
+Proof.
+eapply param_abstr => m s param_ms; rewrite /cholesky5 /cholesky4.
+rewrite /cholesky3 /outer_loop3.
+Admitted.
+(*
+Ingredients:
+exact: get_param.
+eapply param_abstr=> a c param_ac.
+rewrite paramE.
+eapply param_apply.
+by tc.
+*)
 
 End data_refinement.
 
