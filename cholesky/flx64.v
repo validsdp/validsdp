@@ -43,12 +43,7 @@ Definition format x := generic_format radix2 fexp x.
 Let F := Ff format.
 
 Lemma format0 : format 0.
-Proof.
-unfold format, generic_format, scaled_mantissa, F2R; simpl.
-rewrite Rmult_0_l.
-change 0 with (Z2R 0); rewrite Ztrunc_Z2R.
-now rewrite Rmult_0_l.
-Qed.
+Proof. apply generic_format_0. Qed.
 
 Lemma format1 : format 1.
 Proof.
