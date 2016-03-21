@@ -730,7 +730,7 @@ Lemma gen_corollary_2_4_with_c_upper_bound_infnan :
   forall c : R,
   (/2 * gamma (fis fs) (2 * n.+2) * (\tr (cholesky.MF2R (MFI2F A)))
    + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + maxdiag)
-   <= c)%Re ->  (* need a small program to comute (with directed rounding) *)
+   <= c)%Re ->  (* need a small program to compute (with directed rounding) *)
   forall At : 'M[FI fs]_n.+1, At^T = At ->
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->  (* need a small program to compute (with directed rounding) *)
@@ -804,53 +804,70 @@ Section data_refinement.
 
 Require Import CoqEAL_theory.hrel.
 
+(*
 (* Abstract types *)
-Context {A : Type}.
-Local Notation ordA := ordinal.
-Local Notation mxA := (fun m n => 'M[A]_(m, n)).
+Context {A : Type}. (* {ordA : nat -> Type} {mxA : nat -> nat -> Type}. *)
+Local Notation ordA := ordinal (only parsing).
+Local Notation mxA := (fun m n => 'M[A]_(m, n)) (only parsing).
 Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A}.
+*)
 
 (* Concrete types *)
-Context {C : Type}.
-Local Notation ordC := (fun _ : nat => nat).
-Local Notation mxC := (fun _ _ : nat => seqmatrix C).
+Context {C : Type}. (* {ordC : nat -> Type} {mxC : nat -> nat -> Type}. *)
+Local Notation ordC := (fun _ : nat => nat) (only parsing).
+Local Notation mxC := (fun _ _ : nat => seqmatrix C) (only parsing).
 Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
 Context `{!fun_of C ordC mxC, !row_class ordC mxC, !store_class C ordC mxC, !dotmulB0_class C ordC mxC}.
 Context {n : nat}.
 Context `{!I0_class ordC n, !succ0_class ordC n, !nat_of_class ordC n}.
 
-Context {RC : A -> C -> Prop}.
+Local Notation ordA := ordinal (only parsing).
+Local Notation mxA := (fun m n => 'M[C]_(m, n)) (only parsing).
 
-Context {RmxC : forall {m n}, mxA m n -> mxC m n -> Prop}.
+(* Context {RmxC : forall {m n}, mxA m n -> mxC m n -> Prop}.
 Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
 
-Context {RordC : forall m, 'I_m -> ordC m -> Prop}.
-Arguments RordC {m} _ _.
+Context {RordC : forall m, ordA m -> ordC m -> Prop}.
+Arguments RordC {m} _ _. *)
 
 (*
-Local Notation RmxC := Rseqmx. (* from seqmatrix.v *)
-Arguments RmxC {A m n} _ _. (* maximal implicit arguments *)
-Local Notation RordC := Rord.
-Arguments RordC {n} _ _.
+Context {RC : A -> C -> Prop}.
+Let RmxC := (@RseqmxA A C RC).
+Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
 *)
 
-Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC)
-  (@matrix.fun_of_matrix A m n) (@fun_of_matrix _ _ mxC _ m n)}.
+Local Notation RmxC := Rseqmx (only parsing). (* from seqmatrix.v *)
+
+Local Notation RordC := Rord (only parsing).
+Arguments RordC {n} _ _.
+
+(*
+Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> Logic.eq)
+  (@matrix.fun_of_matrix _ m n) (@fun_of_matrix _ _ mxC _ m n)}.
 
 Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
-  (@matrix.row A m n) (@row _ _ _ m n)}.
+  (@matrix.row _ m n) (@row _ _ _ m n)}.
+*)
 
-Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC ==> RmxC)
-  (@ssr_store3 A m n) (@store _ _ _ _ m n)}.
+Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> Logic.eq ==> RmxC)
+  (@ssr_store3 _ m n) (@store C _ _ _ m n)}.
 
-Context `{forall n, param (RordC ==> RC ==> RmxC ==> RmxC ==> RC)
-  (@ssr_dotmulB0 A _ _ _ n) (@dotmulB0 _ _ _ _ n)}.
+Context `{forall n, param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq)
+  (@ssr_dotmulB0 _ _ _ _ n) (@dotmulB0 C _ _ _ n)}.
 
 Global Instance param_cholesky n :
   param (RmxC ==> RmxC)%rel (cholesky5 (n := n)) cholesky4.
 Proof.
 eapply param_abstr => m s param_ms; rewrite /cholesky5 /cholesky4.
-rewrite /cholesky3 /outer_loop3.
+rewrite paramE.
+apply: refines_seqmxP.
+- { rewrite /cholesky3 /outer_loop3 /outer_loop_rec3.
+    set k := (seq.size s - nat_of I0)%N.
+    elim: k => [|k IHk]; first by rewrite refines_row_size.
+    admit.
+  }
+- admit.
+- admit.
 Admitted.
 (*
 Ingredients:
