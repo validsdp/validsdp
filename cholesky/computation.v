@@ -551,20 +551,20 @@ Lemma Hsucc0 :
   forall i : ordT n.+1, ((nat_of i).+1 < n.+1)%N -> nat_of (succ0 i) = (nat_of i).+1.
 Proof. by move=> i H; rewrite /nat_of /ssr_nat_of inordK. Qed.
 
-Lemma inner_loop_correct (A Rt : 'M_n.+1) (j i : 'I_n.+1) :
-  inner_loop_inv A Rt j i -> inner_loop_inv A (inner_loop5 j A Rt i) j n.+1.
+Lemma inner_loop_correct (A R : 'M_n.+1) (j i : 'I_n.+1) :
+  inner_loop_inv A R j i -> inner_loop_inv A (inner_loop5 j A R i) j n.+1.
 Proof.
 move=> H.
 unfold inner_loop5, inner_loop3.
-move: i Rt H.
+move: i R H.
 eapply trec_ind with
   (G := fun k (i : 'I_n.+1) s => inner_loop_rec3 j k A s i)
-  (P := fun i Rt => inner_loop_inv A Rt j i)
+  (P := fun i R => inner_loop_inv A R j i)
   (f := fun i R => store R j i (ytilded3 i (fun_of_matrix A i j)
-                                          (row i R) (row j R)
-                                          (fun_of_matrix R i i))).
+                                         (row i R) (row j R)
+                                         (fun_of_matrix R i i))).
 exact: Hsucc0. done. done.
-move=> i Rt [Ho Hi].
+move=> i R [Ho Hi].
 split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
 { rewrite ssr_store3_lt1 // (proj1 Ho _ _ Hj' Hi').
   apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
@@ -597,21 +597,21 @@ rewrite ssr_store3_lt1 -Hini inord_val //.
 exact: leq_ltn_trans Hii' _.
 Qed.
 
-Lemma outer_loop_correct (A Rt : 'M_n.+1) (j : 'I_n.+1) :
-  outer_loop_inv A Rt j -> outer_loop_inv A (outer_loop5 A Rt j) n.+1.
+Lemma outer_loop_correct (A R : 'M_n.+1) (j : 'I_n.+1) :
+  outer_loop_inv A R j -> outer_loop_inv A (outer_loop5 A R j) n.+1.
 Proof.
 move=> H.
 unfold outer_loop5, outer_loop3, nat_of, ssr_nat_of.
 set (k := (n.+1 - j)%N).
 have Hk : k = (n.+1 - j)%N; [by []|].
-move: j k Hk Rt H => j k; move: j; induction k => j Hk Rt H; simpl.
+move: j k Hk R H => j k; move: j; induction k => j Hk R H; simpl.
 { by move: (ltn_ord j); rewrite -(addn0 j) -ltn_subRL Hk ltnn. }
-have Hin_0 : inner_loop_inv A Rt j (@ord0 n); [by []|].
+have Hin_0 : inner_loop_inv A R j (@ord0 n); [by []|].
 have Hin_n := inner_loop_correct Hin_0.
 have Aux :
   outer_loop_inv A
-    (ssr_store3 (inner_loop5 j A Rt ord0) j j
-       (ytildes5 j (ssr_fun_of A j j) (ssr_row j (inner_loop5 j A Rt ord0))))
+    (ssr_store3 (inner_loop5 j A R ord0) j j
+       (ytildes5 j (ssr_fun_of A j j) (ssr_row j (inner_loop5 j A R ord0))))
     j.+1.
 { split; [move=> j' i' Hj' Hi'|move=> j' Hj'].
   { case (ltnP j' j) => Hjj'.
@@ -744,13 +744,13 @@ Lemma gen_corollary_2_4_with_c_upper_bound_infnan :
   forall At : 'M[FI fs]_n.+1, At^T = At ->
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->  (* need a small program to compute (with directed rounding) *)
-  let Rt := cholesky5 At in
-  (forall i, (0 < FI2F (Rt i i))%Re) ->  (* need a small program to check *)
+  let R := cholesky5 At in
+  (forall i, (0 < (MFI2F R) i i)%Re) ->  (* need a small program to check *)
   real_matrix.posdef (cholesky.MF2R (MFI2F A)).
 Proof.
-move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At SymAt HAt Rt HARt.
-apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At Rt^T;
-  try assumption; split; [|by move=> i; rewrite mxE].
+move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At SymAt HAt R HAR.
+apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At R^T;
+  try assumption; split; [|by move=> i; move: (HAR i); rewrite !mxE].
 apply gen_cholesky_spec_correct, cholesky5_correct.
 Qed.
 
@@ -834,7 +834,7 @@ rewrite /inner_loop_rec4 /=.
 eapply trec_ind with
   (s := R)
   (G := fun k (i : ordT n.+1) R => inner_loop_rec3 j k A R i)
-  (P := fun _ Rt => seq.size Rt = n.+1). done. done. done.
+  (P := fun _ R => seq.size R = n.+1). done. done. done.
 by move=> i s Hs /=; rewrite size_store3.
 Qed.
 
@@ -849,7 +849,7 @@ rewrite /outer_loop_rec4 /=.
 eapply trec_ind with
   (s := R)
   (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i)
-  (P := fun _ Rt => seq.size Rt = n.+1). done. done. done.
+  (P := fun _ R => seq.size R = n.+1). done. done. done.
 move=> i s Hs /=; rewrite size_store3.
 exact: size_inner_loop_rec3.
 Qed.
