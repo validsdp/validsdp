@@ -337,8 +337,6 @@ Definition m_0_v3 := [:: [:: 0%C; 0%C]; [:: 0%C; 0%C]].
 
 (** Time Eval vm_compute in map (map B2F) (store m_id 0 1 half). *)
 
-Hypothesis Hsucc0 : forall i : ordT n, (nat_of i).+1 < n -> nat_of (succ0 i) = (nat_of i).+1.
-
 (* note: R is transposed with respect to cholesky.v *)
 Section InnerLoop.
 Variable j : ordT n.
@@ -369,6 +367,21 @@ End OuterLoop.
 
 (* note: the result is transposed with respect to cholesky.v *)
 Definition cholesky3 A := outer_loop3 A A I0.
+
+End generic_algos.
+
+Section generic_ind.
+Section generic_algos.
+Context {ordT : nat -> Type} {n : nat}.
+Context `{!I0_class ordT n.+1, !succ0_class ordT n.+1, !nat_of_class ordT n.+1}.
+Hypothesis Hsucc0 : forall i : ordT n.+1, ((nat_of i).+1 < n.+1)%N -> nat_of (succ0 i) = (nat_of i).+1.
+Lemma trec_ind M P (G : nat -> ordT n.+1 -> M -> M) (f : ordT n.+1 -> M -> M) {j : ordT n.+1} :
+  (forall i s, G 0%N i s = s) ->
+  (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) ->
+  (forall (i : ordT n.+1) s, P (nat_of i) s -> P (nat_of i).+1 (f i s)) ->
+  forall (i : ordT n.+1) s, P (nat_of i) s -> P n.+1 (G (nat_of j - nat_of i)%N i s).
+Proof.
+Admitted.
 
 End generic_algos.
 
@@ -441,14 +454,7 @@ Definition outer_loop5 : 'M[T]_n.+1 -> 'M[T]_n.+1 -> 'I_n.+1 ->
 Definition cholesky5 : 'M[T]_n.+1 -> 'M[T]_n.+1 :=
   @cholesky3 T ordT mxT _ _ _ _ _ _ _ _ _ _.
 
-End inst_ssr_matrix.
-
-Section proof_inst_ssr_matrix.
-
-Context {T : Type}.
-Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
-
-Variable n : nat.
+Section proof.
 
 Lemma ssr_store3_eq (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
   nat_of_ord i' = i -> nat_of_ord j' = j -> (ssr_store3 M i j v) i' j' = v.
@@ -541,22 +547,24 @@ Definition inner_loop_inv (A R : 'M[T]_n.+1) j i : Prop :=
                      [ffun k : 'I_i' => R j' (inord k)]
                      (R i' i'))).
 
+Lemma Hsucc0 :
+  forall i : ordT n.+1, ((nat_of i).+1 < n.+1)%N -> nat_of (succ0 i) = (nat_of i).+1.
+Proof. by move=> i H; rewrite /nat_of /ssr_nat_of inordK. Qed.
+
 Lemma inner_loop_correct (A Rt : 'M_n.+1) (j i : 'I_n.+1) :
   inner_loop_inv A Rt j i -> inner_loop_inv A (inner_loop5 j A Rt i) j n.+1.
 Proof.
 move=> H.
-unfold inner_loop5, inner_loop3, nat_of, ssr_nat_of.
-set (k := (j - i)%N).
-have Hk : k = (j - i)%N; [by []|].
-move: i k Hk Rt H => i k; move: i; induction k => i Hk Rt H; simpl.
-{ split; [by apply H|]; move=> j' i' Hj' Hi' Hi'j.
-  apply H => //; apply (leq_trans Hi'j).
-  by rewrite -(addn0 i) -leq_subLR Hk. }
-have Hij : (i < j)%N by rewrite -(addn0 i) -ltn_subRL -Hk.
-have Hsisn : (i.+1 < n.+1)%N; [by move: (ltn_ord j); apply leq_ltn_trans|].
-apply IHk => {IHk}; destruct H as (Ho, Hi).
-{ apply /eqP; rewrite -(eqn_add2r 1) addn1 Hk.
-  by rewrite ssr_succ0_spec // -(addn1 i) subnDA subnK // ltn_subRL addn0. }
+unfold inner_loop5, inner_loop3.
+move: i Rt H.
+eapply trec_ind with
+  (G := fun k (i : 'I_n.+1) s => inner_loop_rec3 j k A s i)
+  (P := fun i Rt => inner_loop_inv A Rt j i)
+  (f := fun i R => store R j i (ytilded3 i (fun_of_matrix A i j)
+                                          (row i R) (row j R)
+                                          (fun_of_matrix R i i))).
+exact: Hsucc0. done. done.
+move=> i Rt [Ho Hi].
 split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
 { rewrite ssr_store3_lt1 // (proj1 Ho _ _ Hj' Hi').
   apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
@@ -574,8 +582,7 @@ move=> j' i' Hj' Hi' Hi'j; case (ltnP i' i) => Hii'.
     rewrite inordK //; apply (ltn_trans Hi''), ltn_ord. }
     by rewrite ssr_store3_lt2. }
 have Hi'i : nat_of_ord i' = i.
-{ apply anti_leq; rewrite Hii' Bool.andb_true_r -ltnS.
-  by rewrite (ssr_succ0_spec Hsisn) in Hi'. }
+{ apply anti_leq; rewrite Hii' Bool.andb_true_r -ltnS //. }
 rewrite ssr_store3_eq // Hi'i.
 have Hini : inord i = i'; [by rewrite -Hi'i inord_val|].
 have Hinj : inord j = j'; [by rewrite -Hj' inord_val|].
@@ -586,7 +593,8 @@ apply f_equal2; [apply gen_stilde3_eq => [|i''|i'']|]; try rewrite !ffunE.
 { rewrite ssr_store3_lt2; [by rewrite mxE -Hinj inord_val|].
   have Hi'' := ltn_ord i''.
   rewrite inordK //; apply (ltn_trans Hi''); rewrite -Hi'i; apply ltn_ord. }
-by rewrite ssr_store3_lt1 -Hini inord_val.
+rewrite ssr_store3_lt1 -Hini inord_val //.
+exact: leq_ltn_trans Hii' _.
 Qed.
 
 Lemma outer_loop_correct (A Rt : 'M_n.+1) (j : 'I_n.+1) :
@@ -672,7 +680,9 @@ with (gen_ytildes3 (A j j)
 by apply sym_eq, outer_loop_correct; [|apply ltn_ord].
 Qed.
 
-End proof_inst_ssr_matrix.
+End proof.
+
+End inst_ssr_matrix.
 
 Section proof_inst_ssr_matrix_float_infnan.
 
@@ -730,7 +740,7 @@ Lemma gen_corollary_2_4_with_c_upper_bound_infnan :
   forall c : R,
   (/2 * gamma (fis fs) (2 * n.+2) * (\tr (cholesky.MF2R (MFI2F A)))
    + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + maxdiag)
-   <= c)%Re ->  (* need a small program to comute (with directed rounding) *)
+   <= c)%Re ->  (* need a small program to compute (with directed rounding) *)
   forall At : 'M[FI fs]_n.+1, At^T = At ->
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->  (* need a small program to compute (with directed rounding) *)
@@ -789,13 +799,60 @@ Instance : store_class T ordT mxT :=
   store3 M i j v.
 
 Variable M : seq (seq T).
-Let n := seq.size M.
-Instance : I0_class ordT n := O.
-Instance : succ0_class ordT n := S.
-Instance : nat_of_class ordT n := id.
+Let n := (seq.size M).-1.
+Instance : I0_class ordT n.+1 := O.
+Instance : succ0_class ordT n.+1 := S.
+Instance : nat_of_class ordT n.+1 := id.
 
 Definition cholesky4 : seq (seq T) :=
-  @cholesky3 T ordT mxT _ _ _ _ _ _ n O S id M.
+  @cholesky3 T ordT mxT _ _ _ _ _ _ n.+1 O S id M.
+
+Definition outer_loop_rec4 :=
+  @outer_loop_rec3 T ordT mxT _ _ _ _ _ _ n.+1 O S id.
+
+Definition inner_loop_rec4 :=
+  @inner_loop_rec3 T ordT mxT _ _ _ _ _ n.+1 S.
+
+Lemma size_store3 :
+  forall s i j x,
+  seq.size (@store3 T s j i x) = seq.size s.
+Proof.
+move=> s i j x.
+elim: s j => [|a s IHs] j; first by case: j.
+case: j IHs => [|j] IHs //=.
+by rewrite -(IHs j).
+Qed.
+
+Lemma size_inner_loop_rec3 :
+  forall A,
+  forall j R,
+  seq.size R = n.+1 ->
+  seq.size (inner_loop_rec4 j (nat_of j - nat_of I0) A R I0) = n.+1.
+Proof.
+move=> A j R.
+rewrite /inner_loop_rec4 /=.
+eapply trec_ind with
+  (s := R)
+  (G := fun k (i : ordT n.+1) R => inner_loop_rec3 j k A R i)
+  (P := fun _ Rt => seq.size Rt = n.+1). done. done. done.
+by move=> i s Hs /=; rewrite size_store3.
+Qed.
+
+Lemma size_outer_loop_rec3 :
+  forall A R,
+  seq.size R = n.+1 ->
+  (* seq.size (outer_loop_rec4 k s s I0) = n.+1 -> *)
+  seq.size (outer_loop_rec4 (nat_of n - nat_of I0) A R I0) = n.+1.
+Proof.
+move=> A R.
+rewrite /outer_loop_rec4 /=.
+eapply trec_ind with
+  (s := R)
+  (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i)
+  (P := fun _ Rt => seq.size Rt = n.+1). done. done. done.
+move=> i s Hs /=; rewrite size_store3.
+exact: size_inner_loop_rec3.
+Qed.
 
 End inst_seq.
 
@@ -804,54 +861,82 @@ Section data_refinement.
 
 Require Import CoqEAL_theory.hrel.
 
+(*
 (* Abstract types *)
-Context {A : Type}.
-Local Notation ordA := ordinal.
-Local Notation mxA := (fun m n => 'M[A]_(m, n)).
+Context {A : Type}. (* {ordA : nat -> Type} {mxA : nat -> nat -> Type}. *)
+Local Notation ordA := ordinal (only parsing).
+Local Notation mxA := (fun m n => 'M[A]_(m, n)) (only parsing).
 Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A}.
+*)
 
 (* Concrete types *)
-Context {C : Type}.
-Local Notation ordC := (fun _ : nat => nat).
-Local Notation mxC := (fun _ _ : nat => seqmatrix C).
+Context {C : Type}. (* {ordC : nat -> Type} {mxC : nat -> nat -> Type}. *)
+Local Notation ordC := (fun _ : nat => nat) (only parsing).
+Local Notation mxC := (fun _ _ : nat => seqmatrix C) (only parsing).
 Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
 Context `{!fun_of C ordC mxC, !row_class ordC mxC, !store_class C ordC mxC, !dotmulB0_class C ordC mxC}.
 Context {n : nat}.
 Context `{!I0_class ordC n, !succ0_class ordC n, !nat_of_class ordC n}.
 
-Context {RC : A -> C -> Prop}.
+Local Notation ordA := ordinal (only parsing).
+Local Notation mxA := (fun m n => 'M[C]_(m, n)) (only parsing).
 
-Context {RmxC : forall {m n}, mxA m n -> mxC m n -> Prop}.
+(* Context {RmxC : forall {m n}, mxA m n -> mxC m n -> Prop}.
 Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
 
-Context {RordC : forall m, 'I_m -> ordC m -> Prop}.
-Arguments RordC {m} _ _.
+Context {RordC : forall m, ordA m -> ordC m -> Prop}.
+Arguments RordC {m} _ _. *)
 
 (*
-Local Notation RmxC := Rseqmx. (* from seqmatrix.v *)
-Arguments RmxC {A m n} _ _. (* maximal implicit arguments *)
-Local Notation RordC := Rord.
-Arguments RordC {n} _ _.
+Context {RC : A -> C -> Prop}.
+Let RmxC := (@RseqmxA A C RC).
+Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
 *)
 
-Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC)
-  (@matrix.fun_of_matrix A m n) (@fun_of_matrix _ _ mxC _ m n)}.
+Local Notation RmxC := Rseqmx (only parsing). (* from seqmatrix.v *)
+
+Local Notation RordC := Rord (only parsing).
+Arguments RordC {n} _ _.
+
+(*
+Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> Logic.eq)
+  (@matrix.fun_of_matrix _ m n) (@fun_of_matrix _ _ mxC _ m n)}.
 
 Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
-  (@matrix.row A m n) (@row _ _ _ m n)}.
+  (@matrix.row _ m n) (@row _ _ _ m n)}.
+*)
 
-Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> RC ==> RmxC)
-  (@ssr_store3 A m n) (@store _ _ _ _ m n)}.
+Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> Logic.eq ==> RmxC)
+  (@ssr_store3 _ m n) (@store C _ _ _ m n)}.
 
-Context `{forall n, param (RordC ==> RC ==> RmxC ==> RmxC ==> RC)
-  (@ssr_dotmulB0 A _ _ _ n) (@dotmulB0 _ _ _ _ n)}.
+Context `{forall n, param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq)
+  (@ssr_dotmulB0 _ _ _ _ n) (@dotmulB0 C _ _ _ n)}.
 
-Global Instance param_cholesky n :
+
+Fail Global Instance param_outer_loop :
+  param (RmxC ==> RmxC ==> RordC ==> RmxC)
+  (outer_loop5 (n := n)) (@outer_loop3 C).
+Proof.
+(* Qed. *)
+
+Global Instance param_cholesky :
   param (RmxC ==> RmxC)%rel (cholesky5 (n := n)) cholesky4.
 Proof.
 eapply param_abstr => m s param_ms; rewrite /cholesky5 /cholesky4.
-rewrite /cholesky3 /outer_loop3.
+rewrite paramE.
+apply: refines_seqmxP.
+- { rewrite /cholesky3 /outer_loop3.
+    have Hsize : seq.size s = n.+1 by rewrite sizeE.
+    move Ek : ((seq.size s).-1.+1 - nat_of I0)%N => k.
+    elim: k Ek => [|k IHk] //.
+    admit; rewrite size_outer_loop_rec3. (* FIXME *)
+  }
+- admit. (* TODO in a similar way *)
+- move=> i j; rewrite /cholesky3 /=.
+  eapply refines_nth.
+  admit.
 Admitted.
+
 (*
 Ingredients:
 exact: get_param.

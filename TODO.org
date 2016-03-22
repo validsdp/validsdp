@@ -19,10 +19,21 @@
 ** DONE Instantiate cholesky3 with ssr matrices                      :Pierre:
 ** DONE Restate cholesky.v theorem/corollary with this ssr matrices instantiation :Pierre:
 ** DONE Prove previous item                                          :Pierre:
-** TODO Data refinement proof: Get a similar proof with the seq-seq instantiation :Erik:
+** TODO Prove trec_ind						     :Pierre:
+** STARTED Data refinement proof: Transport the proof in seqmatrix     :Erik:
 - Use cholesky_prog.v and/or CoqEAL
-** TODO Make all computation effective (small functions to write)      :Erik:
+*** TODO Prove param_inner_loop, param_outer_loop, param_cholesky      :Erik:
+
+** TODO Make all computation effective (small fcts to write)	:Pierre:Erik:
 - Use the proper Rounding mode
+*** TODO Import Coq.Interval's large/strict orders		     :Pierre:
+*** TODO =4 * INR n.+2 * eps (fis fs) < 1=			     :Pierre:
+*** TODO Symmetry test 						     :Pierre:
+*** TODO Other matrix tests (diagonal, etc.)			       :Erik:
+
 ** TODO Design a reflexive tactic for posdef			       :Erik:
 ** TODO Make more benchmarks					:Pierre:Erik:
 * SOS/SDP
+** TODO Look-at Victor's JFR paper				       :Erik:
+- Reuse the interface to ease future benchmarks?
+** TODO Reread Pierre's paper and OSDP doc			       :Erik:
