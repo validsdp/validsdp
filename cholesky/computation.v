@@ -544,7 +544,7 @@ Definition inner_loop_inv (A R : 'M[T]_n.+1) j i : Prop :=
 Lemma trec_ind M P (G : nat -> 'I_n.+1 -> M -> M) (f : 'I_n.+1 -> M -> M) (j : 'I_n.+1) :
   (forall i s, G 0%N i s = s) ->
   (forall k i s, G k.+1 i s = G k (inord i.+1) (f i s)) ->
-  (forall (i : 'I_n.+1) s, P (j - i.+1)%N s -> P (j - i)%N (f i s)) ->
+  (forall (i : 'I_n.+1) s, P (*(j - i.+1)%N*) (nat_of_ord i) s -> P (*(j - i)%N*) i.+1 (f i s)) ->
   forall (i : 'I_n.+1) s, P i s -> P n.+1 (G (j - i)%N i s).
 Proof.
 Admitted.
@@ -560,26 +560,9 @@ eapply trec_ind with
   (P := fun i Rt => inner_loop_inv A Rt j i)
   (f := fun i R => store R j i (ytilded3 i (fun_of_matrix A i j)
                                           (row i R) (row j R)
-                                          (fun_of_matrix R i i))).
-done.
-done.
-(*
-set (k := (j - i)%N).
-have Hk : k = (j - i)%N; [by []|].
-move: i k Hk Rt H => i k; move: i; induction k => i Hk Rt H; simpl.
-{ split; [by apply H|]; move=> j' i' Hj' Hi' Hi'j.
-  apply H => //; apply (leq_trans Hi'j).
-  by rewrite -(addn0 i) -leq_subLR Hk. }
-have Hij : (i < j)%N by rewrite -(addn0 i) -ltn_subRL -Hk.
-have Hsisn : (i.+1 < n.+1)%N; [by move: (ltn_ord j); apply leq_ltn_trans|].
-apply IHk => {IHk}; destruct H as (Ho, Hi).
-{ apply /eqP; rewrite -(eqn_add2r 1) addn1 Hk.
-  by rewrite ssr_succ0_spec // -(addn1 i) subnDA subnK // ltn_subRL addn0. }
-*)
-move=> i s Hi.
+                                          (fun_of_matrix R i i))). done. done.
+move=> i Rt [Ho Hi].
 split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
-Admitted.
-(*
 { rewrite ssr_store3_lt1 // (proj1 Ho _ _ Hj' Hi').
   apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
   { by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
@@ -596,8 +579,7 @@ move=> j' i' Hj' Hi' Hi'j; case (ltnP i' i) => Hii'.
     rewrite inordK //; apply (ltn_trans Hi''), ltn_ord. }
     by rewrite ssr_store3_lt2. }
 have Hi'i : nat_of_ord i' = i.
-{ apply anti_leq; rewrite Hii' Bool.andb_true_r -ltnS.
-  by rewrite (ssr_succ0_spec Hsisn) in Hi'. }
+{ apply anti_leq; rewrite Hii' Bool.andb_true_r -ltnS //. }
 rewrite ssr_store3_eq // Hi'i.
 have Hini : inord i = i'; [by rewrite -Hi'i inord_val|].
 have Hinj : inord j = j'; [by rewrite -Hj' inord_val|].
@@ -608,9 +590,9 @@ apply f_equal2; [apply gen_stilde3_eq => [|i''|i'']|]; try rewrite !ffunE.
 { rewrite ssr_store3_lt2; [by rewrite mxE -Hinj inord_val|].
   have Hi'' := ltn_ord i''.
   rewrite inordK //; apply (ltn_trans Hi''); rewrite -Hi'i; apply ltn_ord. }
-by rewrite ssr_store3_lt1 -Hini inord_val.
+rewrite ssr_store3_lt1 -Hini inord_val //.
+exact: leq_ltn_trans Hii' _.
 Qed.
-*)
 
 Lemma outer_loop_correct (A Rt : 'M_n.+1) (j : 'I_n.+1) :
   outer_loop_inv A Rt j -> outer_loop_inv A (outer_loop5 A Rt j) n.+1.
