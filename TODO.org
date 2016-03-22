@@ -19,7 +19,7 @@
 ** DONE Instantiate cholesky3 with ssr matrices                      :Pierre:
 ** DONE Restate cholesky.v theorem/corollary with this ssr matrices instantiation :Pierre:
 ** DONE Prove previous item                                          :Pierre:
-** TODO Prove trec_ind						     :Pierre:
+** DONE Prove trec_ind                                               :Pierre:
 ** STARTED Data refinement proof: Transport the proof in seqmatrix     :Erik:
 - Use cholesky_prog.v and/or CoqEAL
 *** TODO Prove param_inner_loop, param_outer_loop, param_cholesky      :Erik:
@@ -30,7 +30,6 @@
 *** TODO =4 * INR n.+2 * eps (fis fs) < 1=			     :Pierre:
 *** TODO Symmetry test 						     :Pierre:
 *** TODO Other matrix tests (diagonal, etc.)			       :Erik:
-
 ** TODO Design a reflexive tactic for posdef			       :Erik:
 ** TODO Make more benchmarks					:Pierre:Erik:
 * SOS/SDP

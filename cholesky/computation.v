@@ -371,19 +371,39 @@ Definition cholesky3 A := outer_loop3 A A I0.
 End generic_algos.
 
 Section generic_ind.
-Section generic_algos.
 Context {ordT : nat -> Type} {n : nat}.
 Context `{!I0_class ordT n.+1, !succ0_class ordT n.+1, !nat_of_class ordT n.+1}.
 Hypothesis Hsucc0 : forall i : ordT n.+1, ((nat_of i).+1 < n.+1)%N -> nat_of (succ0 i) = (nat_of i).+1.
-Lemma trec_ind M P (G : nat -> ordT n.+1 -> M -> M) (f : ordT n.+1 -> M -> M) {j : ordT n.+1} :
+Lemma trec_ind M P (G : nat -> ordT n.+1 -> M -> M) (f : ordT n.+1 -> M -> M) :
+  forall j, (j <= n.+1)%N ->
   (forall i s, G 0%N i s = s) ->
   (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) ->
   (forall (i : ordT n.+1) s, P (nat_of i) s -> P (nat_of i).+1 (f i s)) ->
-  forall (i : ordT n.+1) s, P (nat_of i) s -> P n.+1 (G (nat_of j - nat_of i)%N i s).
+  forall (i : ordT n.+1) s,
+    (nat_of i <= j)%N -> P (nat_of i) s -> P j (G (j - nat_of i)%N i s).
 Proof.
-Admitted.
+move=> j Hj HG0 HGS Hind i s Hi H.
+set (k := (j - nat_of i)%N).
+have Hk : k = (j - nat_of i)%N; [by []|].
+move: i Hi k Hk s H => i Hi k; move: i Hi; induction k => i Hi Hk s H.
+{ rewrite HG0; replace j with (nat_of i); [by []|].
+  by apply anti_leq; rewrite Hi /= -subn_eq0 Hk. }
+case (ltnP (nat_of i) j); [move=> Hij|by rewrite /ssrnat.leq -Hk].
+rewrite HGS; case (ltnP (nat_of i) n) => Hjn.
+{ have Hsisn : ((nat_of i).+1 < n.+1)%N.
+  { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. }
+    by apply IHk; rewrite (Hsucc0 Hsisn); [|rewrite subnS -Hk|apply Hind]. }
+have Hj' : j = n.+1.
+{ by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). }
+have Hi' : nat_of i = n.
+{ apply anti_leq; rewrite Hjn Bool.andb_true_r.
+    by apply (@leq_trans j.-1); [apply /leP /Nat.lt_le_pred /leP|rewrite Hj']. }
+have Hk' : k = 0%N.
+{ move: Hk; rewrite Hi' Hj' subSnn; apply eq_add_S. }
+  by rewrite Hk' HG0 Hj' -Hi'; apply Hind.
+Qed.
 
-End generic_algos.
+End generic_ind.
 
 Section inst_ssr_matrix.
 
@@ -554,111 +574,98 @@ Proof. by move=> i H; rewrite /nat_of /ssr_nat_of inordK. Qed.
 Lemma inner_loop_correct (A R : 'M_n.+1) (j i : 'I_n.+1) :
   inner_loop_inv A R j i -> inner_loop_inv A (inner_loop5 j A R i) j n.+1.
 Proof.
-move=> H.
-unfold inner_loop5, inner_loop3.
-move: i R H.
-eapply trec_ind with
-  (G := fun k (i : 'I_n.+1) s => inner_loop_rec3 j k A s i)
-  (P := fun i R => inner_loop_inv A R j i)
-  (f := fun i R => store R j i (ytilded3 i (fun_of_matrix A i j)
-                                         (row i R) (row j R)
-                                         (fun_of_matrix R i i))).
-exact: Hsucc0. done. done.
-move=> i R [Ho Hi].
-split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
-{ rewrite ssr_store3_lt1 // (proj1 Ho _ _ Hj' Hi').
-  apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
-  { by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
-  { by rewrite ssr_store3_lt1. }
-  by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
-{ rewrite ssr_store3_lt1 // (proj2 Ho _ Hj').
-  by apply gen_ytildes3_eq => // i''; rewrite !ffunE ssr_store3_lt1. }
-move=> j' i' Hj' Hi' Hi'j; case (ltnP i' i) => Hii'.
-{ rewrite ssr_store3_lt2 // (Hi _ _ Hj' Hii' Hi'j).
-  apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
-  { by rewrite ssr_store3_lt1. }
-  { rewrite ssr_store3_lt2 //; apply ltn_trans with i'; [|by []].
+move=> H; cut (inner_loop_inv A (inner_loop5 j A R i) j j).
+{ by move=> {H} [Ho Hi]; split; [|move=> j' i' Hj' _ Hi'; apply Hi]. }
+move: H; case (leqP i j).
+{ move: i R.
+  eapply trec_ind with
+    (G := fun k (i : 'I_n.+1) s => inner_loop_rec3 j k A s i)
+    (P := fun i R => inner_loop_inv A R j i)
+    (f := fun i R => store R j i (ytilded3 i (A i j) (row i R) (row j R)
+                                           (fun_of_matrix R i i))).
+  { exact: Hsucc0. } { apply ltnW, ltn_ord. } { done. } { done. }
+  move=> i R [Ho Hi]; split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
+  { rewrite ssr_store3_lt1 // (proj1 Ho _ _ Hj' Hi').
+    apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
+    { by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
+    { by rewrite ssr_store3_lt1. }
+      by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
+  { rewrite ssr_store3_lt1 // (proj2 Ho _ Hj').
+      by apply gen_ytildes3_eq => // i''; rewrite !ffunE ssr_store3_lt1. }
+  move=> j' i' Hj' Hi' Hi'j; case (ltnP i' i) => Hii'.
+  { rewrite ssr_store3_lt2 // (Hi _ _ Hj' Hii' Hi'j).
+    apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
+    { by rewrite ssr_store3_lt1. }
+    { rewrite ssr_store3_lt2 //; apply ltn_trans with i'; [|by []].
+      have Hi'' := ltn_ord i''.
+      rewrite inordK //; apply (ltn_trans Hi''), ltn_ord. }
+      by rewrite ssr_store3_lt2. }
+  have Hi'i : nat_of_ord i' = i.
+  { apply anti_leq; rewrite Hii' Bool.andb_true_r -ltnS //. }
+  rewrite ssr_store3_eq // Hi'i.
+  have Hini : inord i = i'; [by rewrite -Hi'i inord_val|].
+  have Hinj : inord j = j'; [by rewrite -Hj' inord_val|].
+  rewrite /ytilded3 /dotmulB0 /ssr_dotmulB0 /gen_ytilded3.
+  apply f_equal2; [apply gen_stilde3_eq => [|i''|i'']|]; try rewrite !ffunE.
+  { by rewrite -Hini -Hinj !inord_val. }
+  { by rewrite ssr_store3_lt1 // mxE -Hini inord_val. }
+  { rewrite ssr_store3_lt2; [by rewrite mxE -Hinj inord_val|].
     have Hi'' := ltn_ord i''.
-    rewrite inordK //; apply (ltn_trans Hi''), ltn_ord. }
-    by rewrite ssr_store3_lt2. }
-have Hi'i : nat_of_ord i' = i.
-{ apply anti_leq; rewrite Hii' Bool.andb_true_r -ltnS //. }
-rewrite ssr_store3_eq // Hi'i.
-have Hini : inord i = i'; [by rewrite -Hi'i inord_val|].
-have Hinj : inord j = j'; [by rewrite -Hj' inord_val|].
-rewrite /ytilded3 /dotmulB0 /ssr_dotmulB0 /gen_ytilded3.
-apply f_equal2; [apply gen_stilde3_eq => [|i''|i'']|]; try rewrite !ffunE.
-{ by rewrite -Hini -Hinj !inord_val. }
-{ by rewrite ssr_store3_lt1 // mxE -Hini inord_val. }
-{ rewrite ssr_store3_lt2; [by rewrite mxE -Hinj inord_val|].
-  have Hi'' := ltn_ord i''.
-  rewrite inordK //; apply (ltn_trans Hi''); rewrite -Hi'i; apply ltn_ord. }
-rewrite ssr_store3_lt1 -Hini inord_val //.
-exact: leq_ltn_trans Hii' _.
+    rewrite inordK //; apply (ltn_trans Hi''); rewrite -Hi'i; apply ltn_ord. }
+  rewrite ssr_store3_lt1 -Hini inord_val //.
+  exact: leq_ltn_trans Hii' _. }
+move=> Hji [Ho Hi]; rewrite /inner_loop5 /inner_loop3.
+have Hjsi : (nat_of j - nat_of i = 0)%N; [by apply /eqP /ltnW|rewrite Hjsi /=].
+by split; [|move=> j' i' Hj' _ Hi'; apply Hi; [|apply (ltn_trans Hi')|]].
 Qed.
 
 Lemma outer_loop_correct (A R : 'M_n.+1) (j : 'I_n.+1) :
   outer_loop_inv A R j -> outer_loop_inv A (outer_loop5 A R j) n.+1.
 Proof.
-move=> H.
-unfold outer_loop5, outer_loop3, nat_of, ssr_nat_of.
-set (k := (n.+1 - j)%N).
-have Hk : k = (n.+1 - j)%N; [by []|].
-move: j k Hk R H => j k; move: j; induction k => j Hk R H; simpl.
-{ by move: (ltn_ord j); rewrite -(addn0 j) -ltn_subRL Hk ltnn. }
+move: j R (ltnW (ltn_ord j)); unfold outer_loop5.
+eapply trec_ind with
+  (G := fun k (j : 'I_n.+1) s => outer_loop_rec3 k A s j)
+  (P := fun j R => outer_loop_inv A R j)
+  (f := fun j R => let R := inner_loop3 j A R I0 in
+                   store R j j (ytildes3 j (A j j) (row j R))).
+{ exact: Hsucc0. } { done. } { done. } { done. }
+move=> j R H.
 have Hin_0 : inner_loop_inv A R j (@ord0 n); [by []|].
 have Hin_n := inner_loop_correct Hin_0.
-have Aux :
-  outer_loop_inv A
-    (ssr_store3 (inner_loop5 j A R ord0) j j
-       (ytildes5 j (ssr_fun_of A j j) (ssr_row j (inner_loop5 j A R ord0))))
-    j.+1.
-{ split; [move=> j' i' Hj' Hi'|move=> j' Hj'].
-  { case (ltnP j' j) => Hjj'.
-    { rewrite ssr_store3_lt1 // (proj1 (proj1 Hin_n) _ _ Hjj' Hi').
-      apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
-      { by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
-      { by rewrite ssr_store3_lt1. }
-      by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
-    have Hj'j : nat_of_ord j' = j.
-    { by apply anti_leq; rewrite Hjj' Bool.andb_true_r -ltnS. }
-    have Hi'j : (i' < j)%N; [by move: Hi'; rewrite Hj'j|].
-    rewrite ssr_store3_lt2 // (proj2 Hin_n _ _ Hj'j (ltn_ord i') Hi'j).
+split; [move=> j' i' Hj' Hi'|move=> j' Hj'].
+{ case (ltnP j' j) => Hjj'.
+  { rewrite ssr_store3_lt1 // (proj1 (proj1 Hin_n) _ _ Hjj' Hi').
     apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
+    { by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
     { by rewrite ssr_store3_lt1. }
-    { have Hi'' := ltn_ord i''.
-      rewrite ssr_store3_lt2 //; move: Hi'j; apply ltn_trans; rewrite inordK //.
-      apply ltn_trans with i'; apply ltn_ord. }
-    by rewrite ssr_store3_lt2. }
-  case (ltnP j' j) => Hjj'.
-  { rewrite ssr_store3_lt2 // (proj2 (proj1 Hin_n) _ Hjj').
-    apply gen_ytildes3_eq => // j''; try rewrite !ffunE.
-    by rewrite ssr_store3_lt1. }
+      by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
   have Hj'j : nat_of_ord j' = j.
   { by apply anti_leq; rewrite Hjj' Bool.andb_true_r -ltnS. }
-  have Hinjj' : inord j = j'; [by rewrite -Hj'j inord_val|].
-  rewrite ssr_store3_eq //.
-  rewrite /ytildes5 /ytildes3 /dotmulB0 /ssr_dotmulB0 /gen_ytildes3 Hj'j.
-  apply /f_equal /gen_stilde3_eq => [|j''|j'']; try rewrite !ffunE.
-  { by apply f_equal2; apply ord_inj. }
-  { rewrite ssr_store3_lt2; [by rewrite mxE -Hinjj' inord_val|].
-    have Hj'' := ltn_ord j''.
-    rewrite inordK //; apply (ltn_trans Hj''); rewrite -Hj'j; apply ltn_ord. }
-  rewrite ssr_store3_lt2; [by rewrite mxE -Hinjj' inord_val|].
+  have Hi'j : (i' < j)%N; [by move: Hi'; rewrite Hj'j|].
+  rewrite ssr_store3_lt2 // (proj2 Hin_n _ _ Hj'j (ltn_ord i') Hi'j).
+  apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
+  { by rewrite ssr_store3_lt1. }
+  { have Hi'' := ltn_ord i''.
+    rewrite ssr_store3_lt2 //; move: Hi'j; apply ltn_trans; rewrite inordK //.
+    apply ltn_trans with i'; apply ltn_ord. }
+    by rewrite ssr_store3_lt2. }
+case (ltnP j' j) => Hjj'.
+{ rewrite ssr_store3_lt2 // (proj2 (proj1 Hin_n) _ Hjj').
+  apply gen_ytildes3_eq => // j''; try rewrite !ffunE.
+    by rewrite ssr_store3_lt1. }
+have Hj'j : nat_of_ord j' = j.
+{ by apply anti_leq; rewrite Hjj' Bool.andb_true_r -ltnS. }
+have Hinjj' : inord j = j'; [by rewrite -Hj'j inord_val|].
+rewrite ssr_store3_eq //.
+rewrite /ytildes5 /ytildes3 /dotmulB0 /ssr_dotmulB0 /gen_ytildes3 Hj'j.
+apply /f_equal /gen_stilde3_eq => [|j''|j'']; try rewrite !ffunE.
+{ by apply f_equal2; apply ord_inj. }
+{ rewrite ssr_store3_lt2; [by rewrite mxE -Hinjj' inord_val|].
   have Hj'' := ltn_ord j''.
   rewrite inordK //; apply (ltn_trans Hj''); rewrite -Hj'j; apply ltn_ord. }
-case (ltnP j n) => Hjn.
-{ have Hsjsn : (j.+1 < n.+1)%N by rewrite -(ltn_add2r 1) !addn1.
-  apply IHk => {IHk}.
-  { apply /eqP; rewrite -(eqn_add2r 1) addn1 Hk.
-      by rewrite ssr_succ0_spec // -(addn1 j) subnDA subnK // ltn_subRL addn0. }
-  rewrite (ssr_succ0_spec Hsjsn); apply Aux. }
-have Hj : (j = n :> nat).
-{ apply anti_leq; rewrite Hjn Bool.andb_true_r -ltnS; apply ltn_ord. }
-have Hk0 : k = 0%N.
-{ move: Hk; rewrite Hj subSnn -(add0n 1%N) -addn1 => Hk.
-  by apply /eqP; rewrite -(eqn_add2r 1%N); apply /eqP. }
-by rewrite Hk0 /=; move: Aux; rewrite Hj.
+rewrite ssr_store3_lt2; [by rewrite mxE -Hinjj' inord_val|].
+have Hj'' := ltn_ord j''.
+rewrite inordK //; apply (ltn_trans Hj''); rewrite -Hj'j; apply ltn_ord.
 Qed.
 
 (** *** The implementation satisfies the specification used in cholesky.v. *)
