@@ -761,6 +761,30 @@ apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At R^T;
 apply gen_cholesky_spec_correct, cholesky5_correct.
 Qed.
 
+Variable eps_inv : BigZ.t_.
+
+(* Example:
+ * Definition eps_inv := Eval vm_compute in (2^53)%bigZ. *)
+
+Hypothesis eps_inv_spec : Z2R [eps_inv] <= / eps (fis fs).
+
+Definition test_n (n : nat) : bool :=
+  (4 * (BigZ.of_Z (Z.of_nat n) + 2) <? eps_inv)%bigZ.
+
+Lemma test_n_correct (n : nat) : test_n n = true ->
+  4 * INR n.+2 * eps (fis fs) < 1.
+Proof.
+unfold test_n; intro H.
+case (Req_dec (eps (fis fs)) 0); intro Heps; [rewrite Heps; lra|].
+rewrite <- (Rinv_l _ Heps) at 5.
+apply Rmult_lt_compat_r; [assert (H' := eps_pos (fis fs)); lra|].
+revert eps_inv_spec; apply Rlt_le_trans.
+rewrite !S_INR INR_IZR_INZ -Z2R_IZR Rplus_assoc.
+change 2 with (Z2R 2); rewrite -Z2R_plus -!Z2R_mult.
+apply Z2R_lt; revert H; rewrite Zlt_is_lt_bool BigZ.spec_ltb.
+by rewrite BigZ.spec_mul BigZ.spec_add BigZ.spec_of_Z.
+Qed.
+
 End proof_inst_ssr_matrix_float_infnan.
 
 Section inst_seq.

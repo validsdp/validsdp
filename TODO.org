@@ -26,8 +26,8 @@
 
 ** TODO Make all computation effective (small fcts to write)	:Pierre:Erik:
 - Use the proper Rounding mode
-*** TODO Import Coq.Interval's large/strict orders		     :Pierre:
-*** TODO =4 * INR n.+2 * eps (fis fs) < 1=			     :Pierre:
+*** DONE Import Coq.Interval's large/strict orders                   :Pierre:
+*** DONE =4 * INR n.+2 * eps (fis fs) < 1=                           :Pierre:
 *** TODO Symmetry test 						     :Pierre:
 *** TODO Other matrix tests (diagonal, etc.)			       :Erik:
 ** TODO Design a reflexive tactic for posdef			       :Erik:
