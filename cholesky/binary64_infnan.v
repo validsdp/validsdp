@@ -282,11 +282,17 @@ replace (Bsqrt _ _ _ _ _ _ _ : binary_float prec emax) with (fisqrt x).
 now simpl.
 Qed.
 
+Definition ficompare (x y : FI) : option comparison := Bcompare 53 1024 x y.
+
+Lemma ficompare_spec x y : finite x -> finite y ->
+  ficompare x y = Some (Rcompare (FI2F x) (FI2F y)).
+Proof. apply Bcompare_correct. Qed.
+
 Definition binary64_infnan : Float_infnan_spec :=
   @Build_Float_infnan_spec
     FI
     FI0
-    finite
+    (is_finite prec emax)
     finite0
     fis
     m
@@ -318,6 +324,8 @@ Definition binary64_infnan : Float_infnan_spec :=
     fisqrt
     fisqrt_spec
     fisqrt_spec_f1
-    fisqrt_spec_f.
+    fisqrt_spec_f
+    ficompare
+    ficompare_spec.
 
 End Binary64_infnan.

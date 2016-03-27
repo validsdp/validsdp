@@ -507,11 +507,32 @@ rewrite round_generic; [|now apply valid_rnd_N|].
 now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
+Definition ficompare (x y : FI) : option comparison :=
+  match F.cmp x y with
+    | Xlt => Some Lt
+    | Xgt => Some Gt
+    | Xeq => Some Eq
+    | Xund => None
+  end.
+
+Lemma ficompare_spec x y : finite x -> finite y ->
+  ficompare x y = Some (Rcompare (FI2F x) (FI2F y)).
+Proof.
+unfold ficompare; rewrite F.cmp_correct, Fcmp_correct.
+unfold finite; rewrite !FtoX_real, !FI2F_X2F_FtoX.
+case (FI_prop x); [now intro H; rewrite H|]; intros [xr Hxr Hxrf] _.
+case (FI_prop y); [now intro H; rewrite H|]; intros [yr Hyr Hyrf] _.
+rewrite Hxr, Hyr; unfold flx64.frnd; simpl.
+do 2 (rewrite round_generic;
+        [|now apply valid_rnd_N|now apply generic_format_FLX]).
+now case (Rcompare _ _).
+Qed.
+
 Definition coqinterval_infnan : Float_infnan_spec :=
   @Build_Float_infnan_spec
     FI
     FI0
-    finite
+    F.real
     finite0
     fis
     m
@@ -543,6 +564,8 @@ Definition coqinterval_infnan : Float_infnan_spec :=
     fisqrt
     fisqrt_spec
     fisqrt_spec_f1
-    fisqrt_spec_f.
+    fisqrt_spec_f
+    ficompare
+    ficompare_spec.
 
 End Coqinterval_infnan.

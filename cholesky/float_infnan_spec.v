@@ -1,6 +1,6 @@
 (** * Specification of floating-point operations with overflow. *)
 
-Require Import Reals.
+Require Import Reals Flocq.Core.Fcore.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -17,8 +17,10 @@ Record Float_infnan_spec := {
 
   FI0 : FI;
   
-  (** [finite f] means that the floating-point number [f] is finite. *)
-  finite : FI -> Prop;
+  (** [is_finite f = true] iff the floating-point number [f] is finite. *)
+  is_finite : FI -> bool;
+
+  finite (x : FI) : Prop := is_finite x = true;
 
   finite0 : finite FI0;
   
@@ -86,7 +88,13 @@ Record Float_infnan_spec := {
 
   fisqrt_spec x : finite (fisqrt x) -> FI2F (fisqrt x) = fsqrt (FI2F x) :> R;
   fisqrt_spec_f1 x : finite (fisqrt x) -> finite x;
-  fisqrt_spec_f x : finite x -> FI2F x >= 0 -> finite (fisqrt x)
+  fisqrt_spec_f x : finite x -> FI2F x >= 0 -> finite (fisqrt x);
+
+  (** Comparison. *)
+  ficompare : FI -> FI -> option comparison;
+
+  ficompare_spec x y : finite x -> finite y ->
+    ficompare x y = Some (Rcompare (FI2F x) (FI2F y))
 }.
 
 Section Derived_spec.
@@ -121,6 +129,41 @@ Lemma fiminus_spec_f x y : finite x -> finite y ->
 Proof.
 intros Fx Fy H; apply (fiplus_spec_f Fx (fiopp_spec_f Fy)).
 now unfold fplus; rewrite fiopp_spec; [|apply fiopp_spec_f].
+Qed.
+
+(** Comparison *)
+Definition filt (x y : FI fs) : bool :=
+  is_finite x && is_finite y
+  && match ficompare x y with
+       | Some Lt => true
+       | _ => false
+     end.
+
+Lemma filt_spec x y : filt x y = true -> FI2F x < FI2F y.
+Proof.
+unfold filt; case_eq (is_finite x); [|now simpl]; intro Fx.
+case_eq (is_finite y); [|now simpl]; intro Fy; simpl.
+rewrite ficompare_spec; [|now simpl|now simpl].
+now case_eq (Rcompare (FI2F x) (FI2F y)); [|intros H _; apply Rcompare_Lt_inv|].
+Qed.
+
+(** [filt x y] can differ from [not (file y x)] because of NaNs. *)
+Definition file (x y : FI fs) : bool :=
+  is_finite x && is_finite y
+  && match ficompare x y with
+       | Some Lt => true
+       | Some Eq => true
+       | _ => false
+     end.
+
+Lemma file_spec x y : file x y = true -> FI2F x <= FI2F y.
+Proof.
+unfold file; case_eq (is_finite x); [|now simpl]; intro Fx.
+case_eq (is_finite y); [|now simpl]; intro Fy; simpl.
+rewrite ficompare_spec; [|now simpl|now simpl].
+case_eq (Rcompare (FI2F x) (FI2F y)); [| |now simpl].
+{ now intros H _; right; apply Rcompare_Eq_inv. }
+now intros H _; left; apply Rcompare_Lt_inv.
 Qed.
 
 End Derived_spec.
