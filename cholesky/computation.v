@@ -741,7 +741,7 @@ Lemma gen_corollary_2_4_with_c_upper_bound_infnan :
   forall n,
   4 * INR n.+2 * eps (fis fs) < 1 ->  (* need a small program to check *)
   forall A : 'M[FI fs]_n.+1,
-  A^T = A ->  (* need a small program to check *)
+  cholesky.MF2R (MFI2F A^T) = cholesky.MF2R (MFI2F A) ->  (* need a small program to check *)
   (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->  (* need a small program to check *)
   forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->  (* need a small program to compute *)
   forall c : R,

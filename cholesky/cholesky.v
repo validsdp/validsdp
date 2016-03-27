@@ -264,6 +264,10 @@ End Error_lemmas.
 (** ** Definition of Cholesky decomposition and main theorem (Theorem 2.3). *)
 Section Cholesky_def.
 
+(** It is sometime needed to explicitly cast the matrices to R. *)
+Definition MF2R n m (M : 'M[F fs]_(n, m)) : 'M[R]_(n, m) :=
+  map_mx (@F_val (format fs)) M.
+
 Variable n : nat.
 
 Hypothesis H2n : 2 * INR n.+2 * eps fs < 1.
@@ -272,7 +276,7 @@ Hypothesis H2n : 2 * INR n.+2 * eps fs < 1.
 Variable A : 'M[F fs]_n.+1.
 
 (** Must be symmetric. *)
-Hypothesis SymA : A^T = A.
+Hypothesis SymA : MF2R A^T = MF2R A.
 
 (** [Rt] is meant to be the (floating point computed) Cholesky factor of [A]. *)
 Variable Rt : 'M[F fs]_n.+1.
@@ -303,10 +307,6 @@ Variable maxdiag : R.
 Hypothesis Hmaxdiag : forall i : 'I_n.+1, A i i <= maxdiag.
 
 (** *** A bunch of definitions used in the following theorem and corollaries. *)
-
-(** It is sometime needed to explicitly cast the matrices to R. *)
-Definition MF2R n m (M : 'M[F fs]_(n, m)) : 'M[R]_(n, m) :=
-  map_mx (@F_val (format fs)) M.
 
 (** [Rt] casted to R plus filled with zeros in the bottom triangular part
     (the diagonal and upper triangular part of [Rt] are kept). *)
@@ -342,7 +342,7 @@ Lemma delta_sym (i j : 'I_n.+1) : delta i j = delta j i.
 Proof.
 rewrite !mxE /GRing.add /GRing.opp /=.
 apply f_equal2; [|apply f_equal].
-{ by rewrite -SymA mxE SymA. }
+{ by replace (F_val _) with (MF2R A i j); [rewrite -SymA|]; rewrite !mxE. }
 by apply /eq_bigr => k; rewrite /GRing.mul /= Rmult_comm !mxE.
 Qed.
 
@@ -593,7 +593,7 @@ Hypothesis H2n : 2 * INR n.+2 * eps fs < 1.
 
 Variable A : 'M[F fs]_n.+1.
 
-Hypothesis SymA : A^T = A.
+Hypothesis SymA : MF2R A^T = MF2R A.
 
 (** The diagonal must be non negative (this is easy to test,
     and otherwise the matrix is definitely not positive definite). *)
@@ -703,6 +703,7 @@ Lemma corollary_2_4 (Rt : 'M[F fs]_n.+1) :
 Proof.
 move=> HAtRt; apply posdef_norm_eq_1 => x Hx.
 have HAt'Rt := cholesky_success_At_At' HAtRt.
+have SymAt' := f_equal (@MF2R _ _) SymAt'.
 apply (Mle_lt_trans (Mle_sub (Hc Hx))).
 apply Mle_lt_trans with (c%:M - (Mabs x)^T *m Delta At' maxdiag *m Mabs x).
 { apply Madd_le_compat_l, Mopp_le_contravar, Mmul_abs_lr, Delta_At'_le_Delta_A. }
@@ -719,7 +720,9 @@ apply Mle_trans with (c%:M + x^T *m (MF2R A - c *: 1) *m x).
   case (ltnP i j) => Hij; [rewrite (ltnW Hij)|case (ltnP j i) => Hji].
   { rewrite (proj1 HAt _ _ Hij) eqE /= (ltn_eqF Hij).
     by rewrite GRing.mulr0 GRing.subr0; right. }
-  { rewrite (proj1 HAt _ _ Hji) -{1}SymA !mxE eqE /= eq_sym (ltn_eqF Hji).
+  { rewrite (proj1 HAt _ _ Hji).
+    replace (F_val (A j i)) with ((MF2R A) j i); [|by rewrite mxE].
+    rewrite -{1}SymA !mxE eqE /= eq_sym (ltn_eqF Hji).
     by rewrite GRing.mulr0 GRing.subr0; right. }
   have H : i = j; [by apply ord_inj, anti_leq; apply /andP|]; rewrite H.
   rewrite eq_refl /GRing.mul /= Rmult_1_r !(Rmult_comm _ (x j _)) -!Rmult_assoc.
@@ -776,6 +779,7 @@ Lemma corollary_2_7 (Rt : 'M[F fs]_n.+1) :
 Proof.
 move=> HAtRt Xt SymXt HXtAR; apply posdef_norm_eq_1 => x Hx.
 have HAt'Rt := cholesky_success_At_At' HAtRt.
+have SymAt' := f_equal (@MF2R _ _) SymAt'.
 apply Mle_lt_trans with (c%:M + r%:M
                          - ((Mabs x)^T *m Delta A maxdiag *m Mabs x
                             + (Mabs x)^T *m MF2R Rad *m Mabs x)).
@@ -808,7 +812,9 @@ apply Mle_trans with (c%:M + r%:M + x^T *m (MF2R A - (c + r) *: 1) *m x
   case (ltnP i j) => Hij; [rewrite (ltnW Hij)|case (ltnP j i) => Hji].
   { rewrite (proj1 HAt _ _ Hij) eqE /= (ltn_eqF Hij).
     by rewrite GRing.mulr0 GRing.subr0; right. }
-  { rewrite (proj1 HAt _ _ Hji) -{1}SymA !mxE eqE /= eq_sym (ltn_eqF Hji).
+  { rewrite (proj1 HAt _ _ Hji).
+    replace (F_val (A j i)) with ((MF2R A) j i); [|by rewrite mxE].
+    rewrite -{1}SymA !mxE eqE /= eq_sym (ltn_eqF Hji).
     by rewrite GRing.mulr0 GRing.subr0; right. }
   have H : i = j; [by apply ord_inj, anti_leq; apply /andP|]; rewrite H.
   rewrite eq_refl /GRing.mul /= Rmult_1_r !(Rmult_comm _ (x j _)) -!Rmult_assoc.
@@ -996,7 +1002,7 @@ by do 2 f_equal; rewrite -matrixP => i j; rewrite !mxE GRing.mulr1.
 Qed.
 
 Lemma corollary_2_4_with_c_upper_bound n (H4n : 4 * INR n.+2 * eps fs < 1) :
-  forall A : 'M[F fs]_n.+1, A^T = A ->
+  forall A : 'M[F fs]_n.+1, MF2R A^T = MF2R A ->
   (forall i : 'I_n.+1, 0 <= A i i) ->
   forall maxdiag : R, (forall i : 'I_n.+1, A i i <= maxdiag) ->
   forall c : R,
@@ -1019,7 +1025,7 @@ apply (corollary_2_4 (H2n H4n) SymA Pdiag Hmaxdiag Hc' HAt HARt).
 Qed.
 
 Lemma corollary_2_7_with_c_r_upper_bounds n (H4n : 4 * INR n.+2 * eps fs < 1) :
-  forall A : 'M[F fs]_n.+1, A^T = A ->
+  forall A : 'M[F fs]_n.+1, MF2R A^T = MF2R A ->
   (forall i : 'I_n.+1, 0 <= A i i) ->
   forall Rad : 'M_n.+1, 0 <=m: MF2R Rad ->
   forall maxdiag : R, (forall i : 'I_n.+1, A i i <= maxdiag) ->

@@ -160,7 +160,7 @@ End Cholesky_def_infnan.
     [posdef (MF2R (MFI2F A))] means that [A] is positive definite. *)
 Lemma corollary_2_4_with_c_upper_bound_infnan :
   forall n, 4 * INR n.+2 * eps (fis fs) < 1 ->
-  forall A : 'M[FI fs]_n.+1, A^T = A ->
+  forall A : 'M[FI fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
   (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->
   forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->
   forall c : R,
@@ -174,7 +174,7 @@ Lemma corollary_2_4_with_c_upper_bound_infnan :
   posdef (MF2R (MFI2F A)).
 Proof.
 move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt Rt HARt.
-have SymFIA : (MFI2F A)^T = MFI2F A by rewrite map_trmx SymA.
+have SymFIA : MF2R (MFI2F A)^T = MF2R (MFI2F A) by rewrite map_trmx SymA.
 move: (cholesky_success_infnan_cholesky_success HARt).
 apply (corollary_2_4_with_c_upper_bound H4n SymFIA Pdiag Hmaxdiag Hc).
 by split; [move=> i j Hij; rewrite !mxE (proj1 HAt)|by apply HAt].
@@ -182,7 +182,7 @@ Qed.
 
 Lemma corollary_2_7_with_c_r_upper_bounds_infnan :
   forall n, 4 * INR n.+2 * eps (fis fs) < 1 ->
-  forall A : 'M[FI fs]_n.+1, A^T = A ->
+  forall A : 'M[FI fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
   (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->
   forall Rad : 'M[F (fis fs)]_n.+1, 0 <=m: MF2R Rad ->
   forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->
@@ -201,7 +201,7 @@ Lemma corollary_2_7_with_c_r_upper_bounds_infnan :
 Proof.
 move=> n H4n A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At HAt
          Rt HARt.
-have SymFIA : (MFI2F A)^T = MFI2F A by rewrite map_trmx SymA.
+have SymFIA : MF2R (MFI2F A)^T = MF2R (MFI2F A) by rewrite map_trmx SymA.
 move: (cholesky_success_infnan_cholesky_success HARt).
 apply (corollary_2_7_with_c_r_upper_bounds H4n SymFIA Pdiag PRad Hmaxdiag
                                            Hc Hr).
