@@ -614,7 +614,18 @@ Hypothesis Hc :
 
 Variable At : 'M[F fs]_n.+1.
 
-Hypothesis SymAt : At^T = At.
+Definition At' : 'M[F fs]_n.+1 :=
+  \matrix_(i, j) if (i <= j)%N then At i j else At j i.
+
+Lemma SymAt' : At'^T = At'.
+Proof.
+rewrite /At' /trmx -matrixP => i j; rewrite !mxE.
+case (leqP i j); move=> Hij; case (leqP j i); move=> Hji; [|by[]|by[]|].
+{ by suff H : i = j; [rewrite H|apply ord_inj, anti_leq; rewrite Hij Hji]. }
+by suff H : (i < i)%N; [move: (ltnn i); rewrite H|move: Hij; apply ltn_trans].
+Qed.
+
+(*Hypothesis SymAt : At^T = At.*)
 
 (** *** Corollary 2.4 : criterion for positive definiteness. *)
 Section Corollary_2_4.
@@ -622,6 +633,14 @@ Section Corollary_2_4.
 Hypothesis HAt :
   (forall (i j : 'I_n.+1), ((i < j)%N -> At i j = A i j))
   /\ (forall (i : 'I_n.+1), (At i i <= A i i - c)%Re).
+
+Lemma HAt' :
+  (forall (i j : 'I_n.+1), ((i < j)%N -> At' i j = A i j))
+  /\ (forall (i : 'I_n.+1), (At' i i <= A i i - c)%Re).
+Proof.
+by split; [move=> i j Hij|move=> i]; rewrite /At' !mxE;
+  [rewrite (ltnW Hij)|rewrite (leqnn i)]; apply HAt.
+Qed.
 
 Lemma Delta_pos : 0 <m: Delta A maxdiag.
 Proof.
@@ -652,7 +671,7 @@ rewrite -Mle_scalar; move: (Hc vconst_norm1); apply Mle_trans.
   apply Mlt_le, Delta_pos. }
 Qed.
 
-Lemma Delta_At_le_Delta_A : Delta At maxdiag <=m: Delta A maxdiag.
+Lemma Delta_At'_le_Delta_A : Delta At' maxdiag <=m: Delta A maxdiag.
 Proof.
 move=> i j; rewrite !mxE; apply Rplus_le_compat_r.
 set (alpha := fun i j => gamma fs (min i j).+2).
@@ -666,7 +685,16 @@ have HAtA : forall k : 'I_n.+1, (d At k <= d A k)%Re.
   apply Rplus_le_compat_r, (Rle_trans _ _ _ (proj2 HAt k)); move: c_pos; lra. }
 rewrite /GRing.mul /= !(Rmult_assoc (gamma _ _)); apply Rmult_le_compat_l.
 { by apply alpha_pos. }
-apply Rmult_le_compat; try apply sqrt_pos; apply HAtA.
+apply Rmult_le_compat; try apply sqrt_pos; rewrite leqnn; apply HAtA.
+Qed.
+
+Lemma cholesky_success_At_At' (Rt : 'M[F fs]_n.+1) :
+  cholesky_success At Rt -> cholesky_success At' Rt.
+Proof.
+rewrite /cholesky_success => HsAt.
+destruct HsAt as (HsAt1, HsAt2); split; [split|by []].
+{ by move=> j i Hij; rewrite /At' mxE (ltnW Hij); apply HsAt1. }
+move=> j; rewrite /At' !mxE (leqnn j); apply HsAt1.
 Qed.
 
 (** Corollary 2.4. *)
@@ -674,12 +702,13 @@ Lemma corollary_2_4 (Rt : 'M[F fs]_n.+1) :
   cholesky_success At Rt -> posdef (MF2R A).
 Proof.
 move=> HAtRt; apply posdef_norm_eq_1 => x Hx.
+have HAt'Rt := cholesky_success_At_At' HAtRt.
 apply (Mle_lt_trans (Mle_sub (Hc Hx))).
-apply Mle_lt_trans with (c%:M - (Mabs x)^T *m Delta At maxdiag *m Mabs x).
-{ apply Madd_le_compat_l, Mopp_le_contravar, Mmul_abs_lr, Delta_At_le_Delta_A. }
-apply Mlt_le_trans with (c%:M + x^T *m (MF2R At) *m x).
-{ apply Madd_lt_compat_l, (th_2_3 H2n SymAt HAtRt) => [i|].
-  { apply (Rle_trans _ _ _ (proj2 HAt i)); move: c_pos (Hmaxdiag i); lra. }
+apply Mle_lt_trans with (c%:M - (Mabs x)^T *m Delta At' maxdiag *m Mabs x).
+{ apply Madd_le_compat_l, Mopp_le_contravar, Mmul_abs_lr, Delta_At'_le_Delta_A. }
+apply Mlt_le_trans with (c%:M + x^T *m (MF2R At') *m x).
+{ apply Madd_lt_compat_l, (th_2_3 H2n SymAt' HAt'Rt) => [i|].
+  { apply (Rle_trans _ _ _ (proj2 HAt' i)); move: c_pos (Hmaxdiag i); lra. }
   by move=> Hx'; rewrite Hx' norm2_0 in Hx; apply R1_neq_R0. }
 apply Mle_trans with (c%:M + x^T *m (MF2R A - c *: 1) *m x).
 { apply Madd_le_compat_l; rewrite Mle_scalar !mxE.
@@ -687,10 +716,10 @@ apply Mle_trans with (c%:M + x^T *m (MF2R A - c *: 1) *m x).
   apply Rplus_le_compat => //; rewrite !mxE !big_distrl /=.
   apply big_rec2 => [|i y1 y2 _ Hy12]; [by right|].
   apply Rplus_le_compat => //; rewrite !mxE.
-  case (ltnP i j) => Hij; [|case (ltnP j i) => Hji].
+  case (ltnP i j) => Hij; [rewrite (ltnW Hij)|case (ltnP j i) => Hji].
   { rewrite (proj1 HAt _ _ Hij) eqE /= (ltn_eqF Hij).
     by rewrite GRing.mulr0 GRing.subr0; right. }
-  { rewrite -SymA -SymAt !mxE (proj1 HAt _ _ Hji) eqE /= eq_sym (ltn_eqF Hji).
+  { rewrite (proj1 HAt _ _ Hji) -{1}SymA !mxE eqE /= eq_sym (ltn_eqF Hji).
     by rewrite GRing.mulr0 GRing.subr0; right. }
   have H : i = j; [by apply ord_inj, anti_leq; apply /andP|]; rewrite H.
   rewrite eq_refl /GRing.mul /= Rmult_1_r !(Rmult_comm _ (x j _)) -!Rmult_assoc.
@@ -721,6 +750,14 @@ Hypothesis HAt :
   (forall (i j : 'I_n.+1), ((i < j)%N -> At i j = A i j))
   /\ (forall (i : 'I_n.+1), (At i i <= A i i - c - r)%Re).
 
+Lemma HAt'' :
+  (forall (i j : 'I_n.+1), ((i < j)%N -> At' i j = A i j))
+  /\ (forall (i : 'I_n.+1), (At' i i <= A i i - c - r)%Re).
+Proof.
+by split; [move=> i j Hij|move=> i]; rewrite /At' !mxE;
+  [rewrite (ltnW Hij)|rewrite (leqnn i)]; apply HAt.
+Qed.
+
 Lemma r_pos : 0 <= r.
 Proof.
 replace 0%Re with ((0 : 'M[R]_1) ord0 ord0); [|by rewrite mxE].
@@ -738,21 +775,22 @@ Lemma corollary_2_7 (Rt : 'M[F fs]_n.+1) :
   Xt^T = Xt -> Mabs (Xt - MF2R A) <=m: MF2R Rad -> posdef Xt.
 Proof.
 move=> HAtRt Xt SymXt HXtAR; apply posdef_norm_eq_1 => x Hx.
+have HAt'Rt := cholesky_success_At_At' HAtRt.
 apply Mle_lt_trans with (c%:M + r%:M
                          - ((Mabs x)^T *m Delta A maxdiag *m Mabs x
                             + (Mabs x)^T *m MF2R Rad *m Mabs x)).
 { by apply Mle_sub, Madd_le_compat; [apply Hc|apply Hr]. }
 apply Mle_lt_trans with (c%:M + r%:M
-                         - ((Mabs x)^T *m Delta At maxdiag *m Mabs x
+                         - ((Mabs x)^T *m Delta At' maxdiag *m Mabs x
                             + (Mabs x)^T *m MF2R Rad *m Mabs x)).
 { apply Madd_le_compat_l, Mopp_le_contravar, Madd_le_compat_r, Mmul_abs_lr.
-  apply Delta_At_le_Delta_A; split; [by apply (proj1 HAt)|]; move=> i.
+  apply Delta_At'_le_Delta_A; split; [by apply (proj1 HAt)|]; move=> i.
   apply (Rle_trans _ _ _ (proj2 HAt i)); move: r_pos; lra. }
-apply Mlt_le_trans with (c%:M + r%:M + (x^T *m (MF2R At) *m x
+apply Mlt_le_trans with (c%:M + r%:M + (x^T *m (MF2R At') *m x
                                         + x^T *m (Xt - MF2R A) *m x)).
 { apply Madd_lt_compat_l; rewrite GRing.opprD; apply Madd_lt_le_compat.
-  { apply (th_2_3 H2n SymAt HAtRt) => [i|].
-    { apply (Rle_trans _ _ _ (proj2 HAt i)).
+  { apply (th_2_3 H2n SymAt' HAt'Rt) => [i|].
+    { apply (Rle_trans _ _ _ (proj2 HAt'' i)).
       move: c_pos r_pos (Hmaxdiag i); lra. }
   by move=> Hx'; rewrite Hx' norm2_0 in Hx; apply R1_neq_R0. }
   rewrite -(GRing.opprK (_ *m x)); apply Mopp_le_contravar.
@@ -767,10 +805,10 @@ apply Mle_trans with (c%:M + r%:M + x^T *m (MF2R A - (c + r) *: 1) *m x
   apply Rplus_le_compat => //; rewrite !mxE !big_distrl /=.
   apply big_rec2 => [|i y1 y2 _ Hy12]; [by right|].
   apply Rplus_le_compat => //; rewrite !mxE.
-  case (ltnP i j) => Hij; [|case (ltnP j i) => Hji].
+  case (ltnP i j) => Hij; [rewrite (ltnW Hij)|case (ltnP j i) => Hji].
   { rewrite (proj1 HAt _ _ Hij) eqE /= (ltn_eqF Hij).
     by rewrite GRing.mulr0 GRing.subr0; right. }
-  { rewrite -SymA -SymAt !mxE (proj1 HAt _ _ Hji) eqE /= eq_sym (ltn_eqF Hji).
+  { rewrite (proj1 HAt _ _ Hji) -{1}SymA !mxE eqE /= eq_sym (ltn_eqF Hji).
     by rewrite GRing.mulr0 GRing.subr0; right. }
   have H : i = j; [by apply ord_inj, anti_leq; apply /andP|]; rewrite H.
   rewrite eq_refl /GRing.mul /= Rmult_1_r !(Rmult_comm _ (x j _)) -!Rmult_assoc.
@@ -965,19 +1003,19 @@ Lemma corollary_2_4_with_c_upper_bound n (H4n : 4 * INR n.+2 * eps fs < 1) :
   (/2 * gamma fs (2 * n.+2) * (\tr (MF2R A))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
-  forall At : 'M[F fs]_n.+1, At^T = At ->
+  forall At : 'M[F fs]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, At i i <= A i i - c)) ->
   forall Rt : 'M[F fs]_n.+1, cholesky_success At Rt ->
   posdef (MF2R A).
 Proof.
-move=> A SymA Pdiag maxdiag Hmaxdiag c Hc At SymAt HAt Rt HARt.
+move=> A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt Rt HARt.
 have Pmaxdiag := Rle_trans _ _ _ (Pdiag ord0) (Hmaxdiag ord0).
 have Hc' : forall x : 'cV_n.+1, ||x||_2 = 1 ->
            (Mabs x)^T *m Delta A maxdiag *m Mabs x <=m: c%:M.
 { move=> x Hx; apply (Mle_trans (c_upper_bound H4n Pdiag Hmaxdiag Hx)).
   by rewrite Mle_scalar_mx. }
-apply (corollary_2_4 (H2n H4n) SymA Pdiag Hmaxdiag Hc' SymAt HAt HARt).
+apply (corollary_2_4 (H2n H4n) SymA Pdiag Hmaxdiag Hc' HAt HARt).
 Qed.
 
 Lemma corollary_2_7_with_c_r_upper_bounds n (H4n : 4 * INR n.+2 * eps fs < 1) :
@@ -990,21 +1028,21 @@ Lemma corollary_2_7_with_c_r_upper_bounds n (H4n : 4 * INR n.+2 * eps fs < 1) :
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
   forall r : R, (forall (i j : 'I_n.+1), (Rad i j <= r)%Re) ->
-  forall At : 'M[F fs]_n.+1, At^T = At ->
+  forall At : 'M[F fs]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, (At i i <= A i i - c - INR n.+1 * r)%Re)) ->
   forall Rt : 'M[F fs]_n.+1, cholesky_success At Rt ->
   forall Xt : 'M_n.+1, Xt^T = Xt ->
   Mabs (Xt - MF2R A) <=m: MF2R Rad -> posdef Xt.
 Proof.
-move=> A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At SymAt HAt
+move=> A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At HAt
          Rt HARt Xt SymXt HXtARad.
 have Pmaxdiag := Rle_trans _ _ _ (Pdiag ord0) (Hmaxdiag ord0).
 have Hc' : forall x : 'cV_n.+1, ||x||_2 = 1 ->
            (Mabs x)^T *m Delta A maxdiag *m Mabs x <=m: c%:M.
 { move=> x Hx; apply (Mle_trans (c_upper_bound H4n Pdiag Hmaxdiag Hx)).
   by rewrite Mle_scalar_mx. }
-apply (corollary_2_7 (H2n H4n) SymA Pdiag Hmaxdiag Hc' SymAt PRad
+apply (corollary_2_7 (H2n H4n) SymA Pdiag Hmaxdiag Hc' PRad
                      (r_upper_bound PRad Hr) HAt HARt SymXt HXtARad).
 Qed.
 

@@ -748,14 +748,14 @@ Lemma gen_corollary_2_4_with_c_upper_bound_infnan :
   (/2 * gamma (fis fs) (2 * n.+2) * (\tr (cholesky.MF2R (MFI2F A)))
    + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->  (* need a small program to compute (with directed rounding) *)
-  forall At : 'M[FI fs]_n.+1, At^T = At ->
+  forall At : 'M[FI fs]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->  (* need a small program to compute (with directed rounding) *)
   let R := cholesky5 At in
   (forall i, (0 < (MFI2F R) i i)%Re) ->  (* need a small program to check *)
   real_matrix.posdef (cholesky.MF2R (MFI2F A)).
 Proof.
-move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At SymAt HAt R HAR.
+move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt R HAR.
 apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At R^T;
   try assumption; split; [|by move=> i; move: (HAR i); rewrite !mxE].
 apply gen_cholesky_spec_correct, cholesky5_correct.

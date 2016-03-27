@@ -167,17 +167,16 @@ Lemma corollary_2_4_with_c_upper_bound_infnan :
   (/2 * gamma (fis fs) (2 * n.+2) * (\tr (MF2R (MFI2F A)))
    + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
-  forall At : 'M[FI fs]_n.+1, At^T = At ->
+  forall At : 'M[FI fs]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->
   forall Rt : 'M[FI fs]_n.+1, cholesky_success_infnan At Rt ->
   posdef (MF2R (MFI2F A)).
 Proof.
-move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At SymAt HAt Rt HARt.
+move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt Rt HARt.
 have SymFIA : (MFI2F A)^T = MFI2F A by rewrite map_trmx SymA.
-have SymFIAt : (MFI2F At)^T = MFI2F At by rewrite map_trmx SymAt.
 move: (cholesky_success_infnan_cholesky_success HARt).
-apply (corollary_2_4_with_c_upper_bound H4n SymFIA Pdiag Hmaxdiag Hc SymFIAt).
+apply (corollary_2_4_with_c_upper_bound H4n SymFIA Pdiag Hmaxdiag Hc).
 by split; [move=> i j Hij; rewrite !mxE (proj1 HAt)|by apply HAt].
 Qed.
 
@@ -192,7 +191,7 @@ Lemma corollary_2_7_with_c_r_upper_bounds_infnan :
    + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
   forall r : R, (forall (i j : 'I_n.+1), (Rad i j <= r)%Re) ->
-  forall At : 'M[FI fs]_n.+1, At^T = At ->
+  forall At : 'M[FI fs]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, ((MFI2F At) i i <= (MFI2F A) i i
                                            - c - INR n.+1 * r)%Re)) ->
@@ -200,13 +199,12 @@ Lemma corollary_2_7_with_c_r_upper_bounds_infnan :
   forall Xt : 'M_n.+1, Xt^T = Xt ->
   Mabs (Xt - MF2R (MFI2F A)) <=m: MF2R Rad -> posdef Xt.
 Proof.
-move=> n H4n A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At SymAt HAt
+move=> n H4n A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At HAt
          Rt HARt.
 have SymFIA : (MFI2F A)^T = MFI2F A by rewrite map_trmx SymA.
-have SymFIAt : (MFI2F At)^T = MFI2F At by rewrite map_trmx SymAt.
 move: (cholesky_success_infnan_cholesky_success HARt).
 apply (corollary_2_7_with_c_r_upper_bounds H4n SymFIA Pdiag PRad Hmaxdiag
-                                           Hc Hr SymFIAt).
+                                           Hc Hr).
 by split; [move=> i j Hij; rewrite !mxE (proj1 HAt)|by apply HAt].
 Qed.
 
