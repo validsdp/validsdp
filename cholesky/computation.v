@@ -378,7 +378,8 @@ Lemma trec_ind M P (G : nat -> ordT n.+1 -> M -> M) (f : ordT n.+1 -> M -> M) :
   forall j, (j <= n.+1)%N ->
   (forall i s, G 0%N i s = s) ->
   (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) ->
-  (forall (i : ordT n.+1) s, P (nat_of i) s -> P (nat_of i).+1 (f i s)) ->
+  (forall (i : ordT n.+1) s,
+    (nat_of i <= n.+1)%N -> P (nat_of i) s -> P (nat_of i).+1 (f i s)) ->
   forall (i : ordT n.+1) s,
     (nat_of i <= j)%N -> P (nat_of i) s -> P j (G (j - nat_of i)%N i s).
 Proof.
@@ -392,7 +393,8 @@ case (ltnP (nat_of i) j); [move=> Hij|by rewrite /ssrnat.leq -Hk].
 rewrite HGS; case (ltnP (nat_of i) n) => Hjn.
 { have Hsisn : ((nat_of i).+1 < n.+1)%N.
   { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. }
-    by apply IHk; rewrite (Hsucc0 Hsisn); [|rewrite subnS -Hk|apply Hind]. }
+    apply IHk; rewrite (Hsucc0 Hsisn);
+      by [|rewrite subnS -Hk|apply Hind; first apply: leq_trans Hi Hj]. }
 have Hj' : j = n.+1.
 { by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). }
 have Hi' : nat_of i = n.
@@ -400,7 +402,7 @@ have Hi' : nat_of i = n.
     by apply (@leq_trans j.-1); [apply /leP /Nat.lt_le_pred /leP|rewrite Hj']. }
 have Hk' : k = 0%N.
 { move: Hk; rewrite Hi' Hj' subSnn; apply eq_add_S. }
-  by rewrite Hk' HG0 Hj' -Hi'; apply Hind.
+  by rewrite Hk' HG0 Hj' -Hi'; apply Hind; first apply: leq_trans Hi Hj.
 Qed.
 
 End generic_ind.
@@ -584,7 +586,7 @@ move: H; case (leqP i j).
     (f := fun i R => store R j i (ytilded3 i (A i j) (row i R) (row j R)
                                            (fun_of_matrix R i i))).
   { exact: Hsucc0. } { apply ltnW, ltn_ord. } { done. } { done. }
-  move=> i R [Ho Hi]; split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
+  move=> i R _(*!*) [Ho Hi]; split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
   { rewrite ssr_store3_lt1 // (proj1 Ho _ _ Hj' Hi').
     apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
     { by rewrite ssr_store3_lt1 //; apply (ltn_trans Hi'). }
@@ -629,7 +631,7 @@ eapply trec_ind with
   (f := fun j R => let R := inner_loop3 j A R I0 in
                    store R j j (ytildes3 j (A j j) (row j R))).
 { exact: Hsucc0. } { done. } { done. } { done. }
-move=> j R H.
+move=> j R _(*!*) H.
 have Hin_0 : inner_loop_inv A R j (@ord0 n); [by []|].
 have Hin_n := inner_loop_correct Hin_0.
 split; [move=> j' i' Hj' Hi'|move=> j' Hj'].
@@ -857,15 +859,16 @@ Qed.
 Lemma size_inner_loop_rec3 :
   forall A,
   forall j R,
+  (nat_of j <= n.+1)%N ->
   seq.size R = n.+1 ->
   seq.size (inner_loop_rec4 j (nat_of j - nat_of I0) A R I0) = n.+1.
 Proof.
-move=> A j R.
+move=> A j R Hj.
 rewrite /inner_loop_rec4 /=.
 eapply trec_ind with
   (s := R)
   (G := fun k (i : ordT n.+1) R => inner_loop_rec3 j k A R i)
-  (P := fun _ R => seq.size R = n.+1). done. done. done.
+  (P := fun _ R => seq.size R = n.+1)=>//.
 by move=> i s Hs /=; rewrite size_store3.
 Qed.
 
@@ -880,9 +883,9 @@ rewrite /outer_loop_rec4 /=.
 eapply trec_ind with
   (s := R)
   (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i)
-  (P := fun _ R => seq.size R = n.+1). done. done. done.
-move=> i s Hs /=; rewrite size_store3.
-exact: size_inner_loop_rec3.
+  (P := fun _ R => seq.size R = n.+1)=>//.
+move=> i s Hle Hs /=; rewrite size_store3.
+by apply: size_inner_loop_rec3.
 Qed.
 
 End inst_seq.
