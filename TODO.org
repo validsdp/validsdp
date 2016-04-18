@@ -22,17 +22,30 @@
 ** DONE Prove trec_ind                                               :Pierre:
 ** STARTED Data refinement proof: Transport the proof in seqmatrix     :Erik:
 - Use cholesky_prog.v and/or CoqEAL
-*** TODO Prove param_inner_loop, param_outer_loop, param_cholesky      :Erik:
+*** DONE Prove param_outer_loop, param_cholesky			       :Erik:
+    CLOSED: [2016-04-18 Mon 17:19]
 
+*** TODO [#A] Prove param_inner_loop, ytildes...		       :Erik:
 ** TODO Make all computation effective (small fcts to write)	:Pierre:Erik:
 - Use the proper Rounding mode
 *** DONE Import Coq.Interval's large/strict orders                   :Pierre:
 *** DONE =4 * INR n.+2 * eps (fis fs) < 1=                           :Pierre:
-*** TODO Symmetry test 						     :Pierre:
-*** TODO Other matrix tests (diagonal, etc.)			       :Erik:
-** TODO Design a reflexive tactic for posdef			       :Erik:
-** TODO Make more benchmarks					:Pierre:Erik:
+*** DONE Symmetry test (to define using standard notations %HC) :Pierre:Erik:
+    CLOSED: [2016-04-18 Mon 17:47]
+*** DONE Non-negativity of diagonal test			       :Erik:
+    CLOSED: [2016-04-18 Mon 18:08]
+*** TODO [#A] Function to compute the maximum of the diagonal	     :Pierre:
+*** TODO [#A] FP computation with directing rounding		     :Pierre:
+** TODO [#B] Define the Boolean predicate for positivity test	     :Pierre:
+- Put it in the =generic_algos= section
+- Use the small functions defined so far
+** TODO Make some benchmarks for the Boolean positivity test	     :Pierre:
+** TODO Design a reflexive tactic for positivity (Ltac)		       :Erik:
 * SOS/SDP
 ** TODO Look-at Victor's JFR paper				       :Erik:
 - Reuse the interface to ease future benchmarks?
 ** TODO Reread Pierre's paper and OSDP doc			       :Erik:
+* Optimizations
+** TODO Specialize the algos with fine-tuned binary64 arith	       :Erik:
+- int31 (or int63)
+** TODO More tests with native_compute				     :Pierre:
