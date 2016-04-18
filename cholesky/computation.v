@@ -942,8 +942,9 @@ eapply trec_ind with
   (s := R)
   (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i)
   (P := fun _ R => seq.size (nth [::] R i) = n.+1)=>//.
-admit.
-Admitted.
+move=> i0 s Hle Hs; rewrite size_nth_store3.
+by apply size_nth_inner_loop_rec4.
+Qed.
 
 Lemma size_nth_cholesky4 :
   forall i : nat, (i < n.+1)%N ->
