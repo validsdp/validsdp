@@ -838,13 +838,13 @@ Instance : succ0_class ordT n.+1 := S.
 Instance : nat_of_class ordT n.+1 := id.
 
 Definition cholesky4 : seq (seq T) :=
-  @cholesky3 T ordT mxT _ _ _ _ _ _ n.+1 O S id M.
+  @cholesky3 T ordT _ _ _ _ _ _ _ n.+1 _ _ _ M.
 
 Definition outer_loop_rec4 :=
-  @outer_loop_rec3 T ordT mxT _ _ _ _ _ _ n.+1 O S id.
+  @outer_loop_rec3 T _ _ _ _ _ _ _ _ n.+1 _ _ _.
 
 Definition inner_loop_rec4 :=
-  @inner_loop_rec3 T ordT mxT _ _ _ _ _ n.+1 S.
+  @inner_loop_rec3 T _ _ _ _ _ _ _ n.+1 _.
 
 Lemma size_store3 :
   forall s i j x,
@@ -856,15 +856,14 @@ case: j IHs => [|j] IHs //=.
 by rewrite -(IHs j).
 Qed.
 
-Lemma size_inner_loop_rec3 :
-  forall A,
-  forall j R,
+Lemma size_inner_loop_rec4 :
+  forall A j R,
   (nat_of j <= n.+1)%N ->
   seq.size R = n.+1 ->
-  seq.size (inner_loop_rec4 j (nat_of j - nat_of I0) A R I0) = n.+1.
+  seq.size (inner_loop_rec3 (T := T) (ordT := ordT) (n := n.+1)
+    j (nat_of j - nat_of I0) A R I0) = n.+1.
 Proof.
 move=> A j R Hj.
-rewrite /inner_loop_rec4 /=.
 eapply trec_ind with
   (s := R)
   (G := fun k (i : ordT n.+1) R => inner_loop_rec3 j k A R i)
@@ -872,20 +871,86 @@ eapply trec_ind with
 by move=> i s Hs /=; rewrite size_store3.
 Qed.
 
-Lemma size_outer_loop_rec3 :
+Lemma size_outer_loop_rec4 :
   forall A R,
   seq.size R = n.+1 ->
-  (* seq.size (outer_loop_rec4 k s s I0) = n.+1 -> *)
-  seq.size (outer_loop_rec4 (nat_of n - nat_of I0) A R I0) = n.+1.
+  seq.size (outer_loop_rec3 (T := T) (ordT := ordT) (mxT := mxT) (n := n.+1)
+    (nat_of n.+1 - nat_of I0) A R I0) = n.+1.
 Proof.
 move=> A R.
-rewrite /outer_loop_rec4 /=.
 eapply trec_ind with
   (s := R)
   (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i)
   (P := fun _ R => seq.size R = n.+1)=>//.
 move=> i s Hle Hs /=; rewrite size_store3.
-by apply: size_inner_loop_rec3.
+by apply: size_inner_loop_rec4.
+Qed.
+
+Lemma size_cholesky4 :
+  (0 < seq.size M)%N ->
+  seq.size cholesky4 = n.+1.
+Proof.
+move=> HM.
+apply: size_outer_loop_rec4.
+by case: M HM @n => [//|A B] HM.
+Qed.
+
+Lemma size_seq_store3 :
+  forall s i x,
+  seq.size (@seq_store3 T s i x) = seq.size s.
+Proof.
+move=> s i x.
+elim: s i => [|a s IHs] i; first by case: i.
+case: i IHs => [|i] IHs //=.
+by rewrite -(IHs i).
+Qed.
+
+Lemma size_nth_store3 :
+  forall s i j k x,
+  seq.size (nth [::] (@store3 T s j i x) k) = seq.size (nth [::] s k).
+Proof.
+move=> s i j k x.
+elim: s j k => [|a s IHs] j k; first by case: j.
+case: j IHs => [|j] IHs //=; case: k IHs => [|k] IHs //=.
+by rewrite size_seq_store3.
+Qed.
+
+Lemma size_nth_inner_loop_rec4 :
+  forall A j i R,
+  (nat_of j <= n.+1)%N ->
+  seq.size (nth [::] R i) = n.+1 ->
+  seq.size (nth [::] (inner_loop_rec3 (T := T) (ordT := ordT) (n := n.+1)
+    j (nat_of j - nat_of I0) A R I0) i) = n.+1.
+Proof.
+move=> A j i R Hj.
+eapply trec_ind with
+  (s := R)
+  (G := fun k (i : ordT n.+1) R => inner_loop_rec3 j k A R i)
+  (P := fun _ R => seq.size (nth [::] R i) = n.+1)=>//.
+by move=> i0 s Hle Hs; rewrite size_nth_store3.
+Qed.
+
+Lemma size_nth_outer_loop_rec4 :
+  forall A R (i : nat),
+  (i < n.+1)%N ->
+  seq.size (nth [::] R i) = n.+1 ->
+  seq.size (nth [::] (outer_loop_rec3 (T := T) (ordT := ordT) (mxT := mxT) (n := n.+1)
+    (nat_of n.+1 - nat_of I0) A R I0) i) = n.+1.
+Proof.
+move=> A R i Hi.
+eapply trec_ind with
+  (s := R)
+  (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i)
+  (P := fun _ R => seq.size (nth [::] R i) = n.+1)=>//.
+admit.
+Admitted.
+
+Lemma size_nth_cholesky4 :
+  forall i : nat, (i < n.+1)%N ->
+  seq.size (nth [::] M i) = n.+1 ->
+  seq.size (nth [::] cholesky4 i) = n.+1.
+Proof.
+exact: size_nth_outer_loop_rec4.
 Qed.
 
 End inst_seq.
@@ -959,13 +1024,8 @@ Proof.
 eapply param_abstr => m s param_ms; rewrite /cholesky5 /cholesky4.
 rewrite paramE.
 apply: refines_seqmxP.
-- { rewrite /cholesky3 /outer_loop3.
-    have Hsize : seq.size s = n.+1 by rewrite sizeE.
-    move Ek : ((seq.size s).-1.+1 - nat_of I0)%N => k.
-    elim: k Ek => [|k IHk] //.
-    admit; rewrite size_outer_loop_rec3. (* FIXME *)
-  }
-- admit. (* TODO in a similar way *)
+- by rewrite size_cholesky4 sizeE.
+- by move=> i Hi; rewrite size_nth_cholesky4 !sizeE.
 - move=> i j; rewrite /cholesky3 /=.
   eapply refines_nth.
   admit.
