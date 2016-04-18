@@ -311,6 +311,7 @@ Definition succ0 (n : nat) (i : 'I_n.+1) : 'I_n.+1 :=
 *)
 Class nat_of_class I n := nat_of : I n -> nat.
 
+
 (*
 Local Open Scope ring_scope.
 Open Scope computable_scope.
@@ -370,10 +371,20 @@ Definition cholesky3 A := outer_loop3 A A I0.
 
 End generic_algos.
 
+Section succ0_theory.
+Variables (ordT : nat -> Type) (n : nat).
+Context `{!I0_class ordT n, !succ0_class ordT n, !nat_of_class ordT n}.
+Class succ0_correct :=
+  succ0_prop :
+  forall i : ordT n, ((nat_of i).+1 < n)%N -> nat_of (succ0 i) = (nat_of i).+1.
+End succ0_theory.
+Arguments succ0_correct _ _ {succ0_class0} {nat_of_class0}.
+
 Section generic_ind.
 Context {ordT : nat -> Type} {n : nat}.
 Context `{!I0_class ordT n.+1, !succ0_class ordT n.+1, !nat_of_class ordT n.+1}.
-Hypothesis Hsucc0 : forall i : ordT n.+1, ((nat_of i).+1 < n.+1)%N -> nat_of (succ0 i) = (nat_of i).+1.
+Context `{!succ0_correct ordT n.+1}.
+
 Lemma trec_ind M P (G : nat -> ordT n.+1 -> M -> M) (f : ordT n.+1 -> M -> M) :
   forall j, (j <= n.+1)%N ->
   (forall i s, G 0%N i s = s) ->
@@ -393,8 +404,9 @@ case (ltnP (nat_of i) j); [move=> Hij|by rewrite /ssrnat.leq -Hk].
 rewrite HGS; case (ltnP (nat_of i) n) => Hjn.
 { have Hsisn : ((nat_of i).+1 < n.+1)%N.
   { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. }
-    apply IHk; rewrite (Hsucc0 Hsisn);
-      by [|rewrite subnS -Hk|apply Hind; first apply: leq_trans Hi Hj]. }
+    apply IHk; erewrite (succ0_prop Hsisn) =>//.
+    by rewrite subnS -Hk.
+    by apply Hind; first apply: leq_trans Hi Hj. }
 have Hj' : j = n.+1.
 { by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). }
 have Hi' : nat_of i = n.
@@ -403,6 +415,57 @@ have Hi' : nat_of i = n.
 have Hk' : k = 0%N.
 { move: Hk; rewrite Hi' Hj' subSnn; apply eq_add_S. }
   by rewrite Hk' HG0 Hj' -Hi'; apply Hind; first apply: leq_trans Hi Hj.
+Qed.
+
+Context {ordT' : nat -> Type}.
+Context `{!I0_class ordT' n.+1, !succ0_class ordT' n.+1, !nat_of_class ordT' n.+1}.
+Context `{!succ0_correct ordT' n.+1}.
+
+Lemma trec_ind2 M M' P (G : nat -> ordT n.+1 -> M -> M)
+  (G' : nat -> ordT' n.+1 -> M' -> M')
+  (f : ordT n.+1 -> M -> M)
+  (f' : ordT' n.+1 -> M' -> M') :
+  forall j, (j <= n.+1)%N ->
+  (forall i s, G 0%N i s = s) ->
+  (forall i s, G' 0%N i s = s) ->
+  (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) ->
+  (forall k i s, G' k.+1 i s = G' k (succ0 i) (f' i s)) ->
+  (forall (i : ordT n.+1) (i' : ordT' n.+1) s s',
+    (nat_of i <= n.+1)%N ->
+    nat_of i' = nat_of i ->
+    P s s' -> P (f i s) (f' i' s')) ->
+  forall (i : ordT n.+1) (i' : ordT' n.+1) s s',
+    (nat_of i <= j)%N ->
+    nat_of i' = nat_of i ->
+    P s s' ->
+    P (G (j - nat_of i)%N i s) (G' (j - nat_of i')%N i' s').
+Proof.
+move=> j Hj HG0 HG'0 HGS HG'S Hind i i' s s' Hi Hi' H.
+rewrite Hi'.
+move Hk: (j - nat_of i)%N => k.
+elim: k i i' Hi Hi' Hk s s' H => [|k IHk] i i' Hi Hi' Hk s s' H.
+{ rewrite HG0 HG'0; replace j with (nat_of i); [by []|].
+  by apply anti_leq; rewrite Hi /= -subn_eq0 Hk. }
+case (ltnP (nat_of i) j); last by rewrite /ssrnat.leq Hk.
+move=> Hij.
+rewrite HGS HG'S; case (ltnP (nat_of i) n) => Hjn.
+{ have Hsisn : ((nat_of i).+1 < n.+1)%N.
+  { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. }
+    apply: IHk; first by rewrite succ0_prop.
+    rewrite !succ0_prop ?Hi' //.
+    by rewrite succ0_prop // subnS Hk.
+    apply Hind; by [apply: leq_trans Hi Hj|].
+  }
+have Hj' : j = n.+1.
+{ by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). }
+have Hi'n : nat_of i = n.
+{ apply anti_leq; rewrite Hjn Bool.andb_true_r.
+    by apply (@leq_trans j.-1); [apply /leP /Nat.lt_le_pred /leP|rewrite Hj']. }
+have Hk' : k = 0%N.
+{ by rewrite Hi'n Hj' subSnn in Hk; case: Hk. }
+rewrite Hk' HG0 HG'0.
+apply: Hind =>//.
+exact: leq_trans Hi Hj.
 Qed.
 
 End generic_ind.
@@ -569,8 +632,7 @@ Definition inner_loop_inv (A R : 'M[T]_n.+1) j i : Prop :=
                      [ffun k : 'I_i' => R j' (inord k)]
                      (R i' i'))).
 
-Lemma Hsucc0 :
-  forall i : ordT n.+1, ((nat_of i).+1 < n.+1)%N -> nat_of (succ0 i) = (nat_of i).+1.
+Global Instance ord_succ0 : succ0_correct ordT n.+1.
 Proof. by move=> i H; rewrite /nat_of /ssr_nat_of inordK. Qed.
 
 Lemma inner_loop_correct (A R : 'M_n.+1) (j i : 'I_n.+1) :
@@ -584,8 +646,8 @@ move: H; case (leqP i j).
     (G := fun k (i : 'I_n.+1) s => inner_loop_rec3 j k A s i)
     (P := fun i R => inner_loop_inv A R j i)
     (f := fun i R => store R j i (ytilded3 i (A i j) (row i R) (row j R)
-                                           (fun_of_matrix R i i))).
-  { exact: Hsucc0. } { apply ltnW, ltn_ord. } { done. } { done. }
+                                           (fun_of_matrix R i i))) =>//.
+  { apply ltnW, ltn_ord. }
   move=> i R _(*!*) [Ho Hi]; split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
   { rewrite ssr_store3_lt1 // (proj1 Ho _ _ Hj' Hi').
     apply gen_ytilded3_eq => // [i''|i''|]; try rewrite !ffunE.
@@ -629,8 +691,7 @@ eapply trec_ind with
   (G := fun k (j : 'I_n.+1) s => outer_loop_rec3 k A s j)
   (P := fun j R => outer_loop_inv A R j)
   (f := fun j R => let R := inner_loop3 j A R I0 in
-                   store R j j (ytildes3 j (A j j) (row j R))).
-{ exact: Hsucc0. } { done. } { done. } { done. }
+                   store R j j (ytildes3 j (A j j) (row j R))) =>//.
 move=> j R _(*!*) H.
 have Hin_0 : inner_loop_inv A R j (@ord0 n); [by []|].
 have Hin_n := inner_loop_correct Hin_0.
@@ -831,13 +892,15 @@ Instance : store_class T ordT mxT :=
   fun m n M i j v =>
   store3 M i j v.
 
-Variable M : seq (seq T).
-Let n := (seq.size M).-1.
+Context {n : nat}.
 Instance : I0_class ordT n.+1 := O.
 Instance : succ0_class ordT n.+1 := S.
 Instance : nat_of_class ordT n.+1 := id.
 
-Definition cholesky4 : seq (seq T) :=
+Instance : succ0_correct ordT n.+1.
+Proof. done. Qed.
+
+Definition cholesky4 (M : seq (seq T)) : seq (seq T) :=
   @cholesky3 T ordT _ _ _ _ _ _ _ n.+1 _ _ _ M.
 
 Definition outer_loop_rec4 :=
@@ -845,6 +908,12 @@ Definition outer_loop_rec4 :=
 
 Definition inner_loop_rec4 :=
   @inner_loop_rec3 T _ _ _ _ _ _ _ n.+1 _.
+
+Definition outer_loop4 :=
+  @outer_loop3 T _ _ _ _ _ _ _ _ n.+1 _ _ _.
+
+Definition inner_loop4 :=
+  @inner_loop3 T _ _ _ _ _ _ _ n.+1 _.
 
 Lemma size_store3 :
   forall s i j x,
@@ -857,42 +926,39 @@ by rewrite -(IHs j).
 Qed.
 
 Lemma size_inner_loop_rec4 :
-  forall A j R,
+  forall A j i R,
+  (nat_of i <= nat_of j)%N ->
   (nat_of j <= n.+1)%N ->
   seq.size R = n.+1 ->
   seq.size (inner_loop_rec3 (T := T) (ordT := ordT) (n := n.+1)
-    j (nat_of j - nat_of I0) A R I0) = n.+1.
+    j (nat_of j - nat_of i) A R i) = n.+1.
 Proof.
-move=> A j R Hj.
+move=> A j i R Hi Hj.
 eapply trec_ind with
-  (s := R)
-  (G := fun k (i : ordT n.+1) R => inner_loop_rec3 j k A R i)
-  (P := fun _ R => seq.size R = n.+1)=>//.
-by move=> i s Hs /=; rewrite size_store3.
+  (G := fun k (i : ordT n.+1) R => inner_loop_rec3 j k A R i) =>//.
+by move=> i0 s Hs /=; rewrite size_store3.
 Qed.
 
 Lemma size_outer_loop_rec4 :
-  forall A R,
+  forall A R (j : ordT n.+1),
+  (nat_of j <= n.+1)%N ->
   seq.size R = n.+1 ->
   seq.size (outer_loop_rec3 (T := T) (ordT := ordT) (mxT := mxT) (n := n.+1)
-    (nat_of n.+1 - nat_of I0) A R I0) = n.+1.
+    (nat_of n.+1 - nat_of j) A R j) = n.+1.
 Proof.
-move=> A R.
+move=> A R j Hj HRs.
 eapply trec_ind with
-  (s := R)
-  (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i)
-  (P := fun _ R => seq.size R = n.+1)=>//.
+  (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i) =>//.
 move=> i s Hle Hs /=; rewrite size_store3.
-by apply: size_inner_loop_rec4.
+exact: size_inner_loop_rec4.
 Qed.
 
-Lemma size_cholesky4 :
-  (0 < seq.size M)%N ->
-  seq.size cholesky4 = n.+1.
+Lemma size_cholesky4 M :
+  seq.size M = n.+1 ->
+  seq.size (cholesky4 M) = n.+1.
 Proof.
 move=> HM.
-apply: size_outer_loop_rec4.
-by case: M HM @n => [//|A B] HM.
+exact: size_outer_loop_rec4.
 Qed.
 
 Lemma size_seq_store3 :
@@ -916,50 +982,86 @@ by rewrite size_seq_store3.
 Qed.
 
 Lemma size_nth_inner_loop_rec4 :
-  forall A j i R,
+  forall A j i k R,
+  (nat_of i <= nat_of j)%N ->
   (nat_of j <= n.+1)%N ->
-  seq.size (nth [::] R i) = n.+1 ->
+  seq.size (nth [::] R k) = n.+1 ->
   seq.size (nth [::] (inner_loop_rec3 (T := T) (ordT := ordT) (n := n.+1)
-    j (nat_of j - nat_of I0) A R I0) i) = n.+1.
+    j (nat_of j - nat_of i) A R i) k) = n.+1.
 Proof.
-move=> A j i R Hj.
+move=> A j i k R Hi Hj.
 eapply trec_ind with
-  (s := R)
-  (G := fun k (i : ordT n.+1) R => inner_loop_rec3 j k A R i)
-  (P := fun _ R => seq.size (nth [::] R i) = n.+1)=>//.
+  (G := fun k (i : ordT n.+1) R => inner_loop_rec3 j k A R i) =>//.
 by move=> i0 s Hle Hs; rewrite size_nth_store3.
 Qed.
 
 Lemma size_nth_outer_loop_rec4 :
-  forall A R (i : nat),
+  forall A R (i : nat) j,
   (i < n.+1)%N ->
+  (nat_of j <= n.+1)%N ->
   seq.size (nth [::] R i) = n.+1 ->
   seq.size (nth [::] (outer_loop_rec3 (T := T) (ordT := ordT) (mxT := mxT) (n := n.+1)
-    (nat_of n.+1 - nat_of I0) A R I0) i) = n.+1.
+    (nat_of n.+1 - nat_of j) A R j) i) = n.+1.
 Proof.
-move=> A R i Hi.
+move=> A R i j Hi Hj HRs.
 eapply trec_ind with
-  (s := R)
-  (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i)
-  (P := fun _ R => seq.size (nth [::] R i) = n.+1)=>//.
+  (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i) =>//.
 move=> i0 s Hle Hs; rewrite size_nth_store3.
 by apply size_nth_inner_loop_rec4.
 Qed.
 
-Lemma size_nth_cholesky4 :
+Lemma size_nth_cholesky4 M :
   forall i : nat, (i < n.+1)%N ->
   seq.size (nth [::] M i) = n.+1 ->
-  seq.size (nth [::] cholesky4 i) = n.+1.
+  seq.size (nth [::] (cholesky4 M) i) = n.+1.
 Proof.
-exact: size_nth_outer_loop_rec4.
+by move=> *; apply: size_nth_outer_loop_rec4.
 Qed.
 
 End inst_seq.
 
-Section data_refinement.
+Section Rseqmx_aux.
 (* Aim: refinement proofs using seqmatrix.v *)
-
 Require Import CoqEAL_theory.hrel.
+
+Context {A : Type}. (* {ordC : nat -> Type} {mxC : nat -> nat -> Type}. *)
+Context `{!zero A}.
+(*
+Local Notation ordA := (fun _ : nat => nat) (only parsing).
+Local Notation mxA := (fun _ _ : nat => seqmatrix A) (only parsing).
+Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A}.
+Context `{!fun_of A ordA mxA, !row_class ordA mxA}.
+*)
+
+(** Version of Rseqmx_fun_of_seqmx not assuming zmodType *)
+Instance Rseqmx_fun_of_seqmx' m n :
+  param (Rseqmx ==> @Rord m ==> @Rord n ==> Logic.eq) (@matrix.fun_of_matrix A m n) (@fun_of_seqmx A _ m n).
+Proof.
+rewrite paramE => x a rxa i p <- j q <-.
+rewrite /fun_of_seqmx.
+by rewrite refines_nth_def.
+Qed.
+
+(** Version of Rseqmx_rowseqmx not assuming zmodType *)
+Instance Rseqmx_rowseqmx' A m n :
+  param (@Rord m ==> Rseqmx ==> Rseqmx) (@matrix.row A m n) (@rowseqmx A m n).
+Proof.
+rewrite paramE=> i p rip x a rxa.
+rewrite /rowseqmx.
+apply refines_seqmxP=> //.
+case=> //= _.
+rewrite refines_nth_col_size //.
+rewrite refines_row_size.
+by rewrite -rip.
+case. case=> //= ? j.
+rewrite !mxE.
+rewrite -rip.
+by rewrite refines_nth.
+Qed.
+
+End Rseqmx_aux.
+
+Section data_refinement.
 
 (*
 (* Abstract types *)
@@ -976,7 +1078,8 @@ Local Notation mxC := (fun _ _ : nat => seqmatrix C) (only parsing).
 Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
 Context `{!fun_of C ordC mxC, !row_class ordC mxC, !store_class C ordC mxC, !dotmulB0_class C ordC mxC}.
 Context {n : nat}.
-Context `{!I0_class ordC n, !succ0_class ordC n, !nat_of_class ordC n}.
+Context `{!I0_class ordC n.+1, !succ0_class ordC n.+1, !nat_of_class ordC n.+1}.
+Context `{!succ0_correct ordC n.+1}.
 
 Local Notation ordA := ordinal (only parsing).
 Local Notation mxA := (fun m n => 'M[C]_(m, n)) (only parsing).
@@ -1006,30 +1109,61 @@ Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
   (@matrix.row _ m n) (@row _ _ _ m n)}.
 *)
 
-Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> Logic.eq ==> RmxC)
-  (@ssr_store3 _ m n) (@store C _ _ _ m n)}.
+Context `{!param (RmxC ==> RordC ==> RordC ==> Logic.eq ==> RmxC)
+  (ssr_store3 (m := n.+1) (n := n.+1)) (@store3 C)}.
 
 Context `{forall n, param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq)
   (@ssr_dotmulB0 _ _ _ _ n) (@dotmulB0 C _ _ _ n)}.
 
-
-Fail Global Instance param_outer_loop :
+Global Instance param_outer_loop :
   param (RmxC ==> RmxC ==> RordC ==> RmxC)
-  (outer_loop5 (n := n)) (@outer_loop3 C).
+  (outer_loop5 (n := n)) (outer_loop4 (n := n)).
 Proof.
-(* Qed. *)
-
-Global Instance param_cholesky :
-  param (RmxC ==> RmxC)%rel (cholesky5 (n := n)) cholesky4.
-Proof.
-eapply param_abstr => m s param_ms; rewrite /cholesky5 /cholesky4.
-rewrite paramE.
-apply: refines_seqmxP.
-- by rewrite size_cholesky4 sizeE.
-- by move=> i Hi; rewrite size_nth_cholesky4 !sizeE.
-- move=> i j; rewrite /cholesky3 /=.
-  eapply refines_nth.
-  admit.
+eapply param_abstr => A As param_A.
+eapply param_abstr => R Rs param_R.
+eapply param_abstr => j js param_j.
+rewrite /outer_loop5 /outer_loop4 paramE.
+rewrite paramE /Rord in param_j.
+rewrite /outer_loop3.
+rewrite -/outer_loop_rec4.
+rewrite paramE in param_R.
+eapply trec_ind2 with
+  (G := fun k (i : 'I_n.+1) R => outer_loop_rec3 k A R i)
+  (G' := fun k (i : ordC n.+1) Rs => outer_loop_rec4 k As Rs i)
+  (P := fun R Rs => Rseqmx R Rs) =>//.
+done. done. done. done. done.
+3: by rewrite -param_j.
+2: exact/ltnW/ltn_ord.
+move=> i i' s s' Hi Hi' param_s /=.
+rewrite /store.
+rewrite /store_class_instance_0 /store_class_instance_1.
+apply paramP.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+by tc.
+admit.
+by rewrite paramE.
+by rewrite paramE.
+eapply param_apply.
+eapply param_apply.
+admit.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+eapply Rseqmx_fun_of_seqmx'.
+done.
+by rewrite paramE.
+by rewrite paramE.
+eapply param_apply.
+eapply param_apply.
+eapply Rseqmx_rowseqmx'.
+by rewrite paramE.
+admit. (* again *)
+Unshelve. (* FIXME: this should be automatically discharged *)
+apply: ord_succ0.
+by tc.
 Admitted.
 
 (*
@@ -1040,6 +1174,42 @@ rewrite paramE.
 eapply param_apply.
 by tc.
 *)
+
+(*
+exact: param_R.
+apply: refines_seqmxP.
+- { rewrite size_outer_loop_rec4 //.
+    rewrite -param_j.
+    exact/ltnW/ltn_ord.
+    by rewrite sizeE.
+  }
+- { move=> i Hi; rewrite size_nth_outer_loop_rec4 //.
+    rewrite -param_j.
+    exact/ltnW/ltn_ord.
+    by rewrite !sizeE.
+  }
+- move=> i k.
+  rewrite -(inord_val j) param_j.
+  rewrite /outer_loop3.
+  set mo := (outer_loop_rec3 (n.+1 - nat_of (inord js)) A R (inord js)).
+  eapply trec_ind2 with
+    (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i)
+    (G' := fun k (i : ordT n.+1) R => outer_loop_rec3 k As Rs i).
+*)
+
+Global Instance param_cholesky :
+  param (RmxC ==> RmxC)%rel (cholesky5 (n := n)) (cholesky4 (n := n)).
+Proof.
+eapply param_abstr => m s param_ms; rewrite /cholesky5 /cholesky4.
+rewrite paramE.
+apply: refines_seqmxP.
+- by rewrite size_cholesky4 ?sizeE.
+- by move=> i Hi; rewrite size_nth_cholesky4 ?sizeE.
+- move=> i j; rewrite /cholesky3 /=.
+  eapply refines_nth.
+  eapply param_apply; try by tc.
+  by rewrite paramE.
+Qed.
 
 End data_refinement.
 
