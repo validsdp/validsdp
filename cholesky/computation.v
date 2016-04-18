@@ -369,6 +369,24 @@ End OuterLoop.
 (* note: the result is transposed with respect to cholesky.v *)
 Definition cholesky3 A := outer_loop3 A A I0.
 
+Context `{!heq mxT}.
+Context `{!transpose_class mxT}.
+
+Definition is_sym (A : mxT n n) : bool :=
+  (A ^T == A)%HC.
+
+Context `{!leq T}.
+
+Fixpoint nn_diag_rec k (A : mxT n n) b (i : ordT n) {struct k} : bool :=
+  match k with
+  | O => b
+  | S k =>
+    nn_diag_rec k A (b && (0 <= fun_of_matrix A i i)%C) (succ0 i)
+  end.
+
+Definition nn_diag A :=
+  nn_diag_rec n A true I0.
+
 End generic_algos.
 
 Section succ0_theory.
