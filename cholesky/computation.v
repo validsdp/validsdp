@@ -372,8 +372,9 @@ Definition cholesky3 A := outer_loop3 A A I0.
 Context `{!heq mxT}.
 Context `{!transpose_class mxT}.
 
-Definition is_sym (A : mxT n n) : bool :=
-  (A ^T == A)%HC.
+Definition is_sym (A : mxT n n) : bool := (A^T == A)%HC.
+(* TODO : en fait, ce dont on a besoin, c'est de prouver 
+   MF2R (MFI2F A^T) = MF2R (MFI2F A) *)
 
 Fixpoint all_diag_rec f k (A : mxT n n) b (i : ordT n) {struct k} : bool :=
   match k with
@@ -398,8 +399,6 @@ Fixpoint max_diag_rec k (A : mxT n n) m (i : ordT n) {struct k} : T :=
     max_diag_rec k A (if (m <= c)%C then c else m) (succ0 i)
   end.
 Definition max_diag A := max_diag_rec n A 0%C I0.
-
-About store.
 
 Fixpoint map_diag_rec f k (A : mxT n n) (i : ordT n) {struct k} : mxT n n :=
   match k with
@@ -439,17 +438,18 @@ End succ0_theory.
 Arguments succ0_correct _ _ {succ0_class0} {nat_of_class0}.
 
 Section generic_ind.
-Context {ordT : nat -> Type} {n : nat}.
-Context `{!I0_class ordT n.+1, !succ0_class ordT n.+1, !nat_of_class ordT n.+1}.
-Context `{!succ0_correct ordT n.+1}.
+Context {ordT : nat -> Type} {n' : nat}.
+Let n := n'.+1.
+Context `{!I0_class ordT n, !succ0_class ordT n, !nat_of_class ordT n}.
+Context `{!succ0_correct ordT n}.
 
-Lemma trec_ind M P (G : nat -> ordT n.+1 -> M -> M) (f : ordT n.+1 -> M -> M) :
-  forall j, (j <= n.+1)%N ->
+Lemma trec_ind M P (G : nat -> ordT n -> M -> M) (f : ordT n -> M -> M) :
+  forall j, (j <= n)%N ->
   (forall i s, G 0%N i s = s) ->
   (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) ->
-  (forall (i : ordT n.+1) s,
-    (nat_of i <= n.+1)%N -> P (nat_of i) s -> P (nat_of i).+1 (f i s)) ->
-  forall (i : ordT n.+1) s,
+  (forall (i : ordT n) s,
+    (nat_of i <= n)%N -> P (nat_of i) s -> P (nat_of i).+1 (f i s)) ->
+  forall (i : ordT n) s,
     (nat_of i <= j)%N -> P (nat_of i) s -> P j (G (j - nat_of i)%N i s).
 Proof.
 move=> j Hj HG0 HGS Hind i s Hi H.
@@ -459,40 +459,40 @@ move: i Hi k Hk s H => i Hi k; move: i Hi; induction k => i Hi Hk s H.
 { rewrite HG0; replace j with (nat_of i); [by []|].
   by apply anti_leq; rewrite Hi /= -subn_eq0 Hk. }
 case (ltnP (nat_of i) j); [move=> Hij|by rewrite /ssrnat.leq -Hk].
-rewrite HGS; case (ltnP (nat_of i) n) => Hjn.
-{ have Hsisn : ((nat_of i).+1 < n.+1)%N.
+rewrite HGS; case (ltnP (nat_of i) n') => Hjn.
+{ have Hsisn : ((nat_of i).+1 < n)%N.
   { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. }
     apply IHk; erewrite (succ0_prop Hsisn) =>//.
     by rewrite subnS -Hk.
     by apply Hind; first apply: leq_trans Hi Hj. }
-have Hj' : j = n.+1.
+have Hj' : j = n.
 { by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). }
-have Hi' : nat_of i = n.
+have Hi' : nat_of i = n'.
 { apply anti_leq; rewrite Hjn Bool.andb_true_r.
     by apply (@leq_trans j.-1); [apply /leP /Nat.lt_le_pred /leP|rewrite Hj']. }
 have Hk' : k = 0%N.
 { move: Hk; rewrite Hi' Hj' subSnn; apply eq_add_S. }
-  by rewrite Hk' HG0 Hj' -Hi'; apply Hind; first apply: leq_trans Hi Hj.
+  by rewrite Hk' HG0 Hj' /n -Hi'; apply Hind; first apply: leq_trans Hi Hj.
 Qed.
 
 Context {ordT' : nat -> Type}.
-Context `{!I0_class ordT' n.+1, !succ0_class ordT' n.+1, !nat_of_class ordT' n.+1}.
-Context `{!succ0_correct ordT' n.+1}.
+Context `{!I0_class ordT' n, !succ0_class ordT' n, !nat_of_class ordT' n}.
+Context `{!succ0_correct ordT' n}.
 
-Lemma trec_ind2 M M' P (G : nat -> ordT n.+1 -> M -> M)
-  (G' : nat -> ordT' n.+1 -> M' -> M')
-  (f : ordT n.+1 -> M -> M)
-  (f' : ordT' n.+1 -> M' -> M') :
-  forall j, (j <= n.+1)%N ->
+Lemma trec_ind2 M M' P (G : nat -> ordT n -> M -> M)
+  (G' : nat -> ordT' n -> M' -> M')
+  (f : ordT n -> M -> M)
+  (f' : ordT' n -> M' -> M') :
+  forall j, (j <= n)%N ->
   (forall i s, G 0%N i s = s) ->
   (forall i s, G' 0%N i s = s) ->
   (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) ->
   (forall k i s, G' k.+1 i s = G' k (succ0 i) (f' i s)) ->
-  (forall (i : ordT n.+1) (i' : ordT' n.+1) s s',
-    (nat_of i <= n.+1)%N ->
+  (forall (i : ordT n) (i' : ordT' n) s s',
+    (nat_of i <= n)%N ->
     nat_of i' = nat_of i ->
     P s s' -> P (f i s) (f' i' s')) ->
-  forall (i : ordT n.+1) (i' : ordT' n.+1) s s',
+  forall (i : ordT n) (i' : ordT' n) s s',
     (nat_of i <= j)%N ->
     nat_of i' = nat_of i ->
     P s s' ->
@@ -506,19 +506,18 @@ elim: k i i' Hi Hi' Hk s s' H => [|k IHk] i i' Hi Hi' Hk s s' H.
   by apply anti_leq; rewrite Hi /= -subn_eq0 Hk. }
 case (ltnP (nat_of i) j); last by rewrite /ssrnat.leq Hk.
 move=> Hij.
-rewrite HGS HG'S; case (ltnP (nat_of i) n) => Hjn.
-{ have Hsisn : ((nat_of i).+1 < n.+1)%N.
+rewrite HGS HG'S; case (ltnP (nat_of i) n') => Hjn.
+{ have Hsisn : ((nat_of i).+1 < n)%N.
   { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. }
     apply: IHk; first by rewrite succ0_prop.
     rewrite !succ0_prop ?Hi' //.
     by rewrite succ0_prop // subnS Hk.
-    apply Hind; by [apply: leq_trans Hi Hj|].
-  }
-have Hj' : j = n.+1.
+    apply Hind; by [apply: leq_trans Hi Hj|]. }
+have Hj' : j = n.
 { by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). }
-have Hi'n : nat_of i = n.
+have Hi'n : nat_of i = n'.
 { apply anti_leq; rewrite Hjn Bool.andb_true_r.
-    by apply (@leq_trans j.-1); [apply /leP /Nat.lt_le_pred /leP|rewrite Hj']. }
+  by apply (@leq_trans j.-1); [apply /leP /Nat.lt_le_pred /leP|rewrite Hj']. }
 have Hk' : k = 0%N.
 { by rewrite Hi'n Hj' subSnn in Hk; case: Hk. }
 rewrite Hk' HG0 HG'0.
@@ -529,8 +528,6 @@ Qed.
 End generic_ind.
 
 Section inst_ssr_matrix.
-
-Context {n : nat}.
 
 Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
@@ -575,45 +572,40 @@ Definition ssr_store3 m n (M : 'M[T]_(m, n)) (i : 'I_m) (j : 'I_n) v :=
 
 Instance : store_class T ordT mxT := ssr_store3.
 
-Instance : I0_class ordT n.+1 := ord0.
-Instance ssr_succ0 : succ0_class ordT n.+1 := fun i => inord i.+1.
-Instance ssr_nat_of : nat_of_class ordT n.+1 := @nat_of_ord n.+1.
+Context {n' : nat}.
+Let n := n'.+1.
+Instance : I0_class ordT n := ord0.
+Instance ssr_succ0 : succ0_class ordT n := fun i => inord i.+1.
+Instance ssr_nat_of : nat_of_class ordT n := @nat_of_ord n.
 
-Definition ytilded5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> 'M[T]_(1, n.+1) -> T ->
-                      T :=
+Definition ytilded5 : 'I_n -> T -> 'M[T]_(1, n) -> 'M[T]_(1, n) -> T -> T :=
   @ytilded3 T ordT mxT _ _ _.
 
-Definition ytildes5 : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> T :=
+Definition ytildes5 : 'I_n -> T -> 'M[T]_(1, n) -> T :=
   @ytildes3 T ordT mxT _ _ _.
 
-Definition inner_loop5 : 'I_n.+1 -> 'M[T]_n.+1 -> 'M[T]_n.+1 -> 'I_n.+1 ->
-  'M[T]_n.+1 :=
+Definition inner_loop5 : 'I_n -> 'M[T]_n -> 'M[T]_n -> 'I_n -> 'M[T]_n :=
   @inner_loop3 T ordT mxT _ _ _ _ _ _ _ _.
 
-Definition outer_loop5 : 'M[T]_n.+1 -> 'M[T]_n.+1 -> 'I_n.+1 ->
-  'M[T]_n.+1 :=
+Definition outer_loop5 : 'M[T]_n -> 'M[T]_n -> 'I_n -> 'M[T]_n :=
   @outer_loop3 T ordT mxT _ _ _ _ _ _ _ _ _ _.
 
-Definition cholesky5 : 'M[T]_n.+1 -> 'M[T]_n.+1 :=
+Definition cholesky5 : 'M[T]_n -> 'M[T]_n :=
   @cholesky3 T ordT mxT _ _ _ _ _ _ _ _ _ _.
 
 Section proof.
 
-Lemma ssr_store3_eq (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
+Lemma ssr_store3_eq (M : 'M[T]_n) (i j : 'I_n) v i' j' :
   nat_of_ord i' = i -> nat_of_ord j' = j -> (ssr_store3 M i j v) i' j' = v.
 Proof. by move=> Hi Hj; rewrite mxE Hi Hj !eq_refl. Qed.
 
-Lemma ssr_store3_lt1 (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
+Lemma ssr_store3_lt1 (M : 'M[T]_n) (i j : 'I_n) v i' j' :
   (nat_of_ord i' < i)%N -> (ssr_store3 M i j v) i' j' = M i' j'.
 Proof. by move=> Hi; rewrite mxE (ltn_eqF Hi). Qed.
 
-Lemma ssr_store3_lt2 (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
+Lemma ssr_store3_lt2 (M : 'M[T]_n) (i j : 'I_n) v i' j' :
   (nat_of_ord j' < j)%N -> (ssr_store3 M i j v) i' j' = M i' j'.
 Proof. by move=> Hj; rewrite mxE (ltn_eqF Hj) Bool.andb_false_r. Qed.
-
-Lemma ssr_succ0_spec :
-  forall (i : 'I_n.+1), (i.+1 < n.+1 -> ssr_succ0 i = i.+1 :> nat)%N.
-Proof. by move=> i Hi; rewrite inordK. Qed.
 
 Lemma gen_fsum_l2r_rec_eq k (c1 : T) (a1 : T ^ k)
       (c2 : T) (a2 : T ^ k) :
@@ -655,33 +647,33 @@ by move=> Hc Ha; rewrite /gen_ytildes3; apply f_equal, gen_stilde3_eq.
 Qed.
 
 Definition gen_cholesky_spec A R : Prop :=
-  (forall (j i : 'I_n.+1),
+  (forall (j i : 'I_n),
      (i < j)%N ->
      (R i j = gen_ytilded3 (A i j)
                            [ffun k : 'I_i => R (inord k) i]
                            [ffun k : 'I_i => R (inord k) j]
                            (R i i)))
-  /\ (forall (j : 'I_n.+1),
+  /\ (forall (j : 'I_n),
         (R j j = gen_ytildes3 (A j j)
                               [ffun k : 'I_j => R (inord k) j])).
 
 (** *** Loop invariants. *)
 
-Definition outer_loop_inv (A R : 'M[T]_n.+1) j : Prop :=
-  (forall (j' i' : 'I_n.+1),
+Definition outer_loop_inv (A R : 'M[T]_n) j : Prop :=
+  (forall (j' i' : 'I_n),
      (j' < j)%N ->
      (i' < j')%N ->
      (R j' i' = gen_ytilded3 (A i' j')
                   [ffun k : 'I_i' => R i' (inord k)]
                   [ffun k : 'I_i' => R j' (inord k)]
                   (R i' i')))
-  /\ (forall (j' : 'I_n.+1),
+  /\ (forall (j' : 'I_n),
         (j' < j)%N ->
         (R j' j' = gen_ytildes3 (A j' j') [ffun k : 'I_j' => R j' (inord k)])).
 
-Definition inner_loop_inv (A R : 'M[T]_n.+1) j i : Prop :=
+Definition inner_loop_inv (A R : 'M[T]_n) j i : Prop :=
   outer_loop_inv A R j /\
-  (forall (j' i' : 'I_n.+1),
+  (forall (j' i' : 'I_n),
         nat_of_ord j' = j ->
         (i' < i)%N ->
         (i' < j)%N ->
@@ -690,18 +682,18 @@ Definition inner_loop_inv (A R : 'M[T]_n.+1) j i : Prop :=
                      [ffun k : 'I_i' => R j' (inord k)]
                      (R i' i'))).
 
-Global Instance ord_succ0 : succ0_correct ordT n.+1.
+Global Instance ord_succ0 : succ0_correct ordT n.
 Proof. by move=> i H; rewrite /nat_of /ssr_nat_of inordK. Qed.
 
-Lemma inner_loop_correct (A R : 'M_n.+1) (j i : 'I_n.+1) :
-  inner_loop_inv A R j i -> inner_loop_inv A (inner_loop5 j A R i) j n.+1.
+Lemma inner_loop_correct (A R : 'M_n) (j i : 'I_n) :
+  inner_loop_inv A R j i -> inner_loop_inv A (inner_loop5 j A R i) j n.
 Proof.
 move=> H; cut (inner_loop_inv A (inner_loop5 j A R i) j j).
 { by move=> {H} [Ho Hi]; split; [|move=> j' i' Hj' _ Hi'; apply Hi]. }
 move: H; case (leqP i j).
 { move: i R.
   eapply trec_ind with
-    (G := fun k (i : 'I_n.+1) s => inner_loop_rec3 j k A s i)
+    (G := fun k (i : 'I_n) s => inner_loop_rec3 j k A s i)
     (P := fun i R => inner_loop_inv A R j i)
     (f := fun i R => store R j i (ytilded3 i (A i j) (row i R) (row j R)
                                            (fun_of_matrix R i i))) =>//.
@@ -741,17 +733,17 @@ have Hjsi : (nat_of j - nat_of i = 0)%N; [by apply /eqP /ltnW|rewrite Hjsi /=].
 by split; [|move=> j' i' Hj' _ Hi'; apply Hi; [|apply (ltn_trans Hi')|]].
 Qed.
 
-Lemma outer_loop_correct (A R : 'M_n.+1) (j : 'I_n.+1) :
-  outer_loop_inv A R j -> outer_loop_inv A (outer_loop5 A R j) n.+1.
+Lemma outer_loop_correct (A R : 'M_n) (j : 'I_n) :
+  outer_loop_inv A R j -> outer_loop_inv A (outer_loop5 A R j) n.
 Proof.
 move: j R (ltnW (ltn_ord j)); unfold outer_loop5.
 eapply trec_ind with
-  (G := fun k (j : 'I_n.+1) s => outer_loop_rec3 k A s j)
+  (G := fun k (j : 'I_n) s => outer_loop_rec3 k A s j)
   (P := fun j R => outer_loop_inv A R j)
   (f := fun j R => let R := inner_loop3 j A R I0 in
                    store R j j (ytildes3 j (A j j) (row j R))) =>//.
 move=> j R _(*!*) H.
-have Hin_0 : inner_loop_inv A R j (@ord0 n); [by []|].
+have Hin_0 : inner_loop_inv A R j (@ord0 n'); [by []|].
 have Hin_n := inner_loop_correct Hin_0.
 split; [move=> j' i' Hj' Hi'|move=> j' Hj'].
 { case (ltnP j' j) => Hjj'.
@@ -791,7 +783,7 @@ Qed.
 
 (** *** The implementation satisfies the specification used in cholesky.v. *)
 
-Lemma cholesky5_correct (A : 'M[T]_n.+1) : gen_cholesky_spec A (cholesky5 A)^T.
+Lemma cholesky5_correct (A : 'M[T]_n) : gen_cholesky_spec A (cholesky5 A)^T.
 Proof.
 split; [move=> j i Hij|move=> j]; rewrite !mxE.
 { replace ((cholesky5 A) j i)
@@ -807,6 +799,78 @@ with (gen_ytildes3 (A j j)
 { by apply /gen_ytildes3_eq => // j'; rewrite !ffunE mxE. }
 by apply sym_eq, outer_loop_correct; [|apply ltn_ord].
 Qed.
+
+(* TODO : is_sym_correct:
+   is_sym A = true -> MF2R (MFI2F A^T) = MF2R (MFI2F A) *)
+
+Definition ssr_all_diag : (T -> bool) -> 'M[T]_n -> bool :=
+  @all_diag _ _ _ ssr_fun_of _ _ ssr_succ0.
+
+Definition all_diag_inv (f : T -> bool) A b i : Prop :=
+  forall i' : 'I_n, (i' < i)%N -> b = true -> f (A i' i') = true.
+
+Lemma all_diag_correct f (A : 'M[T]_n) :
+  ssr_all_diag f A = true -> forall i, f (A i i) = true.
+Proof.
+move=> Had i; move: Had.
+suff: forall i' : 'I_n, (i' < n)%N ->
+  ssr_all_diag f A = true -> f (A i' i') = true.
+{ move=> H; apply H, ltn_ord. }
+rewrite -/(all_diag_inv _ _ _ _).
+have P0 : all_diag_inv f A true 0; [by []|move: (leq0n n) P0].
+rewrite /ssr_all_diag /all_diag.
+rewrite [n]/(n-0)%N; change 0%N with (nat_of I0).
+eapply trec_ind with
+  (G := fun k (j : 'I_n) b => all_diag_rec f k A b j)
+  (P := fun j b => all_diag_inv f A b j) =>//.
+rewrite /all_diag_inv; move=> i' b Hi' Had i'' Hi''.
+case (ltnP i'' i') => Hi''i'.
+{ move=> Hb; apply Had; [by []|].
+  by move: Hb; rewrite Bool.andb_true_iff => Hb; elim Hb. }
+have H : i'' = i'.
+{ apply ord_inj, anti_leq; rewrite Hi''i' Bool.andb_true_r; apply Hi''. }
+by rewrite H Bool.andb_true_iff => Hb; elim Hb.
+Qed.
+
+Context `{!leq T}.
+
+Lemma noneg_diag_correct (A : 'M[T]_n) :
+  noneg_diag A = true -> forall i, (0 <= A i i)%C.
+Proof. apply all_diag_correct. Qed.
+
+Context `{!lt T}.
+
+Lemma pos_diag_correct (A : 'M[T]_n) :
+  pos_diag A = true -> forall i, (0 < A i i)%C.
+Proof. apply all_diag_correct. Qed.
+
+(*
+Fixpoint map_diag_rec f k (A : mxT n n) (i : ordT n) {struct k} : mxT n n :=
+  match k with
+  | O => A
+  | S k =>
+    let A := store A i i (f (fun_of_matrix A i i)) in
+    map_diag_rec f k A (succ0 i)
+  end.
+Definition map_diag f A := map_diag_rec f n A I0.
+
+Definition posdef_check
+  (* check that n is not too large *)
+  (test_n : nat -> bool)
+  (* [compute_c n A maxdiag] overapproximates
+     /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
+  (compute_c : forall n : nat, mxT n n -> T -> T)
+  (* subtraction rounded downward *)
+  (sub_down : T -> T -> T)
+  (* matrix to check *)
+  (A : mxT n n) : bool :=
+test_n n && is_sym A && noneg_diag A &&
+  (let maxdiag := max_diag A in
+   let c := compute_c n A maxdiag in
+   let A' := map_diag (fun x => sub_down x c) A in
+   let R := cholesky3 A' in
+   pos_diag R).
+*)
 
 End proof.
 
