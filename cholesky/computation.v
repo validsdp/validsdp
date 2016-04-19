@@ -375,17 +375,57 @@ Context `{!transpose_class mxT}.
 Definition is_sym (A : mxT n n) : bool :=
   (A ^T == A)%HC.
 
-Context `{!leq T}.
-
-Fixpoint nn_diag_rec k (A : mxT n n) b (i : ordT n) {struct k} : bool :=
+Fixpoint all_diag_rec f k (A : mxT n n) b (i : ordT n) {struct k} : bool :=
   match k with
   | O => b
-  | S k =>
-    nn_diag_rec k A (b && (0 <= fun_of_matrix A i i)%C) (succ0 i)
+  | S k => all_diag_rec f k A (b && f (fun_of_matrix A i i)) (succ0 i)
   end.
+Definition all_diag f A := all_diag_rec f n A true I0.
 
-Definition nn_diag A :=
-  nn_diag_rec n A true I0.
+Context `{!leq T}.
+
+Definition noneg_diag := all_diag (fun x => 0 <= x)%C.
+
+Context `{!lt T}.
+
+Definition pos_diag := all_diag (fun x => 0 < x)%C.
+
+Fixpoint max_diag_rec k (A : mxT n n) m (i : ordT n) {struct k} : T :=
+  match k with
+  | O => m
+  | S k =>
+    let c := fun_of_matrix A i i in
+    max_diag_rec k A (if (m <= c)%C then c else m) (succ0 i)
+  end.
+Definition max_diag A := max_diag_rec n A 0%C I0.
+
+About store.
+
+Fixpoint map_diag_rec f k (A : mxT n n) (i : ordT n) {struct k} : mxT n n :=
+  match k with
+  | O => A
+  | S k =>
+    let A := store A i i (f (fun_of_matrix A i i)) in
+    map_diag_rec f k A (succ0 i)
+  end.
+Definition map_diag f A := map_diag_rec f n A I0.
+
+Definition posdef_check
+  (* check that n is not too large *)
+  (test_n : nat -> bool)
+  (* [compute_c n A maxdiag] overapproximates
+     /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
+  (compute_c : forall n : nat, mxT n n -> T -> T)
+  (* subtraction rounded downward *)
+  (sub_down : T -> T -> T)
+  (* matrix to check *)
+  (A : mxT n n) : bool :=
+test_n n && is_sym A && noneg_diag A &&
+  (let maxdiag := max_diag A in
+   let c := compute_c n A maxdiag in
+   let A' := map_diag (fun x => sub_down x c) A in
+   let R := cholesky3 A' in
+   pos_diag R).
 
 End generic_algos.
 
