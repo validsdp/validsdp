@@ -391,37 +391,63 @@ Context `{!lt T}.
 
 Definition pos_diag := all_diag (fun x => 0 < x)%C.
 
-Fixpoint max_diag_rec k (A : mxT n n) m (i : ordT n) {struct k} : T :=
+Fixpoint foldl_diag_rec f z k (A : mxT n n) (i : ordT n) {struct k} : T :=
   match k with
-  | O => m
-  | S k =>
-    let c := fun_of_matrix A i i in
-    max_diag_rec k A (if (m <= c)%C then c else m) (succ0 i)
+  | O => z
+  | S k => foldl_diag_rec f (f z (fun_of_matrix A i i)) k A (succ0 i)
   end.
-Definition max_diag A := max_diag_rec n A 0%C I0.
+Definition foldl_diag f z A := foldl_diag_rec f z n A I0.
 
-Fixpoint map_diag_rec f k (A : mxT n n) (i : ordT n) {struct k} : mxT n n :=
+Definition max_diag A :=
+  foldl_diag (fun m c => if (m <= c)%C then c else m) 0%C A.
+
+Fixpoint map_diag_rec f k (A R : mxT n n) (i : ordT n) {struct k} : mxT n n :=
   match k with
-  | O => A
+  | O => R
   | S k =>
-    let A := store A i i (f (fun_of_matrix A i i)) in
-    map_diag_rec f k A (succ0 i)
+    let R := store R i i (f (fun_of_matrix A i i)) in
+    map_diag_rec f k A R (succ0 i)
   end.
-Definition map_diag f A := map_diag_rec f n A I0.
+Definition map_diag f A := map_diag_rec f n A A I0.
+
+Section directed_rounding.
+
+(* upward rounded operations *)
+Context `{!add T, !mul T, !div T}.  (* @Érik: on pourrait pas les nommer ? *)
+
+Definition tr_up A := foldl_diag add1 0%C A.
+
+(* get a float overapprox of n *)
+Definition float_of_nat_up n := iter _ n (fun x => add1 x 1%C) 0%C.
+
+(* [compute_c n A maxdiag] overapproximates
+   /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
+Definition compute_c (eps eta : T)  (* overapproximations of eps and eta *)
+  (A : mxT n n) (maxdiag : T) : T :=
+let np1 := float_of_nat_up n.+1 in
+let tnp1 := mul1 (add1 1%C 1%C) np1 in
+let g := div1 (mul1 np1 eps) (- (add1 tnp1 (-1%C)))%C in
+add1
+  (mul1 g (tr_up A))
+  (mul1
+    (mul1 (mul1 (float_of_nat_up 4) eta) (float_of_nat_up n))
+    (add1 tnp1 maxdiag)).
+
+(* subtraction rounded downward *)
+Definition sub_down x y := (- (add1 y (- x)%C))%C.
+
+End directed_rounding.
 
 Definition posdef_check
+  (* overapproximations of eps and eta *)
+  (eps eta : T)
   (* check that n is not too large *)
   (test_n : nat -> bool)
-  (* [compute_c n A maxdiag] overapproximates
-     /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
-  (compute_c : forall n : nat, mxT n n -> T -> T)
-  (* subtraction rounded downward *)
-  (sub_down : T -> T -> T)
   (* matrix to check *)
   (A : mxT n n) : bool :=
 test_n n && is_sym A && noneg_diag A &&
   (let maxdiag := max_diag A in
-   let c := compute_c n A maxdiag in
+   let c := compute_c eps eta A maxdiag in
    let A' := map_diag (fun x => sub_down x c) A in
    let R := cholesky3 A' in
    pos_diag R).
@@ -430,25 +456,40 @@ End generic_algos.
 
 Section succ0_theory.
 Variables (ordT : nat -> Type) (n : nat).
-Context `{!I0_class ordT n, !succ0_class ordT n, !nat_of_class ordT n}.
+Context `{!succ0_class ordT n, !nat_of_class ordT n}.
 Class succ0_correct :=
   succ0_prop :
   forall i : ordT n, ((nat_of i).+1 < n)%N -> nat_of (succ0 i) = (nat_of i).+1.
 End succ0_theory.
 Arguments succ0_correct _ _ {succ0_class0} {nat_of_class0}.
 
+Section I0_theory.
+Variables (ordT : nat -> Type) (n : nat).
+Context `{!I0_class ordT n, !nat_of_class ordT n}.
+Class I0_correct := I0_prop : nat_of I0 = 0%N.
+End I0_theory.
+Arguments I0_correct _ _ {I0_class0} {nat_of_class0}.
+
+Section nat_of_theory.
+Variables (ordT : nat -> Type) (n : nat).
+Context `{!nat_of_class ordT n}.
+Class nat_of_correct := nat_of_prop :
+  forall i j : ordT n, nat_of i = nat_of j -> i = j.
+End nat_of_theory.
+Arguments nat_of_correct _ _ {nat_of_class0}.
+
 Section generic_ind.
 Context {ordT : nat -> Type} {n' : nat}.
 Let n := n'.+1.
 Context `{!I0_class ordT n, !succ0_class ordT n, !nat_of_class ordT n}.
-Context `{!succ0_correct ordT n}.
+Context `{!I0_correct ordT n, !succ0_correct ordT n, !nat_of_correct ordT n}.
 
 Lemma trec_ind M P (G : nat -> ordT n -> M -> M) (f : ordT n -> M -> M) :
   forall j, (j <= n)%N ->
   (forall i s, G 0%N i s = s) ->
   (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) ->
   (forall (i : ordT n) s,
-    (nat_of i <= n)%N -> P (nat_of i) s -> P (nat_of i).+1 (f i s)) ->
+    (nat_of i < n)%N -> P (nat_of i) s -> P (nat_of i).+1 (f i s)) ->
   forall (i : ordT n) s,
     (nat_of i <= j)%N -> P (nat_of i) s -> P j (G (j - nat_of i)%N i s).
 Proof.
@@ -464,7 +505,7 @@ rewrite HGS; case (ltnP (nat_of i) n') => Hjn.
   { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. }
     apply IHk; erewrite (succ0_prop Hsisn) =>//.
     by rewrite subnS -Hk.
-    by apply Hind; first apply: leq_trans Hi Hj. }
+    by apply Hind; [apply leqW|]. }
 have Hj' : j = n.
 { by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). }
 have Hi' : nat_of i = n'.
@@ -472,7 +513,44 @@ have Hi' : nat_of i = n'.
     by apply (@leq_trans j.-1); [apply /leP /Nat.lt_le_pred /leP|rewrite Hj']. }
 have Hk' : k = 0%N.
 { move: Hk; rewrite Hi' Hj' subSnn; apply eq_add_S. }
-  by rewrite Hk' HG0 Hj' /n -Hi'; apply Hind; first apply: leq_trans Hi Hj.
+  by rewrite Hk' HG0 Hj' /n -Hi'; apply Hind; [rewrite Hi'|].
+Qed.
+
+(* above lemma for P j s := forall i, nat_of i < j -> P i s *)
+Lemma trec_ind' M P (G : nat -> ordT n -> M -> M) (f : ordT n -> M -> M) :
+  (forall i s, G 0%N i s = s) ->
+  (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) ->
+  (forall (i : ordT n) s, (nat_of i < n)%N ->
+   (forall (j : ordT n), (nat_of j < nat_of i)%N -> P j s) ->
+   forall (j : ordT n), (nat_of j < (nat_of i).+1)%N -> P j (f i s)) ->
+  forall (i : ordT n) s, (nat_of i < n)%N -> P i (G n I0 s).
+Proof.
+move=> HG0 HGS Hind i s Hi.
+set P' := fun j s => forall (i : ordT n), (nat_of i < j)%N -> P i s.
+suff: P' n (G n I0_class0 s); [by move=> H; eapply H, Hi|].
+have P0 : P' O s; [by []|move: (leq0n n) P0].
+replace (G _ _ _) with (G (n - nat_of I0)%N I0 s); [|by rewrite I0_prop].
+replace O with (nat_of I0); move=> HI0 HP0.
+by apply (@trec_ind _ P' _ f).
+Qed.
+
+Lemma trec_ind'_case M P (G : nat -> ordT n -> M -> M) (f : ordT n -> M -> M) :
+  (forall i s, G 0%N i s = s) ->
+  (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) ->
+  (forall (i : ordT n) s, (nat_of i < n)%N ->
+   (forall (j : ordT n), (nat_of j < nat_of i)%N -> P j s) ->
+   forall (j : ordT n), (nat_of j < nat_of i)%N -> P j (f i s)) ->
+  (forall (i : ordT n) s, (nat_of i < n)%N ->
+   (forall (j : ordT n), (nat_of j < nat_of i)%N -> P j s) -> P i (f i s)) ->
+  forall (i : ordT n) s, (nat_of i < n)%N -> P i (G n I0 s).
+Proof.
+move=> HG0 HGS H1 H2; apply trec_ind' with (f := f) => // i s Hi H j Hj.
+case (ltnP (nat_of j) (nat_of i)) => Hji.
+{ by apply H1. }
+have H' : j = i.
+{ apply (@nat_of_prop _ _ nat_of_class0) => //; apply anti_leq.
+  rewrite Hji Bool.andb_true_r; apply Hj. }
+rewrite -H'; apply H2; rewrite H' //.
 Qed.
 
 Context {ordT' : nat -> Type}.
@@ -607,6 +685,17 @@ Lemma ssr_store3_lt2 (M : 'M[T]_n) (i j : 'I_n) v i' j' :
   (nat_of_ord j' < j)%N -> (ssr_store3 M i j v) i' j' = M i' j'.
 Proof. by move=> Hj; rewrite mxE (ltn_eqF Hj) Bool.andb_false_r. Qed.
 
+Lemma ssr_store3_gt1 (M : 'M[T]_n) (i j : 'I_n) v i' j' :
+  (i < nat_of_ord i')%N -> (ssr_store3 M i j v) i' j' = M i' j'.
+Proof. by move=> Hi; rewrite mxE eq_sym (ltn_eqF Hi). Qed.
+
+Lemma ssr_store3_gt2 (M : 'M[T]_n) (i j : 'I_n) v i' j' :
+  (j < nat_of_ord j')%N -> (ssr_store3 M i j v) i' j' = M i' j'.
+Proof. 
+move=> Hj.
+by rewrite mxE (@eq_sym _ (nat_of_ord j')) (ltn_eqF Hj) Bool.andb_false_r.
+Qed.
+
 Lemma gen_fsum_l2r_rec_eq k (c1 : T) (a1 : T ^ k)
       (c2 : T) (a2 : T ^ k) :
   c1 = c2 -> (forall i, a1 i = a2 i) ->
@@ -684,6 +773,12 @@ Definition inner_loop_inv (A R : 'M[T]_n) j i : Prop :=
 
 Global Instance ord_succ0 : succ0_correct ordT n.
 Proof. by move=> i H; rewrite /nat_of /ssr_nat_of inordK. Qed.
+
+Global Instance ord_I0 : I0_correct ordT n.
+Proof. by []. Qed.
+
+Global Instance ord_nat_of : nat_of_correct ordT n.
+Proof. apply ord_inj. Qed.
 
 Lemma inner_loop_correct (A R : 'M_n) (j i : 'I_n) :
   inner_loop_inv A R j i -> inner_loop_inv A (inner_loop5 j A R i) j n.
@@ -806,71 +901,47 @@ Qed.
 Definition ssr_all_diag : (T -> bool) -> 'M[T]_n -> bool :=
   @all_diag _ _ _ ssr_fun_of _ _ ssr_succ0.
 
-Definition all_diag_inv (f : T -> bool) A b i : Prop :=
-  forall i' : 'I_n, (i' < i)%N -> b = true -> f (A i' i') = true.
-
 Lemma all_diag_correct f (A : 'M[T]_n) :
   ssr_all_diag f A = true -> forall i, f (A i i) = true.
 Proof.
-move=> Had i; move: Had.
-suff: forall i' : 'I_n, (i' < n)%N ->
-  ssr_all_diag f A = true -> f (A i' i') = true.
-{ move=> H; apply H, ltn_ord. }
-rewrite -/(all_diag_inv _ _ _ _).
-have P0 : all_diag_inv f A true 0; [by []|move: (leq0n n) P0].
-rewrite /ssr_all_diag /all_diag.
-rewrite [n]/(n-0)%N; change 0%N with (nat_of I0).
-eapply trec_ind with
-  (G := fun k (j : 'I_n) b => all_diag_rec f k A b j)
-  (P := fun j b => all_diag_inv f A b j) =>//.
-rewrite /all_diag_inv; move=> i' b Hi' Had i'' Hi''.
-case (ltnP i'' i') => Hi''i'.
-{ move=> Hb; apply Had; [by []|].
-  by move: Hb; rewrite Bool.andb_true_iff => Hb; elim Hb. }
-have H : i'' = i'.
-{ apply ord_inj, anti_leq; rewrite Hi''i' Bool.andb_true_r; apply Hi''. }
-by rewrite H Bool.andb_true_iff => Hb; elim Hb.
+move=> Had i; move: (ltn_ord i) Had; change (nat_of_ord i) with (nat_of i).
+set P := fun i b => b = true -> f (A i i) = true.
+rewrite -/(P i (ssr_all_diag f A)).
+apply trec_ind'_case with (G := fun k i b => all_diag_rec f k A b i)
+  (f0 := fun i b => b && f (fun_of_matrix A i i)) => // j s Hj H.
+{ move=> j' Hj'.
+  by rewrite /P Bool.andb_true_iff => Hb; elim Hb => Hb' _; apply H. }
+by rewrite /P Bool.andb_true_iff => Hb; elim Hb.
 Qed.
 
-Context `{!leq T}.
+Definition ssr_map_diag : (T -> T) -> 'M[T]_n -> 'M[T]_n :=
+  @map_diag _ _ _ ssr_fun_of _ _ _ ssr_succ0.
 
-Lemma noneg_diag_correct (A : 'M[T]_n) :
-  noneg_diag A = true -> forall i, (0 <= A i i)%C.
-Proof. apply all_diag_correct. Qed.
+Lemma map_diag_correct_ndiag f (A : 'M[T]_n) :
+  forall i j : 'I_n, (i < j)%N -> (map_diag f A) i j = A i j.
+Proof.
+move=> i j Hij.
+rewrite /map_diag.
+suff H : forall k R i', (matrix.fun_of_matrix
+  (@map_diag_rec _ _ _ ssr_fun_of ssr_store3 _ ssr_succ0 f k A R i')
+    i j = R i j) => //; elim => // k IHk R i' /=.
+rewrite IHk; case (ltnP i' j) => Hi'j.
+{ rewrite ssr_store3_gt2 //. }
+by rewrite ssr_store3_lt1 //; apply (leq_trans Hij).
+Qed.
 
-Context `{!lt T}.
-
-Lemma pos_diag_correct (A : 'M[T]_n) :
-  pos_diag A = true -> forall i, (0 < A i i)%C.
-Proof. apply all_diag_correct. Qed.
-
-(*
-Fixpoint map_diag_rec f k (A : mxT n n) (i : ordT n) {struct k} : mxT n n :=
-  match k with
-  | O => A
-  | S k =>
-    let A := store A i i (f (fun_of_matrix A i i)) in
-    map_diag_rec f k A (succ0 i)
-  end.
-Definition map_diag f A := map_diag_rec f n A I0.
-
-Definition posdef_check
-  (* check that n is not too large *)
-  (test_n : nat -> bool)
-  (* [compute_c n A maxdiag] overapproximates
-     /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
-  (compute_c : forall n : nat, mxT n n -> T -> T)
-  (* subtraction rounded downward *)
-  (sub_down : T -> T -> T)
-  (* matrix to check *)
-  (A : mxT n n) : bool :=
-test_n n && is_sym A && noneg_diag A &&
-  (let maxdiag := max_diag A in
-   let c := compute_c n A maxdiag in
-   let A' := map_diag (fun x => sub_down x c) A in
-   let R := cholesky3 A' in
-   pos_diag R).
-*)
+Lemma map_diag_correct_diag f (A : 'M[T]_n) :
+  forall i, (map_diag f A) i i = f (A i i).
+Proof.
+move=> i; move: (ltn_ord i); change (nat_of_ord i) with (nat_of i).
+set P := fun i s => s i i = f (A i i); rewrite -/(P i _) /map_diag.
+eapply trec_ind'_case with (i0 := i)
+  (G := fun k i b => map_diag_rec f k A b i) => //.
+{ move=> j s Hj Hind j' Hj' _.
+  rewrite /P ssr_store3_lt1 //; apply Hind => //; apply ltn_ord. }
+{ move=> j s Hj Hind _; rewrite /P ssr_store3_eq //. }
+apply ltn_ord.
+Qed.
 
 End proof.
 
