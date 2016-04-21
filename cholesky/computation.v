@@ -414,11 +414,12 @@ Section directed_rounding.
 
 (* upward rounded operations *)
 Context `{!add T, !mul T, !div T}.  (* @Érik: on pourrait pas les nommer ? *)
+Context `{!one T}.
 
 Definition tr_up A := foldl_diag add1 0%C A.
 
 (* get a float overapprox of n *)
-Definition float_of_nat_up n := iter _ n (fun x => add1 x 1%C) 0%C.
+Definition float_of_nat_up n := iter _ n (fun x => add1 x one1) 0%C.
 
 (* [compute_c n A maxdiag] overapproximates
    /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
@@ -1114,6 +1115,90 @@ rewrite -/(P _ _); apply foldl_diag_correct; rewrite /P.
   apply Rplus_le_compat_r, Hind, (add_up_spec_fl Fa). }
 move=> _; rewrite big_ord0 FI2F0; apply Rle_refl.
 Qed.
+
+Variable one_up : FI fs.  (* TODO: extend float_infnan_spec *)
+
+Instance one_up_infnan : one (FI fs) := one_up.
+
+Hypothesis one_up_spec : 1 <= FI2F one_up.
+
+Lemma float_of_nat_up_correct n : finite (float_of_nat_up n) ->
+  INR n <= FI2F (float_of_nat_up n).
+Proof.
+rewrite /float_of_nat_up.
+elim: n => [|k IHk].
+{ move=> _; rewrite FI2F0; apply Rle_refl. }
+move=> Fa; move: (add_up_spec Fa); apply Rle_trans; rewrite S_INR.
+apply Rplus_le_compat => //; apply IHk.
+move: Fa => /=; apply add_up_spec_fl.
+Qed.
+
+(* multiplication with upward rounding *)
+Variable mul_up : FI fs -> FI fs -> FI fs.
+
+Instance mul_up_infnan : mul (FI fs) := mul_up.
+
+Hypothesis mul_up_spec : forall x y, finite (mul_up x y) ->
+  (FI2F x * FI2F y <= FI2F (mul_up x y))%R.
+Hypothesis mul_up_spec_fl : forall x y, finite (mul_up x y) -> finite x.
+Hypothesis mul_up_spec_fr : forall x y, finite (mul_up x y) -> finite y.
+
+(* division with upward rounding *)
+Variable div_up : FI fs -> FI fs -> FI fs.
+
+Instance div_up_infnan : div (FI fs) := div_up.
+
+Hypothesis div_up_spec : forall x y, finite (div_up x y) -> finite y ->
+  (FI2F x / FI2F y <= FI2F (div_up x y))%R.
+Hypothesis div_up_spec_fl : forall x y, finite (div_up x y) -> finite y ->
+  finite x.
+
+About compute_c.
+
+Definition gen_compute_c (n : nat) (eps eta : FI fs) (A : 'M[FI fs]_n.+1)
+  (maxdiag : FI fs) : FI fs := 
+  @compute_c _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 add_up_infnan
+    mul_up_infnan div_up_infnan one_up_infnan eps eta A maxdiag.
+
+Lemma compute_c_correct n (eps' eta' : FI fs) (A : 'M[FI fs]_n.+1) maxdiag :
+  eps (fis fs) <= FI2F eps' -> eta (fis fs) <= FI2F eta' ->
+  (INR (2 * n.+2) * eps (fis fs) < 1) ->
+  (forall i, 0 <= FI2F (A i i)) ->
+  finite (gen_compute_c eps' eta' A maxdiag) ->
+  (/2 * gamma (fis fs) (2 * n.+2) * (\tr (cholesky.MF2R (MFI2F A)))
+   + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + FI2F maxdiag)
+  <= FI2F (gen_compute_c eps' eta' A maxdiag))%R.
+Proof.
+move=> Heps' Heta' Hn Pdiag Fc; rewrite /gen_compute_c /compute_c.
+move: (add_up_spec Fc); apply Rle_trans, Rplus_le_compat.
+{ have Fl := add_up_spec_fl Fc.
+  move: (mul_up_spec Fl); apply Rle_trans, Rmult_le_compat.
+  { by apply Rmult_le_pos; [lra|apply gamma_pos]. }
+  { by apply big_sum_pos_pos => i; rewrite !mxE. }
+  2: apply tr_up_correct, (mul_up_spec_fr Fl).
+  { rewrite /gamma mult_INR -!(Rmult_assoc (/2)) Rinv_l; [|lra].
+    rewrite Rmult_1_l.
+(* ICI *)
+
+
+
+(* [compute_c n A maxdiag] overapproximates
+   /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
+Definition compute_c (eps eta : T)  (* overapproximations of eps and eta *)
+  (A : mxT n n) (maxdiag : T) : T :=
+let np1 := float_of_nat_up n.+1 in
+let tnp1 := mul1 (add1 1%C 1%C) np1 in
+let g := div1 (mul1 np1 eps) (- (add1 tnp1 (-1%C)))%C in
+add1
+  (mul1 g (tr_up A))
+  (mul1
+    (mul1 (mul1 (float_of_nat_up 4) eta) (float_of_nat_up n))
+    (add1 tnp1 maxdiag)).
+
+(* subtraction rounded downward *)
+Definition sub_down x y := (- (add1 y (- x)%C))%C.
+
+
 
 End proof_inst_ssr_matrix_float_infnan.
 
