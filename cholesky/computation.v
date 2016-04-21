@@ -423,16 +423,25 @@ Definition float_of_nat_up n := iter _ n (fun x => add1 x one1) 0%C.
 
 (* [compute_c n A maxdiag] overapproximates
    /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
-Definition compute_c (eps eta : T)  (* overapproximations of eps and eta *)
+Definition compute_c_aux (eps eta : T)  (* overapproximations of eps and eta *)
   (A : mxT n n) (maxdiag : T) : T :=
 let np1 := float_of_nat_up n.+1 in
-let tnp1 := mul1 (add1 1%C 1%C) np1 in
+let dnp1 := float_of_nat_up (2 * n.+1)%N in
+let tnp1 := mul1 dnp1 eps in
 let g := div1 (mul1 np1 eps) (- (add1 tnp1 (-1%C)))%C in
 add1
   (mul1 g (tr_up A))
   (mul1
     (mul1 (mul1 (float_of_nat_up 4) eta) (float_of_nat_up n))
-    (add1 tnp1 maxdiag)).
+    (add1 dnp1 maxdiag)).
+
+Definition compute_c (is_finite : T -> bool) (eps eta : T) (A : mxT n n) :
+  option T :=
+  let nem1 := add1 (mul1 ((float_of_nat_up (2 * n.+1)%N)) eps) (-1%C)%C in
+  if is_finite nem1 && (nem1 < 0)%C then
+    let c := compute_c_aux eps eta A (max_diag A) in
+    if is_finite c then Some c else None
+  else None.
 
 (* subtraction rounded downward *)
 Definition sub_down x y := (- (add1 y (- x)%C))%C.
@@ -442,16 +451,19 @@ End directed_rounding.
 Definition posdef_check
   (* overapproximations of eps and eta *)
   (eps eta : T)
+  (is_finite : T -> bool)         
   (* check that n is not too large *)
   (test_n : nat -> bool)
   (* matrix to check *)
   (A : mxT n n) : bool :=
-test_n n && is_sym A && noneg_diag A &&
-  (let maxdiag := max_diag A in
-   let c := compute_c eps eta A maxdiag in
-   let A' := map_diag (fun x => sub_down x c) A in
-   let R := cholesky3 A' in
-   pos_diag R).
+test_n n && is_sym A && all_diag is_finite A && noneg_diag A &&
+  (match compute_c is_finite eps eta A with
+     | None => false
+     | Some c =>
+       let A' := map_diag (fun x => sub_down x c) A in
+       let R := cholesky3 A' in
+       all_diag is_finite R && pos_diag R
+   end).
 
 End generic_algos.
 
@@ -966,6 +978,9 @@ End inst_ssr_matrix.
 
 Section proof_inst_ssr_matrix_float_infnan.
 
+Context {n' : nat}.
+Let n := n'.+1.
+
 Require Import float_infnan_spec cholesky_infnan.
 
 Variable fs : Float_infnan_spec.
@@ -1000,7 +1015,7 @@ rewrite /gen_ytildes3 /ytildes_infnan; apply f_equal => //.
 apply gen_stilde3_correct.
 Qed.
 
-Lemma gen_cholesky_spec_correct n (A R : 'M[FI fs]_n.+1) :
+Lemma gen_cholesky_spec_correct (A R : 'M[FI fs]_n) :
   gen_cholesky_spec A R -> cholesky_spec_infnan A R.
 Proof.
 move=> H; split.
@@ -1011,24 +1026,23 @@ Qed.
 (** If [A] contains no infinity or NaN, then [MFI2F A] = [A] and
     [posdef (MF2R (MFI2F A))] means that [A] is positive definite. *)
 Lemma gen_corollary_2_4_with_c_upper_bound_infnan :
-  forall n,
-  4 * INR n.+2 * eps (fis fs) < 1 ->  (* need a small program to check *)
-  forall A : 'M[FI fs]_n.+1,
+  4 * INR n.+1 * eps (fis fs) < 1 ->  (* need a small program to check *)
+  forall A : 'M[FI fs]_n,
   cholesky.MF2R (MFI2F A^T) = cholesky.MF2R (MFI2F A) ->  (* need a small program to check *)
-  (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->  (* need a small program to check *)
-  forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->  (* need a small program to compute *)
+  (forall i : 'I_n, 0 <= (MFI2F A) i i) ->  (* need a small program to check *)
+  forall maxdiag : R, (forall i : 'I_n, (MFI2F A) i i <= maxdiag) ->  (* need a small program to compute *)
   forall c : R,
-  (/2 * gamma (fis fs) (2 * n.+2) * (\tr (cholesky.MF2R (MFI2F A)))
-   + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + maxdiag)
+  (/2 * gamma (fis fs) (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
+   + 4 * eta (fis fs) * INR n * (2 * INR n.+1 + maxdiag)
    <= c)%Re ->  (* need a small program to compute (with directed rounding) *)
-  forall At : 'M[FI fs]_n.+1,
-  ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
-   (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->  (* need a small program to compute (with directed rounding) *)
+  forall At : 'M[FI fs]_n,
+  ((forall i j : 'I_n, (i < j)%N -> At i j = A i j) /\
+   (forall i : 'I_n, (MFI2F At) i i <= (MFI2F A) i i - c)) ->  (* need a small program to compute (with directed rounding) *)
   let R := cholesky5 At in
   (forall i, (0 < (MFI2F R) i i)%Re) ->  (* need a small program to check *)
   real_matrix.posdef (cholesky.MF2R (MFI2F A)).
 Proof.
-move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt R HAR.
+move=> H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt R HAR.
 apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At R^T;
   try assumption; split; [|by move=> i; move: (HAR i); rewrite !mxE].
 apply gen_cholesky_spec_correct, cholesky5_correct.
@@ -1041,39 +1055,41 @@ Variable eps_inv : BigZ.t_.
 
 Hypothesis eps_inv_spec : Z2R [eps_inv] <= / eps (fis fs).
 
-Definition test_n (n : nat) : bool :=
-  (4 * (BigZ.of_Z (Z.of_nat n) + 2) <? eps_inv)%bigZ.
+Definition test_n : bool :=
+  (4 * (BigZ.of_Z (Z.of_nat n) + 1) <? eps_inv)%bigZ.
 
-Lemma test_n_correct (n : nat) : test_n n = true ->
-  4 * INR n.+2 * eps (fis fs) < 1.
+Lemma test_n_correct : test_n = true ->
+  4 * INR n.+1 * eps (fis fs) < 1.
 Proof.
 unfold test_n; intro H.
 case (Req_dec (eps (fis fs)) 0); intro Heps; [rewrite Heps; lra|].
 rewrite <- (Rinv_l _ Heps) at 5.
 apply Rmult_lt_compat_r; [assert (H' := eps_pos (fis fs)); lra|].
 revert eps_inv_spec; apply Rlt_le_trans.
-rewrite !S_INR INR_IZR_INZ -Z2R_IZR Rplus_assoc.
-change 2 with (Z2R 2); rewrite -Z2R_plus -!Z2R_mult.
+rewrite S_INR INR_IZR_INZ -Z2R_IZR.
+change 4 with (Z2R 4); rewrite -(Z2R_plus _ 1) -Z2R_mult.
 apply Z2R_lt; revert H; rewrite Zlt_is_lt_bool BigZ.spec_ltb.
 by rewrite BigZ.spec_mul BigZ.spec_add BigZ.spec_of_Z.
 Qed.
 
 Instance leq_infnan : leq (FI fs) := @file fs.
 
-Definition gen_max_diag (n : nat) (A : 'M[FI fs]_n.+1) : FI fs :=
+Instance lt_infnan : lt (FI fs) := @filt fs.
+
+Definition gen_max_diag (A : 'M[FI fs]_n) : FI fs :=
   @max_diag _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 _ A.
 
-Lemma max_diag_correct (n : nat) (A : 'M[FI fs]_n.+1) : (forall i, finite (A i i)) ->
+Lemma max_diag_correct (A : 'M[FI fs]_n) : (forall i, finite (A i i)) ->
   forall i, (MFI2F A) i i <= FI2F (gen_max_diag A).
 Proof.
 move=> HF; rewrite /gen_max_diag /max_diag -/(ssr_foldl_diag _ _ _).
 rewrite /zero_op /zero_infnan.
 set f := fun m c : FI fs => if (m <= c)%C then c else m.
 move=> i; move: i (ltn_ord i).
-set P' := fun j (s : FI fs) => forall (i : 'I_n.+1), (i < j)%N ->
+set P' := fun j (s : FI fs) => forall (i : 'I_n), (i < j)%N ->
   (MFI2F A) i i <= FI2F s; rewrite -/(P' _ _).
 suff : (finite (ssr_foldl_diag f (FI0 fs) A)
-        /\ P' n.+1 (ssr_foldl_diag f (FI0 fs) A)).
+        /\ P' n (ssr_foldl_diag f (FI0 fs) A)).
 { by move=> H; elim H. }
 set P := fun j s => finite s /\ P' j s; rewrite -/(P _ _).
 apply foldl_diag_correct; rewrite /P /P'.
@@ -1086,6 +1102,23 @@ apply foldl_diag_correct; rewrite /P /P'.
   { by apply ord_inj, anti_leq; rewrite Hji Bool.andb_true_r. }
   by rewrite H' /f -/(fimax _ _) mxE; apply fimax_spec_ler. }
 by split; [apply finite0|].
+Qed.
+
+Lemma max_diag_pos (A : 'M[FI fs]_n) : (forall i, finite (A i i)) ->
+  0 <= FI2F (gen_max_diag A).
+Proof.
+move=> HF; rewrite /gen_max_diag /max_diag -/(ssr_foldl_diag _ _ _).
+rewrite /zero_op /zero_infnan.
+set f := fun m c : FI fs => if (m <= c)%C then c else m.
+suff : (finite (ssr_foldl_diag f (FI0 fs) A)
+        /\ 0 <= FI2F (ssr_foldl_diag f (FI0 fs) A)).
+{ by move=> H; elim H. }
+set P := fun (j : nat) s => @finite fs s /\ 0 <= FI2F s.
+apply foldl_diag_correct with (P0 := P); rewrite /P.
+{ move=> i z Hind; destruct Hind as (Hind, Hind'); split.
+  { by case (fimax_spec_eq z (A i i)) => H; rewrite /f -/(fimax _ _) H. }
+  by rewrite /f -/(fimax _ _); apply (Rle_trans _ _ _ Hind'), fimax_spec_lel. }
+by split; [apply finite0|rewrite FI2F0; right].
 Qed.
 
 (* addition with upward rounding *)
@@ -1101,11 +1134,11 @@ Hypothesis add_up_spec_fr : forall x y, finite (add_up x y) -> finite y.
 Definition gen_tr_up (n : nat) (A : 'M[FI fs]_n.+1) : FI fs :=
   @tr_up _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 add_up_infnan A.
 
-Lemma tr_up_correct (n : nat) (A : 'M[FI fs]_n.+1) : finite (gen_tr_up A) ->
+Lemma tr_up_correct (A : 'M[FI fs]_n) : finite (gen_tr_up A) ->
   \tr (cholesky.MF2R (MFI2F A)) <= FI2F (gen_tr_up A).
 Proof.
 rewrite /gen_tr_up /tr_up -/(ssr_foldl_diag _ _ _) /zero_op /zero_infnan.
-replace (\tr _) with (\sum_(i < n.+1) (FI2F (A (inord i) (inord i)) : R));
+replace (\tr _) with (\sum_(i < n) (FI2F (A (inord i) (inord i)) : R));
   [|by apply eq_big => // i _; rewrite !mxE inord_val].
 set P := fun j (s : FI fs) => finite s ->
   (\sum_(i < j) (FI2F (A (inord i) (inord i)) : R)) <= FI2F s.
@@ -1121,12 +1154,13 @@ Variable one_up : FI fs.  (* TODO: extend float_infnan_spec *)
 Instance one_up_infnan : one (FI fs) := one_up.
 
 Hypothesis one_up_spec : 1 <= FI2F one_up.
+Hypothesis one_up_spec' : FI2F 1%C <= 1.
 
-Lemma float_of_nat_up_correct n : finite (float_of_nat_up n) ->
-  INR n <= FI2F (float_of_nat_up n).
+Lemma float_of_nat_up_correct k : finite (float_of_nat_up k) ->
+  INR k <= FI2F (float_of_nat_up k).
 Proof.
 rewrite /float_of_nat_up.
-elim: n => [|k IHk].
+elim: k => [|k IHk].
 { move=> _; rewrite FI2F0; apply Rle_refl. }
 move=> Fa; move: (add_up_spec Fa); apply Rle_trans; rewrite S_INR.
 apply Rplus_le_compat => //; apply IHk.
@@ -1153,52 +1187,118 @@ Hypothesis div_up_spec : forall x y, finite (div_up x y) -> finite y ->
 Hypothesis div_up_spec_fl : forall x y, finite (div_up x y) -> finite y ->
   finite x.
 
-About compute_c.
-
-Definition gen_compute_c (n : nat) (eps eta : FI fs) (A : 'M[FI fs]_n.+1)
+Definition gen_compute_c_aux (eps eta : FI fs) (A : 'M[FI fs]_n)
   (maxdiag : FI fs) : FI fs := 
-  @compute_c _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 add_up_infnan
+  @compute_c_aux _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 add_up_infnan
     mul_up_infnan div_up_infnan one_up_infnan eps eta A maxdiag.
 
-Lemma compute_c_correct n (eps' eta' : FI fs) (A : 'M[FI fs]_n.+1) maxdiag :
+Lemma compute_c_aux_correct (eps' eta' : FI fs) (A : 'M[FI fs]_n) maxdiag :
   eps (fis fs) <= FI2F eps' -> eta (fis fs) <= FI2F eta' ->
-  (INR (2 * n.+2) * eps (fis fs) < 1) ->
+  (INR (2 * n.+1) * eps (fis fs) < 1) ->
+  (finite (add_up_infnan
+             (mul_up_infnan ((float_of_nat_up (2 * n.+1)%N)) eps')
+             (- (1)))%C) ->
+  (FI2F (add_up_infnan
+             (mul_up_infnan ((float_of_nat_up (2 * n.+1)%N)) eps')
+             (- (1)))%C < 0) ->
   (forall i, 0 <= FI2F (A i i)) ->
-  finite (gen_compute_c eps' eta' A maxdiag) ->
-  (/2 * gamma (fis fs) (2 * n.+2) * (\tr (cholesky.MF2R (MFI2F A)))
-   + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + FI2F maxdiag)
-  <= FI2F (gen_compute_c eps' eta' A maxdiag))%R.
+  (0 <= FI2F maxdiag) ->
+  finite (gen_compute_c_aux eps' eta' A maxdiag) ->
+  (/2 * gamma (fis fs) (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
+   + 4 * eta (fis fs) * INR n * (2 * INR n.+1 + FI2F maxdiag)
+  <= FI2F (gen_compute_c_aux eps' eta' A maxdiag))%R.
 Proof.
-move=> Heps' Heta' Hn Pdiag Fc; rewrite /gen_compute_c /compute_c.
+have Pnp2 := pos_INR (n.+1)%N.
+have P2np2 := pos_INR (2 * n.+1)%N.
+have Pe := eps_pos (fis fs).
+move=> Heps' Heta' Heps Fnem1 Nnem1 Pdiag Pmaxdiag Fc.
+rewrite /gen_compute_c_aux /compute_c_aux.
 move: (add_up_spec Fc); apply Rle_trans, Rplus_le_compat.
 { have Fl := add_up_spec_fl Fc.
   move: (mul_up_spec Fl); apply Rle_trans, Rmult_le_compat.
   { by apply Rmult_le_pos; [lra|apply gamma_pos]. }
   { by apply big_sum_pos_pos => i; rewrite !mxE. }
-  2: apply tr_up_correct, (mul_up_spec_fr Fl).
   { rewrite /gamma mult_INR -!(Rmult_assoc (/2)) Rinv_l; [|lra].
     rewrite Rmult_1_l.
-(* ICI *)
+    have Fll := mul_up_spec_fl Fl.
+    have F1mne := fiopp_spec_f Fnem1.
+    move: (div_up_spec Fll F1mne); apply Rle_trans, Rmult_le_compat.
+    { apply Rmult_le_pos; [apply pos_INR|apply eps_pos]. }
+    { apply Rlt_le, Rinv_0_lt_compat; rewrite -mult_INR.
+      by set ne := Rmult _ _; apply (Rplus_lt_reg_r ne); ring_simplify. }
+    { have Flr := div_up_spec_fl Fll F1mne.
+      move: (mul_up_spec Flr); apply /Rle_trans /Rmult_le_compat => //.
+      apply float_of_nat_up_correct, (mul_up_spec_fl Flr). }
+    rewrite (fiopp_spec F1mne) -mult_INR; apply Rinv_le.
+    { by rewrite -Ropp_0; apply Ropp_lt_contravar. }
+    rewrite -Ropp_minus_distr; apply Ropp_le_contravar.
+    move: (add_up_spec Fnem1); apply Rle_trans; apply Rplus_le_compat.
+    { have Fne := add_up_spec_fl Fnem1.
+      move: (mul_up_spec Fne); apply /Rle_trans /Rmult_le_compat => //.
+      apply float_of_nat_up_correct, (mul_up_spec_fl Fne). }
+    rewrite (fiopp_spec (add_up_spec_fr Fnem1)); apply Ropp_le_contravar.
+    apply one_up_spec'. }
+  apply tr_up_correct, (mul_up_spec_fr Fl). }
+have Fr := add_up_spec_fr Fc.
+move: (mul_up_spec Fr); apply Rle_trans; apply Rmult_le_compat.
+{ apply Rmult_le_pos; [|by apply pos_INR]; apply Rmult_le_pos; [lra|].
+  apply Rlt_le, eta_pos. }
+{ apply Rplus_le_le_0_compat; [|apply Pmaxdiag].
+  apply Rmult_le_pos; [lra|apply pos_INR]. }
+{ move: (mul_up_spec (mul_up_spec_fl Fr)); apply Rle_trans.
+  have Frl := mul_up_spec_fl Fr.
+  apply Rmult_le_compat.
+  { apply Rmult_le_pos; [lra|apply Rlt_le, eta_pos]. }
+  { apply pos_INR. }
+  { have Frll := mul_up_spec_fl Frl.
+    move: (mul_up_spec Frll); apply Rle_trans.
+    apply Rmult_le_compat; [lra|apply Rlt_le, eta_pos| |apply Heta'].
+    replace 4 with (INR 4); [|by simpl; lra].
+    apply float_of_nat_up_correct, (mul_up_spec_fl Frll). }
+  apply float_of_nat_up_correct, (mul_up_spec_fr Frl). }
+have Frr := mul_up_spec_fr Fr.
+move: (add_up_spec Frr); apply Rle_trans, Rplus_le_compat_r.
+have Frrl := add_up_spec_fl Frr.
+by change 2 with (INR 2); rewrite -mult_INR; apply float_of_nat_up_correct.
+Qed.
 
+Definition gen_compute_c (eps eta : FI fs) (A : 'M[FI fs]_n) :
+  option (FI fs) := 
+  @compute_c _ _ _ zero_infnan opp_infnan ssr_fun_of _ ssr_I0 ssr_succ0
+    leq_infnan lt_infnan
+    add_up_infnan mul_up_infnan div_up_infnan one_up_infnan
+    (@is_finite fs) eps eta A.
 
+Lemma compute_c_correct (eps' eta' : FI fs) (A : 'M[FI fs]_n) :
+  (eps (fis fs) <= FI2F eps')%R -> (eta (fis fs) <= FI2F eta')%R ->
+  (INR (2 * n.+1) * eps (fis fs) < 1) ->
+  (forall i, finite (A i i)) ->
+  (forall i, (0 <= FI2F (A i i))%R) ->
+  forall c : FI fs, gen_compute_c eps' eta' A = Some c ->
+  (/2 * gamma (fis fs) (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
+   + 4 * eta (fis fs) * INR n * (2 * INR n.+1 + FI2F (gen_max_diag A))
+   <= FI2F c)%R.
+Proof.
+move=> Heps' Heta' Heps Fdiag Pdiag c.
+rewrite /gen_compute_c /compute_c.
+set nem1 := add_up_infnan _ _.
+case_eq (is_finite nem1 && (nem1 < 0)%C); [|by []].
+rewrite Bool.andb_true_iff => H; elim H => Fnem1 Nnem1.
+set c' := compute_c_aux _ _ _ _.
+case_eq (is_finite c') => Hite'; [|by []]; move=> Hc'.
+have Hc'' : c' = c by injection Hc'.
+rewrite -Hc''; apply compute_c_aux_correct => //.
+{ apply (Rlt_le_trans _ (FI2F 0%C)); [|by right; rewrite FI2F0].
+  apply filt_spec => //; apply finite0. }
+by apply max_diag_pos.
+Qed.  
 
-(* [compute_c n A maxdiag] overapproximates
-   /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
-Definition compute_c (eps eta : T)  (* overapproximations of eps and eta *)
-  (A : mxT n n) (maxdiag : T) : T :=
-let np1 := float_of_nat_up n.+1 in
-let tnp1 := mul1 (add1 1%C 1%C) np1 in
-let g := div1 (mul1 np1 eps) (- (add1 tnp1 (-1%C)))%C in
-add1
-  (mul1 g (tr_up A))
-  (mul1
-    (mul1 (mul1 (float_of_nat_up 4) eta) (float_of_nat_up n))
-    (add1 tnp1 maxdiag)).
+(*
 
 (* subtraction rounded downward *)
 Definition sub_down x y := (- (add1 y (- x)%C))%C.
 
-
+*)
 
 End proof_inst_ssr_matrix_float_infnan.
 
