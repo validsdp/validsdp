@@ -133,34 +133,30 @@ Qed.
 
 (** Comparison *)
 Definition filt (x y : FI fs) : bool :=
-  is_finite x && is_finite y
-  && match ficompare x y with
-       | Some Lt => true
-       | _ => false
-     end.
+  match ficompare x y with
+    | Some Lt => true
+    | _ => false
+  end.
 
-Lemma filt_spec x y : filt x y = true -> FI2F x < FI2F y.
+Lemma filt_spec x y : finite x -> finite y -> filt x y = true ->
+  FI2F x < FI2F y.
 Proof.
-unfold filt; case_eq (is_finite x); [|now simpl]; intro Fx.
-case_eq (is_finite y); [|now simpl]; intro Fy; simpl.
-rewrite ficompare_spec; [|now simpl|now simpl].
+intros Fx Fy; unfold filt; rewrite (ficompare_spec Fx Fy).
 now case_eq (Rcompare (FI2F x) (FI2F y)); [|intros H _; apply Rcompare_Lt_inv|].
 Qed.
 
 (** [filt x y] can differ from [not (file y x)] because of NaNs. *)
 Definition file (x y : FI fs) : bool :=
-  is_finite x && is_finite y
-  && match ficompare x y with
-       | Some Lt => true
-       | Some Eq => true
-       | _ => false
-     end.
+  match ficompare x y with
+    | Some Lt => true
+    | Some Eq => true
+    | _ => false
+  end.
 
-Lemma file_spec x y : file x y = true -> FI2F x <= FI2F y.
+Lemma file_spec x y : finite x -> finite y -> file x y = true ->
+  FI2F x <= FI2F y.
 Proof.
-unfold file; case_eq (is_finite x); [|now simpl]; intro Fx.
-case_eq (is_finite y); [|now simpl]; intro Fy; simpl.
-rewrite ficompare_spec; [|now simpl|now simpl].
+intros Fx Fy; unfold file; rewrite (ficompare_spec Fx Fy).
 case_eq (Rcompare (FI2F x) (FI2F y)); [| |now simpl].
 { now intros H _; right; apply Rcompare_Eq_inv. }
 now intros H _; left; apply Rcompare_Lt_inv.
