@@ -1087,6 +1087,34 @@ apply foldl_diag_correct; rewrite /P /P'.
 by split; [apply finite0|].
 Qed.
 
+(* addition with upward rounding *)
+Variable add_up : FI fs -> FI fs -> FI fs.
+
+Instance add_up_infnan : add (FI fs) := add_up.
+
+Hypothesis add_up_spec : forall x y, finite (add_up x y) ->
+  (FI2F x + FI2F y <= FI2F (add_up x y))%R.
+Hypothesis add_up_spec_fl : forall x y, finite (add_up x y) -> finite x.
+Hypothesis add_up_spec_fr : forall x y, finite (add_up x y) -> finite y.
+
+Definition gen_tr_up (n : nat) (A : 'M[FI fs]_n.+1) : FI fs :=
+  @tr_up _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 add_up_infnan A.
+
+Lemma tr_up_correct (n : nat) (A : 'M[FI fs]_n.+1) : finite (gen_tr_up A) ->
+  \tr (cholesky.MF2R (MFI2F A)) <= FI2F (gen_tr_up A).
+Proof.
+rewrite /gen_tr_up /tr_up -/(ssr_foldl_diag _ _ _) /zero_op /zero_infnan.
+replace (\tr _) with (\sum_(i < n.+1) (FI2F (A (inord i) (inord i)) : R));
+  [|by apply eq_big => // i _; rewrite !mxE inord_val].
+set P := fun j (s : FI fs) => finite s ->
+  (\sum_(i < j) (FI2F (A (inord i) (inord i)) : R)) <= FI2F s.
+rewrite -/(P _ _); apply foldl_diag_correct; rewrite /P.
+{ move=> i z Hind Fa; move: (add_up_spec Fa); apply Rle_trans.
+  rewrite big_ord_recr /= /GRing.add /= inord_val.
+  apply Rplus_le_compat_r, Hind, (add_up_spec_fl Fa). }
+move=> _; rewrite big_ord0 FI2F0; apply Rle_refl.
+Qed.
+
 End proof_inst_ssr_matrix_float_infnan.
 
 Section inst_seq.
