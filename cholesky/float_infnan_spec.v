@@ -162,4 +162,27 @@ case_eq (Rcompare (FI2F x) (FI2F y)); [| |now simpl].
 now intros H _; left; apply Rcompare_Lt_inv.
 Qed.
 
+Definition fimax x y := if file x y then y else x.
+
+Lemma fimax_spec_lel x y : finite x -> finite y -> FI2F x <= FI2F (fimax x y).
+Proof.
+intros Fx Fy; unfold fimax, file; rewrite (ficompare_spec Fx Fy).
+case_eq (Rcompare (FI2F x) (FI2F y)); intro H.
+{ now right; apply Rcompare_Eq_inv. }
+{ now left; apply Rcompare_Lt_inv. }
+apply Rle_refl.
+Qed.
+
+Lemma fimax_spec_ler x y : finite x -> finite y -> FI2F y <= FI2F (fimax x y).
+Proof.
+intros Fx Fy; unfold fimax, file; rewrite (ficompare_spec Fx Fy), Rcompare_sym.
+unfold CompOpp; case_eq (Rcompare (FI2F y) (FI2F x)); intro H.
+{ apply Rle_refl. }
+{ now left; apply Rcompare_Lt_inv. }
+apply Rle_refl.
+Qed.
+
+Lemma fimax_spec_eq x y : fimax x y = x \/ fimax x y = y.
+Proof. now unfold fimax; case (file x y); [right|left]. Qed.
+
 End Derived_spec.
