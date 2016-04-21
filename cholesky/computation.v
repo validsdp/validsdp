@@ -311,7 +311,6 @@ Definition succ0 (n : nat) (i : 'I_n.+1) : 'I_n.+1 :=
 *)
 Class nat_of_class I n := nat_of : I n -> nat.
 
-
 (*
 Local Open Scope ring_scope.
 Open Scope computable_scope.
@@ -391,12 +390,13 @@ Context `{!lt T}.
 
 Definition pos_diag := all_diag (fun x => 0 < x)%C.
 
-Fixpoint foldl_diag_rec f z k (A : mxT n n) (i : ordT n) {struct k} : T :=
+Fixpoint foldl_diag_rec (T' : Type) f z k (A : mxT n n) (i : ordT n)
+{struct k} : T' :=
   match k with
   | O => z
-  | S k => foldl_diag_rec f (f z (fun_of_matrix A i i)) k A (succ0 i)
+  | S k => foldl_diag_rec T' f (f z (fun_of_matrix A i i)) k A (succ0 i)
   end.
-Definition foldl_diag f z A := foldl_diag_rec f z n A I0.
+Definition foldl_diag T' f (z : T') A := foldl_diag_rec f z n A I0.
 
 Definition max_diag A :=
   foldl_diag (fun m c => if (m <= c)%C then c else m) 0%C A.
@@ -652,7 +652,7 @@ Instance : store_class T ordT mxT := ssr_store3.
 
 Context {n' : nat}.
 Let n := n'.+1.
-Instance : I0_class ordT n := ord0.
+Instance ssr_I0 : I0_class ordT n := ord0.
 Instance ssr_succ0 : succ0_class ordT n := fun i => inord i.+1.
 Instance ssr_nat_of : nat_of_class ordT n := @nat_of_ord n.
 
@@ -914,6 +914,22 @@ apply trec_ind'_case with (G := fun k i b => all_diag_rec f k A b i)
 by rewrite /P Bool.andb_true_iff => Hb; elim Hb.
 Qed.
 
+Definition ssr_foldl_diag (T' : Type) : (T' -> T -> T') -> T' -> 'M[T]_n -> T' :=
+  @foldl_diag _ _ _ ssr_fun_of _ _ ssr_succ0 T'.
+
+Lemma foldl_diag_correct (T' : Type) (f : T' -> T -> T') (z : T') (A : 'M[T]_n) :
+  forall (P : nat -> T' -> Type),
+  (forall (i : 'I_n) z, P i z -> P i.+1 (f z (A i i))) ->
+  P O z -> P n (ssr_foldl_diag f z A).
+Proof.
+move=> P Hind.
+rewrite /ssr_foldl_diag /foldl_diag.
+set G := fun j i s => foldl_diag_rec f s j A i; rewrite -/(G _ _ _).
+replace (G _ _ _) with (G (n - nat_of I0)%N ord0 z); [|by rewrite I0_prop].
+rewrite -I0_prop.
+by eapply trec_ind => // i s Hi HPi; apply Hind.
+Qed.
+
 Definition ssr_map_diag : (T -> T) -> 'M[T]_n -> 'M[T]_n :=
   @map_diag _ _ _ ssr_fun_of _ _ _ ssr_succ0.
 
@@ -1039,6 +1055,36 @@ rewrite !S_INR INR_IZR_INZ -Z2R_IZR Rplus_assoc.
 change 2 with (Z2R 2); rewrite -Z2R_plus -!Z2R_mult.
 apply Z2R_lt; revert H; rewrite Zlt_is_lt_bool BigZ.spec_ltb.
 by rewrite BigZ.spec_mul BigZ.spec_add BigZ.spec_of_Z.
+Qed.
+
+Instance leq_infnan : leq (FI fs) := @file fs.
+
+Definition gen_max_diag (n : nat) (A : 'M[FI fs]_n.+1) : FI fs :=
+  @max_diag _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 _ A.
+
+Lemma max_diag_correct (n : nat) (A : 'M[FI fs]_n.+1) : (forall i, finite (A i i)) ->
+  forall i, (MFI2F A) i i <= FI2F (gen_max_diag A).
+Proof.
+move=> HF; rewrite /gen_max_diag /max_diag -/(ssr_foldl_diag _ _ _).
+rewrite /zero_op /zero_infnan.
+set f := fun m c : FI fs => if (m <= c)%C then c else m.
+move=> i; move: i (ltn_ord i).
+set P' := fun j (s : FI fs) => forall (i : 'I_n.+1), (i < j)%N ->
+  (MFI2F A) i i <= FI2F s; rewrite -/(P' _ _).
+suff : (finite (ssr_foldl_diag f (FI0 fs) A)
+        /\ P' n.+1 (ssr_foldl_diag f (FI0 fs) A)).
+{ by move=> H; elim H. }
+set P := fun j s => finite s /\ P' j s; rewrite -/(P _ _).
+apply foldl_diag_correct; rewrite /P /P'.
+{ move=> i z Hind; destruct Hind as (Hind, Hind'); split.
+  { by case (fimax_spec_eq z (A i i)) => H; rewrite /f -/(fimax _ _) H. }
+  move=> j Hj; case (ltnP j i) => Hji.
+  { rewrite /f -/(fimax _ _); apply (Rle_trans _ _ _ (Hind' _ Hji)).
+    by apply fimax_spec_lel. }
+  have H' : j = i.
+  { by apply ord_inj, anti_leq; rewrite Hji Bool.andb_true_r. }
+  by rewrite H' /f -/(fimax _ _) mxE; apply fimax_spec_ler. }
+by split; [apply finite0|].
 Qed.
 
 End proof_inst_ssr_matrix_float_infnan.
