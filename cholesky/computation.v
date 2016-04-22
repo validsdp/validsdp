@@ -371,7 +371,7 @@ Definition cholesky3 A := outer_loop3 A A I0.
 Context `{!heq mxT}.
 Context `{!transpose_class mxT}.
 
-Definition is_sym (A : mxT n n) : bool := (A^T == A)%HC.
+Definition is_sym (A : mxT n n) : bool := true. (* (A^T == A)%HC. *)
 (* TODO : en fait, ce dont on a besoin, c'est de prouver 
    MF2R (MFI2F A^T) = MF2R (MFI2F A) *)
 
@@ -413,8 +413,10 @@ Definition map_diag f A := map_diag_rec f n A A I0.
 Section directed_rounding.
 
 (* upward rounded operations *)
-Context `{!add T, !mul T, !div T}.  (* @Érik: on pourrait pas les nommer ? *)
-Context `{!one T}.
+Variable add1 mul1 div1 : T -> T -> T.
+(* @Érik: idéalement, on aimerait utiliser des typeclasses,
+   mais je galère trop, on verra ça ensemble. *)
+Variable one1 : T.
 
 Definition tr_up A := foldl_diag add1 0%C A.
 
@@ -446,12 +448,10 @@ Definition compute_c (is_finite : T -> bool) (eps eta : T) (A : mxT n n) :
 (* subtraction rounded downward *)
 Definition sub_down x y := (- (add1 y (- x)%C))%C.
 
-End directed_rounding.
-
 Definition posdef_check
   (* overapproximations of eps and eta *)
   (eps eta : T)
-  (is_finite : T -> bool)         
+  (is_finite : T -> bool)
   (* check that n is not too large *)
   (test_n : nat -> bool)
   (* matrix to check *)
@@ -464,6 +464,8 @@ test_n n && is_sym A && all_diag is_finite A && noneg_diag A &&
        let R := cholesky3 A' in
        all_diag is_finite R && pos_diag R
    end).
+
+End directed_rounding.
 
 End generic_algos.
 
@@ -908,9 +910,6 @@ with (gen_ytildes3 (A j j)
 by apply sym_eq, outer_loop_correct; [|apply ltn_ord].
 Qed.
 
-(* TODO : is_sym_correct:
-   is_sym A = true -> MF2R (MFI2F A^T) = MF2R (MFI2F A) *)
-
 Definition ssr_all_diag : (T -> bool) -> 'M[T]_n -> bool :=
   @all_diag _ _ _ ssr_fun_of _ _ ssr_succ0.
 
@@ -1055,10 +1054,10 @@ Variable eps_inv : BigZ.t_.
 
 Hypothesis eps_inv_spec : Z2R [eps_inv] <= / eps (fis fs).
 
-Definition test_n : bool :=
-  (4 * (BigZ.of_Z (Z.of_nat n) + 1) <? eps_inv)%bigZ.
+Definition test_n n'' : bool :=
+  (4 * (BigZ.of_Z (Z.of_nat n'') + 1) <? eps_inv)%bigZ.
 
-Lemma test_n_correct : test_n = true ->
+Lemma test_n_correct : test_n n = true ->
   4 * INR n.+1 * eps (fis fs) < 1.
 Proof.
 unfold test_n; intro H.
@@ -1071,6 +1070,12 @@ change 4 with (Z2R 4); rewrite -(Z2R_plus _ 1) -Z2R_mult.
 apply Z2R_lt; revert H; rewrite Zlt_is_lt_bool BigZ.spec_ltb.
 by rewrite BigZ.spec_mul BigZ.spec_add BigZ.spec_of_Z.
 Qed.
+
+(* TODO *)
+Lemma is_sym_correct (A : 'M[FI fs]_n) :
+   is_sym A = true -> cholesky.MF2R (MFI2F A^T) = cholesky.MF2R (MFI2F A).
+Proof.
+Admitted.
 
 Instance leq_infnan : leq (FI fs) := @file fs.
 
@@ -1124,7 +1129,7 @@ Qed.
 (* addition with upward rounding *)
 Variable add_up : FI fs -> FI fs -> FI fs.
 
-Instance add_up_infnan : add (FI fs) := add_up.
+(* Instance add_up_infnan : add (FI fs) := add_up. *)
 
 Hypothesis add_up_spec : forall x y, finite (add_up x y) ->
   (FI2F x + FI2F y <= FI2F (add_up x y))%R.
@@ -1132,7 +1137,7 @@ Hypothesis add_up_spec_fl : forall x y, finite (add_up x y) -> finite x.
 Hypothesis add_up_spec_fr : forall x y, finite (add_up x y) -> finite y.
 
 Definition gen_tr_up (n : nat) (A : 'M[FI fs]_n.+1) : FI fs :=
-  @tr_up _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 add_up_infnan A.
+  @tr_up _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 add_up A.
 
 Lemma tr_up_correct (A : 'M[FI fs]_n) : finite (gen_tr_up A) ->
   \tr (cholesky.MF2R (MFI2F A)) <= FI2F (gen_tr_up A).
@@ -1151,13 +1156,16 @@ Qed.
 
 Variable one_up : FI fs.  (* TODO: extend float_infnan_spec *)
 
-Instance one_up_infnan : one (FI fs) := one_up.
+(* Instance one_up_infnan : one (FI fs) := one_up. *)
 
 Hypothesis one_up_spec : 1 <= FI2F one_up.
 Hypothesis one_up_spec' : FI2F 1%C <= 1.
 
-Lemma float_of_nat_up_correct k : finite (float_of_nat_up k) ->
-  INR k <= FI2F (float_of_nat_up k).
+Definition gen_float_of_nat_up : nat -> FI fs :=
+  float_of_nat_up add_up one_up.
+
+Lemma float_of_nat_up_correct k : finite (gen_float_of_nat_up k) ->
+  INR k <= FI2F (gen_float_of_nat_up k).
 Proof.
 rewrite /float_of_nat_up.
 elim: k => [|k IHk].
@@ -1170,7 +1178,7 @@ Qed.
 (* multiplication with upward rounding *)
 Variable mul_up : FI fs -> FI fs -> FI fs.
 
-Instance mul_up_infnan : mul (FI fs) := mul_up.
+(* Instance mul_up_infnan : mul (FI fs) := mul_up. *)
 
 Hypothesis mul_up_spec : forall x y, finite (mul_up x y) ->
   (FI2F x * FI2F y <= FI2F (mul_up x y))%R.
@@ -1180,38 +1188,45 @@ Hypothesis mul_up_spec_fr : forall x y, finite (mul_up x y) -> finite y.
 (* division with upward rounding *)
 Variable div_up : FI fs -> FI fs -> FI fs.
 
-Instance div_up_infnan : div (FI fs) := div_up.
+(* Instance div_up_infnan : div (FI fs) := div_up. *)
 
 Hypothesis div_up_spec : forall x y, finite (div_up x y) -> finite y ->
   (FI2F x / FI2F y <= FI2F (div_up x y))%R.
 Hypothesis div_up_spec_fl : forall x y, finite (div_up x y) -> finite y ->
   finite x.
 
-Definition gen_compute_c_aux (eps eta : FI fs) (A : 'M[FI fs]_n)
-  (maxdiag : FI fs) : FI fs := 
-  @compute_c_aux _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 add_up_infnan
-    mul_up_infnan div_up_infnan one_up_infnan eps eta A maxdiag.
+Variable feps : FI fs.
 
-Lemma compute_c_aux_correct (eps' eta' : FI fs) (A : 'M[FI fs]_n) maxdiag :
-  eps (fis fs) <= FI2F eps' -> eta (fis fs) <= FI2F eta' ->
+Hypothesis feps_spec : eps (fis fs) <= FI2F feps.
+
+Variable feta : FI fs.
+
+Hypothesis feta_spec : eta (fis fs) <= FI2F feta.
+
+Definition gen_compute_c_aux (A : 'M[FI fs]_n) (maxdiag : FI fs) : FI fs := 
+  @compute_c_aux _ _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0
+    add_up mul_up div_up one_up
+    feps feta A maxdiag.
+
+Lemma compute_c_aux_correct (A : 'M[FI fs]_n) maxdiag :
   (INR (2 * n.+1) * eps (fis fs) < 1) ->
-  (finite (add_up_infnan
-             (mul_up_infnan ((float_of_nat_up (2 * n.+1)%N)) eps')
+  (finite (add_up
+             (mul_up ((gen_float_of_nat_up (2 * n.+1)%N)) feps)
              (- (1)))%C) ->
-  (FI2F (add_up_infnan
-             (mul_up_infnan ((float_of_nat_up (2 * n.+1)%N)) eps')
+  (FI2F (add_up
+             (mul_up ((gen_float_of_nat_up (2 * n.+1)%N)) feps)
              (- (1)))%C < 0) ->
   (forall i, 0 <= FI2F (A i i)) ->
   (0 <= FI2F maxdiag) ->
-  finite (gen_compute_c_aux eps' eta' A maxdiag) ->
+  finite (gen_compute_c_aux A maxdiag) ->
   (/2 * gamma (fis fs) (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
    + 4 * eta (fis fs) * INR n * (2 * INR n.+1 + FI2F maxdiag)
-  <= FI2F (gen_compute_c_aux eps' eta' A maxdiag))%R.
+  <= FI2F (gen_compute_c_aux A maxdiag))%R.
 Proof.
 have Pnp2 := pos_INR (n.+1)%N.
 have P2np2 := pos_INR (2 * n.+1)%N.
 have Pe := eps_pos (fis fs).
-move=> Heps' Heta' Heps Fnem1 Nnem1 Pdiag Pmaxdiag Fc.
+move=> Heps Fnem1 Nnem1 Pdiag Pmaxdiag Fc.
 rewrite /gen_compute_c_aux /compute_c_aux.
 move: (add_up_spec Fc); apply Rle_trans, Rplus_le_compat.
 { have Fl := add_up_spec_fl Fc.
@@ -1252,7 +1267,7 @@ move: (mul_up_spec Fr); apply Rle_trans; apply Rmult_le_compat.
   { apply pos_INR. }
   { have Frll := mul_up_spec_fl Frl.
     move: (mul_up_spec Frll); apply Rle_trans.
-    apply Rmult_le_compat; [lra|apply Rlt_le, eta_pos| |apply Heta'].
+    apply Rmult_le_compat; [lra|apply Rlt_le, eta_pos| |by []].
     replace 4 with (INR 4); [|by simpl; lra].
     apply float_of_nat_up_correct, (mul_up_spec_fl Frll). }
   apply float_of_nat_up_correct, (mul_up_spec_fr Frl). }
@@ -1262,43 +1277,95 @@ have Frrl := add_up_spec_fl Frr.
 by change 2 with (INR 2); rewrite -mult_INR; apply float_of_nat_up_correct.
 Qed.
 
-Definition gen_compute_c (eps eta : FI fs) (A : 'M[FI fs]_n) :
+Definition gen_compute_c (A : 'M[FI fs]_n) :
   option (FI fs) := 
-  @compute_c _ _ _ zero_infnan opp_infnan ssr_fun_of _ ssr_I0 ssr_succ0
+  @compute_c _ _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0
     leq_infnan lt_infnan
-    add_up_infnan mul_up_infnan div_up_infnan one_up_infnan
-    (@is_finite fs) eps eta A.
+    add_up mul_up div_up one_up
+    (@is_finite fs) feps feta A.
 
-Lemma compute_c_correct (eps' eta' : FI fs) (A : 'M[FI fs]_n) :
-  (eps (fis fs) <= FI2F eps')%R -> (eta (fis fs) <= FI2F eta')%R ->
+Lemma compute_c_correct (A : 'M[FI fs]_n) :
   (INR (2 * n.+1) * eps (fis fs) < 1) ->
   (forall i, finite (A i i)) ->
   (forall i, (0 <= FI2F (A i i))%R) ->
-  forall c : FI fs, gen_compute_c eps' eta' A = Some c ->
+  forall c : FI fs, gen_compute_c A = Some c ->
   (/2 * gamma (fis fs) (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
    + 4 * eta (fis fs) * INR n * (2 * INR n.+1 + FI2F (gen_max_diag A))
    <= FI2F c)%R.
 Proof.
-move=> Heps' Heta' Heps Fdiag Pdiag c.
+move=> Heps Fdiag Pdiag c.
 rewrite /gen_compute_c /compute_c.
-set nem1 := add_up_infnan _ _.
+set nem1 := add_up _ _.
 case_eq (is_finite nem1 && (nem1 < 0)%C); [|by []].
 rewrite Bool.andb_true_iff => H; elim H => Fnem1 Nnem1.
-set c' := compute_c_aux _ _ _ _.
+set c' := compute_c_aux _ _ _ _ _ _ _ _.
 case_eq (is_finite c') => Hite'; [|by []]; move=> Hc'.
 have Hc'' : c' = c by injection Hc'.
 rewrite -Hc''; apply compute_c_aux_correct => //.
 { apply (Rlt_le_trans _ (FI2F 0%C)); [|by right; rewrite FI2F0].
   apply filt_spec => //; apply finite0. }
 by apply max_diag_pos.
-Qed.  
+Qed.
 
-(*
+Definition gen_sub_down : FI fs -> FI fs -> FI fs :=
+  @sub_down _ opp_infnan add_up.
 
-(* subtraction rounded downward *)
-Definition sub_down x y := (- (add1 y (- x)%C))%C.
+Lemma sub_down_correct x y : finite (gen_sub_down x y) ->
+  FI2F (gen_sub_down x y) <= FI2F x - FI2F y.
+Proof.
+move=> Fxy; rewrite /gen_sub_down /sub_down.
+rewrite (fiopp_spec Fxy) -Ropp_minus_distr; apply Ropp_le_contravar.
+have Fxy' := fiopp_spec_f1 Fxy.
+move: (add_up_spec Fxy'); apply Rle_trans, Rplus_le_compat_l.
+by rewrite (fiopp_spec (add_up_spec_fr Fxy')); right.
+Qed.
 
-*)
+Definition gen_posdef_check (A : 'M[FI fs]_n) : bool :=
+  @posdef_check _ _ _ _ _ _ div_infnan _
+    ssr_fun_of ssr_row ssr_store3 ssr_dotmulB0 _
+    ssr_I0 ssr_succ0 ssr_nat_of _ _
+    add_up mul_up div_up one_up
+    feps feta (@is_finite fs) test_n A.
+
+Lemma posdef_check_correct A : gen_posdef_check A = true ->
+  real_matrix.posdef (cholesky.MF2R (MFI2F A)).
+Proof.
+rewrite /gen_posdef_check /posdef_check !Bool.andb_true_iff.
+do 4 elim; move=> Hn Hsym Htfdiag Htpdiag.
+apply test_n_correct in Hn.
+have Hn' : 2 * INR n.+1 * eps (fis fs) < 1.
+{ move: (neps_pos (fis fs) n.+1); rewrite !Rmult_assoc; lra. }
+have Hn'' : INR (2 * n.+1) * eps (fis fs) < 1 by rewrite mult_INR.
+apply is_sym_correct in Hsym.
+set cc := compute_c _ _ _ _ _ _ _ _; case_eq cc => // c' Hc'.
+rewrite Bool.andb_true_iff; elim.
+set At := map_diag _ _; set Rt := cholesky3 _.
+move=> HtfRt HtpRt.
+have Hfdiag := all_diag_correct Htfdiag.
+have Htpdiag' := all_diag_correct Htpdiag.
+have Hpdiag : forall i, 0 <= FI2F (A i i).
+{ move=> i; apply (Rle_trans _ (FI2F 0%C)); [by right; rewrite FI2F0|].
+  by apply file_spec => //; [apply finite0|apply Htpdiag']. }
+have HfRt := all_diag_correct HtfRt.
+have HtpRt' := all_diag_correct HtpRt.
+have HpRt : forall i, 0 < (MFI2F Rt) i i.
+{ move=> i; apply (Rle_lt_trans _ (FI2F 0%C)); [by right; rewrite FI2F0|].
+  by rewrite mxE; apply filt_spec => //; [apply finite0|apply HtpRt']. }
+move {Htfdiag Htpdiag HtfRt HtpRt Htpdiag' HtpRt'}.
+apply gen_corollary_2_4_with_c_upper_bound_infnan with
+ (maxdiag := FI2F (gen_max_diag A)) (c := FI2F c') (At := At) => //.
+{ by move=> i; rewrite mxE. }
+{ by apply max_diag_correct. }
+{ by apply compute_c_correct. }
+have Hfat : forall i, finite (At i i).
+{ move=> i; move: (gen_cholesky_spec_correct (cholesky5_correct At)).
+  elim=> _ Hs; move: (Hs i); rewrite mxE /cholesky5 => {Hs} Hs.
+  move: (HfRt i); rewrite /Rt; rewrite Hs /ytildes_infnan => H.
+  move: (fisqrt_spec_f1 H); apply stilde_infnan_fc. }
+split; move=> i; [move=> j Hij|].
+{ by apply map_diag_correct_ndiag. }
+move: (Hfat i); rewrite !mxE /At map_diag_correct_diag; apply sub_down_correct.
+Qed.
 
 End proof_inst_ssr_matrix_float_infnan.
 
@@ -1402,7 +1469,7 @@ move=> A R j Hj HRs.
 eapply trec_ind with
   (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i) =>//.
 move=> i s Hle Hs /=; rewrite size_store3.
-exact: size_inner_loop_rec4.
+by apply size_inner_loop_rec4 => //; apply ltnW.
 Qed.
 
 Lemma size_cholesky4 M :
@@ -1459,7 +1526,7 @@ move=> A R i j Hi Hj HRs.
 eapply trec_ind with
   (G := fun k (i : ordT n.+1) R => outer_loop_rec3 k A R i) =>//.
 move=> i0 s Hle Hs; rewrite size_nth_store3.
-by apply size_nth_inner_loop_rec4.
+by apply size_nth_inner_loop_rec4 => //; apply ltnW.
 Qed.
 
 Lemma size_nth_cholesky4 M :
@@ -1569,7 +1636,7 @@ Context `{forall n, param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq)
 
 Global Instance param_outer_loop :
   param (RmxC ==> RmxC ==> RordC ==> RmxC)
-  (outer_loop5 (n := n)) (outer_loop4 (n := n)).
+  (outer_loop5 (n' := n)) (outer_loop4 (n := n)).
 Proof.
 eapply param_abstr => A As param_A.
 eapply param_abstr => R Rs param_R.
@@ -1650,7 +1717,7 @@ apply: refines_seqmxP.
 *)
 
 Global Instance param_cholesky :
-  param (RmxC ==> RmxC)%rel (cholesky5 (n := n)) (cholesky4 (n := n)).
+  param (RmxC ==> RmxC)%rel (cholesky5 (n' := n)) (cholesky4 (n := n)).
 Proof.
 eapply param_abstr => m s param_ms; rewrite /cholesky5 /cholesky4.
 rewrite paramE.
@@ -1686,7 +1753,7 @@ Instance zero'' : zero T := F.zero.
 Instance one'' : one T := Float 1%bigZ 0%bigZ.
 
 Goal True. idtac "test_CoqInterval". done. Qed.
-Time Eval vm_compute in let res := cholesky4 m12 in tt.
+Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 (* 6.7 s on Erik's laptop *)
 
 End test_CoqInterval.
@@ -1707,7 +1774,7 @@ Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
 Goal True. idtac "test_CoqInterval_add". done. Qed.
-Time Eval vm_compute in let res := cholesky4 m12 in tt.
+Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 
 End test_CoqInterval_add.
 
@@ -1727,7 +1794,7 @@ Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
 Goal True. idtac "test_CoqInterval_mul". done. Qed.
-Time Eval vm_compute in let res := cholesky4 m12 in tt.
+Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 
 End test_CoqInterval_mul.
 
