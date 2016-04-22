@@ -1195,8 +1195,7 @@ Variable feta : FI fs.
 Hypothesis feta_spec : eta (fis fs) <= FI2F feta.
 
 Definition gen_compute_c_aux (A : 'M[FI fs]_n) (maxdiag : FI fs) : FI fs := 
-  @compute_c_aux _ _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0
-    add_up mul_up div_up one_up
+  @compute_c_aux _ _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 add_up mul_up div_up
     feps feta A maxdiag.
 
 Lemma compute_c_aux_correct (A : 'M[FI fs]_n) maxdiag :
@@ -1243,7 +1242,7 @@ move: (add_up_spec Fc); apply Rle_trans, Rplus_le_compat.
       move: (mul_up_spec Fne); apply /Rle_trans /Rmult_le_compat => //.
       apply float_of_nat_up_correct, (mul_up_spec_fl Fne). }
     rewrite (fiopp_spec (add_up_spec_fr Fnem1)); apply Ropp_le_contravar.
-    apply one_up_spec'. }
+    by rewrite FI2F1; right. }
   apply tr_up_correct, (mul_up_spec_fr Fl). }
 have Fr := add_up_spec_fr Fc.
 move: (mul_up_spec Fr); apply Rle_trans; apply Rmult_le_compat.
@@ -1271,8 +1270,7 @@ Qed.
 Definition gen_compute_c (A : 'M[FI fs]_n) :
   option (FI fs) := 
   @compute_c _ _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0
-    leq_infnan lt_infnan
-    add_up mul_up div_up one_up
+    leq_infnan lt_infnan add_up mul_up div_up
     (@is_finite fs) feps feta A.
 
 Lemma compute_c_correct (A : 'M[FI fs]_n) :
@@ -1289,7 +1287,7 @@ rewrite /gen_compute_c /compute_c.
 set nem1 := add_up _ _.
 case_eq (is_finite nem1 && (nem1 < 0)%C); [|by []].
 rewrite Bool.andb_true_iff => H; elim H => Fnem1 Nnem1.
-set c' := compute_c_aux _ _ _ _ _ _ _ _.
+set c' := compute_c_aux _ _ _ _ _ _ _.
 case_eq (is_finite c') => Hite'; [|by []]; move=> Hc'.
 have Hc'' : c' = c by injection Hc'.
 rewrite -Hc''; apply compute_c_aux_correct => //.
@@ -1314,8 +1312,7 @@ Qed.
 Definition gen_posdef_check (A : 'M[FI fs]_n) : bool :=
   @posdef_check _ _ _ _ _ _ div_infnan _
     ssr_fun_of ssr_row ssr_store3 ssr_dotmulB0 _
-    ssr_I0 ssr_succ0 ssr_nat_of _ _
-    add_up mul_up div_up one_up
+    ssr_I0 ssr_succ0 ssr_nat_of _ _ add_up mul_up div_up
     feps feta (@is_finite fs) test_n A.
 
 Lemma posdef_check_correct A : gen_posdef_check A = true ->
@@ -1328,7 +1325,7 @@ have Hn' : 2 * INR n.+1 * eps (fis fs) < 1.
 { move: (neps_pos (fis fs) n.+1); rewrite !Rmult_assoc; lra. }
 have Hn'' : INR (2 * n.+1) * eps (fis fs) < 1 by rewrite mult_INR.
 apply is_sym_correct in Hsym.
-set cc := compute_c _ _ _ _ _ _ _ _; case_eq cc => // c' Hc'.
+set cc := compute_c _ _ _ _ _ _ _; case_eq cc => // c' Hc'.
 rewrite Bool.andb_true_iff; elim.
 set At := map_diag _ _; set Rt := cholesky3 _.
 move=> HtfRt HtpRt.
@@ -1529,6 +1526,20 @@ Lemma size_nth_cholesky4 M :
 Proof.
 by move=> *; apply: size_nth_outer_loop_rec4.
 Qed.
+
+Context `{!leq T, !lt T}.
+
+Variable eps_inv : BigZ.t_.
+
+(* arithmetic operations with directed rounding *)
+Variable add1 mul1 div1 : T -> T -> T.
+Variable feps feta : T.
+
+Variable is_finite : T -> bool.
+
+Definition posdef_check4 (M : seq (seq T)) : bool :=
+  @posdef_check T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _
+    add1 mul1 div1 feps feta is_finite (test_n eps_inv) M.
 
 End inst_seq.
 
@@ -1745,8 +1756,39 @@ Instance opp'' : opp T := F.neg.
 Instance zero'' : zero T := F.zero.
 Instance one'' : one T := Float 1%bigZ 0%bigZ.
 
+Instance leq'' : leq T := fun x y =>
+  match F.cmp x y with
+    | Interval_xreal.Xlt => true
+    | Interval_xreal.Xeq => true
+    | _ => false
+  end.
+
+Instance lt'' : lt T := fun x y =>
+  match F.cmp x y with
+    | Interval_xreal.Xlt => true
+    | _ => false
+  end.
+
+Definition eps_inv := 9007199254740992%bigZ.  (* 2^53 *)
+
+Definition add1 := F.add rnd_UP 53%bigZ.
+Definition mul1 := F.mul rnd_UP 53%bigZ.
+Definition div1 := F.div rnd_UP 53%bigZ.
+
+Definition feps : T := Float 2%bigZ (-53)%bigZ.
+Definition feta : T := Float 2%bigZ (-1075)%bigZ.
+
+Definition is_finite : T -> bool := F.real.
+
+Definition posdef_check4_coqinterval (M : seq (seq T)) : bool :=
+  @posdef_check4 T _ _ _ _ _ _ _ (seq.size M).-1 _ _
+    eps_inv add1 mul1 div1 feps feta is_finite M.
+
+Goal True. idtac "test_posdef_check_CoqInterval". done. Qed.
+Time Eval vm_compute in posdef_check4_coqinterval m12.
+
 Goal True. idtac "test_CoqInterval". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
+Time Eval vm_compute in let res := cholesky4 (n := seq.size m8) m8 in tt.
 (* 6.7 s on Erik's laptop *)
 
 End test_CoqInterval.
