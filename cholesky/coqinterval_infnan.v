@@ -50,9 +50,29 @@ Qed.
 
 Definition FI0 := Build_FI _ FI0_proof.
 
+Definition FI1_proof :
+  mantissa_bounded (Interval_specific_ops.Float 1%bigZ 0%bigZ).
+Proof.
+unfold mantissa_bounded, x_bounded; simpl; right; exists 1; [now simpl|].
+apply FLX_format_generic; [now simpl|].
+unfold generic_format, F2R, scaled_mantissa, canonic_exp, FLX_exp; simpl.
+replace (ln_beta _ _ : Z) with 1%Z; simpl.
+{ change 4503599627370496 with (Z2R 4503599627370496).
+  rewrite Rmult_1_l, Ztrunc_Z2R, Rinv_r; [reflexivity|].
+  now change 0 with (Z2R 0); apply Z2R_neq. }
+apply eq_sym, ln_beta_unique_pos; split; [now right|].
+rewrite <- (Rplus_0_r 1); apply Rplus_le_lt_compat; [now right|].
+apply Rlt_0_1.
+Qed.
+
+Definition FI1 := Build_FI _ FI1_proof.
+
 Definition finite (x : FI) := F.real x = true.
 
 Lemma finite0 : finite FI0.
+Proof. now unfold finite, FI0, F.real; simpl. Qed.
+
+Lemma finite1 : finite FI1.
 Proof. now unfold finite, FI0, F.real; simpl. Qed.
 
 Definition fis := flx64.flx64 (fun m => negb (Zeven m)).
@@ -82,6 +102,14 @@ Lemma FI2F0 : FI2F (FI0) = F0 fis :> R.
 Proof.
 unfold FI2F.
 case (FI_prop FI0); [now simpl|].
+intro s; destruct s as (r, Hr, Hr'); simpl; revert Hr.
+now unfold F.toF, FtoX; simpl; intro H; injection H.
+Qed.
+
+Lemma FI2F1 : FI2F (FI1) = F1 fis :> R.
+Proof.
+unfold FI2F.
+case (FI_prop FI1); [now simpl|].
 intro s; destruct s as (r, Hr, Hr'); simpl; revert Hr.
 now unfold F.toF, FtoX; simpl; intro H; injection H.
 Qed.
@@ -532,14 +560,17 @@ Definition coqinterval_infnan : Float_infnan_spec :=
   @Build_Float_infnan_spec
     FI
     FI0
+    FI1
     F.real
     finite0
+    finite1
     fis
     m
     m_ge_2
     FI2F
     FI2F_spec
     FI2F0
+    FI2F1
     firnd
     firnd_spec
     firnd_spec_f

@@ -16,6 +16,7 @@ Record Float_infnan_spec := {
   FI : Type;
 
   FI0 : FI;
+  FI1 : FI;
   
   (** [is_finite f = true] iff the floating-point number [f] is finite. *)
   is_finite : FI -> bool;
@@ -23,6 +24,7 @@ Record Float_infnan_spec := {
   finite (x : FI) : Prop := is_finite x = true;
 
   finite0 : finite FI0;
+  finite1 : finite FI1;
   
   (** Underlying unbounded floating-point format.
       [FI] and [F fis] match when [finite] holds. *)
@@ -40,6 +42,7 @@ Record Float_infnan_spec := {
 
   FI2F_spec x : (FI2F x <> 0 :> R) -> finite x;
   FI2F0 : FI2F (FI0) = F0 fis :> R;
+  FI2F1 : FI2F (FI1) = F1 fis :> R;
   
   (** Some rounding. *)
   firnd : R -> FI;

@@ -416,12 +416,11 @@ Section directed_rounding.
 Variable add1 mul1 div1 : T -> T -> T.
 (* @Érik: idéalement, on aimerait utiliser des typeclasses,
    mais je galère trop, on verra ça ensemble. *)
-Variable one1 : T.
 
 Definition tr_up A := foldl_diag add1 0%C A.
 
 (* get a float overapprox of n *)
-Definition float_of_nat_up n := iter _ n (fun x => add1 x one1) 0%C.
+Definition float_of_nat_up n := iter _ n (fun x => add1 x 1%C) 0%C.
 
 (* [compute_c n A maxdiag] overapproximates
    /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
@@ -990,7 +989,7 @@ Instance sqrt_infnan : sqrt (FI fs) := @fisqrt fs.
 Instance div_infnan : div (FI fs) := @fidiv fs.
 Instance opp_infnan : opp (FI fs) := @fiopp fs.
 Instance zero_infnan : zero (FI fs) := @FI0 fs.
-Instance one_infnan : one (FI fs) := firnd fs 1.
+Instance one_infnan : one (FI fs) := @FI1 fs.
 
 Lemma gen_stilde3_correct k (c : FI fs) (a b : FI fs ^ k) :
   gen_stilde3 c a b = stilde_infnan c a b.
@@ -1154,15 +1153,7 @@ rewrite -/(P _ _); apply foldl_diag_correct; rewrite /P.
 move=> _; rewrite big_ord0 FI2F0; apply Rle_refl.
 Qed.
 
-Variable one_up : FI fs.  (* TODO: extend float_infnan_spec *)
-
-(* Instance one_up_infnan : one (FI fs) := one_up. *)
-
-Hypothesis one_up_spec : 1 <= FI2F one_up.
-Hypothesis one_up_spec' : FI2F 1%C <= 1.
-
-Definition gen_float_of_nat_up : nat -> FI fs :=
-  float_of_nat_up add_up one_up.
+Definition gen_float_of_nat_up : nat -> FI fs := float_of_nat_up add_up.
 
 Lemma float_of_nat_up_correct k : finite (gen_float_of_nat_up k) ->
   INR k <= FI2F (gen_float_of_nat_up k).
@@ -1171,7 +1162,7 @@ rewrite /float_of_nat_up.
 elim: k => [|k IHk].
 { move=> _; rewrite FI2F0; apply Rle_refl. }
 move=> Fa; move: (add_up_spec Fa); apply Rle_trans; rewrite S_INR.
-apply Rplus_le_compat => //; apply IHk.
+apply Rplus_le_compat; [|by rewrite FI2F1; right]; apply IHk.
 move: Fa => /=; apply add_up_spec_fl.
 Qed.
 
@@ -1368,6 +1359,8 @@ move: (Hfat i); rewrite !mxE /At map_diag_correct_diag; apply sub_down_correct.
 Qed.
 
 End proof_inst_ssr_matrix_float_infnan.
+
+Check posdef_check_correct.
 
 Section inst_seq.
 
@@ -1814,7 +1807,7 @@ Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
 Goal True. idtac "test_CoqInterval_div". done. Qed.
-Time Eval vm_compute in let res := cholesky4 m12 in tt.
+Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 
 End test_CoqInterval_div.
 
@@ -1834,7 +1827,7 @@ Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
 Goal True. idtac "test_CoqInterval_sqrt". done. Qed.
-Time Eval vm_compute in let res := cholesky4 m12 in tt.
+Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 
 End test_CoqInterval_sqrt.
 
@@ -1854,7 +1847,7 @@ Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
 Goal True. idtac "test_CoqInterval_opp". done. Qed.
-Time Eval vm_compute in let res := cholesky4 m12 in tt.
+Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 
 End test_CoqInterval_opp.
 
@@ -1886,7 +1879,7 @@ Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
 Goal True. idtac "test_CoqInterval_all". done. Qed.
-Time Eval vm_compute in let res := cholesky4 m12 in tt.
+Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 
 End test_CoqInterval_all.
 
@@ -1908,6 +1901,6 @@ Instance : zero T := F.zero.
 Instance : one T := Float 1%bigZ 0%bigZ.
 
 Goal True. idtac "test_CoqInterval_none". done. Qed.
-Time Eval vm_compute in let res := cholesky4 m12 in tt.
+Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 
 End test_CoqInterval_none.

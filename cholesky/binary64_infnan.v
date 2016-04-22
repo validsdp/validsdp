@@ -35,10 +35,18 @@ Definition FI := binary64.
 
 Definition FI0 := B754_zero prec emax false.
 
+Lemma FI1_proof : bounded prec emax 4503599627370496 (-52) = true.
+Proof. now simpl. Qed.
+
+Definition FI1 := B754_finite prec emax false 4503599627370496 (-52) FI1_proof.
+
 Definition finite (x : FI) := is_finite prec emax x = true.
 
 Lemma finite0 : finite FI0.
-Proof. now unfold finite, is_finite, FI0. Qed.
+Proof. now simpl. Qed.
+
+Lemma finite1 : finite FI1.
+Proof. now simpl. Qed.
 
 Definition fis := binary64.binary64 (fun m => negb (Zeven m)).
 
@@ -55,6 +63,12 @@ Proof. case x; unfold finite; auto. Qed.
 
 Lemma FI2F0 : FI2F (FI0) = F0 fis :> R.
 Proof. now simpl. Qed.
+
+Lemma FI2F1 : FI2F (FI1) = F1 fis :> R.
+Proof.
+apply Rinv_r; change 0 with (Z2R 0).
+now change 4503599627370496 with (Z2R 4503599627370496); apply Z2R_neq.
+Qed.
 
 Definition firnd (x : R) : FI :=
   binary_normalize
@@ -292,14 +306,17 @@ Definition binary64_infnan : Float_infnan_spec :=
   @Build_Float_infnan_spec
     FI
     FI0
+    FI1
     (is_finite prec emax)
     finite0
+    finite1
     fis
     m
     m_ge_2
     FI2F
     FI2F_spec
     FI2F0
+    FI2F1
     firnd
     firnd_spec
     firnd_spec_f
