@@ -39,8 +39,8 @@
 ** DONE [#B] Define the Boolean predicate for positivity test        :Pierre:
 - Put it in the =generic_algos= section
 - Use the small functions defined so far
-** TODO [#B] Instantiate previous function with ssreflect            :Pierre:
-** TODO [#B] Prove previous function                                 :Pierre:
+** DONE [#B] Instantiate previous function with ssreflect            :Pierre:
+** DONE [#B] Prove previous function                                 :Pierre:
 ** TODO Make some benchmarks for the Boolean positivity test	     :Pierre:
 ** TODO Design a reflexive tactic for positivity (Ltac)		       :Erik:
 * SOS/SDP
