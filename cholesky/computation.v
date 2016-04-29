@@ -286,6 +286,8 @@ Require Import mathcomp.algebra.matrix.
 Require Import CoqEAL_refinements.seqmatrix.
 Require Import CoqEAL_refinements.refinements.
 
+Require Import CoqEAL_theory.hrel.
+
 Import Refinements.Op.
 
 Class sqrt T := sqrt_op : T -> T.
@@ -492,6 +494,23 @@ Class nat_of_correct := nat_of_prop :
 End nat_of_theory.
 Arguments nat_of_correct _ _ {nat_of_class0}.
 
+Section nat_of_theory2.
+Variable n : nat.
+Let ordT (n : nat) := nat.
+Instance : nat_of_class ordinal n := @nat_of_ord n.
+Instance : nat_of_class ordT n := id.
+Local Notation RordC := Rord (only parsing).
+Arguments RordC {n} _ _. (* maximal implicit arguments *)
+Global Instance param_nat_of :
+  param (RordC ==> Logic.eq) nat_of nat_of.
+Proof.
+eapply param_abstr => i i' param_i.
+rewrite paramE /Rord in param_i.
+rewrite -param_i.
+by rewrite paramE.
+Qed.
+End nat_of_theory2.
+
 Section generic_ind.
 Context {ordT : nat -> Type} {n' : nat}.
 Let n := n'.+1.
@@ -575,7 +594,7 @@ Lemma trec_ind2 M M' P (G : nat -> ordT n -> M -> M)
   (G' : nat -> ordT' n -> M' -> M')
   (f : ordT n -> M -> M)
   (f' : ordT' n -> M' -> M') :
-  forall j, (j <= n)%N ->
+  forall (j : nat), (j <= n)%N ->
   (forall i s, G 0%N i s = s) ->
   (forall i s, G' 0%N i s = s) ->
   (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) ->
@@ -594,8 +613,7 @@ move=> j Hj HG0 HG'0 HGS HG'S Hind i i' s s' Hi Hi' H.
 rewrite Hi'.
 move Hk: (j - nat_of i)%N => k.
 elim: k i i' Hi Hi' Hk s s' H => [|k IHk] i i' Hi Hi' Hk s s' H.
-{ rewrite HG0 HG'0; replace j with (nat_of i); [by []|].
-  by apply anti_leq; rewrite Hi /= -subn_eq0 Hk. }
+  by rewrite HG0 HG'0.
 case (ltnP (nat_of i) j); last by rewrite /ssrnat.leq Hk.
 move=> Hij.
 rewrite HGS HG'S; case (ltnP (nat_of i) n') => Hjn.
@@ -608,8 +626,10 @@ rewrite HGS HG'S; case (ltnP (nat_of i) n') => Hjn.
 have Hj' : j = n.
 { by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). }
 have Hi'n : nat_of i = n'.
-{ apply anti_leq; rewrite Hjn Bool.andb_true_r.
-  by apply (@leq_trans j.-1); [apply /leP /Nat.lt_le_pred /leP|rewrite Hj']. }
+{ apply anti_leq; rewrite Hjn andbT.
+  apply (@leq_trans j.-1); last by rewrite Hj'.
+  by apply /leP /Nat.lt_le_pred /leP.
+}
 have Hk' : k = 0%N.
 { by rewrite Hi'n Hj' subSnn in Hk; case: Hk. }
 rewrite Hk' HG0 HG'0.
@@ -668,7 +688,7 @@ Context {n' : nat}.
 Let n := n'.+1.
 Instance ssr_I0 : I0_class ordT n := ord0.
 Instance ssr_succ0 : succ0_class ordT n := fun i => inord i.+1.
-Instance ssr_nat_of : nat_of_class ordT n := @nat_of_ord n.
+(* TODO: Global *) Instance ssr_nat_of : nat_of_class ordT n := @nat_of_ord n.
 
 Definition ytilded5 : 'I_n -> T -> 'M[T]_(1, n) -> 'M[T]_(1, n) -> T -> T :=
   @ytilded3 T ordT mxT _ _ _.
@@ -1441,7 +1461,7 @@ Definition outer_loop4 :=
   @outer_loop3 T _ _ _ _ _ _ _ _ n.+1 _ _ _.
 
 Definition inner_loop4 :=
-  @inner_loop3 T _ _ _ _ _ _ _ n.+1 _.
+  @inner_loop3 T _ _ _ _ _ _ _ n.+1 _ _.
 
 Lemma size_store3 :
   forall s i j x,
@@ -1564,7 +1584,6 @@ End inst_seq.
 
 Section Rseqmx_aux.
 (* Aim: refinement proofs using seqmatrix.v *)
-Require Import CoqEAL_theory.hrel.
 
 Context {A : Type}. (* {ordC : nat -> Type} {mxC : nat -> nat -> Type}. *)
 Context `{!zero A}.
@@ -1657,6 +1676,57 @@ Context `{!param (RmxC ==> RordC ==> RordC ==> Logic.eq ==> RmxC)
 Context `{forall n, param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq)
   (@ssr_dotmulB0 _ _ _ _ n) (@dotmulB0 C _ _ _ n)}.
 
+Global Instance param_inner_loop :
+  param (RordC ==> RmxC ==> RmxC ==> RordC ==> RmxC)
+  (inner_loop5 (n' := n)) (inner_loop4 (n := n)).
+Proof.
+eapply param_abstr => j j' param_j.
+eapply param_abstr => A As param_A.
+eapply param_abstr => R Rs param_R.
+eapply param_abstr => i i' param_i.
+rewrite /inner_loop5 /inner_loop4 paramE /inner_loop3.
+rewrite -/inner_loop_rec4.
+rewrite paramE /Rord in param_j; rewrite -!param_j.
+case: (leqP i' j') => [H1|H2].
+(* H1 *)
+eapply trec_ind2 with
+  (G := fun k (i : 'I_n.+1) R => inner_loop_rec3 j k A R i)
+  (G' := fun k (i' : ordC n.+1) Rs => inner_loop_rec4 j k As Rs i')
+  (P := Rseqmx).
+exact/ltnW/ltn_ord.
+done. done. done. done.
+move=> l l' s s' Hl Hl' param_s /=.
+eapply paramP.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+by tc.
+by tc.
+by rewrite paramE.
+by rewrite paramE.
+(* eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply. *)
+admit.
+rewrite (param_eq (param_apply (param_nat_of _) param_i)). (*can be simplified*)
+by rewrite param_j.
+by rewrite (param_eq (param_apply (param_nat_of _) param_i)).
+by eapply paramP.
+(* H2 *)
+rewrite (param_eq (param_apply (param_nat_of _) param_i)).
+set z := (nat_of j - nat_of i')%N.
+suff->: z = 0%N by eapply paramP.
+apply/eqP; rewrite subn_eq0.
+apply: ltnW.
+by rewrite /nat_of /ssr_nat_of /nat_of_class_instance_1 param_j.
+Unshelve. (* FIXME: this should be automatically discharged *)
+apply: ord_succ0.
+by tc.
+Admitted.
+
 Global Instance param_outer_loop :
   param (RmxC ==> RmxC ==> RordC ==> RmxC)
   (outer_loop5 (n' := n)) (outer_loop4 (n := n)).
@@ -1679,18 +1749,28 @@ done. done. done. done. done.
 move=> i i' s s' Hi Hi' param_s /=.
 rewrite /store.
 rewrite /store_class_instance_0 /store_class_instance_1.
-apply paramP.
+eapply paramP.
 eapply param_apply.
 eapply param_apply.
 eapply param_apply.
 eapply param_apply.
 by tc.
-admit.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+by tc.
+by rewrite paramE.
+done.
+by rewrite paramE.
+by rewrite paramE.
 by rewrite paramE.
 by rewrite paramE.
 eapply param_apply.
 eapply param_apply.
+eapply param_apply.
 admit.
+by rewrite paramE.
 eapply param_apply.
 eapply param_apply.
 eapply param_apply.
@@ -1702,7 +1782,15 @@ eapply param_apply.
 eapply param_apply.
 eapply Rseqmx_rowseqmx'.
 by rewrite paramE.
-admit. (* again *)
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+by tc.
+by rewrite paramE.
+done.
+by tc.
+by rewrite paramE.
 Unshelve. (* FIXME: this should be automatically discharged *)
 apply: ord_succ0.
 by tc.
@@ -1710,6 +1798,8 @@ Admitted.
 
 (*
 Ingredients:
+param_eq
+eapply paramP.
 exact: get_param.
 eapply param_abstr=> a c param_ac.
 rewrite paramE.

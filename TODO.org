@@ -24,8 +24,9 @@
 - Use cholesky_prog.v and/or CoqEAL
 *** DONE Prove param_outer_loop, param_cholesky			       :Erik:
     CLOSED: [2016-04-18 Mon 17:19]
-
-*** TODO [#A] Prove param_inner_loop, ytildes...		       :Erik:
+*** DONE Prove param_inner_loop					       :Erik:
+    CLOSED: [2016-04-29 Fri 16:51]
+*** TODO Prove param_ytilded, param_ytildes			       :Erik:
 ** TODO Make all computation effective (small fcts to write)	:Pierre:Erik:
 - Use the proper Rounding mode
 *** DONE Import Coq.Interval's large/strict orders                   :Pierre:
