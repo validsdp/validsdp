@@ -455,7 +455,7 @@ Definition posdef_check
   (test_n : nat -> bool)
   (* matrix to check *)
   (A : mxT n n) : bool :=
-test_n n && is_sym A && all_diag is_finite A && noneg_diag A &&
+test_n n && is_sym A && noneg_diag A &&
   (match compute_c is_finite eps eta A with
      | None => false
      | Some c =>
@@ -1315,11 +1315,31 @@ Definition gen_posdef_check (A : 'M[FI fs]_n) : bool :=
     ssr_I0 ssr_succ0 ssr_nat_of _ _ add_up mul_up div_up
     feps feta (@is_finite fs) test_n A.
 
+Lemma posdef_check_f1_diag A : gen_posdef_check A = true ->
+  forall i, finite (A i i).
+Proof.
+rewrite /gen_posdef_check /posdef_check !Bool.andb_true_iff.
+do 3 elim; move=> _ _ _.
+set cc := compute_c _ _ _ _ _ _ _; case_eq cc => // c' Hc'.
+rewrite Bool.andb_true_iff; elim.
+set At := map_diag _ _.
+move=> HtfRt _.
+have HfRt := all_diag_correct HtfRt.
+have Hfat : forall i, finite (At i i).
+{ move=> i; move: (gen_cholesky_spec_correct (cholesky5_correct At)).
+  elim=> _ Hs; move: (Hs i); rewrite mxE /cholesky5 => {Hs} Hs.
+  move: (HfRt i); rewrite Hs /ytildes_infnan => H.
+  move: (fisqrt_spec_f1 H); apply stilde_infnan_fc. }
+move=> i; move: (Hfat i); rewrite map_diag_correct_diag => HAt.
+by apply fiopp_spec_f1, (@add_up_spec_fr c' _), fiopp_spec_f1.
+Qed.
+
 Lemma posdef_check_correct A : gen_posdef_check A = true ->
   real_matrix.posdef (cholesky.MF2R (MFI2F A)).
 Proof.
+move=> H; have Hfdiag := posdef_check_f1_diag H; move: H.
 rewrite /gen_posdef_check /posdef_check !Bool.andb_true_iff.
-do 4 elim; move=> Hn Hsym Htfdiag Htpdiag.
+do 3 elim; move=> Hn Hsym Htpdiag.
 apply test_n_correct in Hn.
 have Hn' : 2 * INR n.+1 * eps (fis fs) < 1.
 { move: (neps_pos (fis fs) n.+1); rewrite !Rmult_assoc; lra. }
@@ -1329,7 +1349,6 @@ set cc := compute_c _ _ _ _ _ _ _; case_eq cc => // c' Hc'.
 rewrite Bool.andb_true_iff; elim.
 set At := map_diag _ _; set Rt := cholesky3 _.
 move=> HtfRt HtpRt.
-have Hfdiag := all_diag_correct Htfdiag.
 have Htpdiag' := all_diag_correct Htpdiag.
 have Hpdiag : forall i, 0 <= FI2F (A i i).
 { move=> i; apply (Rle_trans _ (FI2F 0%C)); [by right; rewrite FI2F0|].
@@ -1339,7 +1358,7 @@ have HtpRt' := all_diag_correct HtpRt.
 have HpRt : forall i, 0 < (MFI2F Rt) i i.
 { move=> i; apply (Rle_lt_trans _ (FI2F 0%C)); [by right; rewrite FI2F0|].
   by rewrite mxE; apply filt_spec => //; [apply finite0|apply HtpRt']. }
-move {Htfdiag Htpdiag HtfRt HtpRt Htpdiag' HtpRt'}.
+move {Htpdiag HtfRt HtpRt Htpdiag' HtpRt'}.
 apply gen_corollary_2_4_with_c_upper_bound_infnan with
  (maxdiag := FI2F (gen_max_diag A)) (c := FI2F c') (At := At) => //.
 { by move=> i; rewrite mxE. }
@@ -1348,7 +1367,7 @@ apply gen_corollary_2_4_with_c_upper_bound_infnan with
 have Hfat : forall i, finite (At i i).
 { move=> i; move: (gen_cholesky_spec_correct (cholesky5_correct At)).
   elim=> _ Hs; move: (Hs i); rewrite mxE /cholesky5 => {Hs} Hs.
-  move: (HfRt i); rewrite /Rt; rewrite Hs /ytildes_infnan => H.
+  move: (HfRt i); rewrite /Rt Hs /ytildes_infnan => H.
   move: (fisqrt_spec_f1 H); apply stilde_infnan_fc. }
 split; move=> i; [move=> j Hij|].
 { by apply map_diag_correct_ndiag. }
