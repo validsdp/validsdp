@@ -1419,7 +1419,7 @@ Fixpoint seq_stilde3 k c a b :=
     | S k, a1 :: a2, b1 :: b2 => seq_stilde3 k (c + (- (a1 * b1)))%C a2 b2
   end.
 
-Instance : dotmulB0_class T ordT mxT :=
+Global Instance seq_dotmulB0 : dotmulB0_class T ordT mxT :=
   fun n k c a b => seq_stilde3 k c (head [::] a) (head [::] b).
 
 Fixpoint seq_store3 T s n (v : T) :=
@@ -1447,6 +1447,12 @@ Instance : nat_of_class ordT n.+1 := id.
 
 Instance : succ0_correct ordT n.+1.
 Proof. done. Qed.
+
+Definition ytilded4 :=
+  @ytilded3 T ordT mxT _ _ n.+1.
+
+Definition ytildes4 :=
+  @ytildes3 T ordT mxT _ _ n.+1.
 
 Definition cholesky4 (M : seq (seq T)) : seq (seq T) :=
   @cholesky3 T ordT _ _ _ _ _ _ _ n.+1 _ _ _ M.
@@ -1637,7 +1643,7 @@ Context {C : Type}. (* {ordC : nat -> Type} {mxC : nat -> nat -> Type}. *)
 Local Notation ordC := (fun _ : nat => nat) (only parsing).
 Local Notation mxC := (fun _ _ : nat => seqmatrix C) (only parsing).
 Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
-Context `{!fun_of C ordC mxC, !row_class ordC mxC, !store_class C ordC mxC, !dotmulB0_class C ordC mxC}.
+Context `{!fun_of C ordC mxC, !row_class ordC mxC, !store_class C ordC mxC}.
 Context {n : nat}.
 Context `{!I0_class ordC n.+1, !succ0_class ordC n.+1, !nat_of_class ordC n.+1}.
 Context `{!succ0_correct ordC n.+1}.
@@ -1673,8 +1679,53 @@ Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
 Context `{!param (RmxC ==> RordC ==> RordC ==> Logic.eq ==> RmxC)
   (ssr_store3 (m := n.+1) (n := n.+1)) (@store3 C)}.
 
-Context `{forall n, param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq)
-  (@ssr_dotmulB0 _ _ _ _ n) (@dotmulB0 C _ _ _ n)}.
+Global Instance param_dotmulB0 :
+  param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq)
+  (@ssr_dotmulB0 _ _ _ _ n.+1) (@dotmulB0 C ordC _ _ n.+1).
+Proof.
+eapply param_abstr => k k' param_k.
+eapply param_abstr => c c' param_c.
+eapply param_abstr => a a' param_a.
+eapply param_abstr => b b' param_b.
+rewrite paramE /dotmulB0 /= /gen_stilde3 /seq_dotmulB0.
+case: k param_k => [k Hk] param_k.
+rewrite paramE /Rord /= in param_k.
+rewrite -{k'}param_k.
+elim: k Hk => [|k IHk] Hk; first exact: param_eq.
+simpl.
+Admitted.
+
+Global Instance param_ytilded :
+  param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq ==> Logic.eq)
+  (ytilded5 (n' := n)) (ytilded4 (n := n)).
+Proof.
+eapply param_abstr => k k' param_k.
+eapply param_abstr => c c' param_c.
+eapply param_abstr => a a' param_a.
+eapply param_abstr => b b' param_b.
+eapply param_abstr => bk bk' param_bk.
+rewrite /ytilded5 /ytilded4 /ytilded3.
+eapply param_apply; last by tc.
+eapply param_apply.
+rewrite paramE; by move=> ? ? h1 ? ? h2; rewrite h1 h2.
+eapply param_apply; last by tc.
+eapply param_apply; last by tc.
+eapply param_apply; last by tc.
+eapply param_apply; last by tc.
+by tc.
+Qed.
+
+Global Instance param_ytildes :
+  param (RordC ==> Logic.eq ==> RmxC ==> Logic.eq)
+  (ytildes5 (n' := n)) (ytildes4 (n := n)).
+Proof.
+eapply param_abstr => k k' param_k.
+eapply param_abstr => c c' param_c.
+eapply param_abstr => a a' param_a.
+rewrite /ytildes5 /ytildes4 /ytildes3.
+eapply param_apply; last by tc.
+by rewrite paramE; move=> ? ? ->.
+Qed.
 
 Global Instance param_inner_loop :
   param (RordC ==> RmxC ==> RmxC ==> RordC ==> RmxC)
@@ -1705,12 +1756,37 @@ by tc.
 by tc.
 by rewrite paramE.
 by rewrite paramE.
-(* eapply param_apply.
 eapply param_apply.
 eapply param_apply.
 eapply param_apply.
-eapply param_apply. *)
-admit.
+eapply param_apply.
+eapply param_apply.
+by tc.
+by rewrite paramE.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+eapply Rseqmx_fun_of_seqmx'.
+by tc.
+by rewrite paramE.
+by rewrite paramE.
+eapply param_apply.
+eapply param_apply.
+eapply Rseqmx_rowseqmx'.
+by rewrite paramE.
+by tc.
+eapply param_apply.
+eapply param_apply.
+eapply Rseqmx_rowseqmx'.
+by rewrite paramE.
+by tc.
+eapply param_apply.
+eapply param_apply.
+eapply param_apply.
+eapply Rseqmx_fun_of_seqmx'.
+by tc.
+by rewrite paramE.
+by rewrite paramE.
 rewrite (param_eq (param_apply (param_nat_of _) param_i)). (*can be simplified*)
 by rewrite param_j.
 by rewrite (param_eq (param_apply (param_nat_of _) param_i)).
@@ -1725,7 +1801,7 @@ by rewrite /nat_of /ssr_nat_of /nat_of_class_instance_1 param_j.
 Unshelve. (* FIXME: this should be automatically discharged *)
 apply: ord_succ0.
 by tc.
-Admitted.
+Qed.
 
 Global Instance param_outer_loop :
   param (RmxC ==> RmxC ==> RordC ==> RmxC)
@@ -1769,7 +1845,7 @@ by rewrite paramE.
 eapply param_apply.
 eapply param_apply.
 eapply param_apply.
-admit.
+by tc.
 by rewrite paramE.
 eapply param_apply.
 eapply param_apply.
@@ -1794,11 +1870,11 @@ by rewrite paramE.
 Unshelve. (* FIXME: this should be automatically discharged *)
 apply: ord_succ0.
 by tc.
-Admitted.
+Qed.
 
 (*
 Ingredients:
-param_eq
+rewrite [...]param_eq.
 eapply paramP.
 exact: get_param.
 eapply param_abstr=> a c param_ac.
