@@ -3,6 +3,9 @@
 
 #+TITLE: Backlog for validsdp
 #+AUTHOR: Érik Martin-Dorel & Pierre Roux
+#+OPTIONS: toc:nil
+#+LATEX_CLASS_OPTIONS: [a4paper,11pt]
+#+LATEX_HEADER: \usepackage[top=2cm,hmargin=2cm,bottom=3cm]{geometry}
 
 * Cholesky
 ** DONE Fonctions à rendre effectives
@@ -26,7 +29,9 @@
     CLOSED: [2016-04-18 Mon 17:19]
 *** DONE Prove param_inner_loop					       :Erik:
     CLOSED: [2016-04-29 Fri 16:51]
-*** TODO Prove param_ytilded, param_ytildes			       :Erik:
+*** DONE Prove param_ytilded, param_ytildes			       :Erik:
+    CLOSED: [2016-05-02 Mon 18:03]
+*** TODO Prove param_dotmulB0					       :Erik:
 ** TODO Make all computation effective (small fcts to write)	:Pierre:Erik:
 - Use the proper Rounding mode
 *** DONE Import Coq.Interval's large/strict orders                   :Pierre:
