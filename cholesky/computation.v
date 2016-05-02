@@ -1670,6 +1670,63 @@ Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
   (@matrix.row _ m n) (@row _ _ _ m n)}.
 *)
 
+Check seq_store3.
+
+Lemma param_seq_store3 : param (RmxC ==> RordC ==> Logic.eq ==> RmxC)
+  (fun m j v => ssr_store3 (m := 1) (n := n.+1) m ord0 j v)
+  (fun m j v =>
+     match m with
+     | [::] => [::]
+     | l :: _ => [:: @seq_store3 C l j v] end).
+Proof.
+apply param_abstr => m m' param_m.
+apply param_abstr => j j' param_j.
+apply param_abstr => v v' pv; rewrite -(param_eq pv) => {v' pv}.
+move: (@refines_row_size _ _ _ _ _ param_m); case_eq m' => // l l' Hl _.
+apply /trivial_param /refines_seqmxP => //.
+{ move=> i Hi.
+  have Hi' : i = 0%N by move: Hi; case i.
+  rewrite Hi' /= size_seq_store3.
+  change l with (nth [::] (l :: l') 0); rewrite -Hl -Hi'.
+  apply (@refines_nth_col_size _ _ _ _ _ param_m).
+  by rewrite Hi' Hl. }
+move=> i j''; rewrite (ord_1_0 i) => /= {i}.
+Print seq_store3.
+move: j' n I0_class0 succ0_class0 nat_of_class0 succ0_correct0
+  m m' param_m j param_j l l' Hl j''.
+elim=> [|j' Hj'] n' I0_class0' succ0_class0' nat_of_class0' succ0_correct0'
+  m m' param_m j param_j l l' Hl j''.
+Abort.
+
+(*
+Show 2.
+
+  Search "" Rseqmx seq.size.
+  About refines_nth_col_size.
+  Check (@refines_nth_col_size _ _ _ _ _ param_m).
+
+  have Hi' : i = 0%N by move: Hi; case i.
+  rewrite Hi' /=.
+  Search "" Rseqmx seq.size.
+
+
+rewrite /Rseqmx /ofun_hrel /mx_of_seqmx.
+
+apply get_param.
+Search "" getparam.
+
+Search "" Rseqmx.
+Search "" param.
+
+trivial_param
+get_param
+Check refines_seqmxP.
+
+rewrite /param /locked_with /Rseqmx /= /ofun_hrel /=.
+
+
+*)
+
 Context `{!param (RmxC ==> RordC ==> RordC ==> Logic.eq ==> RmxC)
   (ssr_store3 (m := n.+1) (n := n.+1)) (@store3 C)}.
 
