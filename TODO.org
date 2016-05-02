@@ -32,16 +32,16 @@
 *** DONE Prove param_ytilded, param_ytildes			       :Erik:
     CLOSED: [2016-05-02 Mon 18:03]
 *** TODO Prove param_dotmulB0					       :Erik:
+*** TODO Prove param_{seq,}_store3                                   :Pierre:
 ** TODO Make all computation effective (small fcts to write)	:Pierre:Erik:
 - Use the proper Rounding mode
 *** DONE Import Coq.Interval's large/strict orders                   :Pierre:
 *** DONE =4 * INR n.+2 * eps (fis fs) < 1=                           :Pierre:
-*** DONE Symmetry test (to define using standard notations %HC) :Pierre:Erik:
-    CLOSED: [2016-04-18 Mon 17:47]
+*** TODO Symmetry test (to define using standard notations %HC) :Pierre:Erik:
 *** DONE Non-negativity of diagonal test			       :Erik:
     CLOSED: [2016-04-18 Mon 18:08]
-*** DONE [#A] Function to compute the maximum of the diagonal    :Pierre:
-*** TODO [#A] FP computation with directing rounding		     :Pierre:
+*** DONE [#A] Function to compute the maximum of the diagonal        :Pierre:
+*** DONE [#A] FP computation with directing rounding                 :Pierre:
 ** DONE [#B] Define the Boolean predicate for positivity test        :Pierre:
 - Put it in the =generic_algos= section
 - Use the small functions defined so far
