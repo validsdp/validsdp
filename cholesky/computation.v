@@ -1642,11 +1642,8 @@ Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A
 Context {C : Type}. (* {ordC : nat -> Type} {mxC : nat -> nat -> Type}. *)
 Local Notation ordC := (fun _ : nat => nat) (only parsing).
 Local Notation mxC := (fun _ _ : nat => seqmatrix C) (only parsing).
-Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
-Context `{!fun_of C ordC mxC, !row_class ordC mxC, !store_class C ordC mxC}.
+Context `{!zero C, (* !one C, *) !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
 Context {n : nat}.
-Context `{!I0_class ordC n.+1, !succ0_class ordC n.+1, !nat_of_class ordC n.+1}.
-Context `{!succ0_correct ordC n.+1}.
 
 Local Notation ordA := ordinal (only parsing).
 Local Notation mxA := (fun m n => 'M[C]_(m, n)) (only parsing).
