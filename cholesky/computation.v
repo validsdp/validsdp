@@ -1676,61 +1676,124 @@ Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
   (@matrix.row _ m n) (@row _ _ _ m n)}.
 *)
 
-Lemma param_seq_store3 : param (RmxC ==> RordC ==> Logic.eq ==> RmxC)
-  (fun m j v => ssr_store3 (m := 1) (n := n.+1) m ord0 j v)
-  (fun m j v =>
-     match m with
+Lemma param_seq_store3 n' : param (RmxC ==> RordC ==> Logic.eq ==> RmxC)
+  (fun M j v => @ssr_store3 C 1 n' M ord0 j v)
+  (fun M j v =>
+     match M with
      | [::] => [::]
      | l :: _ => [:: @seq_store3 C l j v] end).
 Proof.
-apply param_abstr => m m' param_m.
+apply param_abstr => M M' param_M.
 apply param_abstr => j j' param_j.
 apply param_abstr => v v' pv; rewrite -(param_eq pv) => {v' pv}.
-move: (@refines_row_size _ _ _ _ _ param_m); case_eq m' => // l l' Hl _.
+move: (@refines_row_size _ _ _ _ _ param_M); case_eq M' => // l l' Hl _.
 apply /trivial_param /refines_seqmxP => //.
 { move=> i Hi.
   have Hi' : i = 0%N by move: Hi; case i.
   rewrite Hi' /= size_seq_store3.
   change l with (nth [::] (l :: l') 0); rewrite -Hl -Hi'.
-  apply (@refines_nth_col_size _ _ _ _ _ param_m).
+  apply (@refines_nth_col_size _ _ _ _ _ param_M).
   by rewrite Hi' Hl. }
 move=> i j''; rewrite (ord_1_0 i) => /= {i}.
-move: n j' m m' param_m j param_j l l' Hl j''.
-elim=> [|n' Hn'] j' m m' param_m j param_j l l' Hl j''.
-{ rewrite (ord_1_0 j'') /ssr_store3 mxE /=; case_eq l => // x t Hxt.
-  have Hj' : (j' = j :> nat); [by move: param_j; rewrite paramE|rewrite Hj'].
-  case (nat_of_ord j) => // j''' /=.
-  by rewrite -(@refines_nth _ _ _ _ _ _ _ param_m) Hl Hxt. }
-rewrite /ssr_store3 mxE -(@refines_nth _ _ _ _ _ _ _ param_m) Hl /=.
+move: n' j' M M' param_M j param_j l l' Hl j''.
+elim=> [|n' Hn'] j' M M' param_M j param_j l l' Hl j''; [by case j''|].
+rewrite /ssr_store3 mxE -(@refines_nth _ _ _ _ _ _ _ param_M) Hl /=.
 case_eq l => [|x t] Hxt; [by rewrite /seq_store3 nth_nil|].
-have St : seq.size t = n'.+1.
+have St : seq.size t = n'.
 { apply /eqP; rewrite -(eqn_add2r 1) !addn1.
   change ((_ t).+1) with (seq.size (x :: t)); rewrite -Hxt.
-  change l with (nth [::] (l :: l') (@ord0 n'.+2)); rewrite -Hl.
-  by rewrite (@refines_nth_col_size _ _ _ _ _ param_m) // Hl. }
+  change l with (nth [::] (l :: l') (@ord0 n'.+1)); rewrite -Hl.
+  by rewrite (@refines_nth_col_size _ _ _ _ _ param_M) // Hl. }
 have Hj' : (j' = j :> nat); [by move: param_j; rewrite paramE|rewrite Hj'].
 case_eq (nat_of_ord j'') => /= [|j'''] Hj'''; [by case (nat_of_ord j)|].
 case_eq (nat_of_ord j) => [|j''''] Hj''''.
 { by apply set_nth_default; rewrite -Hj''' -(leq_add2r 1) !addn1 St. }
-set m'' := \row_j nth zero0 t j : 'rV_n'.+1.
-specialize (Hn' j'''' m'' [:: t]).
-have Hlj''' : (j''' < n'.+1)%N by rewrite -Hj''' -(leq_add2r 1) !addn1.
-have Hlj'''' : (j'''' < n'.+1)%N by rewrite -Hj'''' -(leq_add2r 1) !addn1.
+set M'' := \row_j nth zero0 t j : 'rV_n'.
+specialize (Hn' j'''' M'' [:: t]).
+have Hlj''' : (j''' < n')%N by rewrite -Hj''' -(leq_add2r 1) !addn1.
+have Hlj'''' : (j'''' < n')%N by rewrite -Hj'''' -(leq_add2r 1) !addn1.
 replace (if _ then _ else _) with
-  ((ssr_store3 m'' ord0 (inord j'''') v) ord0 (inord j''')).
-{ replace j''' with (nat_of_ord (@inord n' j''')) at 2.
-  apply Hn' with (l' := [::]) => //.
-  { rewrite paramE; apply refines_seqmxP => //; [by case|move=> i0 j0].
-    by rewrite /m'' mxE (ord_1_0 i0) /=; apply set_nth_default; rewrite St. }
-  { by rewrite paramE /Rord inordK. }
-  by rewrite inordK. }
-rewrite /ssr_store3 /m'' !mxE /=.
-rewrite -(addn1 j''') -(addn1 j'''') eqn_add2r inordK // inordK //.
-by rewrite (@set_nth_default _ _ (m ord0 j'')) // St.
+  ((ssr_store3 M'' ord0 (Ordinal Hlj'''') v) ord0 (Ordinal Hlj''')).
+{ replace j''' with (nat_of_ord (Ordinal Hlj''')) at 2.
+  { apply Hn' with (l' := [::]) => //.
+    { rewrite paramE; apply refines_seqmxP => //; [by case|move=> i0 j0].
+      by rewrite /M'' mxE (ord_1_0 i0) /=; apply set_nth_default; rewrite St. }
+    by rewrite paramE /Rord; move: Hlj''''; case j''''. }
+  by move: Hlj'''; case j'''. }
+rewrite /ssr_store3 /M'' !mxE /= -(addn1 j''') -(addn1 j'''') eqn_add2r.
+by rewrite (@set_nth_default _ _ (M ord0 j'')) // St.
 Qed.
 
-Context `{!param (RmxC ==> RordC ==> RordC ==> Logic.eq ==> RmxC)
-  (ssr_store3 (m := n.+1) (n := n.+1)) (@store3 C)}.
+Lemma param_store3_aux m n' : param (RmxC ==> RordC ==> RordC ==> Logic.eq ==> RmxC)
+  (@ssr_store3 C m n') (@store3 C).
+Proof.
+apply param_abstr => M M' param_M.
+apply param_abstr => i i' param_i.
+apply param_abstr => j j' param_j.
+apply param_abstr => v v' param_v; rewrite -(param_eq param_v).
+apply /trivial_param /refines_seqmxP => //.
+{ rewrite size_store3; move: param_M; apply refines_row_size. }
+{ move=> i'' Hi''; rewrite size_nth_store3.
+  apply (@refines_nth_col_size _ _ _ _ _ param_M).
+  by rewrite (@refines_row_size _ _ _ _ _ param_M). }
+move: m M M' param_M i i' param_i.
+elim=> [|m Hm] M M' param_M i i' param_i; [by case|move=> i'' j''].
+rewrite /ssr_store3 mxE -(@refines_nth _ _ _ _ _ _ _ param_M).
+case_eq M' => [|l t] Hlt; [by rewrite !nth_nil|].
+have Sl : seq.size l = n'.
+{ change l with (nth [::] (l :: t) 0); rewrite -Hlt.
+  by rewrite (@refines_nth_col_size _ _ _ _ _ param_M) // Hlt. }
+have St : seq.size t = m.
+{ apply /eqP; rewrite -(eqn_add2r 1) !addn1.
+  change ((_ t).+1) with (seq.size (l :: t)); rewrite -Hlt.
+  by rewrite (@refines_row_size _ _ _ _ _ param_M). }
+have Hi' : (i' = i :> nat); [by move: param_i; rewrite paramE|rewrite Hi'].
+case_eq (nat_of_ord i'') => /= [|i'''] Hi'''.
+{ case (nat_of_ord i) => /= [|_].
+  { set M'' := \row_j M ord0 j.
+    have param_M'' : param Rseqmx M'' [:: l].
+    { rewrite paramE; apply /refines_seqmxP => //; [by case|].
+      move=> i0 j0; rewrite (ord_1_0 i0) /= /M'' mxE.
+      rewrite -(@refines_nth _ _ _ _ _ _ _ param_M) Hlt /=.
+      by apply set_nth_default; rewrite Sl. }
+    have H0 := param_apply (param_seq_store3 n') param_M''.
+    have HM'' := param_apply (param_apply H0 param_j) param_v.
+    rewrite -(param_eq param_v) in HM'' => {H0}.
+    replace (if _ then _ else _) with ((ssr_store3 M'' ord0 j v) ord0 j'').
+    { change (seq_store3 l j' v) with (nth [::] [:: seq_store3 l j' v] 0).
+      by rewrite (@refines_nth _ _ _ _ _ _ _ HM''). }
+    rewrite /ssr_store3 /M'' !mxE -(@refines_nth _ _ _ _ _ _ _ param_M).
+    rewrite Hlt /=; case (_ == _)%B => //.
+    by apply set_nth_default; rewrite Sl. }
+  by apply set_nth_default; rewrite Sl. }
+have Slt : forall i, (i < m)%N -> seq.size (nth [::] t i) = n'.
+{ move=> i0 Hi0; change (nth _ _ _) with (nth [::] (l :: t) i0.+1).
+  rewrite -Hlt (@refines_nth_col_size _ _ _ _ _ param_M) => //.
+  by rewrite (@refines_row_size _ _ _ _ _ param_M). }
+case_eq (nat_of_ord i) => [|i''''] Hi''''.
+{ by apply set_nth_default; rewrite Slt // -Hi'''; move: (ltn_ord i''). }
+set M'' := \matrix_(i, j) M (lift ord0 (i : 'I_m)) j.
+specialize (Hm M'' t).
+have Hli''' : (i''' < m)%N by rewrite -Hi''' -(leq_add2r 1) !addn1.
+have Hli'''' : (i'''' < m)%N by rewrite -Hi'''' -(leq_add2r 1) !addn1.
+replace (if _ then _ else _) with
+  ((ssr_store3 M'' (Ordinal Hli'''') j v) (Ordinal Hli''') j'').
+{ replace i''' with (nat_of_ord (Ordinal Hli''')) at 2.
+  { apply Hm.
+    { rewrite paramE; apply refines_seqmxP => // i0 j0.
+      rewrite /M'' mxE -(@refines_nth _ _ _ _ _ _ _ param_M) Hlt.
+      by apply set_nth_default => /=; rewrite Slt. }
+    by rewrite paramE; move: Hli''''; case. }
+  by move: Hli'''; case. }
+rewrite /ssr_store3 /M'' !mxE /= -(addn1 i''') -(addn1 i'''') eqn_add2r.
+rewrite -(@refines_nth _ _ _ _ _ _ _ param_M) Hlt /=.
+by rewrite (@set_nth_default _ _ (M i'' j'')) // Slt.
+Qed.
+
+Global Instance param_store3 :
+  param (RmxC ==> RordC ==> RordC ==> Logic.eq ==> RmxC)
+    (@ssr_store3 C n.+1 n.+1) (@store3 C).
+Proof. apply param_store3_aux. Qed.
 
 Global Instance param_dotmulB0 :
   param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq)
