@@ -732,7 +732,7 @@ Qed.
 
 Lemma gen_fsum_l2r_rec_eq k (c1 : T) (a1 : T ^ k)
       (c2 : T) (a2 : T ^ k) :
-  c1 = c2 -> (forall i, a1 i = a2 i) ->
+  c1 = c2 -> (forall i : 'I_k, a1 i = a2 i) ->
   gen_fsum_l2r_rec c1 a1 = gen_fsum_l2r_rec c2 a2.
 Proof.
 elim: k c1 a1 c2 a2 => [//|k IHk] c1 a1 c2 a2 Hc Ha.
@@ -1811,8 +1811,11 @@ have := @refines_row_size _ _ _ _ _ param_b.
 case Eb' : b' => [//|b'0 b'1].
 case: b'1 Eb' =>// Eb' _.
 rewrite [RHS]/=.
-elim: k n Hk a b c c' param_c a'0 param_a Ea' b'0 param_b Eb' => [|k IHk]
-  n' Hk a b c c' param_c a'0 param_a Ea' b'0 param_b Eb'.
+elim: n k Hk a b c a' b' c' param_c a'0 param_a Ea' b'0 param_b Eb' => [|n' IHn']
+  k Hk a b c a' b' c' param_c a'0 param_a Ea' b'0 param_b Eb'.
+  rewrite /gen_fsum_l2r_rec /=.
+  case: k Hk; last done.
+  move=> _ /=.
   exact: param_eq.
 have := @refines_nth_col_size _ _ _ _ _ param_a 0.
 rewrite refines_row_size Ea'.
@@ -1822,16 +1825,79 @@ have := @refines_nth_col_size _ _ _ _ _ param_b 0.
 rewrite refines_row_size Eb'.
 move/(_ erefl).
 case Eb'0 : b'0 => [//|b'00 b'01] Hb'0; simpl in Hb'0.
-rewrite [RHS] /=.
+case: k Hk => [|k] Hk; first exact: param_eq.
 simpl.
 set cc := (c + _)%C.
-erewrite <- (IHk _ _ _ _ cc); first 1 last.
-rewrite paramE /cc [c]param_eq; f_equal.
-admit.
-admit.
-(* Wrong *)
-Admitted.
-Check hsubmxK.
+have Hk1 : (k < n'.+1)%N by rewrite -ltnS.
+rewrite <-(IHn' k Hk1 (\row_(i < n'.+1) a ord0 (lift ord0 i))
+                      (\row_(i < n'.+1) b ord0 (lift ord0 i)) cc
+                      [:: behead a'0] [:: behead b'0]).
+- apply gen_fsum_l2r_rec_eq =>//.
+  move=> i; rewrite !ffunE.
+  repeat f_equal.
+    rewrite mxE.
+    f_equal.
+    apply: ord_inj.
+    rewrite inordK /=.
+      congr bump.
+      rewrite inordK //.
+      apply: (leq_trans _ Hk1).
+      apply/leqW.
+      by apply: ltn_ord.
+    rewrite ltnS.
+    now_show (i < n'.+1)%N.
+    apply: (leq_trans _ Hk1).
+    apply/leqW.
+    by apply: ltn_ord.
+  rewrite mxE.
+  f_equal.
+  apply: ord_inj.
+  rewrite inordK /=.
+    congr bump.
+    rewrite inordK //.
+    apply: (leq_trans _ Hk1).
+    apply/leqW.
+    by apply: ltn_ord.
+  rewrite ltnS.
+  now_show (i < n'.+1)%N.
+  apply: (leq_trans _ Hk1).
+  apply/leqW.
+  by apply: ltn_ord.
+- rewrite paramE {}/cc.
+  f_equal.
+  exact: param_eq.
+- rewrite !ffunE.
+  f_equal.
+  f_equal.
+  by rewrite -(@refines_nth _ _ _ _ _ _ _ param_a) Ea' Ea'0 inordK.
+  by rewrite -(@refines_nth _ _ _ _ _ _ _ param_b) Eb' Eb'0 inordK.
+- rewrite paramE; apply/refines_seqmxP =>//.
+  + move=> i Hi.
+    rewrite ltnS leqn0 in Hi; move/eqP in Hi.
+    rewrite Hi /=.
+    rewrite size_behead.
+    have->: a'0 = (nth [::] a' 0) by rewrite Ea'.
+    by rewrite (@refines_nth_col_size _ _ _ _ _ param_a) // Ea'.
+  + move=> i j; rewrite !mxE.
+    rewrite (ord_1_0 i) /= nth_behead.
+    rewrite -[in RHS](@refines_nth _ _ _ _ _ _ _ param_a).
+    f_equal.
+    by rewrite Ea' // Ea'0.
+- by rewrite Ea'0.
+- rewrite paramE; apply/refines_seqmxP =>//.
+  + move=> i Hi.
+    rewrite ltnS leqn0 in Hi; move/eqP in Hi.
+    rewrite Hi /=.
+    rewrite size_behead.
+    have->: b'0 = (nth [::] b' 0) by rewrite Eb'.
+    by rewrite (@refines_nth_col_size _ _ _ _ _ param_b) // Eb'.
+  + move=> i j; rewrite !mxE.
+    rewrite (ord_1_0 i) /= nth_behead.
+    rewrite -[in RHS](@refines_nth _ _ _ _ _ _ _ param_b).
+    f_equal.
+    by rewrite Eb' // Eb'0.
+- by rewrite Eb'0.
+Qed.
 
 Global Instance param_ytilded :
   param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq ==> Logic.eq)
