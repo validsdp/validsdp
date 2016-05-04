@@ -34,22 +34,26 @@
 *** DONE Prove param_dotmulB0					       :Erik:
     CLOSED: [2016-05-04 Wed 16:22]
 *** DONE Prove param_{seq,}_store3                                   :Pierre:
-*** TODO Prove param_posdef_check
-** TODO Make all computation effective (small fcts to write)	:Pierre:Erik:
+*** TODO Prove param_posdef_check				:Erik:Pierre:
+** DONE Make all computation effective (small fcts to write)	:Pierre:Erik:
+   CLOSED: [2016-05-04 Wed 17:32]
 - Use the proper Rounding mode
 *** DONE Import Coq.Interval's large/strict orders                   :Pierre:
 *** DONE =4 * INR n.+2 * eps (fis fs) < 1=                           :Pierre:
-*** TODO Symmetry test (to define using standard notations %HC) :Pierre:Erik:
+*** DONE Symmetry test (to define using standard notations %HC) :Pierre:Erik:
+    CLOSED: [2016-05-04 Wed 17:29]
 *** DONE Non-negativity of diagonal test			       :Erik:
     CLOSED: [2016-04-18 Mon 18:08]
 *** DONE [#A] Function to compute the maximum of the diagonal        :Pierre:
 *** DONE [#A] FP computation with directing rounding                 :Pierre:
-** DONE [#B] Define the Boolean predicate for positivity test        :Pierre:
+** DONE Define the Boolean predicate for positivity test	     :Pierre:
 - Put it in the =generic_algos= section
 - Use the small functions defined so far
-** DONE [#B] Instantiate previous function with ssreflect            :Pierre:
-** DONE [#B] Prove previous function                                 :Pierre:
-** TODO Refinement to remove proofs from coqinterval_infnan
+** DONE Instantiate previous functions with ssreflect		     :Pierre:
+** NEXT Prove functions over ssreflect structures		     :Pierre:
+- [ ] posdef_check_f1_diag
+- [ ] posdef_check_correct
+** TODO Refinement to remove proofs from coqinterval_infnan	       :Erik:
 ** TODO Make some benchmarks for the Boolean positivity test	     :Pierre:
 ** TODO Design a reflexive tactic for positivity (Ltac)		       :Erik:
 * SOS/SDP
