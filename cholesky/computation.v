@@ -1804,9 +1804,34 @@ rewrite paramE /dotmulB0 /= /gen_stilde3 /seq_dotmulB0.
 case: k param_k => [k Hk] param_k.
 rewrite paramE /Rord /= in param_k.
 rewrite -{k'}param_k.
-elim: k Hk => [|k IHk] Hk; first exact: param_eq.
+have := @refines_row_size _ _ _ _ _ param_a.
+case Ea' : a' => [//|a'0 a'1].
+case: a'1 Ea' =>// Ea' _.
+have := @refines_row_size _ _ _ _ _ param_b.
+case Eb' : b' => [//|b'0 b'1].
+case: b'1 Eb' =>// Eb' _.
+rewrite [RHS]/=.
+elim: k n Hk a b c c' param_c a'0 param_a Ea' b'0 param_b Eb' => [|k IHk]
+  n' Hk a b c c' param_c a'0 param_a Ea' b'0 param_b Eb'.
+  exact: param_eq.
+have := @refines_nth_col_size _ _ _ _ _ param_a 0.
+rewrite refines_row_size Ea'.
+move/(_ erefl).
+case Ea'0 : a'0 => [//|a'00 a'01] Ha'0; simpl in Ha'0.
+have := @refines_nth_col_size _ _ _ _ _ param_b 0.
+rewrite refines_row_size Eb'.
+move/(_ erefl).
+case Eb'0 : b'0 => [//|b'00 b'01] Hb'0; simpl in Hb'0.
+rewrite [RHS] /=.
 simpl.
+set cc := (c + _)%C.
+erewrite <- (IHk _ _ _ _ cc); first 1 last.
+rewrite paramE /cc [c]param_eq; f_equal.
+admit.
+admit.
+(* Wrong *)
 Admitted.
+Check hsubmxK.
 
 Global Instance param_ytilded :
   param (RordC ==> Logic.eq ==> RmxC ==> RmxC ==> Logic.eq ==> Logic.eq)
