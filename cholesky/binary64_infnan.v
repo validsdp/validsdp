@@ -302,6 +302,26 @@ Lemma ficompare_spec x y : finite x -> finite y ->
   ficompare x y = Some (Rcompare (FI2F x) (FI2F y)).
 Proof. apply Bcompare_correct. Qed.
 
+Lemma ficompare_spec_eq x y : ficompare x y = Some Eq -> FI2F x = FI2F y :> R.
+Proof.
+unfold ficompare.
+case x; case y; try now simpl.
+{ now intro b; case b. }
+{ now intros b m e e' b'; case b'. }
+{ now intros b b'; case b'. }
+{ now intros b b'; case b'; case b. }
+{ now intros b n b'; case b'. }
+intros b m e B b' m' e' B'; simpl; case b'; case b; try now simpl.
+{ case_eq (Z.compare e' e); try now simpl.
+  intro He; apply Z.compare_eq in He; rewrite Pos.compare_cont_antisym; simpl.
+  intro Hm; inversion Hm as (Hm'); apply Pcompare_Eq_eq in Hm'.
+  now rewrite He, Hm'. }
+case_eq (Z.compare e' e); try now simpl.
+intro He; apply Z.compare_eq in He.
+intro Hm; inversion Hm as (Hm'); apply Pcompare_Eq_eq in Hm'.
+now rewrite He, Hm'.
+Qed.
+  
 Definition binary64_infnan : Float_infnan_spec :=
   @Build_Float_infnan_spec
     FI
@@ -343,6 +363,7 @@ Definition binary64_infnan : Float_infnan_spec :=
     fisqrt_spec_f1
     fisqrt_spec_f
     ficompare
-    ficompare_spec.
+    ficompare_spec
+    ficompare_spec_eq.
 
 End Binary64_infnan.

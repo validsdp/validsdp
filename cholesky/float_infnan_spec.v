@@ -97,7 +97,8 @@ Record Float_infnan_spec := {
   ficompare : FI -> FI -> option comparison;
 
   ficompare_spec x y : finite x -> finite y ->
-    ficompare x y = Some (Rcompare (FI2F x) (FI2F y))
+    ficompare x y = Some (Rcompare (FI2F x) (FI2F y));
+  ficompare_spec_eq x y : ficompare x y = Some Eq -> FI2F x = FI2F y :> R
 }.
 
 Section Derived_spec.
@@ -132,6 +133,19 @@ Lemma fiminus_spec_f x y : finite x -> finite y ->
 Proof.
 intros Fx Fy H; apply (fiplus_spec_f Fx (fiopp_spec_f Fy)).
 now unfold fplus; rewrite fiopp_spec; [|apply fiopp_spec_f].
+Qed.
+
+(** Equality *)
+Definition fieq (x y : FI fs) : bool :=
+  match ficompare x y with
+    | Some Eq => true
+    | _ => false
+  end.
+
+Lemma fieq_spec x y : fieq x y = true -> FI2F x = FI2F y :> R.
+Proof.
+intro H; apply ficompare_spec_eq; revert H; unfold fieq.
+now case (ficompare _ _); [intro c; case c|].
 Qed.
 
 (** Comparison *)

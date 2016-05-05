@@ -542,6 +542,17 @@ do 2 (rewrite round_generic;
 now case (Rcompare _ _).
 Qed.
 
+Lemma ficompare_spec_eq x y : ficompare x y = Some Eq -> FI2F x = FI2F y :> R.
+Proof.
+unfold ficompare; rewrite F.cmp_correct.
+unfold Xcmp.
+case_eq (F.toX x); [now simpl|]; intros rx Hrx.
+case_eq (F.toX y); [now simpl|]; intros ry Hry.
+assert (H := Rcompare_spec rx ry); revert H; case (Rcompare _ _); try now simpl.
+rewrite !FI2F_X2F_FtoX, Hrx, Hry; intros H _.
+now inversion H as [_|H'|_]; rewrite H'.
+Qed.
+
 Definition coqinterval_infnan : Float_infnan_spec :=
   @Build_Float_infnan_spec
     FI
@@ -583,6 +594,7 @@ Definition coqinterval_infnan : Float_infnan_spec :=
     fisqrt_spec_f1
     fisqrt_spec_f
     ficompare
-    ficompare_spec.
+    ficompare_spec
+    ficompare_spec_eq.
 
 End Coqinterval_infnan.
