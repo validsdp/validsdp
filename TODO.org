@@ -50,9 +50,7 @@
 - Put it in the =generic_algos= section
 - Use the small functions defined so far
 ** DONE Instantiate previous functions with ssreflect		     :Pierre:
-** NEXT Prove functions over ssreflect structures		     :Pierre:
-- [ ] posdef_check_f1_diag
-- [ ] posdef_check_correct
+** DONE Prove functions over ssreflect structures                    :Pierre:
 ** TODO Refinement to remove proofs from coqinterval_infnan	       :Erik:
 ** TODO Make some benchmarks for the Boolean positivity test	     :Pierre:
 ** TODO Design a reflexive tactic for positivity (Ltac)		       :Erik:

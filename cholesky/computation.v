@@ -374,8 +374,6 @@ Context `{!heq mxT}.
 Context `{!transpose_class mxT}.
 
 Definition is_sym (A : mxT n n) : bool := (A^T == A)%HC.
-(* TODO : en fait, ce dont on a besoin, c'est de prouver 
-   MF2R (MFI2F A^T) = MF2R (MFI2F A) *)
 
 Fixpoint all_diag_rec f k (A : mxT n n) b (i : ordT n) {struct k} : bool :=
   match k with
@@ -1090,9 +1088,6 @@ apply Z2R_lt; revert H; rewrite Zlt_is_lt_bool BigZ.spec_ltb.
 by rewrite BigZ.spec_mul BigZ.spec_add BigZ.spec_of_Z.
 Qed.
 
-Instance feq : @eq (FI fs) :=
-  fun a b => if ficompare a b is Some Eq then true else false.
-
 (*
 Attempt to provide an eqType structure for (FI fs)
 
@@ -1109,20 +1104,17 @@ Instance fheq : @heq nat (fun n1 n2 => 'M[FI fs]_(n1, n2)) :=
 *)
 
 Instance fheq : @heq nat (matrix (FI fs)) :=
-  fun n1 n2 a b => [forall i, [forall j, feq (a i j) (b i j)]].
+  fun n1 n2 a b => [forall i, [forall j, fieq (a i j) (b i j)]].
 
 Instance : transpose_class (matrix (FI fs)) := @matrix.trmx (FI fs).
 
 Lemma is_sym_correct (A : 'M[FI fs]_n) :
-  (forall i j, finite (A i j)) ->
   is_sym A = true -> cholesky.MF2R (MFI2F A^T) = cholesky.MF2R (MFI2F A).
 Proof.
-rewrite /is_sym /heq_op /fheq => Hfinite H.
+rewrite /is_sym /heq_op /fheq => H.
 apply/matrixP => i j; rewrite !mxE.
 move/forallP/(_ i)/forallP/(_ j) in H.
-rewrite mxE /feq in H.
-rewrite ficompare_spec in H =>//.
-by case: Rcompare_spec H.
+by rewrite mxE in H; apply fieq_spec.
 Qed.
 
 Instance leq_infnan : leq (FI fs) := @file fs.
@@ -1358,13 +1350,12 @@ move: (add_up_spec Fxy'); apply Rle_trans, Rplus_le_compat_l.
 by rewrite (fiopp_spec (add_up_spec_fr Fxy')); right.
 Qed.
 
-Fail Definition gen_posdef_check (A : 'M[FI fs]_n) : bool :=
+Definition gen_posdef_check (A : 'M[FI fs]_n) : bool :=
   @posdef_check _ _ _ _ _ _ div_infnan _
     ssr_fun_of ssr_row ssr_store3 ssr_dotmulB0 _
-    ssr_I0 ssr_succ0 ssr_nat_of _ _ add_up mul_up div_up
-    feps feta (@is_finite fs) test_n A.
+    ssr_I0 ssr_succ0 ssr_nat_of fheq (@matrix.trmx (FI fs)) _ _
+    add_up mul_up div_up feps feta (@is_finite fs) test_n A.
 
-(*
 Lemma posdef_check_f1_diag A : gen_posdef_check A = true ->
   forall i, finite (A i i).
 Proof.
@@ -1423,7 +1414,6 @@ split; move=> i; [move=> j Hij|].
 { by apply map_diag_correct_ndiag. }
 move: (Hfat i); rewrite !mxE /At map_diag_correct_diag; apply sub_down_correct.
 Qed.
-*)
 
 End proof_inst_ssr_matrix_float_infnan.
 
@@ -1601,6 +1591,12 @@ Proof.
 by move=> *; apply: size_nth_outer_loop_rec4.
 Qed.
 
+Context `{eq T}.
+
+Instance eq_mxT : @heq nat mxT := @eq_seqmx T H.
+
+Instance : transpose_class mxT := fun m n => @trseqmx T.
+
 Context `{!leq T, !lt T}.
 
 Variable eps_inv : BigZ.t_.
@@ -1612,7 +1608,7 @@ Variable feps feta : T.
 Variable is_finite : T -> bool.
 
 Definition posdef_check4 (M : seq (seq T)) : bool :=
-  @posdef_check T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _
+  @posdef_check T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
     add1 mul1 div1 feps feta is_finite (test_n eps_inv) M.
 
 End inst_seq.
@@ -2174,6 +2170,12 @@ Instance opp'' : opp T := F.neg.
 Instance zero'' : zero T := F.zero.
 Instance one'' : one T := Float 1%bigZ 0%bigZ.
 
+Instance eq'' : eq T := fun x y =>
+  match F.cmp x y with
+    | Interval_xreal.Xeq => true
+    | _ => false
+  end.
+
 Instance leq'' : leq T := fun x y =>
   match F.cmp x y with
     | Interval_xreal.Xlt => true
@@ -2199,14 +2201,14 @@ Definition feta : T := Float 2%bigZ (-1075)%bigZ.
 Definition is_finite : T -> bool := F.real.
 
 Definition posdef_check4_coqinterval (M : seq (seq T)) : bool :=
-  @posdef_check4 T _ _ _ _ _ _ _ (seq.size M).-1 _ _
+  @posdef_check4 T _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
     eps_inv add1 mul1 div1 feps feta is_finite M.
 
 Goal True. idtac "test_posdef_check_CoqInterval". done. Qed.
 Time Eval vm_compute in posdef_check4_coqinterval m12.
 
 Goal True. idtac "test_CoqInterval". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m8) m8 in tt.
+Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 (* 6.7 s on Erik's laptop *)
 
 End test_CoqInterval.
