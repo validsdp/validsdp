@@ -1,72 +1,45 @@
-Require Import BigZ.
-Local Open Scope bigZ_scope.
-Import BigZ.
-
-Require Import List.
+Require Import BigZ List.
 Import ListNotations.
-
-Set Implicit Arguments.
-Unset Strict Implicit.
-Unset Printing Implicit Defensive.
 
 Section prog.
 
-Fixpoint sum k c a b :=
-  match k, a, b with
-    | O, _, _ => c
-    | S k, nil, _ => c
-    | S k, _, nil => c
-    | S k, a1 :: a2, b1 :: b2 => sum k (add c (mul a1 b1)) a2 b2
-  end.
+Fixpoint lstore s n (v : BigZ.t_) := match n, s with
+  | _, nil => nil
+  | O, _ :: t => v :: t
+  | S n, h :: t => h :: lstore t n v
+end.
 
-Definition sumd k c a b bk := div (sum k c a b) bk.
+Fixpoint store m i j v := match i, m with
+  | _, nil => nil
+  | O, h :: t => lstore h j v :: t
+  | S i, h :: t => h :: store t i j v
+end.
 
-Definition sums k c a := sum k c a a.
+Fixpoint dot k c a b := match k, a, b with
+  | O, _, _ | _, nil, _ | _, _, nil => c
+  | S k, a1 :: a2, b1 :: b2 => dot k (c + a1 * b1)%bigZ a2 b2
+end.
 
-Fixpoint lstore T s n (v : T) :=
-  match n, s with
-    | _, nil => nil
-    | O, _ :: t => v :: t
-    | S n, h :: t => h :: lstore t n v
-  end.
+Fixpoint inner_loop_rec (j : nat) k A R i := match k with
+  | O (* i >= j *) => R
+  | S k => let R := store R j i (dot i (nth j (nth i A nil) 0)
+                                     (nth i R nil) (nth j R nil)
+                                 / nth i (nth i R nil) 0)%bigZ in
+           inner_loop_rec j k A R (S i)
+end.
+Definition inner_loop j A R i := inner_loop_rec j (j - i) A R i.
 
-Fixpoint store T m i j (v : T) :=
-  match i, m with
-    | _, nil => nil
-    | O, h :: t => lstore h j v :: t
-    | S i, h :: t => h :: store t i j v
-  end.
-
-Section InnerLoop.
-Variable j : nat.
-Fixpoint inner_loop_rec (k : nat) A R (i : nat) {struct k} :=
-  match k with
-  | O (* i >= j) *) => R
-  | S k => let R := store R j i (sumd i (nth j (nth i A nil) zero)
-                                      (nth i R nil) (nth j R nil)
-                                      (nth i (nth i R nil) zero)) in
-           inner_loop_rec k A R (S i)
-  end.
-Definition inner_loop A R i := inner_loop_rec (j - i) A R i.
-End InnerLoop.
-
-Section OuterLoop.
-Variable n : nat.
-Fixpoint outer_loop_rec k A R (j : nat) {struct k} :=
-  match k with
+Fixpoint outer_loop_rec (n : nat) k A R j := match k with
   | O (* j >= n *) => R
   | S k =>
     let R := inner_loop j A R 0 in
-    let R := store R j j (sums j (nth j (nth j A nil) zero)
-                               (nth j R nil)) in
-    outer_loop_rec k A R (j + 1)
-  end.
-Definition outer_loop A R j := outer_loop_rec (n - j) A R j.
-End OuterLoop.
+    let R := store R j j (dot j (nth j (nth j A nil) 0%bigZ)
+                                (nth j R nil) (nth j R nil)) in
+    outer_loop_rec n k A R (j + 1)
+end.
+Definition outer_loop n A R j := outer_loop_rec n (n - j) A R j.
 
-Definition prog A :=
-  let sz := length A in
-  outer_loop sz A A 0.
+Definition prog A := outer_loop (length A) A A 0.
 
 End prog.
 
@@ -482,7 +455,7 @@ Definition m :=
     8348050633893708; 7699942999984098; 7820405378497060; 5776864848772244; 5737014148144790;
     -7504924686065434; 5235518204119618; 8022526045111370; 5811064249017172; 8652012760595706;
     4947016939814436; 5222506801138606; 5151532197835158; 7400737766417018; 4861057341471284;
-    5793337377927518; 6087921752663004; 5251605121861420; 7517649830094456; 6866660949825620]].
+    5793337377927518; 6087921752663004; 5251605121861420; 7517649830094456; 6866660949825620]]%bigZ.
 
 Time Eval vm_compute in let res := prog m in tt.
 
