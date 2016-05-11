@@ -1709,7 +1709,8 @@ Proof. by move=> *; apply: size_nth_outer_loop4. Qed.
 
 Context `{eq T}.
 
-Instance eq_mxT : @heq nat mxT := @eq_seqmx T H.
+Instance eq_mxT : @heq nat mxT := fun _ _ => eq_seq (eq_seq H).
+(*  @eq_seqmx T H (* buggy (it ignores H and uses eq_op) *) *)
 
 Instance : transpose_class mxT := fun m n => @trseqmx T.
 
@@ -2270,13 +2271,19 @@ move=> Ha.
 rewrite /b eq_seqE in Hb; [|by rewrite SA1s SA2s].
 move: Hb; set al := all _ _; suff: al = true; [|rewrite /al].
 { by move=> Hal; rewrite Hal. }
-apply /(all_nthP ([::], [::])) => i Hi.
+apply /(all_nthP ([::], [::])) => i Hi; specialize (Ha (inord i)).
 have Hii : (i = @inord n i)%N by rewrite inordK; [|rewrite SzAs in Hi].
 rewrite nth_zip /=; [|by rewrite SA1s SA2s].
 rewrite eq_seqE; [|by rewrite Hii SA1si SA2si].
 apply /(all_nthP (FI0 fs, FI0 fs)) => j Hj.
-(* WIP *)
-Admitted.
+have Hsz : seq.size (zip (nth [::] A1s i) (nth [::] A2s i)) = n.+1.
+{ by rewrite size1_zip; rewrite Hii SA1si; [|rewrite SA2si]. }
+have Hjj : (j = @inord n j)%N by rewrite inordK; rewrite Hsz in Hj.
+rewrite Hii Hjj nth_zip /=; [|by rewrite SA1si SA2si].
+rewrite (set_nth_default (A1 (inord i) (inord j)) (FI0 _)); [|by rewrite SA1si].
+rewrite (set_nth_default (A2 (inord i) (inord j)) (FI0 _)); [|by rewrite SA2si].
+by rewrite !refines_nth; move /forallP in Ha; specialize (Ha (inord j)).
+Qed.
 
 Lemma param_is_sym :
   param (Rseqmx ==> Logic.eq)
