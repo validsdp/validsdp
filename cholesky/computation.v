@@ -847,6 +847,9 @@ Definition ytilded5 : 'I_n -> T -> 'M[T]_(1, n) -> 'M[T]_(1, n) -> T -> T :=
 Definition ytildes5 : 'I_n -> T -> 'M[T]_(1, n) -> T :=
   @ytildes3 T ordT mxT _ _ _.
 
+Definition iteri_ord5 : forall T, nat -> ('I_n -> T -> T) -> T -> T :=
+  @iteri_ord ordT _ _ _.
+
 Definition inner_loop5 : 'I_n -> 'M[T]_n -> 'M[T]_n -> 'M[T]_n :=
   @inner_loop3 T ordT mxT _ _ _ _ _ _ _ _ _.
 
@@ -1616,11 +1619,8 @@ Definition ytildes4 :=
 Definition cholesky4 (M : seq (seq T)) : seq (seq T) :=
   @cholesky3 T ordT _ _ _ _ _ _ _ n.+1 _ _ _ M.
 
-(* Definition outer_loop_rec4 := *)
-(*   @outer_loop_rec3 T _ _ _ _ _ _ _ _ n.+1 _ _ _. *)
-
-(* Definition inner_loop_rec4 := *)
-(*   @inner_loop_rec3 T _ _ _ _ _ _ _ n.+1 _. *)
+Definition iteri_ord4 : forall T, nat -> (ordT n -> T -> T) -> T -> T :=
+  @iteri_ord ordT _ O S.
 
 Definition outer_loop4 :=
   @outer_loop3 T _ _ _ _ _ _ _ _ n.+1 _ _ _.
@@ -2087,138 +2087,371 @@ eapply param_apply; last by tc.
 by rewrite paramE; move=> ? ? ->.
 Qed.
 
-Global Instance param_inner_loop :
+Lemma param_iteri_ord :
+  forall T T', forall RT : T -> T' -> Prop,
+  param ((fun j j' => j = j' /\ (j <= n.+1)%N) ==> (RordC ==> RT ==> RT) ==> RT
+  ==> RT)
+  (@iteri_ord5 n T) (@iteri_ord4 n.+1 T').
+Proof.
+move=> T T' RT.
+apply param_abstr => j j' param_j.
+rewrite paramE in param_j; destruct param_j as (Hj', Hj); rewrite -Hj'.
+apply param_abstr => f f' param_f.
+apply param_abstr => x x'.
+rewrite /iteri_ord5 /iteri_ord4.
+eapply (iteri_ord_ind2 (M := T) (M' := T') (j := j)) => //.
+move=> i i' s s' Hi Hi'.
+apply param_apply.
+have: param Rord i i'.
+{ move: Hi'; rewrite paramE /Rord /nat_of /nat_of_class_instance_4 /ssr_nat_of.
+  by instantiate (1 := id). }
+by apply param_apply.
+Unshelve. (* FIXME: this should be automatically discharged *)
+by tc.
+by tc.
+Qed.
+
+Lemma param_inner_loop :
   param (RordC ==> RmxC ==> RmxC ==> RmxC)
   (inner_loop5 (n' := n)) (inner_loop4 (n := n)).
 Proof.
 apply param_abstr => j j' param_j.
+rewrite paramE /Rord in param_j; rewrite -param_j => {j' param_j}.
 apply param_abstr => A As param_A.
 apply param_abstr => R Rs param_R.
-rewrite /inner_loop5 /inner_loop4 paramE /inner_loop3.
-rewrite paramE /Rord in param_j; rewrite -!param_j.
-eapply iteri_ord_ind2.
-exact/ltnW/ltn_ord.
-move=> l l' s s' Hl Hl' param_s /=.
-eapply paramP.
+rewrite /inner_loop5 /inner_loop4 /inner_loop3.
+eapply param_apply; [|exact param_R].
 eapply param_apply.
+{ eapply param_apply; [by apply param_iteri_ord|].
+  rewrite paramE; split; [by []|].
+  rewrite /nat_of /ssr_nat_of; apply ltnW, ltn_ord. }
+apply param_abstr => i i' param_i.
+apply param_abstr => s s' param_s.
 eapply param_apply.
+{ eapply param_apply; [|exact param_i].
+  eapply param_apply.
+  { by eapply param_apply; [apply param_store3|]. }
+  by rewrite paramE. }
 eapply param_apply.
-eapply param_apply.
-by tc.
-by tc.
-by rewrite paramE.
-move: Hl'; rewrite paramE /Rord /nat_of /nat_of_class_instance_4 /ssr_nat_of.
-by instantiate (1:=id).
-eapply param_apply.
-eapply param_apply.
-eapply param_apply.
-eapply param_apply.
-eapply param_apply.
-by tc.
-by rewrite paramE.
-eapply param_apply.
-eapply param_apply.
-eapply param_apply.
-eapply Rseqmx_fun_of_seqmx'.
-by tc.
-by rewrite paramE.
-by rewrite paramE.
-eapply param_apply.
-eapply param_apply.
-eapply Rseqmx_rowseqmx'.
-by rewrite paramE.
-by tc.
-eapply param_apply.
-eapply param_apply.
-eapply Rseqmx_rowseqmx'.
-by rewrite paramE.
-by tc.
-eapply param_apply.
-eapply param_apply.
-eapply param_apply.
-eapply Rseqmx_fun_of_seqmx'.
-by tc.
-by rewrite paramE.
-by rewrite paramE.
-by eapply paramP.
-Unshelve. (* FIXME: this should be automatically discharged *)
-by tc.
-by tc.
+{ eapply param_apply.
+  { eapply param_apply.
+    { eapply param_apply.
+      { by eapply param_apply; [apply param_ytilded|exact param_i]. }
+      eapply param_apply.
+      { eapply param_apply; [|exact param_i].
+        by eapply param_apply; [apply Rseqmx_fun_of_seqmx'|apply param_A]. }
+      by rewrite paramE. }
+    eapply param_apply; [|exact param_s].
+    eapply param_apply; [apply Rseqmx_rowseqmx'|exact param_i]. }
+  eapply param_apply; [|exact param_s].
+  eapply param_apply; [apply Rseqmx_rowseqmx'|by rewrite paramE]. }
+do 2 (eapply param_apply; [|exact param_i]).
+eapply param_apply; [apply Rseqmx_fun_of_seqmx'|exact param_s].
 Qed.
 
-Global Instance param_outer_loop :
+Lemma param_outer_loop :
   param (RmxC ==> RmxC ==> RmxC)
   (outer_loop5 (n' := n)) (outer_loop4 (n := n)).
 Proof.
-eapply param_abstr => A As param_A.
-eapply param_abstr => R Rs param_R.
-rewrite /outer_loop5 /outer_loop4 paramE.
-rewrite /outer_loop3.
-rewrite -/outer_loop4.
-rewrite paramE in param_R.
-eapply iteri_ord_ind2 => //.
-done.
-move=> i i' s s' Hi Hi' param_s /=.
-rewrite /store.
-rewrite /store_class_instance_0 /store_class_instance_1.
-eapply paramP.
+apply param_abstr => A As param_A.
+apply param_abstr => R Rs param_R.
+rewrite /outer_loop5 /outer_loop4 /outer_loop3.
+eapply param_apply; [|exact param_R].
 eapply param_apply.
+{ by eapply param_apply; [apply param_iteri_ord|rewrite paramE]. }
+apply param_abstr => j j' param_j.
+apply param_abstr => s s' param_s.
+have Hin : param Rseqmx (inner_loop5 j A s) (inner_loop4 (n := n) j' As s').
+{ eapply param_apply; [|exact param_s].
+  eapply param_apply; [|exact param_A].
+  eapply param_apply; [apply param_inner_loop|exact param_j]. }
 eapply param_apply.
+{ do 2 (eapply param_apply; [|exact param_j]).
+  by eapply param_apply; [apply param_store3|]. }
 eapply param_apply.
-eapply param_apply.
-by tc.
-eapply param_apply.
-eapply param_apply.
-eapply param_apply.
-by tc.
-move: Hi'; rewrite paramE /Rord /nat_of /nat_of_class_instance_4 /ssr_nat_of.
-by instantiate (1:=id).
-done.
-by rewrite paramE.
-by rewrite paramE.
-by rewrite paramE.
-eapply param_apply.
-eapply param_apply.
-eapply param_apply.
-by tc.
-by rewrite paramE.
-eapply param_apply.
-eapply param_apply.
-eapply param_apply.
-eapply Rseqmx_fun_of_seqmx'.
-done.
-by rewrite paramE.
-by rewrite paramE.
-eapply param_apply.
-eapply param_apply.
-eapply Rseqmx_rowseqmx'.
-by rewrite paramE.
-eapply param_apply.
-eapply param_apply.
-eapply param_apply.
-by tc.
-by rewrite paramE.
-done.
-by tc.
-Unshelve. (* FIXME: this should be automatically discharged *)
-by tc.
-by tc.
+{ eapply param_apply.
+  { eapply param_apply; [apply param_ytildes|exact param_j]. }
+  do 2 (eapply param_apply; [|exact param_j]).
+  eapply param_apply; [|exact param_A].
+  apply Rseqmx_fun_of_seqmx'. }
+eapply param_apply; [|apply Hin].
+eapply param_apply; [apply Rseqmx_rowseqmx'|exact param_j].
 Qed.
 
 Global Instance param_cholesky :
-  param (RmxC ==> RmxC)%rel (cholesky5 (n' := n)) (cholesky4 (n := n)).
+  param (RmxC ==> RmxC) (cholesky5 (n' := n)) (cholesky4 (n := n)).
 Proof.
-eapply param_abstr => m s param_ms; rewrite /cholesky5 /cholesky4.
-rewrite paramE.
-apply: refines_seqmxP.
-- by rewrite size_cholesky4 ?sizeE.
-- by move=> i Hi; rewrite size_nth_cholesky4 ?sizeE.
-- move=> i j; rewrite /cholesky3 /=.
-  eapply refines_nth.
-  eapply param_apply; try by tc.
+apply param_abstr => A As param_A.
+rewrite /cholesky5 /cholesky4 /cholesky3.
+do 2 (eapply param_apply; [|exact param_A]).
+apply param_outer_loop.
 Qed.
 
 End data_refinement.
+
+Section data_refinement'.
+
+Variable fs : Float_infnan_spec.
+
+Let C := FI fs.
+
+Instance : add (FI fs) := @fiplus fs.
+Instance : mul (FI fs) := @fimult fs.
+Instance : sqrt (FI fs) := @fisqrt fs.
+Instance : div (FI fs) := @fidiv fs.
+Instance : opp (FI fs) := @fiopp fs.
+Instance : zero (FI fs) := @FI0 fs.
+Instance : one (FI fs) := @FI1 fs.
+
+Context {n : nat}.
+
+Instance : nat_of_class (fun _ => nat) n.+1 := id.
+
+Instance : I0_class [eta ordinal] n.+1 := ssr_I0.
+Instance : succ0_class [eta ordinal] n.+1 := ssr_succ0.
+Instance : nat_of_class [eta ordinal] n.+1 := ssr_nat_of.
+
+Instance : I0_correct [eta ordinal] n.+1.
+Proof. done. Qed.
+
+Instance : succ0_correct [eta ordinal] n.+1.
+Proof.
+move=> i; rewrite /nat_of /nat_of_class_instance_6 /ssr_nat_of => Hi.
+by rewrite /succ0 /succ0_class_instance_1 /ssr_succ0 inordK.
+Qed.
+
+Variable eps_inv : BigZ.t_.
+
+Variable add1 mul1 div1 : C -> C -> C.
+Variable feps feta : C.
+
+Definition posdef_check5 :=
+  gen_posdef_check (n':=n) eps_inv add1 mul1 div1 feps feta.
+
+Instance : eq C := @fieq fs.
+Instance : leq C := @file fs.
+Instance : lt C := @filt fs.
+
+Lemma param_heq_op :
+  param (Rseqmx ==> Rseqmx ==> Logic.eq)
+  (@heq_op _ _ (@fheq fs) n.+1 n.+1)
+  (@heq_op _ _ (@eq_mxT C eq_instance_0) n.+1 n.+1).
+Proof.
+apply param_abstr => A1 A1s param_A1.
+apply param_abstr => A2 A2s param_A2.
+have SA1s : seq.size A1s = n.+1 by move: param_A1; apply refines_row_size.
+have SA2s : seq.size A2s = n.+1 by move: param_A2; apply refines_row_size.
+have SzAs : seq.size (zip A1s A2s) = n.+1.
+{ by rewrite size1_zip; rewrite SA1s; [|rewrite SA2s]. }
+have SA1si : forall i : 'I_n.+1, seq.size (nth [::] A1s i) = n.+1.
+{ move=> i; rewrite refines_nth_col_size // SA1s; apply ltn_ord. }
+have SA2si : forall i : 'I_n.+1, seq.size (nth [::] A2s i) = n.+1.
+{ move=> i; rewrite refines_nth_col_size // SA2s; apply ltn_ord. }
+rewrite paramE /heq_op /fheq /eq_mxT /eq_seqmx.
+set b := eq_seq _ _ _.
+apply /forallP; case_eq b => Hb.
+{ move=> i; apply /forallP => j.
+  move: Hb; rewrite /b eq_seqE; [|by rewrite SA1s SA2s].
+  move /all_nthP => Ha.
+  have Hi : (i < seq.size (zip A1s A2s))%N by rewrite SzAs; apply ltn_ord.
+  specialize (Ha ([::], [::]) i Hi); move: Ha; rewrite eq_seqE.
+  { move /all_nthP; set s := zip _ _; move=> Ha.
+    have Hs' : seq.size s = n.+1.
+    { rewrite /s nth_zip /=; [|by rewrite SA1s SA2s].
+      by rewrite size1_zip; rewrite SA1si; [|rewrite SA2si]. }
+    have Hj : (j < seq.size s)%N by rewrite Hs'; apply ltn_ord.
+    specialize (Ha (A1 i j, A2 i j) j Hj).
+    rewrite /s nth_zip /= in Ha; [|by rewrite SA1s SA2s].
+    rewrite nth_zip /= in Ha; [|by rewrite SA1si SA2si].
+    rewrite (@refines_nth _ _ _ _ _ _ _ param_A1) in Ha.
+    by rewrite (@refines_nth _ _ _ _ _ _ _ param_A2) in Ha. }
+  by rewrite nth_zip /=; [rewrite SA1si SA2si|rewrite SA1s SA2s]. }
+move=> Ha.
+rewrite /b eq_seqE in Hb; [|by rewrite SA1s SA2s].
+move: Hb; set al := all _ _; suff: al = true; [|rewrite /al].
+{ by move=> Hal; rewrite Hal. }
+apply /(all_nthP ([::], [::])) => i Hi.
+have Hii : (i = @inord n i)%N by rewrite inordK; [|rewrite SzAs in Hi].
+rewrite nth_zip /=; [|by rewrite SA1s SA2s].
+rewrite eq_seqE; [|by rewrite Hii SA1si SA2si].
+apply /(all_nthP (FI0 fs, FI0 fs)) => j Hj.
+(* WIP *)
+Admitted.
+
+Lemma param_is_sym :
+  param (Rseqmx ==> Logic.eq)
+  (@is_sym _ n.+1 (@fheq fs) (@trmx C))
+  (@is_sym _ n.+1 (@eq_mxT C eq_instance_0) transpose_class_instance_1).
+Proof.
+apply param_abstr => A As param_A.
+rewrite /is_sym.
+eapply param_apply; [|exact param_A].
+eapply param_apply; [apply param_heq_op|].
+eapply param_apply; [apply Rseqmx_trseqmx|exact param_A].
+Qed.
+
+Lemma param_all_diag :
+  param (Logic.eq ==> Rseqmx ==> Logic.eq)
+  (@all_diag _ _ _ (@ssr_fun_of C) n.+1 (@ssr_I0 n) (@ssr_succ0 n))
+  (@all_diag _ _ _
+     (@fun_of_instance_0 C zero_instance_0) n.+1 (@I0_class_instance_0 n)
+     (@succ0_class_instance_0 n)).
+Proof.
+apply param_abstr => f f' param_f.
+apply param_abstr => A As param_A.
+rewrite /all_diag.
+eapply param_apply; [|apply param_eq_refl].
+eapply param_apply.
+{ rewrite -/iteri_ord4 -/iteri_ord5.
+  by eapply param_apply; [apply param_iteri_ord|rewrite paramE]. }
+apply param_abstr => i i' param_i.
+apply param_abstr => b b' param_b.
+rewrite !paramE in param_b, param_f; rewrite param_b param_f paramE.
+do 2 apply f_equal; apply paramP; do 2 (eapply param_apply; [|exact param_i]).
+eapply param_apply; [apply Rseqmx_fun_of_seqmx'|exact param_A].
+Qed.
+
+Lemma param_foldl_diag :
+  param (Logic.eq ==> Logic.eq ==> Rseqmx ==> Logic.eq)
+  (@foldl_diag _ _ _ (@ssr_fun_of (FI fs)) n.+1
+     (@ssr_I0 n) (@ssr_succ0 n) (FI fs))
+  (@foldl_diag _ _ _ (@fun_of_instance_0 (FI fs) (FI0 fs)) n.+1
+     (@I0_class_instance_0 n) (@succ0_class_instance_0 n) (FI fs)).
+Proof.
+apply param_abstr => f f' param_f.
+apply param_abstr => x x' param_x.
+apply param_abstr => A As param_A.
+rewrite /foldl_diag.
+eapply param_apply; [|exact param_x].
+eapply param_apply.
+{ rewrite -/iteri_ord4 -/iteri_ord5.
+  by eapply param_apply; [apply param_iteri_ord|rewrite paramE]. }
+apply param_abstr => i i' param_i.
+apply param_abstr => s s' param_s.
+rewrite !paramE in param_f, param_s; rewrite param_f param_s paramE.
+apply f_equal, paramP; do 2 (eapply param_apply; [|exact param_i]).
+eapply param_apply; [apply Rseqmx_fun_of_seqmx'|exact param_A].
+Qed.
+
+Lemma param_max_diag :
+  param (Rseqmx ==> Logic.eq)
+  (@max_diag _ _ _ (FI0 fs) 
+     (@ssr_fun_of (FI fs)) n.+1 (@ssr_I0 n) (@ssr_succ0 n) 
+     (@leq_infnan fs))
+  (@max_diag _ _ _  (FI0 fs)
+     (@fun_of_instance_0 (FI fs) (FI0 fs)) n.+1 (@I0_class_instance_0 n)
+     (@succ0_class_instance_0 n) leq_instance_0).
+Proof.
+apply param_abstr => A As param_A.
+rewrite /max_diag.
+eapply param_apply; [|exact param_A].
+do 2 (eapply param_apply; [|apply param_eq_refl]).
+apply param_foldl_diag.
+Qed.
+
+Lemma param_compute_c_aux :
+  param (Rseqmx ==> Logic.eq ==> Logic.eq)
+  (@compute_c_aux _ _ _ (FI0 fs) (FI1 fs) (@fiopp fs) 
+     (@ssr_fun_of (FI fs)) n.+1
+     (@ssr_I0 n) (@ssr_succ0 n) add1 mul1 div1
+     feps feta)
+  (@compute_c_aux _ _ _ (FI0 fs) (FI1 fs) (@fiopp fs)
+     (@fun_of_instance_0 (FI fs) (FI0 fs)) n.+1
+     (@I0_class_instance_0 n) (@succ0_class_instance_0 n) add1 mul1 div1
+     feps feta).
+Proof.
+apply param_abstr => A As param_A.
+apply param_abstr => x x' param_x.
+rewrite paramE /compute_c_aux; apply f_equal2; apply f_equal; [|apply f_equal].
+{ apply paramP; eapply param_apply; [|exact param_A].
+  rewrite /tr_up; do 2 (eapply param_apply; [|apply param_eq_refl]).
+  apply param_foldl_diag. }
+by move: param_x; rewrite paramE.
+Qed.
+
+Lemma param_compute_c :
+  param (Rseqmx ==> Logic.eq)
+  (@compute_c (FI fs) _ _ 
+     (zero_infnan fs) (one_infnan fs) (@opp_infnan fs)
+     (@ssr_fun_of (FI fs)) n.+1 (@ssr_I0 n) 
+     (@ssr_succ0 n) (@leq_infnan fs) (@lt_infnan fs) add1 mul1 div1
+     (@is_finite fs) feps feta)
+  (@compute_c C _ _
+     zero_instance_0 one_instance_0 opp_instance_0
+     (@fun_of_instance_0 C zero_instance_0) n.+1 (@I0_class_instance_0 n)
+     (@succ0_class_instance_0 n) leq_instance_0 lt_instance_0 add1 mul1 div1
+     (@is_finite fs) feps feta).
+Proof.
+apply param_abstr => A As param_A.
+rewrite paramE /compute_c /zero_infnan /one_infnan /opp_infnan /lt_infnan.
+rewrite /zero_instance_0 /one_instance_0 /opp_instance_0 /lt_instance_0 /C.
+case (_ && _) => //.
+set cc := compute_c_aux _ _ _ _ _ A _.
+set cc' := compute_c_aux _ _ _ _ _ As _.
+have Hcccc' : cc = cc'; [rewrite /cc /cc'|by rewrite Hcccc'].
+apply paramP; apply (param_apply (R:=Logic.eq)).
+{ eapply param_apply; [apply param_compute_c_aux|exact param_A]. }
+eapply param_apply; [apply param_max_diag|exact param_A].
+Qed.
+
+Lemma param_map_diag :
+  param (Logic.eq ==> Rseqmx ==> Rseqmx)
+  (@map_diag _ _ _
+     (@ssr_fun_of (FI fs)) (@ssr_store3 (FI fs)) n.+1
+     (@ssr_I0 n) (@ssr_succ0 n))
+  (@map_diag _ _ _
+     (@fun_of_instance_0 C zero_instance_0) (@store_class_instance_1 C) n.+1
+     (@I0_class_instance_0 n) (@succ0_class_instance_0 n)).
+Proof.
+apply param_abstr => f f' param_f.
+apply param_abstr => A As param_A.
+rewrite /map_diag.
+eapply param_apply; [|exact param_A].
+eapply param_apply.
+{ rewrite -/iteri_ord4 -/iteri_ord5.
+  by eapply param_apply; [apply param_iteri_ord|rewrite paramE]. }
+apply param_abstr => i i' param_i.
+apply param_abstr => s s' param_s.
+eapply param_apply.
+{ do 2 (eapply param_apply; [|exact param_i]).
+  eapply param_apply; [apply param_store3|exact param_s]. }
+rewrite paramE in param_f; rewrite param_f paramE; apply f_equal, paramP.
+do 2 (eapply param_apply; [|exact param_i]).
+eapply param_apply; [apply Rseqmx_fun_of_seqmx'|exact param_A].
+Qed.
+
+Lemma param_posdef_check :
+  param (Rseqmx ==> Logic.eq)
+  (gen_posdef_check (n':=n) eps_inv add1 mul1 div1 feps feta)
+  (posdef_check4 (n:=n) eps_inv add1 mul1 div1 feps feta (@is_finite fs)).
+Proof.
+apply param_abstr => A As param_A.
+rewrite paramE /gen_posdef_check /posdef_check4 /posdef_check.
+apply f_equal2; [apply f_equal2; [apply f_equal|]|].
+{ by apply param_eq; eapply param_apply; [apply param_is_sym|exact param_A]. }
+{ apply param_eq; rewrite /noneg_diag.
+  eapply param_apply; [|exact param_A].
+  eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
+set c := compute_c _ _ _ _ _ _ A.
+set c' := compute_c _ _ _ _ _ _ As.
+have Hcc' : c = c'; [|rewrite -Hcc'; case c => // {c c' Hcc'} c].
+{ rewrite /c /c'; apply paramP.
+  eapply param_apply; [apply param_compute_c|exact param_A]. }
+set R := cholesky3 _; set Rs := cholesky3 _; apply paramP.
+suff param_R : param Rseqmx R Rs; [|rewrite /R /Rs].
+{ rewrite paramE; apply f_equal2; apply paramP.
+  { eapply param_apply; [|exact param_R].
+    eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
+  rewrite /pos_diag; eapply param_apply; [|exact param_R].
+  eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
+set At := map_diag _ A; set Ats := map_diag _ As.
+suff: param Rseqmx At Ats; [|rewrite /At /Ats].
+{ rewrite -/cholesky4 -/cholesky5; apply param_apply, param_cholesky. }
+eapply param_apply; [|exact param_A].
+eapply param_apply; [apply param_map_diag|apply param_eq_refl].
+Qed.
+
+End data_refinement'.
 
 (* ================================================================ *)
 (* Require Import String. Eval compute in "Début des tests."%string. *)
