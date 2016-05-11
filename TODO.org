@@ -23,7 +23,7 @@
 ** DONE Restate cholesky.v theorem/corollary with this ssr matrices instantiation :Pierre:
 ** DONE Prove previous item                                          :Pierre:
 ** DONE Prove trec_ind                                               :Pierre:
-** STARTED Data refinement proof: Transport the proof in seqmatrix     :Erik:
+** DONE Data refinement proof: Transport the proof in seqmatrix        :Erik:
 - Use cholesky_prog.v and/or CoqEAL
 *** DONE Prove param_outer_loop, param_cholesky			       :Erik:
     CLOSED: [2016-04-18 Mon 17:19]
@@ -34,7 +34,7 @@
 *** DONE Prove param_dotmulB0					       :Erik:
     CLOSED: [2016-05-04 Wed 16:22]
 *** DONE Prove param_{seq,}_store3                                   :Pierre:
-*** TODO Prove param_posdef_check				:Erik:Pierre:
+*** DONE Prove param_posdef_check                               :Erik:Pierre:
 ** DONE Make all computation effective (small fcts to write)	:Pierre:Erik:
    CLOSED: [2016-05-04 Wed 17:32]
 - Use the proper Rounding mode
