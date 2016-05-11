@@ -339,9 +339,7 @@ Definition m_0_v3 := [:: [:: 0%C; 0%C]; [:: 0%C; 0%C]].
 
 (** Time Eval vm_compute in map (map B2F) (store m_id 0 1 half). *)
 
-(* note: R is transposed with respect to cholesky.v *)
-
-(* when j <= n, [for_ord i j f x] returns
+(* when j <= n, [iteri_ord j f x] returns
  *
  * for k : ordT n from 0 to (j - 1) do
  *   x := f k x
@@ -354,6 +352,7 @@ Fixpoint iteri_ord_rec T k i (f : ordT n -> T -> T) (x : T) :=
   end.
 Definition iteri_ord T j (f : ordT n -> T -> T) x := iteri_ord_rec j I0 f x.
 
+(* note: R is transposed with respect to cholesky.v *)
 Definition inner_loop3 j A R :=
   iteri_ord (nat_of j)
             (fun i R => store R j i (ytilded3 i (fun_of_matrix A i j)
@@ -361,19 +360,7 @@ Definition inner_loop3 j A R :=
                                               (fun_of_matrix R i i)))
             R.
 
-(* Section InnerLoop. *)
-(* Variable j : ordT n. *)
-(* Fixpoint inner_loop_rec3 (k : nat) A R (i : ordT n) {struct k} := *)
-(*   match k with *)
-(*   | O (* i >= j *) => R *)
-(*   | S k => let R := store R j i (ytilded3 i (fun_of_matrix A i j) *)
-(*                                           (row i R) (row j R) *)
-(*                                           (fun_of_matrix R i i)) in *)
-(*            inner_loop_rec3 k A R (succ0 i) *)
-(*   end. *)
-(* Definition inner_loop3 A R i := inner_loop_rec3 (nat_of j - nat_of i) A R i. *)
-(* End InnerLoop. *)
-
+(* note: R is transposed with respect to cholesky.v *)
 Definition outer_loop3 A R :=
   iteri_ord n
             (fun j R =>
@@ -381,19 +368,6 @@ Definition outer_loop3 A R :=
                store R j j (ytildes3 j (fun_of_matrix A j j)
                                      (row j R)))
             R.
-
-(* Section OuterLoop. *)
-(* Fixpoint outer_loop_rec3 k A R (j : ordT n) {struct k} := *)
-(*   match k with *)
-(*   | O (* j >= n *) => R *)
-(*   | S k => *)
-(*     let R := inner_loop3 j A R I0 in *)
-(*     let R := store R j j (ytildes3 j (fun_of_matrix A j j) *)
-(*                                     (row j R)) in *)
-(*     outer_loop_rec3 k A R (succ0 j) *)
-(*   end. *)
-(* Definition outer_loop3 A R j := outer_loop_rec3 (n - nat_of j) A R j. *)
-(* End OuterLoop. *)
 
 (* note: the result is transposed with respect to cholesky.v *)
 Definition cholesky3 A := outer_loop3 A A.
@@ -406,13 +380,6 @@ Definition is_sym (A : mxT n n) : bool := (A^T == A)%HC.
 Definition all_diag f A :=
   iteri_ord n (fun i b => b && f (fun_of_matrix A i i)) true.
 
-(* Fixpoint all_diag_rec f k (A : mxT n n) b (i : ordT n) {struct k} : bool := *)
-(*   match k with *)
-(*   | O => b *)
-(*   | S k => all_diag_rec f k A (b && f (fun_of_matrix A i i)) (succ0 i) *)
-(*   end. *)
-(* Definition all_diag f A := all_diag_rec f n A true I0. *)
-
 Context `{!leq T}.
 
 Definition noneg_diag := all_diag (fun x => 0 <= x)%C.
@@ -424,28 +391,11 @@ Definition pos_diag := all_diag (fun x => 0 < x)%C.
 Definition foldl_diag T' f (z : T') A :=
   iteri_ord n (fun i z => f z (fun_of_matrix A i i)) z.
 
-(* Fixpoint foldl_diag_rec (T' : Type) f z k (A : mxT n n) (i : ordT n) *)
-(* {struct k} : T' := *)
-(*   match k with *)
-(*   | O => z *)
-(*   | S k => foldl_diag_rec T' f (f z (fun_of_matrix A i i)) k A (succ0 i) *)
-(*   end. *)
-(* Definition foldl_diag T' f (z : T') A := foldl_diag_rec f z n A I0. *)
-
 Definition max_diag A :=
   foldl_diag (fun m c => if (m <= c)%C then c else m) 0%C A.
 
 Definition map_diag f A :=
   iteri_ord n (fun i A' => store A' i i (f (fun_of_matrix A i i))) A.
-
-(* Fixpoint map_diag_rec f k (A R : mxT n n) (i : ordT n) {struct k} : mxT n n := *)
-(*   match k with *)
-(*   | O => R *)
-(*   | S k => *)
-(*     let R := store R i i (f (fun_of_matrix A i i)) in *)
-(*     map_diag_rec f k A R (succ0 i) *)
-(*   end. *)
-(* Definition map_diag f A := map_diag_rec f n A A I0. *)
 
 Section directed_rounding.
 
@@ -592,38 +542,6 @@ replace j with (j - nat_of I0)%N at 2; [|by rewrite I0_prop subn0].
 by apply iteri_ord_rec_ind => //; rewrite I0_prop.
 Qed.
 
-(* Lemma trec_ind M P (G : nat -> ordT n -> M -> M) (f : ordT n -> M -> M) : *)
-(*   forall j, (j <= n)%N -> *)
-(*   (forall i s, G 0%N i s = s) -> *)
-(*   (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) -> *)
-(*   (forall (i : ordT n) s, *)
-(*     (nat_of i < n)%N -> P (nat_of i) s -> P (nat_of i).+1 (f i s)) -> *)
-(*   forall (i : ordT n) s, *)
-(*     (nat_of i <= j)%N -> P (nat_of i) s -> P j (G (j - nat_of i)%N i s). *)
-(* Proof. *)
-(* move=> j Hj HG0 HGS Hind i s Hi H. *)
-(* set (k := (j - nat_of i)%N). *)
-(* have Hk : k = (j - nat_of i)%N; [by []|]. *)
-(* move: i Hi k Hk s H => i Hi k; move: i Hi; induction k => i Hi Hk s H. *)
-(* { rewrite HG0; replace j with (nat_of i); [by []|]. *)
-(*   by apply anti_leq; rewrite Hi /= -subn_eq0 Hk. } *)
-(* case (ltnP (nat_of i) j); [move=> Hij|by rewrite /ssrnat.leq -Hk]. *)
-(* rewrite HGS; case (ltnP (nat_of i) n') => Hjn. *)
-(* { have Hsisn : ((nat_of i).+1 < n)%N. *)
-(*   { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. } *)
-(*     apply IHk; erewrite (succ0_prop Hsisn) =>//. *)
-(*     by rewrite subnS -Hk. *)
-(*     by apply Hind; [apply leqW|]. } *)
-(* have Hj' : j = n. *)
-(* { by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). } *)
-(* have Hi' : nat_of i = n'. *)
-(* { apply anti_leq; rewrite Hjn Bool.andb_true_r. *)
-(*     by apply (@leq_trans j.-1); [apply /leP /Nat.lt_le_pred /leP|rewrite Hj']. } *)
-(* have Hk' : k = 0%N. *)
-(* { move: Hk; rewrite Hi' Hj' subSnn; apply eq_add_S. } *)
-(*   by rewrite Hk' HG0 Hj' /n -Hi'; apply Hind; [rewrite Hi'|]. *)
-(* Qed. *)
-
 (* above lemma for P j s := forall i, nat_of i < j -> P i s *)
 Lemma iteri_ord_ind' M P (f : ordT n -> M -> M) :
   (forall (i : ordT n) s, (nat_of i < n)%N ->
@@ -636,24 +554,6 @@ set P' := fun j s => forall (i : ordT n), (nat_of i < j)%N -> P i s.
 set io := _ _ _ _; suff: P' n io; [by move=> H; apply H, Hi|]; rewrite /io.
 by have P0 : P' O s; [|move: P0; apply iteri_ord_ind].
 Qed.
-
-(* (* above lemma for P j s := forall i, nat_of i < j -> P i s *) *)
-(* Lemma trec_ind' M P (G : nat -> ordT n -> M -> M) (f : ordT n -> M -> M) : *)
-(*   (forall i s, G 0%N i s = s) -> *)
-(*   (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) -> *)
-(*   (forall (i : ordT n) s, (nat_of i < n)%N -> *)
-(*    (forall (j : ordT n), (nat_of j < nat_of i)%N -> P j s) -> *)
-(*    forall (j : ordT n), (nat_of j < (nat_of i).+1)%N -> P j (f i s)) -> *)
-(*   forall (i : ordT n) s, (nat_of i < n)%N -> P i (G n I0 s). *)
-(* Proof. *)
-(* move=> HG0 HGS Hind i s Hi. *)
-(* set P' := fun j s => forall (i : ordT n), (nat_of i < j)%N -> P i s. *)
-(* suff: P' n (G n I0_class0 s); [by move=> H; eapply H, Hi|]. *)
-(* have P0 : P' O s; [by []|move: (leq0n n) P0]. *)
-(* replace (G _ _ _) with (G (n - nat_of I0)%N I0 s); [|by rewrite I0_prop]. *)
-(* replace O with (nat_of I0); move=> HI0 HP0. *)
-(* by apply (@trec_ind _ P' _ f). *)
-(* Qed. *)
 
 Lemma iteri_ord_ind'_case M P (f : ordT n -> M -> M) :
   (forall (i : ordT n) s, (nat_of i < n)%N ->
@@ -670,25 +570,6 @@ have H' : j = i.
   rewrite Hji Bool.andb_true_r; apply Hj. }
 rewrite -H'; apply H2; rewrite H' //.
 Qed.
-
-(* Lemma trec_ind'_case M P (G : nat -> ordT n -> M -> M) (f : ordT n -> M -> M) : *)
-(*   (forall i s, G 0%N i s = s) -> *)
-(*   (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) -> *)
-(*   (forall (i : ordT n) s, (nat_of i < n)%N -> *)
-(*    (forall (j : ordT n), (nat_of j < nat_of i)%N -> P j s) -> *)
-(*    forall (j : ordT n), (nat_of j < nat_of i)%N -> P j (f i s)) -> *)
-(*   (forall (i : ordT n) s, (nat_of i < n)%N -> *)
-(*    (forall (j : ordT n), (nat_of j < nat_of i)%N -> P j s) -> P i (f i s)) -> *)
-(*   forall (i : ordT n) s, (nat_of i < n)%N -> P i (G n I0 s). *)
-(* Proof. *)
-(* move=> HG0 HGS H1 H2; apply trec_ind' with (f := f) => // i s Hi H j Hj. *)
-(* case (ltnP (nat_of j) (nat_of i)) => Hji. *)
-(* { by apply H1. } *)
-(* have H' : j = i. *)
-(* { apply (@nat_of_prop _ _ nat_of_class0) => //; apply anti_leq. *)
-(*   rewrite Hji Bool.andb_true_r; apply Hj. } *)
-(* rewrite -H'; apply H2; rewrite H' //. *)
-(* Qed. *)
 
 Context {ordT' : nat -> Type}.
 Context `{!I0_class ordT' n, !succ0_class ordT' n, !nat_of_class ordT' n}.
@@ -741,53 +622,6 @@ replace j with (j - nat_of I0)%N at 2; [|by rewrite I0_prop subn0].
 by apply iteri_ord_rec_ind2 => //; rewrite I0_prop.
 Qed.
   
-(* Lemma trec_ind2 M M' P (G : nat -> ordT n -> M -> M) *)
-(*   (G' : nat -> ordT' n -> M' -> M') *)
-(*   (f : ordT n -> M -> M) *)
-(*   (f' : ordT' n -> M' -> M') : *)
-(*   forall (j : nat), (j <= n)%N -> *)
-(*   (forall i s, G 0%N i s = s) -> *)
-(*   (forall i s, G' 0%N i s = s) -> *)
-(*   (forall k i s, G k.+1 i s = G k (succ0 i) (f i s)) -> *)
-(*   (forall k i s, G' k.+1 i s = G' k (succ0 i) (f' i s)) -> *)
-(*   (forall (i : ordT n) (i' : ordT' n) s s', *)
-(*     (nat_of i <= n)%N -> *)
-(*     nat_of i' = nat_of i -> *)
-(*     P s s' -> P (f i s) (f' i' s')) -> *)
-(*   forall (i : ordT n) (i' : ordT' n) s s', *)
-(*     (nat_of i <= j)%N -> *)
-(*     nat_of i' = nat_of i -> *)
-(*     P s s' -> *)
-(*     P (G (j - nat_of i)%N i s) (G' (j - nat_of i')%N i' s'). *)
-(* Proof. *)
-(* move=> j Hj HG0 HG'0 HGS HG'S Hind i i' s s' Hi Hi' H. *)
-(* rewrite Hi'. *)
-(* move Hk: (j - nat_of i)%N => k. *)
-(* elim: k i i' Hi Hi' Hk s s' H => [|k IHk] i i' Hi Hi' Hk s s' H. *)
-(*   by rewrite HG0 HG'0. *)
-(* case (ltnP (nat_of i) j); last by rewrite /ssrnat.leq Hk. *)
-(* move=> Hij. *)
-(* rewrite HGS HG'S; case (ltnP (nat_of i) n') => Hjn. *)
-(* { have Hsisn : ((nat_of i).+1 < n)%N. *)
-(*   { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. } *)
-(*     apply: IHk; first by rewrite succ0_prop. *)
-(*     rewrite !succ0_prop ?Hi' //. *)
-(*     by rewrite succ0_prop // subnS Hk. *)
-(*     apply Hind; by [apply: leq_trans Hi Hj|]. } *)
-(* have Hj' : j = n. *)
-(* { by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). } *)
-(* have Hi'n : nat_of i = n'. *)
-(* { apply anti_leq; rewrite Hjn andbT. *)
-(*   apply (@leq_trans j.-1); last by rewrite Hj'. *)
-(*   by apply /leP /Nat.lt_le_pred /leP. *)
-(* } *)
-(* have Hk' : k = 0%N. *)
-(* { by rewrite Hi'n Hj' subSnn in Hk; case: Hk. } *)
-(* rewrite Hk' HG0 HG'0. *)
-(* apply: Hind =>//. *)
-(* exact: leq_trans Hi Hj. *)
-(* Qed. *)
-
 End generic_ind.
 
 Section inst_ssr_matrix.
