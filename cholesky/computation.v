@@ -621,7 +621,7 @@ replace j with (j - @nat_of ordT _ _ I0)%N at 1; [|by rewrite I0_prop subn0].
 replace j with (j - nat_of I0)%N at 2; [|by rewrite I0_prop subn0].
 by apply iteri_ord_rec_ind2 => //; rewrite I0_prop.
 Qed.
-  
+
 End generic_ind.
 
 Section inst_ssr_matrix.
@@ -713,7 +713,7 @@ Proof. by move=> Hi; rewrite mxE eq_sym (ltn_eqF Hi). Qed.
 
 Lemma ssr_store3_gt2 (M : 'M[T]_n) (i j : 'I_n) v i' j' :
   (j < nat_of_ord j')%N -> (ssr_store3 M i j v) i' j' = M i' j'.
-Proof. 
+Proof.
 move=> Hj.
 by rewrite mxE (@eq_sym _ (nat_of_ord j')) (ltn_eqF Hj) Bool.andb_false_r.
 Qed.
@@ -1209,7 +1209,7 @@ Variable feta : FI fs.
 
 Hypothesis feta_spec : eta (fis fs) <= FI2F feta.
 
-Definition gen_compute_c_aux (A : 'M[FI fs]_n) (maxdiag : FI fs) : FI fs := 
+Definition gen_compute_c_aux (A : 'M[FI fs]_n) (maxdiag : FI fs) : FI fs :=
   @compute_c_aux _ _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0 add_up mul_up div_up
     feps feta A maxdiag.
 
@@ -1283,7 +1283,7 @@ by change 2 with (INR 2); rewrite -mult_INR; apply float_of_nat_up_correct.
 Qed.
 
 Definition gen_compute_c (A : 'M[FI fs]_n) :
-  option (FI fs) := 
+  option (FI fs) :=
   @compute_c _ _ _ _ _ _ ssr_fun_of _ ssr_I0 ssr_succ0
     leq_infnan lt_infnan add_up mul_up div_up
     (@is_finite fs) feps feta A.
@@ -2176,8 +2176,8 @@ Qed.
 
 Lemma param_max_diag :
   param (Rseqmx ==> Logic.eq)
-  (@max_diag _ _ _ (FI0 fs) 
-     (@ssr_fun_of (FI fs)) n.+1 (@ssr_I0 n) (@ssr_succ0 n) 
+  (@max_diag _ _ _ (FI0 fs)
+     (@ssr_fun_of (FI fs)) n.+1 (@ssr_I0 n) (@ssr_succ0 n)
      (@leq_infnan fs))
   (@max_diag _ _ _  (FI0 fs)
      (@fun_of_instance_0 (FI fs) (FI0 fs)) n.+1 (@I0_class_instance_0 n)
@@ -2192,7 +2192,7 @@ Qed.
 
 Lemma param_compute_c_aux :
   param (Rseqmx ==> Logic.eq ==> Logic.eq)
-  (@compute_c_aux _ _ _ (FI0 fs) (FI1 fs) (@fiopp fs) 
+  (@compute_c_aux _ _ _ (FI0 fs) (FI1 fs) (@fiopp fs)
      (@ssr_fun_of (FI fs)) n.+1
      (@ssr_I0 n) (@ssr_succ0 n) add1 mul1 div1
      feps feta)
@@ -2212,9 +2212,9 @@ Qed.
 
 Lemma param_compute_c :
   param (Rseqmx ==> Logic.eq)
-  (@compute_c (FI fs) _ _ 
+  (@compute_c (FI fs) _ _
      (zero_infnan fs) (one_infnan fs) (@opp_infnan fs)
-     (@ssr_fun_of (FI fs)) n.+1 (@ssr_I0 n) 
+     (@ssr_fun_of (FI fs)) n.+1 (@ssr_I0 n)
      (@ssr_succ0 n) (@leq_infnan fs) (@lt_infnan fs) add1 mul1 div1
      (@is_finite fs) feps feta)
   (@compute_c C _ _
