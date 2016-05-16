@@ -1038,6 +1038,37 @@ apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At R^T;
 apply gen_cholesky_spec_correct, cholesky5_correct.
 Qed.
 
+Lemma gen_corollary_2_7_with_c_r_upper_bounds_infnan :
+  4 * INR n.+1 * eps (fis fs) < 1 ->  (* need a small program to check *)
+  forall A : 'M[FI fs]_n,
+  cholesky.MF2R (MFI2F A^T) = cholesky.MF2R (MFI2F A) ->  (* need a small program to check *)
+  (forall i : 'I_n, 0 <= (MFI2F A) i i) ->  (* need a small program to check *)
+  (*+*)forall Rad : 'M[F (fis fs)]_n, (forall i j : 'I_n, 0 <= (cholesky.MF2R Rad) i j) ->
+  forall maxdiag : R, (forall i : 'I_n, (MFI2F A) i i <= maxdiag) ->  (* need a small program to compute *)
+  forall c : R,
+  (/2 * gamma (fis fs) (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
+   + 4 * eta (fis fs) * INR n * (2 * INR n.+1 + maxdiag)
+   <= c)%Re ->  (* need a small program to compute (with directed rounding) *)
+  (*+*)forall r : R, (forall i j : 'I_n, (cholesky.MF2R Rad) i j <= r)%Re ->
+  forall At : 'M[FI fs]_n,
+  ((forall i j : 'I_n, (i < j)%N -> At i j = A i j) /\
+   (*+*)(forall i : 'I_n, ((MFI2F At) i i <= (MFI2F A) i i - c - INR n * r)%R)) ->  (* need a small program to compute (with directed rounding) *)
+  let R := cholesky5 At in
+  (forall i, (0 < (MFI2F R) i i)%Re) ->  (* need a small program to check *)
+  (*+*)forall Xt : 'M[Rdefinitions.R]_n, Xt^T = Xt -> (forall i j : 'I_n,
+    Rabs (Xt i j - cholesky.MF2R (MFI2F A) i j) <= cholesky.MF2R Rad i j) ->
+  real_matrix.posdef Xt.
+Proof.
+move=> H4n A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At HAt
+  R HAR Xt SymXt HXtARad.
+apply corollary_2_7_with_c_r_upper_bounds_infnan with fs A Rad maxdiag c r At R^T =>//.
+- by move=> i j; rewrite mxE; exact: PRad.
+- by move=> i j; have := Hr i j; rewrite mxE.
+- split; last by move=> i; move: (HAR i); rewrite !mxE.
+  exact/gen_cholesky_spec_correct/cholesky5_correct.
+- by move=> i j; have := HXtARad i j; rewrite !mxE.
+Qed.
+
 Variable eps_inv : BigZ.t_.
 
 (* Example:
