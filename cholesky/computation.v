@@ -2515,16 +2515,92 @@ Definition posdef_check_itv_Q
   let r := @max_mat n n A'2 in
   posdef_check_itv4_coqinterval A'1 r.
 
-(*.*)
+(* FIXME: statement
+Lemma posdef_check_itv_Q_correct A r : gen_posdef_check_itv_Q A r = true ->
+  forall Xt : 'M[R]_n, Xt^T = Xt ->
+  (forall i j : 'I_n, Rabs (Xt i j - MBigQ2R A i j) <= FI2F r) ->
+  real_matrix.posdef Xt.
+*)
+
+End test_CoqInterval.
+
+Section test_CoqInterval_F2FI.
+
+Definition F2FI_proof (x : F.type) : mantissa_bounded (F.round rnd_NE prec x).
+Proof.
+unfold mantissa_bounded, x_bounded, firnd_val, F.toX.
+case: x => [|m e]; first (by left); right.
+simpl.
+case Es : (Bir.mantissa_sign m) => [|s p].
+exists 0; try done.
+  apply: FLX_format_generic.
+  exact: generic_format_0.
+rewrite F.round_aux_correct.
+rewrite (@Interval_generic_proof.Fround_at_prec_correct _ _ _ _ _ _ _ (IZR [p]%bigN)).
+eexists; first done.
+apply: FLX_format_generic.
+exact: generic_format_round.
+admit.
+rewrite Interval_generic_proof.normalize_identity.
+Admitted.
+
+Definition F2FI f := Build_FI _ (F2FI_proof f).
+
+(* Local Notation T := (s_float BigZ.t_ BigZ.t_). *)
+
+Instance add''' : add FI := fiplus.
+Instance mul''' : mul FI := fimult.
+Instance sqrt''' : sqrt FI := fisqrt.
+Instance div''' : div FI := fidiv.
+Instance opp''' : opp FI := fiopp.
+Instance zero''' : zero FI := FI0.
+Instance one''' : one FI := FI1.
+
+Instance eq''' : eq FI := @fieq coqinterval_infnan.
+
+Instance leq''' : leq FI := @file coqinterval_infnan.
+
+Instance lt''' : lt FI := @filt coqinterval_infnan.
+
+Lemma fiplus1_proof (x y : FI) : mantissa_bounded (F.add rnd_UP 53%bigZ x y).
+Admitted.
+
+Definition fiplus1 (x y : FI) : FI :=
+  {| FI_val := F.add rnd_UP 53%bigZ x y; FI_prop := fiplus1_proof x y |}.
+
+Lemma fimult1_proof (x y : FI) : mantissa_bounded (F.mul rnd_UP 53%bigZ x y).
+Admitted.
+
+Definition fimult1 (x y : FI) : FI :=
+  {| FI_val := F.mul rnd_UP 53%bigZ x y; FI_prop := fimult1_proof x y |}.
+
+Lemma fidiv1_proof (x y : FI) : mantissa_bounded (F.div rnd_UP 53%bigZ x y).
+Admitted.
+
+Definition fidiv1 (x y : FI) : FI :=
+  {| FI_val := F.div rnd_UP 53%bigZ x y; FI_prop := fidiv1_proof x y |}.
+
+Definition feps' : FI := F2FI feps.
+Definition feta' : FI := F2FI feta.
+
+Definition posdef_check4_coqinterval' (M : seq (seq FI)) : bool :=
+  @posdef_check4 FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
+    eps_inv fiplus1 fimult1 fidiv1 feps' feta' (@float_infnan_spec.is_finite coqinterval_infnan) M.
+
+Definition m12' := map (map (F2FI)) m12.
 
 Goal True. idtac "test_posdef_check_CoqInterval". done. Qed.
 Time Eval vm_compute in posdef_check4_coqinterval m12.
+(* 6.3 s on Erik's laptop *)
+
+Time Eval vm_compute in posdef_check4_coqinterval' m12'.
+(* 7.1 s on Erik's laptop *)
 
 Goal True. idtac "test_CoqInterval". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
+Fail Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 (* 6.7 s on Erik's laptop *)
 
-End test_CoqInterval.
+End test_CoqInterval_F2FI.
 
 Section test_CoqInterval_add.
 
