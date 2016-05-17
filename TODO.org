@@ -51,10 +51,19 @@
 - Use the small functions defined so far
 ** DONE Instantiate previous functions with ssreflect		     :Pierre:
 ** DONE Prove functions over ssreflect structures                    :Pierre:
-** TODO Refinement to remove proofs from coqinterval_infnan	       :Erik:
-** TODO Make some benchmarks for the Boolean positivity test	     :Pierre:
+** DONE Define the conversion to center-radius representation
+   CLOSED: [2016-05-17 Tue 10:50]
+** TODO Prove RadBigQ2F_correct 				       :Erik:
+** TODO State and prove mantissa_bounded subproof for BigQ2FI	       :Erik:
+** TODO Setup TypeClasses for the small new functions (add1, etc.)     :Erik:
+** LATER Refinement to remove proofs from coqinterval_infnan	       :Erik:
+** TODO Make some benchmarks for the Boolean positivity test (itv_Q) :Pierre:
 ** TODO Design a reflexive tactic for positivity (Ltac)		       :Erik:
+** TODO Fix fail "vm_compute does not support existential variables"   :Erik:
+** TODO Proceed refinement of posdef_check_itv_Q (w.r.t map_mx)	     :Pierre:
+** TODO Do some cleanup, setup naming conventions		:Pierre:Erik:
 * SOS/SDP
+** TODO Look-at doc on OCaml tactics
 ** TODO Look-at Victor's JFR paper				       :Erik:
 - Reuse the interface to ease future benchmarks?
 ** TODO Reread Pierre's paper and OSDP doc			       :Erik:
