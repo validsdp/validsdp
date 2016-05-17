@@ -597,19 +597,4 @@ Definition coqinterval_infnan : Float_infnan_spec :=
     ficompare_spec
     ficompare_spec_eq.
 
-Require Import BigQ.
-
-(* Check F.float_aux. *)
-
-Definition BQ2F2 (q : bigQ) : F.type * F.type :=
-  match q with
-  | BigQ.Qz m => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in (m0, m0)
-  | BigQ.Qq m n => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in
-                   let n0 := Interval_specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
-                   (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0)
-  end.
-
-(* Eval compute in BQ2F2 21. *)
-(* Eval compute in BQ2F2 (22 / 7)%bigQ. *)
-
 End Coqinterval_infnan.

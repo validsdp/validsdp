@@ -49,6 +49,8 @@ Definition bhalf : binary64 :=
 Compute b64_mult mode_NE bhalf bhalf.
 *)
 
+Section Test0.
+
 Definition b64_normalize (f : float radix2) :=
   binary_normalize 53 1024 (refl_equal Lt) (refl_equal Lt) mode_NE (Fnum f) (Fexp f) false.
 
@@ -132,6 +134,8 @@ case=>//.
   - rewrite /valid_binary in prf.
     by rewrite Hme in prf.
 Qed.
+
+End Test0.
 
 (********************************************************************)
 (** Test #1 (Function) & #2 (Fixpoint) using [binary_float 53 1024] *)
@@ -391,6 +395,7 @@ Definition pos_diag := all_diag (fun x => 0 < x)%C.
 Definition foldl_diag T' f (z : T') A :=
   iteri_ord n (fun i z => f z (fun_of_matrix A i i)) z.
 
+(* TODO: un-inline the max function *)
 Definition max_diag A :=
   foldl_diag (fun m c => if (m <= c)%C then c else m) 0%C A.
 
@@ -1381,6 +1386,12 @@ Definition gen_posdef_check (A : 'M[FI fs]_n) : bool :=
     ssr_I0 ssr_succ0 ssr_nat_of fheq (@matrix.trmx (FI fs)) _ _
     add_up mul_up div_up feps feta (@is_finite fs) test_n A.
 
+Definition gen_posdef_check_itv (A : 'M[FI fs]_n) (r : FI fs) : bool :=
+  @posdef_check_itv _ _ _ _ _ _ div_infnan _
+    ssr_fun_of ssr_row ssr_store3 ssr_dotmulB0 _
+    ssr_I0 ssr_succ0 ssr_nat_of fheq (@matrix.trmx (FI fs)) _ _
+    add_up mul_up div_up feps feta (@is_finite fs) test_n A r.
+
 Lemma posdef_check_f1_diag A : gen_posdef_check A = true ->
   forall i, finite (A i i).
 Proof.
@@ -1439,6 +1450,12 @@ split; move=> i; [move=> j Hij|].
 { by apply map_diag_correct_ndiag. }
 move: (Hfat i); rewrite !mxE /At map_diag_correct_diag; apply sub_down_correct.
 Qed.
+
+Lemma posdef_check_itv_correct A r : gen_posdef_check_itv A r = true ->
+  forall Xt : 'M[R]_n, Xt^T = Xt ->
+  (forall i j : 'I_n, Rabs (Xt i j - cholesky.MF2R (MFI2F A) i j) <= FI2F r) ->
+  real_matrix.posdef Xt.
+Admitted.
 
 End proof_inst_ssr_matrix_float_infnan.
 
@@ -1612,6 +1629,10 @@ Variable is_finite : T -> bool.
 Definition posdef_check4 (M : seq (seq T)) : bool :=
   @posdef_check T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
     add1 mul1 div1 feps feta is_finite (test_n eps_inv) M.
+
+Definition posdef_check_itv4 (M : seq (seq T)) (r : T) : bool :=
+  @posdef_check_itv T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
+    add1 mul1 div1 feps feta is_finite (test_n eps_inv) M r.
 
 End inst_seq.
 
@@ -2114,6 +2135,9 @@ Variable feps feta : C.
 Definition posdef_check5 :=
   gen_posdef_check (n':=n) eps_inv add1 mul1 div1 feps feta.
 
+Definition posdef_check_itv5 :=
+  gen_posdef_check_itv (n':=n) eps_inv add1 mul1 div1 feps feta.
+
 Instance : eq C := @fieq fs.
 Instance : leq C := @file fs.
 Instance : lt C := @filt fs.
@@ -2343,6 +2367,39 @@ eapply param_apply; [|exact param_A].
 eapply param_apply; [apply param_map_diag|apply param_eq_refl].
 Qed.
 
+Lemma param_posdef_check_itv :
+  param (Rseqmx ==> Logic.eq ==> Logic.eq)
+  (gen_posdef_check_itv (n':=n) eps_inv add1 mul1 div1 feps feta)
+  (posdef_check_itv4 (n:=n) eps_inv add1 mul1 div1 feps feta (@is_finite fs)).
+Proof.
+apply param_abstr => A As param_A.
+apply param_abstr => r rs param_r.
+rewrite paramE /gen_posdef_check_itv /posdef_check_itv4 /posdef_check_itv.
+rewrite paramE in param_r; rewrite -{}param_r.
+apply f_equal2; [apply f_equal2; [apply f_equal|]|].
+{ by apply param_eq; eapply param_apply; [apply param_is_sym|exact param_A]. }
+{ apply param_eq; rewrite /noneg_diag.
+  eapply param_apply; [|exact param_A].
+  eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
+set c := compute_c _ _ _ _ _ _ A.
+set c' := compute_c _ _ _ _ _ _ As.
+have Hcc' : c = c'; [|rewrite -Hcc'; case c => // {c c' Hcc'} c].
+{ rewrite /c /c'; apply paramP.
+  eapply param_apply; [apply param_compute_c|exact param_A]. }
+set R := cholesky3 _; set Rs := cholesky3 _; apply paramP.
+suff param_R : param Rseqmx R Rs; [|rewrite /R /Rs].
+{ rewrite paramE; apply f_equal2; apply paramP.
+  { eapply param_apply; [|exact param_R].
+    eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
+  rewrite /pos_diag; eapply param_apply; [|exact param_R].
+  eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
+set At := map_diag _ A; set Ats := map_diag _ As.
+suff: param Rseqmx At Ats; [|rewrite /At /Ats].
+{ rewrite -/cholesky4 -/cholesky5; apply param_apply, param_cholesky. }
+eapply param_apply; [|exact param_A].
+eapply param_apply; [apply param_map_diag|apply param_eq_refl].
+Qed.
+
 End data_refinement'.
 
 (* ================================================================ *)
@@ -2355,12 +2412,46 @@ Require Import testsuite.
 
 Section test_CoqInterval.
 
+Definition prec := 53%bigZ.
+
+Require Import BigQ.
+Require Import coqinterval_infnan.
+Require Import Interval.Interval_xreal.
+
+Coercion BigQ2R (q : bigQ) : R := RMicromega.IQR (BigQ.to_Q q).
+
+Definition BigQ2F (q : bigQ) : F.type * F.type :=
+  match q with
+  | BigQ.Qz m => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in (m0, m0)
+  | BigQ.Qq m n => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in
+                   let n0 := Interval_specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
+                   (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0)
+  end.
+
+Definition RadBigQ2F (q r : bigQ) : F.type * F.type :=
+  let (lq, uq) := BigQ2F q in
+  let (_, ur) := BigQ2F r in
+  let l := F.sub rnd_DN prec lq ur in
+  let u := F.add rnd_UP prec uq ur in
+  let c := F.scale2 (F.add rnd_NE prec l u) (-1)%bigZ in
+  (c, F.max (F.sub rnd_UP prec u c) (F.sub rnd_UP prec c l)).
+
+Lemma RadBigQ2F_correct (q r : bigQ) :
+  forall x : R, (q - r <= x <= q + r)%R ->
+  let (c, r') := RadBigQ2F q r in
+  match F.toX c, F.toX r' with
+  | Xnan, _ | _, Xnan => True
+  | Xreal c, Xreal r' => (c - r' <= x <= c + r')%R
+  end.
+(* TODO/Erik *)
+Admitted.
+
 Local Notation T := (s_float BigZ.t_ BigZ.t_).
 
-Instance add'' : add T := F.add rnd_NE 53%bigZ.
-Instance mul'' : mul T := F.mul rnd_NE 53%bigZ.
-Instance sqrt'' : sqrt T := F.sqrt rnd_NE 53%bigZ.
-Instance div'' : div T := F.div rnd_NE 53%bigZ.
+Instance add'' : add T := F.add rnd_NE prec.
+Instance mul'' : mul T := F.mul rnd_NE prec.
+Instance sqrt'' : sqrt T := F.sqrt rnd_NE prec.
+Instance div'' : div T := F.div rnd_NE prec.
 Instance opp'' : opp T := F.neg.
 Instance zero'' : zero T := F.zero.
 Instance one'' : one T := Float 1%bigZ 0%bigZ.
@@ -2386,9 +2477,9 @@ Instance lt'' : lt T := fun x y =>
 
 Definition eps_inv := 9007199254740992%bigZ.  (* 2^53 *)
 
-Definition add1 := F.add rnd_UP 53%bigZ.
-Definition mul1 := F.mul rnd_UP 53%bigZ.
-Definition div1 := F.div rnd_UP 53%bigZ.
+Definition add1 := F.add rnd_UP prec.
+Definition mul1 := F.mul rnd_UP prec.
+Definition div1 := F.div rnd_UP prec.
 
 Definition feps : T := Float 2%bigZ (-53)%bigZ.
 Definition feta : T := Float 2%bigZ (-1075)%bigZ.
@@ -2398,6 +2489,33 @@ Definition is_finite : T -> bool := F.real.
 Definition posdef_check4_coqinterval (M : seq (seq T)) : bool :=
   @posdef_check4 T _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
     eps_inv add1 mul1 div1 feps feta is_finite M.
+
+Definition posdef_check_itv4_coqinterval (M : seq (seq T)) (r : T) : bool :=
+  @posdef_check_itv4 T _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
+    eps_inv add1 mul1 div1 feps feta is_finite M r.
+
+Let mxQ (m n : nat) := seq (seq bigQ).
+Let mxT (m n : nat) := seq (seq F.type).
+
+Definition max_mat m n (A : mxT m n) :=
+  foldl (foldl (fun acc c => if (acc <= c)%C then c else acc)) 0%C A.
+
+Definition posdef_check_itv_Q
+  (* overapproximations of eps and eta *)
+  (eps eta : T)
+  (is_finite : T -> bool)
+  (* check that n is not too large *)
+  (test_n : nat -> bool)
+  (* matrix to check *)
+  (A : seq (seq bigQ)) (r : bigQ) : bool :=
+  let n := (seq.size A).-1 in
+  let A' := map (map (RadBigQ2F ^~ r)) A in
+  let A'1 := map (map fst) A' in
+  let A'2 := map (map snd) A' in
+  let r := @max_mat n n A'2 in
+  posdef_check_itv4_coqinterval A'1 r.
+
+(*.*)
 
 Goal True. idtac "test_posdef_check_CoqInterval". done. Qed.
 Time Eval vm_compute in posdef_check4_coqinterval m12.
