@@ -1743,13 +1743,17 @@ Variable feps feta : T.
 
 Variable is_finite : T -> bool.
 
+Definition seq_fold_mx {T' : Type} : fold_mx_class T T' mxT.
+(* TO DEFINE *)
+Admitted.
+
 Definition posdef_check4 (M : seq (seq T)) : bool :=
   @posdef_check T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
     add1 mul1 div1 feps feta is_finite (test_n eps_inv) M.
 
-Definition posdef_check_itv4 (M : seq (seq T)) (r : T) : bool :=
+Definition posdef_check_itv4 (M Rad : seqmatrix T) : bool :=
   @posdef_check_itv T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
-    add1 mul1 div1 feps feta is_finite (test_n eps_inv) M r.
+    add1 mul1 div1 (@seq_fold_mx T) feps feta is_finite (test_n eps_inv) M Rad.
 
 End inst_seq.
 
@@ -2428,7 +2432,7 @@ eapply param_apply; [apply param_max_diag|exact param_A].
 Qed.
 
 Lemma param_map_diag :
-  param (Logic.eq ==> Rseqmx ==> Rseqmx)
+  param ((Logic.eq ==> Logic.eq) ==> Rseqmx ==> Rseqmx)
   (@map_diag _ _ _
      (@ssr_fun_of (FI fs)) (@ssr_store3 (FI fs)) n.+1
      (@ssr_I0 n) (@ssr_succ0 n))
@@ -2448,7 +2452,7 @@ apply param_abstr => s s' param_s.
 eapply param_apply.
 { do 2 (eapply param_apply; [|exact param_i]).
   eapply param_apply; [apply param_store3|exact param_s]. }
-rewrite paramE in param_f; rewrite param_f paramE; apply f_equal, paramP.
+eapply param_apply; first exact: param_f.
 do 2 (eapply param_apply; [|exact param_i]).
 eapply param_apply; [apply Rseqmx_fun_of_seqmx'|exact param_A].
 Qed.
@@ -2481,28 +2485,44 @@ set At := map_diag _ A; set Ats := map_diag _ As.
 suff: param Rseqmx At Ats; [|rewrite /At /Ats].
 { rewrite -/cholesky4 -/cholesky5; apply param_apply, param_cholesky. }
 eapply param_apply; [|exact param_A].
-eapply param_apply; [apply param_map_diag|apply param_eq_refl].
+eapply param_apply; [exact param_map_diag|].
+by eapply param_fun_eq; rewrite paramE.
 Qed.
 
 Lemma param_posdef_check_itv :
-  param (Rseqmx ==> Logic.eq ==> Logic.eq)
+  param (Rseqmx ==> Rseqmx ==> Logic.eq)
   (gen_posdef_check_itv (n':=n) eps_inv add1 mul1 div1 feps feta)
   (posdef_check_itv4 (n:=n) eps_inv add1 mul1 div1 feps feta (@is_finite fs)).
 Proof.
 apply param_abstr => A As param_A.
-apply param_abstr => r rs param_r.
-rewrite paramE /gen_posdef_check_itv /posdef_check_itv4 /posdef_check_itv.
-rewrite paramE in param_r; rewrite -{}param_r.
+apply param_abstr => Rd Rds param_Rd.
+rewrite paramE /gen_posdef_check_itv /posdef_check_itv4 /posdef_check_itv /posdef_check.
 apply f_equal2; [apply f_equal2; [apply f_equal|]|].
-{ by apply param_eq; eapply param_apply; [apply param_is_sym|exact param_A]. }
+{ apply param_eq; eapply param_apply; first by apply param_is_sym.
+  eapply param_apply; last by tc.
+  eapply param_apply; first exact: param_map_diag.
+  (* This could be simplified with a param lemma for sub_down *)
+  rewrite paramE => a b Hab; repeat f_equal =>//.
+  admit. (* TODO *)
+}
 { apply param_eq; rewrite /noneg_diag.
-  eapply param_apply; [|exact param_A].
-  eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
-set c := compute_c _ _ _ _ _ _ A.
-set c' := compute_c _ _ _ _ _ _ As.
+  eapply param_apply.
+  eapply param_apply; [by apply param_all_diag|apply param_eq_refl].
+  eapply param_apply; last exact: param_A.
+  eapply param_apply; first eapply param_map_diag.
+  rewrite paramE => a b Hab; repeat f_equal =>//.
+  admit. (* TODO *)
+}
+set c := compute_c _ _ _ _ _ _ (_ _ A).
+set c' := compute_c _ _ _ _ _ _ (_ _ As).
 have Hcc' : c = c'; [|rewrite -Hcc'; case c => // {c c' Hcc'} c].
 { rewrite /c /c'; apply paramP.
-  eapply param_apply; [apply param_compute_c|exact param_A]. }
+  eapply param_apply; [by apply param_compute_c|].
+  eapply param_apply; last exact: param_A.
+  eapply param_apply; first exact param_map_diag.
+  rewrite paramE => a b Hab; repeat f_equal => //.
+  admit. (* TODO *)
+}
 set R := cholesky3 _; set Rs := cholesky3 _; apply paramP.
 suff param_R : param Rseqmx R Rs; [|rewrite /R /Rs].
 { rewrite paramE; apply f_equal2; apply paramP.
@@ -2511,11 +2531,18 @@ suff param_R : param Rseqmx R Rs; [|rewrite /R /Rs].
   rewrite /pos_diag; eapply param_apply; [|exact param_R].
   eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
 set At := map_diag _ A; set Ats := map_diag _ As.
-suff: param Rseqmx At Ats; [|rewrite /At /Ats].
-{ rewrite -/cholesky4 -/cholesky5; apply param_apply, param_cholesky. }
-eapply param_apply; [|exact param_A].
-eapply param_apply; [apply param_map_diag|apply param_eq_refl].
-Qed.
+suff HA : param Rseqmx At Ats; [|rewrite /At /Ats].
+{ rewrite -/cholesky4 -/cholesky5.
+eapply param_apply; first exact: param_cholesky.
+eapply param_apply; last exact: HA.
+eapply param_apply; [eapply param_map_diag|].
+by apply param_fun_eq, param_eq_refl.
+}
+eapply param_apply; last exact: param_A.
+eapply param_apply; first exact: param_map_diag.
+rewrite paramE => a b Hab; repeat f_equal => //.
+admit. (* TODO *)
+Admitted.
 
 End data_refinement'.
 
@@ -2560,6 +2587,8 @@ Lemma RadBigQ2F_correct (q r : bigQ) :
   | Xnan, _ | _, Xnan => True
   | Xreal c, Xreal r' => (c - r' <= x <= c + r')%R
   end.
+Proof.
+
 (* TODO/Erik *)
 Admitted.
 
@@ -2607,9 +2636,9 @@ Definition posdef_check4_coqinterval (M : seq (seq T)) : bool :=
   @posdef_check4 T _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
     eps_inv add1 mul1 div1 feps feta is_finite M.
 
-Definition posdef_check_itv4_coqinterval (M : seq (seq T)) (r : T) : bool :=
+Definition posdef_check_itv4_coqinterval (M Rad : seq (seq T)) : bool :=
   @posdef_check_itv4 T _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
-    eps_inv add1 mul1 div1 feps feta is_finite M r.
+    eps_inv add1 mul1 div1 feps feta is_finite M Rad.
 
 Let mxQ (m n : nat) := seq (seq bigQ).
 Let mxT (m n : nat) := seq (seq F.type).
@@ -2629,8 +2658,8 @@ Definition posdef_check_itv_Q
   let A' := map (map (RadBigQ2F ^~ r)) A in
   let A'1 := map (map fst) A' in
   let A'2 := map (map snd) A' in
-  let r := @max_mat n n A'2 in
-  posdef_check_itv4_coqinterval A'1 r.
+  (* let r := @max_mat n n A'2 in *)
+  posdef_check_itv4_coqinterval A'1 A'2.
 
 (* FIXME: statement
 Lemma posdef_check_itv_Q_correct A r : gen_posdef_check_itv_Q A r = true ->
