@@ -796,7 +796,7 @@ apply Mlt_le_trans with (c%:M + r%:M + (x^T *m (MF2R At') *m x
   { apply (th_2_3 H2n SymAt' HAt'Rt) => [i|].
     { apply (Rle_trans _ _ _ (proj2 HAt'' i)).
       move: c_pos r_pos (Hmaxdiag i); lra. }
-  by move=> Hx'; rewrite Hx' norm2_0 in Hx; apply R1_neq_R0. }
+    by move=> Hx'; rewrite Hx' norm2_0 in Hx; apply R1_neq_R0. }
   rewrite -(GRing.opprK (_ *m x)); apply Mopp_le_contravar.
   apply (Mle_trans (Mle_abs _)); rewrite Mabs_opp map_trmx.
   apply (Mle_trans (Mabs_mul _ _)), Mmul_le_compat_r; [by apply Mabs_pos|].

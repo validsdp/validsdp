@@ -202,4 +202,7 @@ Qed.
 Lemma fimax_spec_eq x y : fimax x y = x \/ fimax x y = y.
 Proof. now unfold fimax; case (file x y); [right|left]. Qed.
 
+Lemma fimax_spec_f x y : finite x -> finite y -> finite (fimax x y).
+Proof. by case (fimax_spec_eq x y) => H; rewrite H. Qed.
+
 End Derived_spec.
