@@ -21,21 +21,13 @@ liability. See the COPYING file for more details.
 Require Import Rdefinitions Raxioms RIneq Rbasic_fun.
 Require Import Epsilon FunctionalExtensionality.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat.
-Require Import mathcomp.ssreflect.seq mathcomp.ssreflect.choice mathcomp.ssreflect.bigop mathcomp.algebra.ssralg.
+Require Import mathcomp.ssreflect.choice mathcomp.ssreflect.bigop mathcomp.algebra.ssralg.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope R_scope.
-
-Lemma Req_EM_T (r1 r2 : R) : {r1 = r2} + {r1 <> r2}.
-Proof.
-case: (total_order_T r1 r2) => [[r1Lr2 | <-] | r1Gr2].
-- by right=> r1Er2; case: (Rlt_irrefl r1); rewrite {2}r1Er2.
-- by left.
-by right=> r1Er2; case: (Rlt_irrefl r1); rewrite {1}r1Er2.
-Qed.
 
 Definition eqr (r1 r2 : R) : bool :=
   if Req_EM_T r1 r2 is left _ then true else false.
@@ -102,89 +94,3 @@ Canonical Rmul_comoid := ComLaw Rmult_comm.
 
 Canonical Rmul_mul_law := MulLaw Rmult_0_l Rmult_0_r.
 Canonical Radd_add_law := AddLaw Rmult_plus_distr_r Rmult_plus_distr_l.
-
-Definition Rinvx r := if (r != 0) then / r else r.
-
-Definition unit_R r := r != 0.
-
-Lemma RmultRinvx : {in unit_R, left_inverse 1 Rinvx Rmult}.
-Proof.
-move=> r; rewrite -topredE /unit_R /Rinvx => /= rNZ /=.
-by rewrite rNZ Rinv_l //; apply/eqP.
-Qed.
-
-Lemma RinvxRmult : {in unit_R, right_inverse 1 Rinvx Rmult}.
-Proof.
-move=> r; rewrite -topredE /unit_R /Rinvx => /= rNZ /=.
-by rewrite rNZ Rinv_r //; apply/eqP.
-Qed.
-
-Lemma intro_unit_R x y : y * x = 1 /\ x * y = 1 -> unit_R x.
-Proof.
-move=> [yxE1 xyE1]; apply/eqP=> xZ.
-by case/eqP: R1_neq_0; rewrite -yxE1 xZ Rmult_0_r.
-Qed.
-
-Lemma Rinvx_out : {in predC unit_R, Rinvx =1 id}.
-Proof. by move=> x; rewrite inE /= /Rinvx -if_neg => ->. Qed.
-
-Definition real_unitRingMixin :=
-  UnitRingMixin RmultRinvx RinvxRmult intro_unit_R Rinvx_out.
-
-Canonical Structure real_unitRing :=
-  Eval hnf in UnitRingType R real_unitRingMixin.
-
-Canonical Structure real_comUnitRingType :=
-  Eval hnf in [comUnitRingType of R].
-
-Lemma real_idomainMixin x y : x * y = 0 -> (x == 0) || (y == 0).
-Proof.
-(do 2 case: (boolP (_ == _))=> // /eqP)=> yNZ xNZ xyZ.
-by case: (Rmult_integral_contrapositive_currified _ _ xNZ yNZ).
-Qed.
-
-Canonical Structure real_idomainType :=
-   Eval hnf in IdomainType R real_idomainMixin.
-
-Lemma real_fieldMixin : GRing.Field.mixin_of [unitRingType of R].
-Proof. done. Qed.
-
-Definition real_fieldIdomainMixin := FieldIdomainMixin real_fieldMixin.
-
-Canonical Structure real_field := FieldType R real_fieldMixin.
-
-(** Reflect the order on the reals to bool *)
-
-Definition Rleb r1 r2 := if Rle_dec r1 r2 is left _ then true else false.
-Definition Rltb r1 r2 := Rleb r1 r2 && (r1 != r2).
-Definition Rgeb r1 r2 := Rleb r2 r1.
-Definition Rgtb r1 r2 := Rltb r2 r1.
-
-Lemma RleP r1 r2 : reflect (r1 <= r2) (Rleb r1 r2).
-Proof. by rewrite /Rleb; apply: (iffP idP); case: Rle_dec. Qed.
-
-Lemma RltP r1 r2 : reflect (r1 < r2) (Rltb r1 r2).
-Proof.
-rewrite /Rltb /Rleb; apply: (iffP idP); case: Rle_dec=> //=.
-- by case=> // r1Er2 /eqP[].
-- by move=> _ r1Lr2; apply/eqP/Rlt_not_eq.
-by move=> Nr1Lr2 r1Lr2; case: Nr1Lr2; left.
-Qed.
-
-Lemma RgeP r1 r2 : reflect (r1 >= r2) (Rgeb r1 r2).
-Proof.
-rewrite /Rgeb /Rleb; apply: (iffP idP); case: Rle_dec=> //=.
-  by move=> r2Lr1 _; apply: Rle_ge.
-by move=> Nr2Lr1 r1Gr2; case: Nr2Lr1; apply: Rge_le.
-Qed.
-
-Lemma RgtP r1 r2 : reflect (r1 > r2) (Rgtb r1 r2).
-Proof.
-rewrite /Rleb; apply: (iffP idP) => r1Hr2; first by apply: Rlt_gt; apply/RltP.
-by apply/RltP; apply: Rgt_lt.
-Qed.
-
-(*
-Ltac toR := rewrite /GRing.add /GRing.opp /GRing.zero /GRing.mul /GRing.inv
-  /GRing.one //=.
-*)
