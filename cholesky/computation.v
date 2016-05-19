@@ -324,9 +324,11 @@ Open Scope hetero_computable_scope.
 *)
 
 Class map_mx_class T T' mxT mxT' := map_mx :
-  (T -> T') -> forall m n : nat, mxT m n -> mxT' m n.
+  forall {m n : nat},
+  (T -> T') -> mxT m n -> mxT' m n.
 Class fold_mx_class T T' mxT := fold_mx :
-  (T' -> T -> T') -> T' -> forall m n : nat, mxT m n -> T'.
+  forall {m n : nat},
+  (T' -> T -> T') -> T' -> mxT m n -> T'.
 
 Section generic_algos.
 Context {T : Type} {ordT : nat -> Type} {mxT : nat -> nat -> Type}.
@@ -997,7 +999,7 @@ Qed.
 Context {T' : Type}.
 
 Global Instance ssr_fold_mx : fold_mx_class T T' (matrix T) :=
-  fun f x m n =>
+  fun m n f x =>
   match m, n return 'M_(m, n) -> T' with
   | O, _ | _, O => fun A => x
   | S m, S n => fun A =>
@@ -1582,7 +1584,7 @@ Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
 
 Let ordT (n : nat) := nat.
-Let mxT (m n : nat) := seq (seq T).
+Let mxT (m n : nat) := seqmatrix T.
 
 Instance : fun_of T ordT mxT := fun m n => fun_of_seqmx m n.
 
@@ -1743,9 +1745,10 @@ Variable feps feta : T.
 
 Variable is_finite : T -> bool.
 
-Definition seq_fold_mx {T' : Type} : fold_mx_class T T' mxT.
-(* TO DEFINE *)
-Admitted.
+Global Instance seq_fold_mx {T' : Type} : fold_mx_class T T mxT :=
+  fun m n f x s =>
+  foldl (foldl f) x s.
+(* TODO: validate this definition... below *)
 
 Definition posdef_check4 (M : seq (seq T)) : bool :=
   @posdef_check T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
@@ -1811,7 +1814,7 @@ Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A
 Context {C : Type}. (* {ordC : nat -> Type} {mxC : nat -> nat -> Type}. *)
 Local Notation ordC := (fun _ : nat => nat) (only parsing).
 Local Notation mxC := (fun _ _ : nat => seqmatrix C) (only parsing).
-Context `{!zero C, (* !one C, *) !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
+Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
 Context {n : nat}.
 
 Instance : nat_of_class (fun _ => nat) n.+1 := id.
@@ -1830,7 +1833,8 @@ by rewrite /succ0 /succ0_class_instance_1 /ssr_succ0 inordK.
 Qed.
 
 Local Notation ordA := ordinal (only parsing).
-Local Notation mxA := (fun m n => 'M[C]_(m, n)) (only parsing).
+(* Local Notation mxA := (fun m n => 'M[C]_(m, n)) (only parsing). *)
+Local Notation mxA := (matrix C) (only parsing).
 
 (* Context {RmxC : forall {m n}, mxA m n -> mxC m n -> Prop}.
 Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
@@ -1856,6 +1860,28 @@ Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> Logic.eq)
 Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
   (@matrix.row _ m n) (@row _ _ _ m n)}.
 *)
+
+Lemma param_fold_mx :
+  param ((Logic.eq ==> Logic.eq ==> Logic.eq) ==> Logic.eq ==> (@RmxC C n n) ==> Logic.eq)
+  (fold_mx (T' := C) (mxT := mxA)) (@fold_mx C C mxC
+    (@seq_fold_mx _ C) n n).
+(* TODO *)
+Admitted.
+
+Context `{!leq C}.
+
+Lemma param_max_mx : param (RmxC ==> Logic.eq)
+  (max_mx (T := C) (mxT := mxA) (n := n))
+  (max_mx (T := C) (mxT := mxC) (n := n) (fold_mx_class0 := @seq_fold_mx _ C)).
+Proof.
+eapply param_abstr => A As param_A.
+rewrite /max_mx.
+eapply param_apply; last exact: param_A.
+eapply param_apply; first eapply param_apply.
+by eapply param_fold_mx.
+rewrite paramE => a b Hab c d Hcd; by rewrite Hab Hcd.
+by rewrite paramE.
+Qed.
 
 Lemma param_seq_store3 n' : param (RmxC ==> RordC ==> Logic.eq ==> RmxC)
   (fun M j v => @ssr_store3 C 1 n' M ord0 j v)
@@ -2503,7 +2529,8 @@ apply f_equal2; [apply f_equal2; [apply f_equal|]|].
   eapply param_apply; first exact: param_map_diag.
   (* This could be simplified with a param lemma for sub_down *)
   rewrite paramE => a b Hab; repeat f_equal =>//.
-  admit. (* TODO *)
+  eapply paramP; eapply param_apply; last exact: param_Rd.
+  by eapply param_max_mx.
 }
 { apply param_eq; rewrite /noneg_diag.
   eapply param_apply.
@@ -2511,7 +2538,8 @@ apply f_equal2; [apply f_equal2; [apply f_equal|]|].
   eapply param_apply; last exact: param_A.
   eapply param_apply; first eapply param_map_diag.
   rewrite paramE => a b Hab; repeat f_equal =>//.
-  admit. (* TODO *)
+  eapply paramP; eapply param_apply; last exact: param_Rd.
+  by eapply param_max_mx.
 }
 set c := compute_c _ _ _ _ _ _ (_ _ A).
 set c' := compute_c _ _ _ _ _ _ (_ _ As).
@@ -2521,7 +2549,8 @@ have Hcc' : c = c'; [|rewrite -Hcc'; case c => // {c c' Hcc'} c].
   eapply param_apply; last exact: param_A.
   eapply param_apply; first exact param_map_diag.
   rewrite paramE => a b Hab; repeat f_equal => //.
-  admit. (* TODO *)
+  eapply paramP; eapply param_apply; last exact: param_Rd.
+  by eapply param_max_mx.
 }
 set R := cholesky3 _; set Rs := cholesky3 _; apply paramP.
 suff param_R : param Rseqmx R Rs; [|rewrite /R /Rs].
@@ -2541,8 +2570,9 @@ by apply param_fun_eq, param_eq_refl.
 eapply param_apply; last exact: param_A.
 eapply param_apply; first exact: param_map_diag.
 rewrite paramE => a b Hab; repeat f_equal => //.
-admit. (* TODO *)
-Admitted.
+eapply paramP; eapply param_apply; last exact: param_Rd.
+by eapply param_max_mx.
+Qed.
 
 End data_refinement'.
 
