@@ -329,17 +329,17 @@ Open Scope computable_scope.
 Open Scope hetero_computable_scope.
 *)
 
-Class map_mx_class T T' mxT mxT' := map_mx :
-  forall {m n : nat},
-  (T -> T') -> mxT m n -> mxT' m n.
-Class fold_mx_class T T' mxT := fold_mx :
-  forall {m n : nat},
+Class map_mx_class mx := map_mx :
+  forall {m n : nat} {T T'},
+  (T -> T') -> mx T m n -> mx T' m n.
+Class fold_mx_class T mxT := fold_mx :
+  forall {m n : nat} T',  (* @Érik: {T'} ? *)
   (T' -> T -> T') -> T' -> mxT m n -> T'.
 
 Section generic_algos.
-Context {T : Type} {ordT : nat -> Type} {mxT : nat -> nat -> Type}.
+Context {T : Type} {ordT : nat -> Type} {mx : Type -> nat -> nat -> Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !mul T, !div T, !sqrt T}.
-Context `{!fun_of T ordT mxT, !row_class ordT mxT, !store_class T ordT mxT, !dotmulB0_class T ordT mxT}.
+Context `{!fun_of T ordT (mx T), !row_class ordT (mx T), !store_class T ordT (mx T), !dotmulB0_class T ordT (mx T)}.
 Context {n : nat}.
 Context `{!I0_class ordT n, !succ0_class ordT n, !nat_of_class ordT n}.
 
@@ -389,13 +389,15 @@ Definition outer_loop3 A R :=
 (* note: the result is transposed with respect to cholesky.v *)
 Definition cholesky3 A := outer_loop3 A A.
 
-Context `{!heq mxT}.
-Context `{!transpose_class mxT}.
+Context `{!heq (mx T)}.
+Context `{!transpose_class (mx T)}.
 
-Definition is_sym (A : mxT n n) : bool := (A^T == A)%HC.
+Definition is_sym (A : mx T n n) : bool := (A^T == A)%HC.
 
-Definition all_diag f A :=
-  iteri_ord n (fun i b => b && f (fun_of_matrix A i i)) true.
+Definition foldl_diag T' f (z : T') A :=
+  iteri_ord n (fun i z => f z (fun_of_matrix A i i)) z.
+
+Definition all_diag f A := foldl_diag (fun b c => b && f c) true A.
 
 Context `{!leq T}.
 
@@ -404,9 +406,6 @@ Definition noneg_diag := all_diag (fun x => 0 <= x)%C.
 Context `{!lt T}.
 
 Definition pos_diag := all_diag (fun x => 0 < x)%C.
-
-Definition foldl_diag T' f (z : T') A :=
-  iteri_ord n (fun i z => f z (fun_of_matrix A i i)) z.
 
 Definition max x y := if (x <= y)%C then y else x.
 
@@ -430,7 +429,7 @@ Definition float_of_nat_up n := iter _ n (fun x => add1 x 1%C) 0%C.
 (* [compute_c n A maxdiag] overapproximates
    /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
 Definition compute_c_aux (eps eta : T)  (* overapproximations of eps and eta *)
-  (A : mxT n n) (maxdiag : T) : T :=
+  (A : mx T n n) (maxdiag : T) : T :=
 let np1 := float_of_nat_up n.+1 in
 let dnp1 := float_of_nat_up (2 * n.+1)%N in
 let tnp1 := mul1 dnp1 eps in
@@ -441,7 +440,7 @@ add1
     (mul1 (mul1 (float_of_nat_up 4) eta) (float_of_nat_up n))
     (add1 dnp1 maxdiag)).
 
-Definition compute_c (is_finite : T -> bool) (eps eta : T) (A : mxT n n) :
+Definition compute_c (is_finite : T -> bool) (eps eta : T) (A : mx T n n) :
   option T :=
   let nem1 := add1 (mul1 ((float_of_nat_up (2 * n.+1)%N)) eps) (-1%C)%C in
   if is_finite nem1 && (nem1 < 0)%C then
@@ -459,7 +458,7 @@ Definition posdef_check
   (* check that n is not too large *)
   (test_n : nat -> bool)
   (* matrix to check *)
-  (A : mxT n n) : bool :=
+  (A : mx T n n) : bool :=
 test_n n && is_sym A && noneg_diag A &&
   (match compute_c is_finite eps eta A with
      | None => false
@@ -469,9 +468,11 @@ test_n n && is_sym A && noneg_diag A &&
        all_diag is_finite R && pos_diag R
    end).
 
-Context `{!fold_mx_class T T mxT}.
+Context `{!fold_mx_class T (mx T)}.
 
-Definition max_mx (A : mxT n n) := fold_mx max 0%C A.
+Definition all_mx f (A : mx T n n) := fold_mx (fun b c => b && f c) true A.
+
+Definition max_mx (A : mx T n n) := fold_mx max 0%C A.
 
 Definition posdef_check_itv
   (* overapproximations of eps and eta *)
@@ -480,11 +481,31 @@ Definition posdef_check_itv
   (* check that n is not too large *)
   (test_n : nat -> bool)
   (* matrix to check *)
-  (A Rad : mxT n n) : bool :=
-let m := max_mx Rad in
-let nm := mul1 (float_of_nat_up n) m in
-let A' := map_diag (fun x => sub_down x nm) A in
-posdef_check eps eta is_finite test_n A'.
+  (A Rad : mx T n n) : bool :=
+all_mx is_finite Rad &&
+  let m := max_mx Rad in
+  let nm := mul1 (float_of_nat_up n) m in
+  let A' := map_diag (fun x => sub_down x nm) A in
+  posdef_check eps eta is_finite test_n A'.
+
+Variable Q : Type.
+Variable ItvRadQ2T : Q -> Q -> T * T.
+
+Context `{!map_mx_class mx}.
+
+Definition posdef_check_itv_Q
+  (* overapproximations of eps and eta *)
+  (eps eta : T)
+  (is_finite : T -> bool)
+  (* check that n is not too large *)
+  (test_n : nat -> bool)
+  (* matrix to check *)
+  (A : mx Q n n) (r : Q) : bool :=
+let A' := map_mx (ItvRadQ2T ^~ r) A in
+let A'' := map_mx fst A' in
+let Rad := map_mx snd A' in
+(* let r := @max_mat n n A'2 in *)
+posdef_check_itv eps eta is_finite test_n A'' Rad.
 
 End directed_rounding.
 
@@ -688,11 +709,11 @@ Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
 
 Let ordT := ordinal.
-Let mxT (m n : nat) := 'M[T]_(m, n).
+Let mx := matrix.
 
-Instance ssr_fun_of : fun_of T ordT mxT := fun m n => @matrix.fun_of_matrix T m n.
+Instance ssr_fun_of : fun_of T ordT (mx T) := fun m n => @matrix.fun_of_matrix T m n.
 
-Instance ssr_row : row_class ordT mxT := @matrix.row T.
+Instance ssr_row : row_class ordT (mx T) := @matrix.row T.
 
 Fixpoint gen_fsum_l2r_rec n (c : T) : T ^ n -> T :=
   match n with
@@ -710,7 +731,7 @@ Definition gen_ytilded3 n (c : T) (a b : T ^ n) (bk : T) : T :=
 Definition gen_ytildes3 n (c : T) (a : T ^ n) : T :=
   sqrt_op (gen_stilde3 c a a).
 
-Instance ssr_dotmulB0 : dotmulB0_class T ordT mxT :=
+Instance ssr_dotmulB0 : dotmulB0_class T ordT (mx T) :=
   fun n =>
     match n with
       | 0%N => fun i c a b => c
@@ -725,7 +746,7 @@ Definition ssr_store3 m n (M : 'M[T]_(m, n)) (i : 'I_m) (j : 'I_n) v :=
   \matrix_(i', j')
     if ((nat_of_ord i' == i) && (nat_of_ord j' == j))%N then v else M i' j'.
 
-Instance : store_class T ordT mxT := ssr_store3.
+Instance : store_class T ordT (mx T) := ssr_store3.
 
 Context {n' : nat}.
 Let n := n'.+1.
@@ -734,22 +755,22 @@ Global Instance ssr_succ0 : succ0_class ordT n := fun i => inord i.+1.
 Global Instance ssr_nat_of : nat_of_class ordT n := @nat_of_ord n.
 
 Definition ytilded5 : 'I_n -> T -> 'M[T]_(1, n) -> 'M[T]_(1, n) -> T -> T :=
-  @ytilded3 T ordT mxT _ _ _.
+  @ytilded3 T ordT mx _ _ _.
 
 Definition ytildes5 : 'I_n -> T -> 'M[T]_(1, n) -> T :=
-  @ytildes3 T ordT mxT _ _ _.
+  @ytildes3 T ordT mx _ _ _.
 
 Definition iteri_ord5 : forall T, nat -> ('I_n -> T -> T) -> T -> T :=
   @iteri_ord ordT _ _ _.
 
 Definition inner_loop5 : 'I_n -> 'M[T]_n -> 'M[T]_n -> 'M[T]_n :=
-  @inner_loop3 T ordT mxT _ _ _ _ _ _ _ _ _.
+  @inner_loop3 T ordT mx _ _ _ _ _ _ _ _ _.
 
 Definition outer_loop5 : 'M[T]_n -> 'M[T]_n -> 'M[T]_n :=
-  @outer_loop3 T ordT mxT _ _ _ _ _ _ _ _ _ _.
+  @outer_loop3 T ordT mx _ _ _ _ _ _ _ _ _ _.
 
 Definition cholesky5 : 'M[T]_n -> 'M[T]_n :=
-  @cholesky3 T ordT mxT _ _ _ _ _ _ _ _ _ _.
+  @cholesky3 T ordT mx _ _ _ _ _ _ _ _ _ _.
 
 Section proof.
 
@@ -1027,8 +1048,8 @@ Qed.
 
 Context {T' : Type}.
 
-Global Instance ssr_fold_mx : fold_mx_class T T' (matrix T) :=
-  fun m n f x =>
+Global Instance ssr_fold_mx : fold_mx_class T (matrix T) :=
+  fun m n T' f x =>
   match m, n return 'M_(m, n) -> T' with
   | O, _ | _, O => fun A => x
   | S m, S n => fun A =>
@@ -1038,7 +1059,7 @@ Global Instance ssr_fold_mx : fold_mx_class T T' (matrix T) :=
   end.
 
 Lemma fold_mx_correct (f : T' -> T -> T') (z : T') (A : 'M[T]_n) :
-  forall (P : nat -> nat -> T' -> Type),
+  forall (P : nat -> nat -> T' -> Prop),
   (forall (i : 'I_n) z, P i n z -> P i.+1 O z) ->
   (forall (i : 'I_n) (j : 'I_n) z, P i j z -> P i j.+1 (f z (A i j))) ->
   P O O z -> P n O (ssr_fold_mx f z A).
@@ -1050,6 +1071,49 @@ apply (iteri_ord_ind (P := P')) => //.
 move=> i s Hi Pi; rewrite /P' /f'; apply Hindl.
 set P'' := fun j s => P i j s; rewrite -/(P'' _ _).
 by apply (iteri_ord_ind (P := P'')) => // j s' Hj Pn; apply Hindc.
+Qed.
+
+(* same as above with P' := P for all element of previous rows
+   and previous elements of current row *)
+Lemma fold_mx_correct' (f : T' -> T -> T') (z : T') (A : 'M[T]_n) :
+  forall (P : T' -> Prop) (P' : 'I_n -> 'I_n -> T' -> Prop),
+  (forall (i j : 'I_n) z, P z -> P (f z (A i j))) ->
+  (forall (i j : 'I_n) z,
+   P z ->
+   (forall i' j' : 'I_n,
+    (i' < i \/ i' = i :> nat /\ j' < j)%N -> P' i' j' z) ->
+   (forall i' j' : 'I_n,
+    (i' < i \/ i' = i :> nat /\ j' < j.+1)%N -> P' i' j' (f z (A i j)))) ->
+  P z -> forall i j : 'I_n, P' i j (ssr_fold_mx f z A).
+Proof.
+move=> P P' Hind Hind' Pz0 i j.
+pose P'' := fun i j s => P s /\ forall i' j' : 'I_n,
+  (i' < i \/ i' = i :> nat /\ j' < j)%N -> P' i' j' s.
+suff: P'' n O (ssr_fold_mx f z A).
+{ by rewrite {}/P'' => HP''; apply HP''; left. }
+apply fold_mx_correct; rewrite {}/P''.
+{ move=> i'' z' H; split; [by apply H|]; move=> i' j' Hi'j'; apply H.
+  elim Hi'j' => {Hi'j'} [Hi'|Hi'j'].
+  { case (ltnP i' i'') => Hi'i''; [by left|]; right; split => //.
+    by apply anti_leq; rewrite ltnS in Hi'; rewrite Hi'. }
+  by elim Hi'j'. }
+{ move=> i'' j'' z' H; split; [by apply Hind, H|].
+  move=> i' j' Hi'j'; apply Hind' => //; apply H. }
+by split=> // i' j' H; casetype False; elim H => H'; elim H'.
+Qed.
+
+(* Same as above with P := True *)
+Lemma fold_mx_correct'' (f : T' -> T -> T') (z : T') (A : 'M[T]_n) :
+  forall (P : 'I_n -> 'I_n -> T' -> Prop),
+  (forall (i j : 'I_n) z,
+   (forall i' j' : 'I_n,
+    (i' < i \/ i' = i :> nat /\ j' < j)%N -> P i' j' z) ->
+   (forall i' j' : 'I_n,
+    (i' < i \/ i' = i :> nat /\ j' < j.+1)%N -> P i' j' (f z (A i j)))) ->
+  forall i j : 'I_n, P i j (ssr_fold_mx f z A).
+Proof.
+move=> P Hind i j.
+apply (fold_mx_correct' (P:=fun _ => True)) => // i'' j'' z' _; apply Hind.
 Qed.
 
 End proof.
@@ -1230,31 +1294,23 @@ apply foldl_diag_correct with (P0 := P); rewrite /P.
 by split; [apply finite0|rewrite FI2F0; right].
 Qed.
 
-Definition gen_max_mx := @max_mx (FI fs) (matrix (FI fs)) _ n _ _.
+Definition gen_max_mx := @max_mx (FI fs) matrix _ n _ _.
 
 Lemma max_mx_correct (A : 'M[FI fs]_n) : (forall i j, finite (A i j)) ->
   forall i j, (MFI2F A) i j <= FI2F (gen_max_mx A).
 Proof.
-move=> HF.
-pose P := fun i j (s : FI fs) => finite s /\ forall i' j' : 'I_n,
-  (i' < i \/ i' = i :> nat /\ j' < j)%N -> (MFI2F A) i' j' <= FI2F s.
-suff: P n O (gen_max_mx A).
-{ by rewrite {}/P => HP i j; apply HP; left. }
-rewrite /gen_max_mx /max_mx /fold_mx; apply fold_mx_correct; rewrite {}/P.
-{ move=> i z H; destruct H as (Fz, H); split; [by []|]; move=> i' j' Hi'j'.
-  destruct Hi'j' as [Hi'|Hi'j']; [|by destruct Hi'j']; apply H.
-  case (ltnP i' i) => Hi'i; [by left|right]; split => //.
-  by apply anti_leq; rewrite -ltnS Hi'. }
-{ move=> i j z H; destruct H as (Fz, H); split; [by apply fimax_spec_f|].
-  move=> i' j' Hi'j'; destruct Hi'j' as [Hi'|Hi'j'].
-  { by move: (fimax_spec_lel Fz (HF i j)); apply Rle_trans, H; left. }
-  destruct Hi'j' as (Hi', Hj'); case (ltnP j' j) => Hj'j.
-  { by move: (fimax_spec_lel Fz (HF i j)); apply Rle_trans, H; right. }
-  move: (fimax_spec_ler Fz (HF i j)); apply Rle_trans; right.
-  rewrite mxE; apply /f_equal /f_equal /f_equal2; apply ord_inj => //.
-  by apply anti_leq; rewrite -ltnS Hj'. }
-split; [by apply finite0|]; move=> i' j' Hi'j'.
-by case Hi'j' => Hi'j''; case Hi'j''.
+move=> HF i j.
+set P' := fun i j (s : FI fs) => (MFI2F A) i j <= FI2F s; rewrite -/(P' _ _ _).
+rewrite /gen_max_mx /max_mx /fold_mx.
+apply (fold_mx_correct' (P:=@finite fs)); last apply finite0.
+{ by move=> i' j' x Fx; apply fimax_spec_f. }
+move=> {i j} i j x Fx Hind i' j' Hi'j'; elim Hi'j' => [Hi'|[Hi' Hj']].
+{ by move: (fimax_spec_lel Fx (HF i j)); apply Rle_trans, Hind; left. }
+case (ltnP j' j) => Hj'j.
+{ by move: (fimax_spec_lel Fx (HF i j)); apply Rle_trans, Hind; right. }
+move: (fimax_spec_ler Fx (HF i j)); apply Rle_trans; right.
+rewrite mxE; apply /f_equal /f_equal /f_equal2; apply ord_inj => //.
+by apply anti_leq; rewrite -ltnS Hj'.
 Qed.
 
 Lemma max_mx_pos (A : 'M[FI fs]_n) : (forall i j, finite (A i j)) ->
@@ -1268,6 +1324,21 @@ rewrite /gen_max_mx /max_mx /fold_mx; apply fold_mx_correct.
 { move=> i j z H; destruct H as (Fz, H); split; [by apply fimax_spec_f|].
   by apply (Rle_trans _ _ _ H), fimax_spec_lel. }
 by split; [by apply finite0|rewrite FI2F0; right].
+Qed.
+
+Definition gen_all_mx := @all_mx (FI fs) matrix n _.
+
+Lemma all_mx_correct f (A : 'M[FI fs]_n) : gen_all_mx f A = true ->
+  forall i j, f (A i j) = true.
+Proof.
+move=> H i j; move: H; rewrite /gen_all_mx /all_mx /fold_mx.
+set P := fun i j b => b = true -> f (A i j) = true; rewrite -/(P _ _ _).
+apply fold_mx_correct'' => {i j} i j b Hind i' j' Hi'j';
+  rewrite /P Bool.andb_true_iff; elim=> Hb HAij.
+elim Hi'j' => {Hi'j'} [Hi'|[Hi' Hj']]; [by apply Hind=> //; left|].
+case (ltnP j' j)=> Hj'j; [by apply Hind=> //; right|].
+rewrite -HAij; apply f_equal; apply f_equal2; apply ord_inj=> //.
+by apply anti_leq; rewrite ltnS in Hj'; rewrite Hj'.
 Qed.
 
 (* addition with upward rounding *)
@@ -1551,14 +1622,13 @@ Definition gen_posdef_check_itv (A Rad : 'M[FI fs]_n) : bool :=
     add_up mul_up div_up ssr_fold_mx feps feta (@is_finite fs) test_n A Rad.
 
 Lemma posdef_check_itv_correct A Rad : gen_posdef_check_itv A Rad = true ->
-  (forall i j, finite (Rad i j)) ->  (* TODO: check in posdef_check_itv *)
   forall Xt : 'M[R]_n, Xt^T = Xt ->
   Mabs (Xt - cholesky.MF2R (MFI2F A)) <=m: cholesky.MF2R (MFI2F Rad) ->
   posdef Xt.
 Proof.
 rewrite /gen_posdef_check_itv /posdef_check_itv.
 set m := max_mx _; set nm := mul_up _ _; set A' := map_diag _ _.
-move=> HA' FRad Xt SXt HXt.
+rewrite Bool.andb_true_iff; elim=> PRad HA' Xt SXt HXt.
 have HA'' := posdef_check_correct HA'.
 have HF := posdef_check_f1_diag HA'.
 have HF' : forall i, finite (gen_sub_down (A i i) nm).
@@ -1586,7 +1656,7 @@ apply (Mle_trans (cholesky.Mmul_abs_lr _ HXt)).
 apply Mle_trans with (INR n * FI2F m)%Re%:M.
 { apply cholesky.r_upper_bound => //.
   { move: HXt; apply Mle_trans, Mabs_pos. }
-  by apply max_mx_correct. }
+  by apply max_mx_correct, all_mx_correct. }
 set IN := INR n; rewrite Mle_scalar !mxE /GRing.natmul /= -(Rmult_1_r (_ * _)).
 replace R1 with (R1^2) by ring; rewrite /GRing.one /= in Hx; rewrite -Hx.
 rewrite norm2_sqr_dotprod /dotprod mxE /= big_distrr /=.
@@ -1599,11 +1669,40 @@ have Fnm : finite nm.
   apply fiopp_spec_f1 in F; apply (add_up_spec_fl F). }
 apply (Rle_trans _ (FI2F nm)).
 { apply (Rle_trans _ (FI2F (float_of_nat_up add_up n) * FI2F m)).
-  { apply Rmult_le_compat_r; [by apply max_mx_pos|].
+  { apply Rmult_le_compat_r; [by apply max_mx_pos, all_mx_correct|].
     by apply float_of_nat_up_correct, (@mul_up_spec_fl _ m). }
   by apply mul_up_spec. }
 by move: (Hd' i i); rewrite !mxE eq_refl /GRing.natmul /GRing.mul /= Rmult_1_r.
 Qed.
+
+Variable Q : Type.
+Variable ItvRadQ2FI : Q -> Q -> FI fs * FI fs.
+
+Variable Q2R : Q -> R.
+
+Hypothesis ItvRadQ2FI_correct : forall q r,
+  let (qf, rf) := ItvRadQ2FI q r in
+  is_finite qf -> is_finite rf ->
+  forall x : R, Q2R q - Q2R r <= x <= Q2R q + Q2R r ->
+  FI2F qf - FI2F rf <= x <= FI2F qf + FI2F rf.
+
+Global Instance ssr_map_mx : map_mx_class matrix :=
+  fun m n T T' f A => \matrix_(i, j) f (A i j).
+
+Definition gen_posdef_check_itv_Q (A : 'M[Q]_n) (r : Q) : bool :=
+  @posdef_check_itv_Q _ _ _ _ _ _ div_infnan _
+    ssr_fun_of ssr_row ssr_store3 ssr_dotmulB0 _
+    ssr_I0 ssr_succ0 ssr_nat_of fheq (@matrix.trmx (FI fs)) _ _
+    add_up mul_up div_up ssr_fold_mx
+    Q ItvRadQ2FI ssr_map_mx
+    feps feta (@is_finite fs) test_n A r.
+
+Lemma posdef_check_itv_Q_correct A r : gen_posdef_check_itv_Q A r = true ->
+  forall Xt : 'M[R]_n, Xt^T = Xt ->
+  Mabs (Xt - matrix.map_mx Q2R A) <=m: (Q2R r)%:M ->
+  posdef Xt.
+Proof.
+Admitted.  (* TODO (Pierre) *)
 
 End proof_inst_ssr_matrix_float_infnan.
 
@@ -1613,11 +1712,11 @@ Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
 
 Let ordT (n : nat) := nat.
-Let mxT (m n : nat) := seqmatrix T.
+Let mx T (m n : nat) := seqmatrix T.
 
-Instance : fun_of T ordT mxT := fun m n => fun_of_seqmx m n.
+Instance : fun_of T ordT (mx T) := fun m n => fun_of_seqmx m n.
 
-Instance : row_class ordT mxT := @rowseqmx T.
+Instance : row_class ordT (mx T) := @rowseqmx T.
 
 (* seq_stilde3 *)
 Fixpoint seq_stilde3 k c a b :=
@@ -1628,7 +1727,7 @@ Fixpoint seq_stilde3 k c a b :=
     | S k, a1 :: a2, b1 :: b2 => seq_stilde3 k (c + (- (a1 * b1)))%C a2 b2
   end.
 
-Global Instance seq_dotmulB0 : dotmulB0_class T ordT mxT :=
+Global Instance seq_dotmulB0 : dotmulB0_class T ordT (mx T) :=
   fun n k c a b => seq_stilde3 k c (head [::] a) (head [::] b).
 
 Fixpoint seq_store3 T s k (v : T) :=
@@ -1645,7 +1744,7 @@ Fixpoint store3 T m i j (v : T) :=
     | h :: t, S i => h :: store3 t i j v
   end.
 
-Instance : store_class T ordT mxT :=
+Instance : store_class T ordT (mx T) :=
   fun m n M i j v =>
   store3 M i j v.
 
@@ -1661,10 +1760,10 @@ Instance : I0_correct ordT n.+1.
 Proof. done. Qed.
 
 Definition ytilded4 :=
-  @ytilded3 T ordT mxT _ _ n.+1.
+  @ytilded3 T ordT mx _ _ n.+1.
 
 Definition ytildes4 :=
-  @ytildes3 T ordT mxT _ _ n.+1.
+  @ytildes3 T ordT mx _ _ n.+1.
 
 Definition cholesky4 (M : seq (seq T)) : seq (seq T) :=
   @cholesky3 T ordT _ _ _ _ _ _ _ n.+1 _ _ _ M.
@@ -1759,10 +1858,10 @@ Proof. by move=> *; apply: size_nth_outer_loop4. Qed.
 
 Context `{eq T}.
 
-Instance eq_mxT : @heq nat mxT := fun _ _ => eq_seq (eq_seq H).
+Instance eq_mxT : @heq nat (mx T) := fun _ _ => eq_seq (eq_seq H).
 (*  @eq_seqmx T H (* buggy (it ignores H and uses eq_op) *) *)
 
-Instance : transpose_class mxT := fun m n => @trseqmx T.
+Instance : transpose_class (mx T) := fun m n => @trseqmx T.
 
 Context `{!leq T, !lt T}.
 
@@ -1774,10 +1873,8 @@ Variable feps feta : T.
 
 Variable is_finite : T -> bool.
 
-Global Instance seq_fold_mx {T' : Type} : fold_mx_class T T' mxT :=
-  fun m n f x (s : mxT m n) =>
-  foldl (foldl f) x s.
-(* TODO: validate this definition... below *)
+Global Instance seq_fold_mx {T' : Type} : fold_mx_class T (mx T) :=
+  fun m n T' f x (s : mx T m n) => foldl (foldl f) x s.
 
 Definition posdef_check4 (M : seq (seq T)) : bool :=
   @posdef_check T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
@@ -1867,7 +1964,7 @@ Qed.
 
 Local Notation ordA := ordinal (only parsing).
 (* Local Notation mxA := (fun m n => 'M[C]_(m, n)) (only parsing). *)
-Local Notation mxA := (matrix C) (only parsing).
+Local Notation mx := matrix (only parsing).
 
 (* Context {RmxC : forall {m n}, mxA m n -> mxC m n -> Prop}.
 Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
@@ -1911,10 +2008,9 @@ f_equal.
 by rewrite Hsize.
 Qed.
 
-Lemma param_fold_mx m n'' :
+Lemma param_fold_mx m n'' T' :
   param (Logic.eq ==> Logic.eq ==> RmxC ==> Logic.eq)
-  (fold_mx (T' := C) (mxT := mxA) (m:=m) (n:=n'')) (@fold_mx C C mxC
-    (@seq_fold_mx _ C) m n'').
+    (@fold_mx _ (mx _) _ m n'' T') (@fold_mx C mxC (@seq_fold_mx _ C) m n'' T').
 Proof.
 apply param_abstr => f f' param_f.
 rewrite paramE in param_f; rewrite -param_f.
@@ -1943,14 +2039,29 @@ by rewrite refines_nth_col_size // refines_row_size.
 by rewrite refines_row_size.
 Unshelve.
 exact: [::].
-exact: x'.
+exact: zero0.
 Qed.
 
+Lemma param_all_mx :
+  param (Logic.eq ==> Rseqmx ==> Logic.eq)
+    (@all_mx _ _ n.+1 (@ssr_fold_mx C))
+    (@all_mx _ _ n.+1 (@seq_fold_mx C C)).
+Proof.
+rewrite /all_mx.
+apply param_abstr => f f' param_f; rewrite paramE in param_f; rewrite param_f.
+apply param_abstr => A As param_A.
+eapply param_apply; [|exact param_A].
+do 2 (eapply param_apply; [|apply param_eq_refl]).
+apply param_fold_mx.
+Qed.
+ 
 Context `{!leq C}.
 
+About max_mx.
+
 Lemma param_max_mx : param (RmxC ==> Logic.eq)
-  (max_mx (T := C) (mxT := mxA) (n := n))
-  (max_mx (T := C) (mxT := mxC) (n := n) (fold_mx_class0 := @seq_fold_mx _ C)).
+  (max_mx (T := C) (mx := mx) (n := n))
+  (max_mx (T := C) (mx := (fun C _ _ => seqmatrix C)) (n := n) (fold_mx_class0 := @seq_fold_mx _ C)).
 Proof.
 eapply param_abstr => A As param_A.
 rewrite /max_mx.
@@ -2419,8 +2530,8 @@ Qed.
 
 Lemma param_is_sym :
   param (Rseqmx ==> Logic.eq)
-  (@is_sym _ n.+1 (@fheq fs) (@trmx C))
-  (@is_sym _ n.+1 (@eq_mxT C eq_instance_0) transpose_class_instance_1).
+  (@is_sym _ _ n.+1 (@fheq fs) (@trmx C))
+  (@is_sym _ _ n.+1 (@eq_mxT C eq_instance_0) transpose_class_instance_1).
 Proof.
 apply param_abstr => A As param_A.
 rewrite /is_sym.
@@ -2429,33 +2540,12 @@ eapply param_apply; [apply param_heq_op|].
 eapply param_apply; [apply Rseqmx_trseqmx|exact param_A].
 Qed.
 
-Lemma param_all_diag :
-  param (Logic.eq ==> Rseqmx ==> Logic.eq)
-  (@all_diag _ _ _ (@ssr_fun_of C) n.+1 (@ssr_I0 n) (@ssr_succ0 n))
-  (@all_diag _ _ _
-     (@fun_of_instance_0 C zero_instance_0) n.+1 (@I0_class_instance_0 n)
-     (@succ0_class_instance_0 n)).
-Proof.
-apply param_abstr => f f' param_f.
-apply param_abstr => A As param_A.
-rewrite /all_diag.
-eapply param_apply; [|apply param_eq_refl].
-eapply param_apply.
-{ rewrite -/iteri_ord4 -/iteri_ord5.
-  by eapply param_apply; [apply param_iteri_ord|rewrite paramE]. }
-apply param_abstr => i i' param_i.
-apply param_abstr => b b' param_b.
-rewrite !paramE in param_b, param_f; rewrite param_b param_f paramE.
-do 2 apply f_equal; apply paramP; do 2 (eapply param_apply; [|exact param_i]).
-eapply param_apply; [apply Rseqmx_fun_of_seqmx'|exact param_A].
-Qed.
-
-Lemma param_foldl_diag :
+Lemma param_foldl_diag T' :
   param (Logic.eq ==> Logic.eq ==> Rseqmx ==> Logic.eq)
   (@foldl_diag _ _ _ (@ssr_fun_of (FI fs)) n.+1
-     (@ssr_I0 n) (@ssr_succ0 n) (FI fs))
+     (@ssr_I0 n) (@ssr_succ0 n) T')
   (@foldl_diag _ _ _ (@fun_of_instance_0 (FI fs) (FI0 fs)) n.+1
-     (@I0_class_instance_0 n) (@succ0_class_instance_0 n) (FI fs)).
+     (@I0_class_instance_0 n) (@succ0_class_instance_0 n) T').
 Proof.
 apply param_abstr => f f' param_f.
 apply param_abstr => x x' param_x.
@@ -2470,6 +2560,21 @@ apply param_abstr => s s' param_s.
 rewrite !paramE in param_f, param_s; rewrite param_f param_s paramE.
 apply f_equal, paramP; do 2 (eapply param_apply; [|exact param_i]).
 eapply param_apply; [apply Rseqmx_fun_of_seqmx'|exact param_A].
+Qed.
+
+Lemma param_all_diag :
+  param (Logic.eq ==> Rseqmx ==> Logic.eq)
+  (@all_diag _ _ _ (@ssr_fun_of C) n.+1 (@ssr_I0 n) (@ssr_succ0 n))
+  (@all_diag _ _ _
+     (@fun_of_instance_0 C zero_instance_0) n.+1 (@I0_class_instance_0 n)
+     (@succ0_class_instance_0 n)).
+Proof.
+apply param_abstr => f f' param_f; rewrite paramE in param_f; rewrite param_f.
+apply param_abstr => A As param_A.
+rewrite /all_diag.
+eapply param_apply; [|exact param_A].
+do 2 (eapply param_apply; [|apply param_eq_refl]).
+apply param_foldl_diag.
 Qed.
 
 Lemma param_max_diag :
@@ -2599,7 +2704,9 @@ Proof.
 apply param_abstr => A As param_A.
 apply param_abstr => Rd Rds param_Rd.
 rewrite paramE /gen_posdef_check_itv /posdef_check_itv4 /posdef_check_itv /posdef_check.
-apply f_equal2; [apply f_equal2; [apply f_equal|]|].
+apply f_equal2; [|apply f_equal2; [apply f_equal2; [apply f_equal|]|]].
+{ apply param_eq; eapply param_apply; [|apply param_Rd].
+  eapply param_apply; [apply param_all_mx|apply param_eq_refl]. }
 { apply param_eq; eapply param_apply; first by apply param_is_sym.
   eapply param_apply; last by tc.
   eapply param_apply; first exact: param_map_diag.
@@ -2618,7 +2725,7 @@ apply f_equal2; [apply f_equal2; [apply f_equal|]|].
   by eapply param_max_mx.
 }
 set c := compute_c _ _ _ _ _ _ (_ _ A).
-set c' := compute_c _ _ _ _ _ _ (_ _ As).
+set c' := compute_c _ _ _ _ _ _ (map_diag _ As).
 have Hcc' : c = c'; [|rewrite -Hcc'; case c => // {c c' Hcc'} c].
 { rewrite /c /c'; apply paramP.
   eapply param_apply; [by apply param_compute_c|].
@@ -2712,6 +2819,19 @@ rewrite !F.sub_correct !F.add_correct Ec' /= in Er'.
 (* TODO/Erik *)
 Admitted.
 
+(*
+Variable Q : Type.
+Variable ItvRadQ2FI : Q -> Q -> FI fs * FI fs.
+
+Variable Q2R : Q -> R.
+
+Hypothesis ItvRadQ2FI_correct : forall q r,
+  let (qf, rf) := ItvRadQ2FI q r in
+  is_finite qf -> is_finite rf ->
+  forall x : R, Q2R q - Q2R r <= x <= Q2R q + Q2R r ->
+  FI2F qf - FI2F rf <= x <= FI2F qf + FI2F rf.
+*)
+
 Local Notation T := (s_float BigZ.t_ BigZ.t_).
 
 Instance add'' : add T := F.add rnd_NE prec.
@@ -2760,6 +2880,8 @@ Definition posdef_check_itv4_coqinterval (M Rad : seq (seq T)) : bool :=
   @posdef_check_itv4 T _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
     eps_inv add1 mul1 div1 feps feta is_finite M Rad.
 
+(*
+dupliqué de posdef_check_itv_Q et posdef_check_itv_Q_correct
 Let mxQ (m n : nat) := seq (seq bigQ).
 Let mxT (m n : nat) := seq (seq F.type).
 
@@ -2786,6 +2908,7 @@ Lemma posdef_check_itv_Q_correct A r : gen_posdef_check_itv_Q A r = true ->
   forall Xt : 'M[R]_n, Xt^T = Xt ->
   (forall i j : 'I_n, Rabs (Xt i j - MBigQ2R A i j) <= FI2F r) ->
   posdef Xt.
+*)
 *)
 
 End test_CoqInterval.

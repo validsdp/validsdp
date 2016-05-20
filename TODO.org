@@ -59,7 +59,6 @@
 ** LATER Refinement to remove proofs from coqinterval_infnan	       :Erik:
 ** TODO Make some benchmarks for the Boolean positivity test (itv_Q) :Pierre:
 ** TODO Design a reflexive tactic for positivity (Ltac)		       :Erik:
-** TODO Fix fail "vm_compute does not support existential variables"   :Erik:
 ** TODO Proceed refinement of posdef_check_itv_Q (w.r.t map_mx)	     :Pierre:
 ** TODO Do some cleanup, setup naming conventions		:Pierre:Erik:
 * SOS/SDP
