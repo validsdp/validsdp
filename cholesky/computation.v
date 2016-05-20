@@ -258,11 +258,11 @@ then R is almost:
 *)
 
 Require Import Interval.Interval_float_sig.
-Require Import Interval.Interval_specific_ops.
 Require Import Interval.Interval_interval.
 Require Import Interval.Interval_interval_float_full.
 Require Import Interval.Interval_bigint_carrier.
 Require Import Interval.Interval_definitions.
+Require Import Interval.Interval_specific_ops.
 Module F := SpecificFloat BigIntRadix2.
 Require Import BigZ.
 (* Print Module F. *)
@@ -277,8 +277,14 @@ Local Open Scope bigZ_scope.
 
 Section test_CoqInterval_0.
 
-Definition F2bigF (f : float radix2) :=
+Fail Definition F2bigF (f : float radix2) :=
   Float (BigZ.of_Z (Fnum f)) (BigZ.of_Z (Fexp f)).
+(*
+The command has indeed failed with message:
+In environment
+f : float radix2
+The term "f" has type "float radix2" while it is expected to have type "Fcore_defs.float ?beta0".
+*)
 
 End test_CoqInterval_0.
 
@@ -2682,13 +2688,27 @@ Definition RadBigQ2F (q r : bigQ) : F.type * F.type :=
 
 Lemma RadBigQ2F_correct (q r : bigQ) :
   forall x : R, (q - r <= x <= q + r)%R ->
-  let (c, r') := RadBigQ2F q r in
+  let c := (RadBigQ2F q r).1 in
+  let r' := (RadBigQ2F q r).2 in
   match F.toX c, F.toX r' with
   | Xnan, _ | _, Xnan => True
   | Xreal c, Xreal r' => (c - r' <= x <= c + r')%R
   end.
 Proof.
-
+move=> x Hx.
+rewrite /RadBigQ2F.
+case Eq: (BigQ2F q) => [lq uq].
+case Er: (BigQ2F r) => [_lr0 ur].
+set l := F.sub rnd_DN prec lq ur.
+set u := F.add rnd_UP prec uq ur.
+set c := F.scale2 (F.add rnd_NE prec l u) (-1)%bigZ.
+simpl.
+case Ec': F.toX=> [//|c'].
+case Er': F.toX=> [//|r'].
+rewrite F.max_correct in Er'.
+(* now require CoqInterval version Git/master *)
+rewrite /l /u in Er'.
+rewrite !F.sub_correct !F.add_correct Ec' /= in Er'.
 (* TODO/Erik *)
 Admitted.
 
