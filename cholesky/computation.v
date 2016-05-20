@@ -1745,8 +1745,8 @@ Variable feps feta : T.
 
 Variable is_finite : T -> bool.
 
-Global Instance seq_fold_mx {T' : Type} : fold_mx_class T T mxT :=
-  fun m n f x s =>
+Global Instance seq_fold_mx {T' : Type} : fold_mx_class T T' mxT :=
+  fun m n f x (s : mxT m n) =>
   foldl (foldl f) x s.
 (* TODO: validate this definition... below *)
 
@@ -1861,12 +1861,31 @@ Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
   (@matrix.row _ m n) (@row _ _ _ m n)}.
 *)
 
-Lemma param_fold_mx :
-  param ((Logic.eq ==> Logic.eq ==> Logic.eq) ==> Logic.eq ==> (@RmxC C n n) ==> Logic.eq)
-  (fold_mx (T' := C) (mxT := mxA)) (@fold_mx C C mxC
-    (@seq_fold_mx _ C) n n).
-(* TODO *)
+Lemma param_fold_mx m n'' :
+  param (Logic.eq ==> Logic.eq ==> RmxC ==> Logic.eq)
+  (fold_mx (T' := C) (mxT := mxA) (m:=m) (n:=n'')) (@fold_mx C C mxC
+    (@seq_fold_mx _ C) m n'').
+Proof.
+apply param_abstr => f f' param_f.
+rewrite paramE in param_f; rewrite -param_f.
+apply param_abstr => x x' param_x.
+rewrite paramE in param_x; rewrite -param_x.
+apply param_abstr => A As param_A.
+rewrite paramE /fold_mx.
+rewrite /ssr_fold_mx /seq_fold_mx.
+move: m A As param_A; case=> [|m] A As param_A.
+{ apply refines_row_size in param_A; move: param_A; case As => //. }
+move: n'' A As param_A; case=> [|n''] A As param_A.
+{ apply refines_all_col_size in param_A; move: param_A; elim As => // h t /=.
+  move=> Hind H; move/andP in H; destruct H as (Hh, Ht).
+  by move: Hh; case h => //= _; apply Hind. }
 Admitted.
+(* Idées pour la preuve :
+ * - faire un lemme
+ *   foldl f x s = iteri_ord (seq.size s) (fun i x => f x (nth x s i)) x s
+ * - pour prouver ce lemme, utiliser iteri_ord_ind sur la propriété
+ *   foldl f x (j_premier_éléments j s) = iteri_ord j ... (pareil qu'au dessus)
+ *)
 
 Context `{!leq C}.
 
@@ -1877,10 +1896,8 @@ Proof.
 eapply param_abstr => A As param_A.
 rewrite /max_mx.
 eapply param_apply; last exact: param_A.
-eapply param_apply; first eapply param_apply.
+eapply param_apply; first eapply param_apply; try apply param_eq_refl.
 by eapply param_fold_mx.
-rewrite paramE => a b Hab c d Hcd; by rewrite Hab Hcd.
-by rewrite paramE.
 Qed.
 
 Lemma param_seq_store3 n' : param (RmxC ==> RordC ==> Logic.eq ==> RmxC)
