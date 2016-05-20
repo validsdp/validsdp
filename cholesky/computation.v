@@ -653,12 +653,35 @@ Qed.
 
 End generic_ind.
 
+Section Corollaries.
+
+Variables (T : Type) (ordT : nat -> Type) (n : nat).
+Context
+  `{!I0_class ordT n.+1} `{!nat_of_class ordT n.+1} `{!succ0_class ordT n.+1}
+  `{!I0_correct ordT n.+1} `{!nat_of_correct ordT n.+1} `{!succ0_correct ordT n.+1}.
+
+Lemma iteri_ord_ext
+  j (f g : ordT n.+1 -> T -> T) x :
+  (j <= n.+1)%N ->
+  f =2 g -> iteri_ord j f x = iteri_ord j g x.
+Proof.
+move=> Hj Hfg.
+apply iteri_ord_ind2 =>//.
+move=> i i' s s' Hi Hi' Hs; rewrite Hfg.
+f_equal =>//.
+eapply nat_of_prop; first by tc.
+symmetry.
+by rewrite Hi'.
+Qed.
+
+End Corollaries.
+
 Section inst_ssr_matrix.
 
 Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !div T, !mul T, !sqrt T}.
 
-Let ordT (n : nat) := 'I_n.
+Let ordT := ordinal.
 Let mxT (m n : nat) := 'M[T]_(m, n).
 
 Instance ssr_fun_of : fun_of T ordT mxT := fun m n => @matrix.fun_of_matrix T m n.
@@ -700,9 +723,9 @@ Instance : store_class T ordT mxT := ssr_store3.
 
 Context {n' : nat}.
 Let n := n'.+1.
-Instance ssr_I0 : I0_class ordT n := ord0.
-Instance ssr_succ0 : succ0_class ordT n := fun i => inord i.+1.
-(* TODO: Global *) Instance ssr_nat_of : nat_of_class ordT n := @nat_of_ord n.
+Global Instance ssr_I0 : I0_class ordT n := ord0.
+Global Instance ssr_succ0 : succ0_class ordT n := fun i => inord i.+1.
+Global Instance ssr_nat_of : nat_of_class ordT n := @nat_of_ord n.
 
 Definition ytilded5 : 'I_n -> T -> 'M[T]_(1, n) -> 'M[T]_(1, n) -> T -> T :=
   @ytilded3 T ordT mxT _ _ _.
@@ -1819,18 +1842,22 @@ Context {n : nat}.
 
 Instance : nat_of_class (fun _ => nat) n.+1 := id.
 
-Instance : I0_class [eta ordinal] n.+1 := ssr_I0.
-Instance : succ0_class [eta ordinal] n.+1 := ssr_succ0.
-Instance : nat_of_class [eta ordinal] n.+1 := ssr_nat_of.
+(*
+Erik: Not required anymore, cf. *Global* Instance ssr_I0 above.
 
-Instance : I0_correct [eta ordinal] n.+1.
+Instance : I0_class ordinal n.+1 := ssr_I0.
+Instance : succ0_class ordinal n.+1 := ssr_succ0.
+Instance : nat_of_class ordinal n.+1 := ssr_nat_of.
+
+Instance : I0_correct ordinal n.+1.
 Proof. done. Qed.
 
-Instance : succ0_correct [eta ordinal] n.+1.
+Instance : succ0_correct ordinal n.+1.
 Proof.
 move=> i; rewrite /nat_of /nat_of_class_instance_4 /ssr_nat_of => Hi.
 by rewrite /succ0 /succ0_class_instance_1 /ssr_succ0 inordK.
 Qed.
+*)
 
 Local Notation ordA := ordinal (only parsing).
 (* Local Notation mxA := (fun m n => 'M[C]_(m, n)) (only parsing). *)
@@ -1861,6 +1888,23 @@ Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
   (@matrix.row _ m n) (@row _ _ _ m n)}.
 *)
 
+Lemma foldl_iteri_ord T T' n' f x x' s :
+  (seq.size s = n'.+1)%N ->
+  @foldl T T' f x s =
+  iteri_ord (ordT := ordinal) (n := n'.+1)
+    (seq.size s) (fun i x => f x (nth x' s i)) x.
+Proof.
+move=> Hsize.
+rewrite -[in LHS](take_size s).
+eapply iteri_ord_ind =>//; rewrite ?Hsize // ?take0 //.
+move=> i s' Hi Hs'.
+rewrite -{}Hs'.
+rewrite (take_nth x').
+rewrite -[RHS]Rcomplements.foldl_rcons.
+f_equal.
+by rewrite Hsize.
+Qed.
+
 Lemma param_fold_mx m n'' :
   param (Logic.eq ==> Logic.eq ==> RmxC ==> Logic.eq)
   (fold_mx (T' := C) (mxT := mxA) (m:=m) (n:=n'')) (@fold_mx C C mxC
@@ -1879,13 +1923,22 @@ move: n'' A As param_A; case=> [|n''] A As param_A.
 { apply refines_all_col_size in param_A; move: param_A; elim As => // h t /=.
   move=> Hind H; move/andP in H; destruct H as (Hh, Ht).
   by move: Hh; case h => //= _; apply Hind. }
-Admitted.
-(* Idées pour la preuve :
- * - faire un lemme
- *   foldl f x s = iteri_ord (seq.size s) (fun i x => f x (nth x s i)) x s
- * - pour prouver ce lemme, utiliser iteri_ord_ind sur la propriété
- *   foldl f x (j_premier_éléments j s) = iteri_ord j ... (pareil qu'au dessus)
- *)
+erewrite foldl_iteri_ord.
+rewrite refines_row_size.
+eapply iteri_ord_ext; try by tc (*!*).
+move=> a a'.
+erewrite foldl_iteri_ord.
+rewrite refines_nth_col_size.
+eapply iteri_ord_ext; try by tc (*!*).
+move=> b b'; congr f.
+by rewrite refines_nth_def.
+by rewrite refines_row_size.
+by rewrite refines_nth_col_size // refines_row_size.
+by rewrite refines_row_size.
+Unshelve.
+exact: [::].
+exact: x'.
+Qed.
 
 Context `{!leq C}.
 
@@ -2174,7 +2227,7 @@ eapply (iteri_ord_ind2 (M := T) (M' := T') (j := j)) => //.
 move=> i i' s s' Hi Hi'.
 apply param_apply.
 have: param Rord i i'.
-{ move: Hi'; rewrite paramE /Rord /nat_of /nat_of_class_instance_4 /ssr_nat_of.
+{ move: Hi'; rewrite paramE /Rord /nat_of /ssr_nat_of.
   by instantiate (1 := id). }
 by apply param_apply.
 Unshelve. (* FIXME: this should be automatically discharged *)
@@ -2287,7 +2340,7 @@ Proof. done. Qed.
 
 Instance : succ0_correct [eta ordinal] n.+1.
 Proof.
-move=> i; rewrite /nat_of /nat_of_class_instance_6 /ssr_nat_of => Hi.
+move=> i; rewrite /nat_of /nat_of_class_instance_5 /ssr_nat_of => Hi.
 by rewrite /succ0 /succ0_class_instance_1 /ssr_succ0 inordK.
 Qed.
 
