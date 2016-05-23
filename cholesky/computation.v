@@ -2775,7 +2775,89 @@ Require Import BigQ.
 Require Import coqinterval_infnan.
 Require Import Interval.Interval_xreal.
 
+(** Support results for "reasoning backwards w.r.t well-defined floats" *)
+
+Notation toR f := (proj_val (F.toX f)).
+
+Lemma real_FtoX f c : F.toX f = Xreal c -> F.real f.
+Proof. by rewrite FtoX_real /X_real; case: F.toX. Qed.
+
+Lemma real_toR f c : F.toX f = Xreal c -> c = toR f.
+Proof. by case E: F.toX =>//; case. Qed.
+
+Lemma real_FtoX_toR f : F.real f -> F.toX f = Xreal (toR f).
+Proof. by rewrite FtoX_real; rewrite /X_real; case: F.toX. Qed.
+
+Lemma Fadd_real m p a b : F.real (F.add m p a b) -> F.real a /\ F.real b.
+Proof.
+rewrite !FtoX_real /X_real F.add_correct /Xround /Xbind => H.
+by split; [case: (F.toX a) H|move: H; rewrite Xadd_comm; case: (F.toX b)].
+Qed.
+
+Lemma Fneg_real a : F.real (F.neg a) = F.real a.
+Proof. by rewrite !FtoX_real /X_real F.neg_correct; case: (F.toX a). Qed.
+
+Lemma Fsub_real m p a b : F.real (F.sub m p a b) -> F.real a /\ F.real b.
+Proof.
+rewrite /F.sub => H; split; first by apply: proj1 (@Fadd_real m p a _ H).
+by rewrite -Fneg_real; apply: proj2 (@Fadd_real m p a _ H).
+Qed.
+
+Lemma Fscale_real f e : F.real (F.scale2 f (F.ZtoS e)) = F.real f.
+Proof.
+rewrite !FtoX_real /X_real F.scale2_correct //.
+by case: (F.toX f).
+Qed.
+
+(** Support results to transpose terms with inequalities over reals.
+    To this aim, we reuse MathComp naming conventions. *)
+
+Lemma Rle_subl_addr x y z : (x - y <= z) <-> (x <= z + y).
+Proof.
+split=> H.
+  rewrite -(Rplus_0_r x) -(Rplus_opp_l y) -Rplus_assoc.
+  by apply Rplus_le_compat_r.
+rewrite -(Rplus_0_r z) -(Rplus_opp_r y) -Rplus_assoc.
+by apply Rplus_le_compat_r.
+Qed.
+
+Lemma Rle_subr_addr x y z : (x <= y - z) <-> (x + z <= y).
+Proof.
+split=> H.
+  rewrite -(Rplus_0_r y) -(Rplus_opp_l z) -Rplus_assoc.
+  by apply Rplus_le_compat_r.
+rewrite -(Rplus_0_r x) -(Rplus_opp_r z) -Rplus_assoc.
+by apply Rplus_le_compat_r.
+Qed.
+
+Definition Rle_sub_addr := (Rle_subl_addr, Rle_subr_addr).
+
+Lemma Rle_subl_addl x y z : (x - y <= z) <-> (x <= y + z).
+Proof.
+split=> H.
+  by rewrite Rplus_comm -Rle_sub_addr.
+by rewrite -Rle_sub_addr /Rminus Ropp_involutive Rplus_comm.
+Qed.
+
+Lemma Rle_subr_addl x y z : (x <= y - z) <-> (z + x <= y).
+split=> H.
+  by rewrite Rplus_comm -Rle_sub_addr.
+by rewrite -Rle_sub_addr /Rminus Ropp_involutive Rplus_comm.
+Qed.
+
+Definition Rle_sub_addl := (Rle_subl_addl, Rle_subr_addl).
+
+
+(* First attempt TO AVOID as it hides the functions that are composed:
 Coercion BigQ2R (q : bigQ) : R := RMicromega.IQR (BigQ.to_Q q).
+Coercion BigZ2R (n : bigZ) : R := Z2R (BigZ.to_Z n).
+*)
+Require Import QArith.
+Local Coercion RMicromega.IQR : Q >-> R.
+Local Coercion Z2R : Z >-> R.
+
+(** CoqInterval-based material to turn a center-radius rational interval
+    into a center-radio floating-point interval *)
 
 Definition BigQ2F (q : bigQ) : F.type * F.type :=
   match q with
@@ -2784,6 +2866,17 @@ Definition BigQ2F (q : bigQ) : F.type * F.type :=
                    let n0 := Interval_specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
                    (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0)
   end.
+
+Require Import Interval.Interval_missing.
+Lemma toR_Float (m e : bigZ) : toR (Float m e) = ([m] * bpow F.radix [e])%Re.
+Proof.
+rewrite /F.toX /F.toF /FtoX /=.
+have := Bir.mantissa_sign_correct m.
+case E_m: (Bir.mantissa_sign m); last case.
+  by rewrite /Bir.MtoZ =>-> /=; rewrite Rsimpl.
+rewrite /Bir.MtoZ =>-> /= _; rewrite /FtoR /Bir.EtoZ.
+case: e.
+Admitted.
 
 Definition RadBigQ2F (q r : bigQ) : F.type * F.type :=
   let (lq, uq) := BigQ2F q in
@@ -2794,12 +2887,12 @@ Definition RadBigQ2F (q r : bigQ) : F.type * F.type :=
   (c, F.max (F.sub rnd_UP prec u c) (F.sub rnd_UP prec c l)).
 
 Lemma RadBigQ2F_correct (q r : bigQ) :
-  forall x : R, (q - r <= x <= q + r)%R ->
+  forall x : R, ([q]%bigQ - [r]%bigQ <= x <= [q]%bigQ + [r]%bigQ)%Re ->
   let c := (RadBigQ2F q r).1 in
   let r' := (RadBigQ2F q r).2 in
   match F.toX c, F.toX r' with
   | Xnan, _ | _, Xnan => True
-  | Xreal c, Xreal r' => (c - r' <= x <= c + r')%R
+  | Xreal c, Xreal r' => (c - r' <= x <= c + r')%Re
   end.
 Proof.
 move=> x Hx.
@@ -2812,11 +2905,53 @@ set c := F.scale2 (F.add rnd_NE prec l u) (-1)%bigZ.
 simpl.
 case Ec': F.toX=> [//|c'].
 case Er': F.toX=> [//|r'].
-rewrite F.max_correct in Er'.
-(* now require CoqInterval version Git/master *)
-rewrite /l /u in Er'.
-rewrite !F.sub_correct !F.add_correct Ec' /= in Er'.
-(* TODO/Erik *)
+have Rc := real_FtoX Ec'.
+have Rlu := Rc.
+unfold c in Rlu; change (-1)%bigZ with (F.ZtoS (-1)) in Rlu. (*!*)
+rewrite Fscale_real in Rlu.
+have [Rl Ru] := Fadd_real Rlu.
+have [Rlq Rur] := Fsub_real Rl.
+have [Ruq _] := Fadd_real Ru.
+pose fexp := (FLX_exp (Z.pos (F.prec prec))).
+suff Hlu : (toR l <= x <= toR u)%Re.
+  rewrite (real_toR Ec') (real_toR Er').
+  rewrite F.max_correct 2!F.sub_correct /=.
+  rewrite (real_FtoX_toR Rl) (real_FtoX_toR Ru) (real_FtoX_toR Rc) /=.
+  split.
+    rewrite Rle_sub_addr -Rle_subl_addl.
+    apply: Rle_trans _ (Rmax_r _ _).
+    rewrite /round.
+    have [_ [B _]] /= := round_UP_pt F.radix fexp (toR c - (toR l)).
+    apply: Rle_trans _ B.
+    suff: (toR l <= x)%Re by psatzl R.
+    by case: Hlu.
+  rewrite -Rle_subl_addl.
+  apply: Rle_trans _ (Rmax_l _ _).
+  rewrite /round.
+  have [_ [B _]] /= := round_UP_pt F.radix fexp (toR u - (toR c)).
+  apply: Rle_trans _ B.
+  apply: Rplus_le_compat_r.
+  by case: Hlu.
+rewrite {c Rc Rlu Rl Ru Ec' Er'}/l {}/u F.sub_correct F.add_correct.
+rewrite (real_FtoX_toR Rlq) (real_FtoX_toR Ruq) (real_FtoX_toR Rur) /=.
+have [[_ [H1 _]] [_ [H2 _]]] := conj
+  (round_DN_pt F.radix fexp (toR lq - toR ur))
+  (round_UP_pt F.radix fexp (toR uq + toR ur)).
+move: Eq; rewrite (surjective_pairing (BigQ2F q)); case => Eql Equ.
+split.
+  apply: Rle_trans H1 _.
+  (*?! apply: Rle_trans _ (proj1 Hx). *)
+  apply Rle_trans with (2 := proj1 Hx).
+  apply Rplus_le_compat; last apply: Ropp_le_contravar.
+  rewrite -{}Eql {Equ} /BigQ2F.
+  case E_q: q Hx => [m|m n]; rewrite -E_q.
+  rewrite /F.toX /FtoX /=.
+  have [_ [OK _]] := (round_DN_pt F.radix fexp [q]%bigQ).
+  admit.
+  admit.
+  admit.
+apply: Rle_trans _ H2.
+apply: Rle_trans (proj2 Hx) _.
 Admitted.
 
 (*
@@ -2921,7 +3056,7 @@ unfold mantissa_bounded, x_bounded, firnd_val, F.toX.
 case: x => [|m e]; first (by left); right.
 simpl.
 case Es : (Bir.mantissa_sign m) => [|s p].
-exists 0; try done.
+exists R0; try done.
   apply: FLX_format_generic.
   exact: generic_format_0.
 rewrite F.round_aux_correct.
