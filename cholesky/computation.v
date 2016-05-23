@@ -505,6 +505,7 @@ let A' := map_mx (ItvRadQ2T ^~ r) A in
 let A'' := map_mx fst A' in
 let Rad := map_mx snd A' in
 (* let r := @max_mat n n A'2 in *)
+all_mx is_finite A'' &&
 posdef_check_itv eps eta is_finite test_n A'' Rad.
 
 End directed_rounding.
@@ -1681,13 +1682,12 @@ Variable ItvRadQ2FI : Q -> Q -> FI fs * FI fs.
 Variable Q2R : Q -> R.
 
 Hypothesis ItvRadQ2FI_correct : forall q r,
-  let (qf, rf) := ItvRadQ2FI q r in
-  is_finite qf -> is_finite rf ->
-  forall x : R, Q2R q - Q2R r <= x <= Q2R q + Q2R r ->
-  FI2F qf - FI2F rf <= x <= FI2F qf + FI2F rf.
+  is_finite (ItvRadQ2FI q r).1 = true -> is_finite (ItvRadQ2FI q r).2 = true ->
+  forall x : R, Rabs (x - Q2R q) <= Q2R r ->
+  Rabs (x - FI2F (ItvRadQ2FI q r).1) <= FI2F (ItvRadQ2FI q r).2.
 
 Global Instance ssr_map_mx : map_mx_class matrix :=
-  fun m n T T' f A => \matrix_(i, j) f (A i j).
+  fun m n T T' f A => matrix.map_mx f A.
 
 Definition gen_posdef_check_itv_Q (A : 'M[Q]_n) (r : Q) : bool :=
   @posdef_check_itv_Q _ _ _ _ _ _ div_infnan _
@@ -1699,10 +1699,18 @@ Definition gen_posdef_check_itv_Q (A : 'M[Q]_n) (r : Q) : bool :=
 
 Lemma posdef_check_itv_Q_correct A r : gen_posdef_check_itv_Q A r = true ->
   forall Xt : 'M[R]_n, Xt^T = Xt ->
-  Mabs (Xt - matrix.map_mx Q2R A) <=m: (Q2R r)%:M ->
+  Mabs (Xt - matrix.map_mx Q2R A) <=m: matrix.const_mx (Q2R r) ->
   posdef Xt.
 Proof.
-Admitted.  (* TODO (Pierre) *)
+rewrite /gen_posdef_check_itv_Q /posdef_check_itv_Q Bool.andb_true_iff.
+elim=> HF HA Xt SXt HXt; apply (posdef_check_itv_correct HA SXt) => i j.
+rewrite !mxE /GRing.add /GRing.opp /=; apply ItvRadQ2FI_correct.
+{ by move: (all_mx_correct HF i j); rewrite /map_mx /ssr_map_mx !mxE. }
+{ move: HA; rewrite /gen_posdef_check_itv /posdef_check_itv Bool.andb_true_iff.
+  elim=> HF' _; move: (all_mx_correct HF' i j).
+  by rewrite /map_mx /ssr_map_mx !mxE. }
+by move: (HXt i j); rewrite !mxE /GRing.add /GRing.opp.
+Qed.
 
 End proof_inst_ssr_matrix_float_infnan.
 
@@ -2785,13 +2793,45 @@ Definition BigQ2F (q : bigQ) : F.type * F.type :=
                    (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0)
   end.
 
-Definition RadBigQ2F (q r : bigQ) : F.type * F.type :=
+Lemma fiplus_proof (x y : F.type) : mantissa_bounded (F.add rnd_NE prec x y).
+Proof.
+unfold mantissa_bounded, x_bounded.
+rewrite F.add_correct; set (z := Xadd _ _).
+unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
+set r'' := round _ _ _ _; exists r''; [now simpl|].
+apply FLX_format_generic; [now simpl|].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+Qed.
+
+Definition fiplus' (x y : F.type) : FI := Build_FI _ (fiplus_proof x y).
+
+Lemma scale2_proof (x : FI) (n : bigZ) : mantissa_bounded (F.scale2 x n).
+Proof.
+Admitted.
+
+Definition scale2 (x : FI) (n : bigZ) : FI := Build_FI _ (scale2_proof x n).
+
+Lemma fisub_up_proof (x y : F.type) : mantissa_bounded (F.sub rnd_UP prec x y).
+Proof.
+unfold mantissa_bounded, x_bounded.
+rewrite F.sub_correct; set (z := Xsub _ _).
+unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
+set r'' := round _ _ _ _; exists r''; [now simpl|].
+apply FLX_format_generic; [now simpl|].
+by apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
+Qed.
+
+Definition fisub_up (x y : F.type) : FI := Build_FI _ (fisub_up_proof x y).
+
+(* @Érik: tu avais raison, ça aurait peut être été plus simple
+   de fair eun truc du genre (Q2F NE q, Q2F UP r + /2 * ulp(Q2F NE q) *)
+Definition RadBigQ2F (q r : bigQ) : FI * FI :=
   let (lq, uq) := BigQ2F q in
   let (_, ur) := BigQ2F r in
   let l := F.sub rnd_DN prec lq ur in
   let u := F.add rnd_UP prec uq ur in
-  let c := F.scale2 (F.add rnd_NE prec l u) (-1)%bigZ in
-  (c, F.max (F.sub rnd_UP prec u c) (F.sub rnd_UP prec c l)).
+  let c := scale2 (fiplus' l u) (-1)%bigZ in
+  (c, @fimax coqinterval_infnan (fisub_up u c) (fisub_up c l)).
 
 Lemma RadBigQ2F_correct (q r : bigQ) :
   forall x : R, (q - r <= x <= q + r)%R ->
@@ -2803,7 +2843,9 @@ Lemma RadBigQ2F_correct (q r : bigQ) :
   end.
 Proof.
 move=> x Hx.
-rewrite /RadBigQ2F.
+rewrite /RadBigQ2F /scale2 /fiplus' /fisub_up /=.
+Admitted.
+(*
 case Eq: (BigQ2F q) => [lq uq].
 case Er: (BigQ2F r) => [_lr0 ur].
 set l := F.sub rnd_DN prec lq ur.
@@ -2818,19 +2860,26 @@ rewrite /l /u in Er'.
 rewrite !F.sub_correct !F.add_correct Ec' /= in Er'.
 (* TODO/Erik *)
 Admitted.
-
-(*
-Variable Q : Type.
-Variable ItvRadQ2FI : Q -> Q -> FI fs * FI fs.
-
-Variable Q2R : Q -> R.
-
-Hypothesis ItvRadQ2FI_correct : forall q r,
-  let (qf, rf) := ItvRadQ2FI q r in
-  is_finite qf -> is_finite rf ->
-  forall x : R, Q2R q - Q2R r <= x <= Q2R q + Q2R r ->
-  FI2F qf - FI2F rf <= x <= FI2F qf + FI2F rf.
 *)
+
+Lemma ItvRadQ2FI_correct : forall (q r : bigQ),
+  F.real (RadBigQ2F q r).1 = true -> F.real (RadBigQ2F q r).2 = true ->
+  forall x : R, Rabs (x - q) <= r ->
+  Rabs (x - FI2F (RadBigQ2F q r).1) <= FI2F (RadBigQ2F q r).2.
+Proof.
+move=> q r; set qr' := RadBigQ2F _ _; move=> Fq Fr x.
+case_eq (FI_prop qr'.1).
+{ move=> H; casetype False; move: Fq H; rewrite FtoX_real.
+  by case (F.toX qr'.1). }
+case_eq (FI_prop qr'.2).
+{ move=> H; casetype False; move: Fr H; rewrite FtoX_real.
+  by case (F.toX qr'.2). }
+move=> Hq _ Hr _; elim Hq => rq Hrq Hrq'; elim Hr => rr Hrr Hrr'.
+rewrite !FI2F_X2F_FtoX Hrq Hrr /=.
+do 2 (rewrite round_generic; [|by apply generic_format_FLX]).
+move: (@RadBigQ2F_correct q r x)=> /=; rewrite Hrq Hrr.
+move=> Hxq Hxq'; apply Rabs_le; apply Rabs_le_inv in Hxq'; lra.
+Qed.
 
 Local Notation T := (s_float BigZ.t_ BigZ.t_).
 
