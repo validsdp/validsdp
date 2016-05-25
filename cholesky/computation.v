@@ -3158,25 +3158,45 @@ End test_CoqInterval.
 
 Section test_CoqInterval_F2FI.
 
-Definition F2FI_proof (x : F.type) : mantissa_bounded (F.round rnd_NE prec x).
-Proof.
-unfold mantissa_bounded, x_bounded, firnd_val, F.toX.
-case: x => [|m e]; first (by left); right.
-simpl.
-case Es : (Bir.mantissa_sign m) => [|s p].
-exists R0; try done.
-  apply: FLX_format_generic.
-  exact: generic_format_0.
-rewrite F.round_aux_correct.
-rewrite (@Interval_generic_proof.Fround_at_prec_correct _ _ _ _ _ _ _ (IZR [p]%bigN)).
-eexists; first done.
-apply: FLX_format_generic.
-exact: generic_format_round.
-admit.
-rewrite Interval_generic_proof.normalize_identity.
-Admitted.
+Definition F2FI_val (f : F.type) : F.type :=
+  match f with
+    | Interval_specific_ops.Fnan => Interval_specific_ops.Fnan
+    | Interval_specific_ops.Float m e =>
+      if (BigZ.abs m <? eps_inv)%bigZ then f else Interval_specific_ops.Fnan
+  end.
 
-Definition F2FI f := Build_FI _ (F2FI_proof f).
+Lemma F2FI_proof (x : F.type) : mantissa_bounded (F2FI_val x).
+Proof.
+unfold mantissa_bounded, x_bounded, F2FI_val.
+case x; [now left|intros m e].
+set (c := BigZ.ltb _ _); case_eq c; intro Hc; [right|now left].
+exists (@F2R radix2 {| Fnum := [m]%bigZ; Fexp := [e]%bigZ |}).
+{ unfold F.toX, FtoX, F.toF.
+  assert (Hm := Bir.mantissa_sign_correct m); revert Hm.
+  set (s := _ m); case_eq s; unfold Bir.MtoZ, F2R.
+  { now intros Hs Hm; rewrite Hm; rewrite Rmult_0_l. }
+  intros s' p Hp (Hm, Hm'); rewrite Hm; simpl; unfold Bir.EtoZ, FtoR, bpow.
+  case [e]%bigZ.
+  { now rewrite Rmult_1_r; case s'. }
+  { now intro p'; rewrite Z2R_mult; case s'. }
+  now intro p'; case s'. }
+revert Hc; unfold c; clear c; rewrite BigZ.ltb_lt; intro Hm.
+apply FLX_format_generic; [exact refl_equal|].
+set (f := {| Fnum := _; Fexp := _ |}).
+apply generic_format_F2R' with f; [reflexivity|intro Hf].
+unfold canonic_exp, FLX_exp; rewrite Z.le_sub_le_add_r; apply ln_beta_le_bpow.
+{ exact Hf. }
+unfold F2R, f; simpl.
+rewrite Rabs_mult; rewrite (Rabs_pos_eq (bpow _ _)); [|now apply bpow_ge_0].
+apply (Rmult_lt_reg_r (bpow radix2 (-[e]%bigZ))); [now apply bpow_gt_0|].
+rewrite Rmult_assoc; rewrite <- !bpow_plus.
+replace (_ + - _)%Z with Z0 by ring; rewrite Rmult_1_r.
+replace (_ + _)%Z with 53%Z by ring.
+rewrite <- Z2R_abs; unfold bpow; apply Z2R_lt.
+now revert Hm; unfold eps_inv, Z.pow_pos; simpl; rewrite <- BigZ.spec_abs.
+Qed.
+
+Definition F2FI (f : F.type) : FI := Build_FI _ (F2FI_proof f).
 
 (* Local Notation T := (s_float BigZ.t_ BigZ.t_). *)
 
