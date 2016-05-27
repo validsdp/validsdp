@@ -1,12 +1,12 @@
 %{
 %}
 
-%token LBRA RBRA COMMA SEMICOL SIZE YES NO
-%token <int> INT
+%token LBRA RBRA COMMA SEMICOL SIZE R QUOT YES NO
+%token <string> INT
 %token <float> FLOAT
 %token EOF
 
-%type <(int * bool * float list list) list> file
+%type <(int * bool * float list list * Q.t) list> file
 %start file
 
 %%
@@ -16,7 +16,7 @@ file:
 | matrix file { $1 :: $2 }
 
 matrix:
-| SIZE INT matbody posdef { $2, $4, $3 }         
+| SIZE INT matbody R rat posdef { int_of_string $2, $6, $3, $5 }
 
 posdef:
 | YES { true }
@@ -32,3 +32,6 @@ lines:
 line:
 | FLOAT { [ $1 ] }
 | FLOAT COMMA line { $1 :: $3 }
+
+rat:
+| INT QUOT INT { Q.of_string ($1 ^ "/" ^ $3) }

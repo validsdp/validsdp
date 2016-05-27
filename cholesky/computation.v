@@ -3376,11 +3376,18 @@ Definition posdef_check4_coqinterval' (M : seq (seq FI)) : bool :=
   @posdef_check4 FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
     eps_inv fiplus1 fimult1 fidiv1 feps' feta' (@float_infnan_spec.is_finite coqinterval_infnan) M.
 
-Definition m12' := map (map (F2FI)) m12.
+Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
+  @posdef_check_itv4 FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
+    eps_inv fiplus1 fimult1 fidiv1 feps' feta' (@float_infnan_spec.is_finite coqinterval_infnan) M r.
+
+Definition test_posdef_check_itv (M : seq (seq F.type)) (r : bigQ) : bool :=
+  posdef_check_itv4_coqinterval' (map (map F2FI) M) (F2FI (snd (BigQ2F r))).
 
 Goal True. idtac "test_posdef_check_CoqInterval". done. Qed.
 Time Eval vm_compute in posdef_check4_coqinterval m12.
 (* 6.3 s on Erik's laptop *)
+
+Definition m12' := map (map (F2FI)) m12.
 
 Time Eval vm_compute in posdef_check4_coqinterval' m12'.
 (* 7.1 s on Erik's laptop *)

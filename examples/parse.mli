@@ -8,4 +8,4 @@
 
     Prints a message on standard error and raises [Report.Error] in case
     something bad happens. *)
-val file : string -> (int * bool * float list list) list
+val file : string -> (int * bool * float list list * Q.t) list

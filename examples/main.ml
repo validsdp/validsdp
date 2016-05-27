@@ -99,7 +99,7 @@ let bench mxs =
     Format.printf
       "size = %d, nb = %d, avg_time = %f s@."
       size nb (time /. float nb) in
-  let bench (prev_size, nb, time) (s, _, m) =
+  let bench (prev_size, nb, time) (s, _, m, r) =  (* TODO: r *)
     let nb, time =
       if s = prev_size then nb, time else
         let () = print (prev_size, nb, time) in
@@ -118,31 +118,47 @@ let bench mxs =
   print
     (List.fold_left
        bench
-       ((let s, _, _ = List.hd mxs in s), 0, 0.)
+       ((let s, _, _, _ = List.hd mxs in s), 0, 0.)
        mxs)
              
 let print_coq =
   let cpt = ref (-1) in
-  fun fmt (s, b, m) ->
+  fun fmt (s, b, m, r) ->
   let print_float fmt f =
     let m, e = frexp f in
     let m = m *. 2. ** 53. in
     let e = e - 53 in
-    Format.fprintf fmt "Float radix2 (%.0f) (%d)" m e in
+    Format.fprintf fmt "Float (%.0f) (%d)" m e in
   incr cpt;
+  let st = if b then "positive definite" else "unknown" in
   Format.fprintf
     fmt
     "@[<v>(* size %d, %s *)@ \
-     @[<v 2>Definition m%d := map (map b64_normalize)@ [:: @[%a@]].@]@ @]@."
-    s (if b then "positive definite" else "unknown") !cpt
+     @[<v 2>Definition m%d :=@ [:: @[%a@]].@]@ \
+     Definition r%d := (%a)%%bigQ.@ \
+     @ \
+     Goal True. idtac \"test_posdef_check_itv m%d (size %d, %s)\". done. Qed.@ \
+     Time Eval vm_compute in test_posdef_check_itv m%d r%d.@ @]@."
+    s st !cpt
     (Utils.pp_list
        ~sep:";@ "
        (fun fmt l ->
         Format.fprintf
           fmt "[:: @[%a@]]" (Utils.pp_list ~sep:";@ " print_float) l))
     m
+    !cpt Q.pp_print r
+    !cpt s st
+    !cpt !cpt
 
-let print mxs = List.iter (print_coq Format.std_formatter) mxs
+let print mxs =
+  let fmt = Format.std_formatter in
+  Format.fprintf fmt "@[<v>Require Import computation.@ \
+                      Require Import BigZ BigQ.@ \
+                      Require Import Interval.Interval_specific_ops.@ \
+                      Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.@ \
+                      @ \
+                      Local Open Scope bigZ_scope.@ @]@.";
+  List.iter (print_coq fmt) mxs
     
 let _ =
   let usage_msg = Printf.sprintf
@@ -168,7 +184,8 @@ let _ =
       Arg.usage speclist usage_msg
     | Some f ->
        let mxs = Parse.file f in
-       let mxs = List.sort (fun (s1, _, _) (s2, _, _) -> compare s1 s2) mxs in
+       let mxs =
+         List.sort (fun (s1, _, _, _) (s2, _, _, _) -> compare s1 s2) mxs in
        match !bench_kind with
        | Print -> print mxs
        | _ -> bench mxs

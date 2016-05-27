@@ -15,11 +15,13 @@ rule token = parse
   | '[' { LBRA }
   | ']' { RBRA }
   | "size =" { SIZE }
+  | "r =" { R }
   | ',' { COMMA }
   | ';' { SEMICOL }
   | "yes" { YES }
   | "no" { NO }
-  | ( ['1'-'9'] digit* ) as s { INT (int_of_string s) }
+  | ( ['1'-'9'] digit* ) as s { INT s }
+  | '/' { QUOT }
   | ('-'? "0x1." hex_digit+ 'p' ('+' | '-') digit+) as s { FLOAT (float_of_string s) }
   | eof { EOF }
   | _ { raise (Lexing_error "unknown char") }

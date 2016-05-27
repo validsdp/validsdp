@@ -1,2 +1,2 @@
-<main.ml>: package(zarith)
+<*.ml*>: package(zarith)
 <main.{byte,native}>: package(zarith), use_unix
