@@ -70,3 +70,6 @@ setup.log
 # Misc
 /cholesky/coqgraph
 /cholesky/html/
+
+dependencies/CoqEAL_refinements/Makefile.coq
+dependencies/CoqEAL_theory/Makefile.coq
