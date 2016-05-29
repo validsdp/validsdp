@@ -3377,11 +3377,47 @@ Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
 Definition test_posdef_check_itv (M : seq (seq F.type)) (r : bigQ) : bool :=
   posdef_check_itv4_coqinterval' (map (map F2FI) M) (F2FI (snd (BigQ2F r))).
 
+Definition m12' := map (map (F2FI)) m12.
+
+(* Compute seq.size m12. *)
+(* Check posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _ (mx_of_seqmx_val (seq.size m12) (seq.size m12) m12'))). *)
+
+Definition posdef_seqF (mat : seqmatrix FI) : Prop :=
+  posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _
+  (mx_of_seqmx_val (seq.size mat) (seq.size mat) mat))).
+
+(*
+Definition posdef_seqF' (mat : seqmatrix FI) : Prop :=
+  if mx_of_seqmx (seq.size mat) (seq.size mat) mat is
+    Some mat' then
+    posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _ mat'))
+  else false.
+*)
+
+Goal posdef_seqF m12'.
+rewrite /posdef_seqF.
+apply posdef_check_correct with
+  (eps_inv := eps_inv) (add_up := fiplus1) (mul_up := fimult1) (div_up := fidiv1)
+  (feps := feps') (feta := feta').
+compute; right; rewrite Rinv_involutive //; by discrR.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+simpl. admit. (*flx64.eta <= FI2F feps'*)
+simpl. admit. (*flx64.eta <= FI2F feta'*)
+eapply paramP.
+(* Check param_posdef_check. *)
+(* Check posdef_check_correct.  should be lifted to seqs? *)
+Admitted.
+
 Goal True. idtac "test_posdef_check_CoqInterval". done. Qed.
 Time Eval vm_compute in posdef_check4_coqinterval m12.
 (* 6.3 s on Erik's laptop *)
-
-Definition m12' := map (map (F2FI)) m12.
 
 Time Eval vm_compute in posdef_check4_coqinterval' m12'.
 (* 7.1 s on Erik's laptop *)
