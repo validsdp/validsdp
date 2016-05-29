@@ -555,7 +555,7 @@ Section nat_of_theory2.
 Variable n : nat.
 Let ordT (n : nat) := nat.
 Instance : nat_of_class ordinal n := @nat_of_ord n.
-Instance : nat_of_class ordT n := id.
+Global Instance id_nat : nat_of_class ordT n := id.
 Local Notation RordC := Rord (only parsing).
 Arguments RordC {n} _ _. (* maximal implicit arguments *)
 Global Instance param_nat_of :
@@ -1841,10 +1841,10 @@ Instance : I0_class ordT n.+1 := O.
 Instance : succ0_class ordT n.+1 := S.
 Instance : nat_of_class ordT n.+1 := id.
 
-Instance : succ0_correct ordT n.+1.
+Global Instance nat_succ0 : succ0_correct ordT n.+1.
 Proof. done. Qed.
 
-Instance : I0_correct ordT n.+1.
+Global Instance nat_I0 : I0_correct ordT n.+1.
 Proof. done. Qed.
 
 Definition ytilded4 :=
@@ -2110,6 +2110,7 @@ rewrite -[RHS]Rcomplements.foldl_rcons.
 f_equal.
 by rewrite Hsize.
 Qed.
+Arguments foldl_iteri_ord [_ _ _ _ _ x' _] _.
 
 Lemma param_fold_mx m n'' T' :
   param (Logic.eq ==> Logic.eq ==> RmxC ==> Logic.eq)
@@ -2125,11 +2126,11 @@ move: n'' A As param_A; case=> [|n''] A As param_A.
 { apply refines_all_col_size in param_A; move: param_A; elim As => // h t /=.
   move=> Hind H; move/andP in H; destruct H as (Hh, Ht).
   by move: Hh; case h => //= _; apply Hind. }
-erewrite foldl_iteri_ord.
+rewrite (foldl_iteri_ord (n' := m) (x' := [::])).
 rewrite refines_row_size.
 eapply iteri_ord_ext; try by tc (*!*).
 move=> a a'.
-erewrite foldl_iteri_ord.
+erewrite (foldl_iteri_ord (n' := n'') (x' := zero0)).
 rewrite refines_nth_col_size.
 eapply iteri_ord_ext; try by tc (*!*).
 move=> b b'; congr f.
@@ -2137,9 +2138,6 @@ by rewrite refines_nth_def.
 by rewrite refines_row_size.
 by rewrite refines_nth_col_size // refines_row_size.
 by rewrite refines_row_size.
-Unshelve.
-exact: [::].
-exact: zero0.
 Qed.
 
 Lemma param_all_mx :
@@ -2436,19 +2434,15 @@ Proof.
 move=> T T' RT.
 apply param_abstr => j j' param_j.
 rewrite paramE in param_j; destruct param_j as (Hj', Hj); rewrite -Hj'.
-apply param_abstr => f f' param_f.
+eapply param_abstr => f f' param_f.
 apply param_abstr => x x'.
 rewrite /iteri_ord5 /iteri_ord4.
-eapply (iteri_ord_ind2 (M := T) (M' := T') (j := j)) => //.
+apply (iteri_ord_ind2 (M := T) (M' := T') (j := j)) => //.
 move=> i i' s s' Hi Hi'.
 apply param_apply.
 have: param Rord i i'.
-{ move: Hi'; rewrite paramE /Rord /nat_of /ssr_nat_of.
-  by instantiate (1 := id). }
+{ by move: Hi'; rewrite paramE /Rord /nat_of /ssr_nat_of. }
 by apply param_apply.
-Unshelve. (* FIXME: this should be automatically discharged *)
-by tc.
-by tc.
 Qed.
 
 Lemma param_inner_loop :
