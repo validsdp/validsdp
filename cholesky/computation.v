@@ -2550,8 +2550,8 @@ Proof. done. Qed.
 
 Instance : succ0_correct [eta ordinal] n.+1.
 Proof.
-move=> i; rewrite /nat_of /nat_of_class_instance_5 /ssr_nat_of => Hi.
-by rewrite /succ0 /succ0_class_instance_1 /ssr_succ0 inordK.
+move=> i; rewrite /nat_of /nat_of_class_instance_4 /ssr_nat_of => Hi.
+by rewrite inordK.
 Qed.
 
 Variable eps_inv : BigZ.t_.
