@@ -3329,6 +3329,16 @@ Qed.
 
 Definition F2FI (f : F.type) : FI := Build_FI _ (F2FI_proof f).
 
+Lemma F2FI_correct (f : F.type) :
+  finite (F2FI f) -> FI2F (F2FI f) = toR f :> R.
+Proof.
+rewrite /finite FtoX_real /FI2F.
+case (FI_prop (F2FI f)) => Hf; [by rewrite Hf|].
+destruct Hf as (r, Hr, Hr'); move=> _ /=.
+Admitted.
+
+Check param_posdef_check.
+
 (*
 Compute seq.size m12.
 Check posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _ (mx_of_seqmx_val (seq.size m12) (seq.size m12) m12'))).
@@ -3404,7 +3414,11 @@ Proof.
 case: A => [|A0 A1]; first by admit.
 move=> m; rewrite /posdef_check4_coqinterval'.
 move=> H Hsize; rewrite /posdef_seqF.
+Check param_posdef_check.
+Check posdef_check_correct.
+
 rewrite /posdef_check4.
+
 (* Fail apply posdef_check_correct. *)
 (* Reuse posdef_check_correct, param_posdef_check *)
 Admitted.
