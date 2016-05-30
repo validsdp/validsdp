@@ -2960,23 +2960,23 @@ End data_refinement'.
 (* Load "testsuite". *)
 Require Import testsuite.
 
-Section test_CoqInterval.
-
-Definition prec := 53%bigZ.
-
 Require Import BigQ.
 Require Import coqinterval_infnan.
 Require Import Interval.Interval_xreal.
 
-(** Support results for "reasoning backwards w.r.t well-defined floats" *)
+Notation toR := (fun f => proj_val (F.toX f)).
 
-Notation toR f := (proj_val (F.toX f)).
+Section test_CoqInterval.
+
+Definition prec := 53%bigZ.
+
+(** Support results for "reasoning backwards w.r.t well-defined floats" *)
 
 Lemma real_FtoX f c : F.toX f = Xreal c -> F.real f.
 Proof. by rewrite FtoX_real /X_real; case: F.toX. Qed.
 
 Lemma real_toR f c : F.toX f = Xreal c -> c = toR f.
-Proof. by case E: F.toX =>//; case. Qed.
+Proof. by simpl; case E: F.toX =>//; case. Qed.
 
 Lemma real_FtoX_toR f : F.real f -> F.toX f = Xreal (toR f).
 Proof. by rewrite FtoX_real; rewrite /X_real; case: F.toX. Qed.
@@ -3329,6 +3329,14 @@ Qed.
 
 Definition F2FI (f : F.type) : FI := Build_FI _ (F2FI_proof f).
 
+(*
+Compute seq.size m12.
+Check posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _ (mx_of_seqmx_val (seq.size m12) (seq.size m12) m12'))).
+Definition posdef_seqFI (mat : seqmatrix FI) : Prop :=
+  posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _
+  (mx_of_seqmx_val (seq.size mat) (seq.size mat) mat))).
+*)
+
 (* Local Notation T := (s_float BigZ.t_ BigZ.t_). *)
 
 Instance add''' : add FI := fiplus.
@@ -3377,43 +3385,38 @@ Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
 Definition test_posdef_check_itv (M : seq (seq F.type)) (r : bigQ) : bool :=
   posdef_check_itv4_coqinterval' (map (map F2FI) M) (F2FI (snd (BigQ2F r))).
 
+(* Remark: ultimately, we'll have to check that mat does not contain NaNs *)
+(*
+Definition posdef_seqF_v1 (mat : seqmatrix F.type) : Prop :=
+  let m := seq.size mat in
+  posdef (matrix.map_mx toR (@mx_of_seqmx_val _ zero'' m m mat)).
+*)
+Definition posdef_seqF (mat : seqmatrix F.type) : Prop :=
+  let m := seq.size mat in
+  posdef (@mx_of_seqmx_val _ R0 m m (map (map toR) mat)).
+
+Lemma posdef_check_correct_inst (A : seqmatrix F.type) :
+  let m := seq.size A in
+  (m != 0)%N ->
+  posdef_check4_coqinterval' (map (map F2FI) A) = true ->
+  posdef_seqF A.
+Proof.
+case: A => [|A0 A1]; first by admit.
+move=> m; rewrite /posdef_check4_coqinterval'.
+move=> H Hsize; rewrite /posdef_seqF.
+rewrite /posdef_check4.
+(* Fail apply posdef_check_correct. *)
+(* Reuse posdef_check_correct, param_posdef_check *)
+Admitted.
+
 Definition m12' := map (map (F2FI)) m12.
 
-(* Compute seq.size m12. *)
-(* Check posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _ (mx_of_seqmx_val (seq.size m12) (seq.size m12) m12'))). *)
+Ltac prove_posdef :=
+  by apply posdef_check_correct_inst; abstract (vm_cast_no_check (erefl true)).
 
-Definition posdef_seqF (mat : seqmatrix FI) : Prop :=
-  posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _
-  (mx_of_seqmx_val (seq.size mat) (seq.size mat) mat))).
-
-(*
-Definition posdef_seqF' (mat : seqmatrix FI) : Prop :=
-  if mx_of_seqmx (seq.size mat) (seq.size mat) mat is
-    Some mat' then
-    posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _ mat'))
-  else false.
-*)
-
-Goal posdef_seqF m12'.
-rewrite /posdef_seqF.
-apply posdef_check_correct with
-  (eps_inv := eps_inv) (add_up := fiplus1) (mul_up := fimult1) (div_up := fidiv1)
-  (feps := feps') (feta := feta').
-compute; right; rewrite Rinv_involutive //; by discrR.
-admit.
-admit.
-admit.
-admit.
-admit.
-admit.
-admit.
-admit.
-simpl. admit. (*flx64.eta <= FI2F feps'*)
-simpl. admit. (*flx64.eta <= FI2F feta'*)
-eapply paramP.
-(* Check param_posdef_check. *)
-(* Check posdef_check_correct.  should be lifted to seqs? *)
-Admitted.
+Lemma test_m12 : posdef_seqF m12.
+Time prove_posdef.
+Qed.
 
 Goal True. idtac "test_posdef_check_CoqInterval". done. Qed.
 Time Eval vm_compute in posdef_check4_coqinterval m12.
