@@ -53,15 +53,26 @@
 ** DONE Prove functions over ssreflect structures                    :Pierre:
 ** DONE Define the conversion to center-radius representation
    CLOSED: [2016-05-17 Tue 10:50]
-** TODO Prove RadBigQ2F_correct 				       :Erik:
-** TODO State and prove mantissa_bounded subproof for BigQ2FI	       :Erik:
-** TODO Setup TypeClasses for the small new functions (add1, etc.)     :Erik:
+** CANCELED Prove RadBigQ2F_correct				       :Erik:
+   CLOSED: [2016-05-30 Mon 17:15]
+** TODO State/prove mantissa_bounded subproof for BigQ2FI, if need be  :Erik:
+** TODO Setup TCs and Inst. for the small new functions (add1, etc.)   :Erik:
 ** LATER Refinement to remove proofs from coqinterval_infnan	       :Erik:
-** TODO Make some benchmarks for the Boolean positivity test (itv_Q) :Pierre:
-** TODO Design a reflexive tactic for positivity (Ltac)		       :Erik:
-** TODO Proceed refinement of posdef_check_itv_Q (w.r.t map_mx)	     :Pierre:
+** DONE Design a reflexive tactic for positivity (Ltac)		       :Erik:
+   CLOSED: [2016-05-30 Mon 17:17]
+** CANCELED Proceed refinement of posdef_check_itv_Q (w.r.t map_mx)  :Pierre:
+   CLOSED: [2016-05-30 Mon 17:17]
+** TODO Finish proving all_mxP 					       :Erik:
+** TODO Finish proving posdef_check_f1				     :Pierre:
+** TODO Finish proving toR_Float				       :Erik:
+** TODO Finish proving F2FI_correct				     :Pierre:
+** TODO Prove param_posdef_check_F				     :Pierre:
+** TODO Prove posdef_check_F_correct_inst			       :Erik:
 ** TODO Do some cleanup, setup naming conventions		:Pierre:Erik:
+** TODO Do the above steps for posdef_check_itv
+** STARTED Make some benchmarks for the Boolean positivity test (itv_Q) :Pierre:
 * SOS/SDP
+** TODO Look-at libraries for multipolys			       :Erik:
 ** TODO Look-at doc on OCaml tactics
 ** TODO Look-at Victor's JFR paper				       :Erik:
 - Reuse the interface to ease future benchmarks?
