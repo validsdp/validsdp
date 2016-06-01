@@ -3694,14 +3694,16 @@ eapply (@posdef_check_F_correct _ coqinterval_infnan).
 (* ingredient: param_posdef_check_F *)
 Admitted.
 
-Definition m12' := map (map (F2FI)) m12.
-
 Ltac prove_posdef :=
   by apply posdef_check_F_correct_inst; abstract (vm_cast_no_check (erefl true)).
+
+Definition m12' := map (map (F2FI)) m12.
 
 Lemma test_m12 : posdef_seqF m12.
 Time prove_posdef.
 Qed.
+
+About one.
 
 Goal True. idtac "test_posdef_check_CoqInterval". done. Qed.
 Time Eval vm_compute in posdef_check4_coqinterval m12.
@@ -3715,157 +3717,3 @@ Fail Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
 (* 6.7 s on Erik's laptop *)
 
 End test_CoqInterval_F2FI.
-
-Section test_CoqInterval_add.
-
-Local Notation T := F.type.
-
-Instance : add T := fun a b =>
-  let r1 := F.add rnd_NE 53%bigZ a b in
-  let r2 := F.add rnd_NE 53%bigZ a b in
-  r2.
-Instance : mul T := F.mul rnd_NE 53%bigZ.
-Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
-Instance : div T := F.div rnd_NE 53%bigZ.
-Instance : opp T := F.neg.
-Instance : zero T := F.zero.
-Instance : one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_add". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_add.
-
-Section test_CoqInterval_mul.
-
-Local Notation T := F.type.
-
-Instance : mul T := fun a b =>
-  let r1 := F.mul rnd_NE 53%bigZ a b in
-  let r2 := F.mul rnd_NE 53%bigZ a b in
-  r2.
-Instance : add T := F.add rnd_NE 53%bigZ.
-Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
-Instance : div T := F.div rnd_NE 53%bigZ.
-Instance : opp T := F.neg.
-Instance : zero T := F.zero.
-Instance : one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_mul". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_mul.
-
-Section test_CoqInterval_div.
-
-Local Notation T := F.type.
-
-Instance : add T := F.add rnd_NE 53%bigZ.
-Instance : mul T := F.mul rnd_NE 53%bigZ.
-Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
-Instance : div T := fun a b =>
-  let r1 := F.div rnd_NE 53%bigZ a b in
-  let r2 := F.div rnd_NE 53%bigZ a b in
-  r2.
-Instance : opp T := F.neg.
-Instance : zero T := F.zero.
-Instance : one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_div". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_div.
-
-Section test_CoqInterval_sqrt.
-
-Local Notation T := F.type.
-
-Instance : add T := F.add rnd_NE 53%bigZ.
-Instance : mul T := F.mul rnd_NE 53%bigZ.
-Instance : sqrt T := fun a =>
-  let r1 := F.sqrt rnd_NE 53%bigZ a in
-  let r2 := F.sqrt rnd_NE 53%bigZ a in
-  r2.
-Instance : div T := F.div rnd_NE 53%bigZ.
-Instance : opp T := F.neg.
-Instance : zero T := F.zero.
-Instance : one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_sqrt". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_sqrt.
-
-Section test_CoqInterval_opp.
-
-Local Notation T := F.type.
-
-Instance : add T := F.add rnd_NE 53%bigZ.
-Instance : mul T := F.mul rnd_NE 53%bigZ.
-Instance : opp T := fun a =>
-  let r1 := F.neg a in
-  let r2 := F.neg a in
-  r2.
-Instance : div T := F.div rnd_NE 53%bigZ.
-Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
-Instance : zero T := F.zero.
-Instance : one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_opp". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_opp.
-
-Section test_CoqInterval_all.
-
-Local Notation T := F.type.
-
-Instance : add T := fun a b =>
-  let r1 := F.add rnd_NE 53%bigZ a b in
-  let r2 := F.add rnd_NE 53%bigZ a b in
-  r2.
-Instance : mul T := fun a b =>
-  let r1 := F.mul rnd_NE 53%bigZ a b in
-  let r2 := F.mul rnd_NE 53%bigZ a b in
-  r2.
-Instance : opp T := fun a =>
-  let r1 := F.neg a in
-  let r2 := F.neg a in
-  r2.
-Instance : div T := fun a b =>
-  let r1 := F.div rnd_NE 53%bigZ a b in
-  let r2 := F.div rnd_NE 53%bigZ a b in
-  r2.
-Instance : sqrt T := fun a =>
-  let r1 := F.sqrt rnd_NE 53%bigZ a in
-  let r2 := F.sqrt rnd_NE 53%bigZ a in
-  r2.
-Instance : zero T := F.zero.
-Instance : one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_all". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_all.
-
-Section test_CoqInterval_none.
-
-Local Notation T := F.type.
-
-Instance : add T := fun a b =>
-  a.
-Instance : mul T := fun a b =>
-  a.
-Instance : opp T := fun a =>
-  a.
-Instance : div T := fun a b =>
-  a.
-Instance : sqrt T := fun a =>
-  a.
-Instance : zero T := F.zero.
-Instance : one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_none". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_none.
