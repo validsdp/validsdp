@@ -31,232 +31,6 @@ Require Import binary64_infnan.
 Require Import ZArith.
 Require Import Flocq.Core.Fcore Flocq.Appli.Fappli_IEEE Flocq.Appli.Fappli_IEEE_bits.
 
-(** Tip to leverage a Boolean condition *)
-Definition optb (b : bool) : option (is_true b) :=
-  if b then Some erefl else None.
-Definition sumb (b : bool) : {b = true} + {b = false} :=
-  if b is true
-  then left erefl else right erefl.
-
-(* Slow!
-
-Definition fhalf : full_float :=
-  F754_finite false 1 (-1).
-Print valid_binary.
-Definition bhalf : binary64 :=
-  (* FF2B 53 1024 fhalf (refl_equal true). *)
-  binary_normalize 53 1024 (refl_equal Lt) (refl_equal Lt) mode_NE 1 (-1) false.
-Compute b64_mult mode_NE bhalf bhalf.
-*)
-
-Section Test0.
-
-Definition b64_normalize (f : float radix2) :=
-  binary_normalize 53 1024 (refl_equal Lt) (refl_equal Lt) mode_NE (Fnum f) (Fexp f) false.
-
-Definition B2F {p emax} (x : binary_float p emax) : float radix2 :=
-  match x with
-  | B754_finite s m e _ => Float radix2 (cond_Zopp s (Zpos m)) e
-  | _ => Float radix2 0 0
-  end.
-
-Definition Z2B (n : Z) := b64_normalize (Float radix2 n 0).
-
-(*
-Definition b64_finite_pos {p emax} (x : binary_float p emax) : bool :=
-  match x with
-  | B754_finite s m e _ =>
-  | _ => false
-  end.
-*)
-
-Require Import Flocq.Calc.Fcalc_ops.
-
-Definition half := b64_normalize (Float radix2 1 (-1)).
-Definition one := b64_plus mode_NE half half.
-(**
-Time Eval vm_compute in B2F one.
-
-Time Eval vm_compute in B2F (fisqrt (Z2B 4)).
-
-Time Eval vm_compute in is_finite _ _ (b64_normalize (Float radix2 1 4096)).
-
-Time Eval vm_compute in is_nan _ _ (fisqrt (b64_normalize (Float radix2 (-1) 0))).
-*)
-Definition F64 := binary64_infnan.
-
-
-(** This could (should) be generalized *)
-Let prec := 53%Z.
-Let emax := 1024%Z.
-
-Notation emin := (3 - emax - prec)%Z (only parsing).
-Notation fexp := (FLT_exp emin prec) (only parsing).
-
-Arguments B754_zero [prec] [emax] _.
-Arguments B754_infinity [prec] [emax] _.
-Arguments B754_nan [prec] [emax] _ _.
-Arguments B754_finite [prec] [emax] _ _ _ _.
-
-(* Check (FF2B, B2FF, FF2B_B2FF, B2FF_inj, valid_binary_B2FF). *)
-
-Arguments FF2B [prec] [emax] _ _.
-Arguments B2FF [prec] [emax] _.
-
-Definition FF2B' prec emax x : binary_float prec emax :=
-  match sumb (valid_binary prec emax x) with
-  | left prf => FF2B x prf
-  | right _ => (* DUMMY *) B754_zero false
-  end.
-
-Arguments FF2B' [prec] [emax] _.
-
-Lemma non_pl_inj (n : Z) (p1 p2 : nan_pl n) :
-  proj1_sig p1 = proj1_sig p2 -> p1 = p2.
-Proof.
-intros H; destruct p1 as [r1 H1]; destruct p2 as [r2 H2].
-simpl in H; revert H1; rewrite H; intros H1; f_equal.
-now apply eqbool_irrelevance.
-Qed.
-
-Lemma FF2B'_B2FF : (@FF2B' prec emax) \o (@B2FF prec emax) =1 id.
-Proof.
-case=>//.
-- simpl=> b [p Hp]; rewrite /FF2B'.
-  case: sumb => prf.
-  - congr B754_nan.
-    exact: non_pl_inj.
-  - rewrite /valid_binary in prf.
-    by rewrite Hp in prf.
-- move=> b m e Hme /=; rewrite /FF2B'.
-  case: sumb => prf /=.
-  - congr B754_finite; exact: eqbool_irrelevance.
-  - rewrite /valid_binary in prf.
-    by rewrite Hme in prf.
-Qed.
-
-End Test0.
-
-(********************************************************************)
-(** Test #1 (Function) & #2 (Fixpoint) using [binary_float 53 1024] *)
-(********************************************************************)
-
-Section seq_cholesky.
-
-Fixpoint seq_stilde0 k c a b :=
-  match k, a, b with
-    | O, _, _ => c
-    | S k, [::], _ => c
-    | S k, _, [::] => c
-    | S k, a1 :: a2, b1 :: b2 => seq_stilde0 k (fiplus c (fiopp (fimult a1 b1))) a2 b2
-  end.
-
-Definition seq_ytilded0 k c a b bk := fidiv (seq_stilde0 k c a b) bk.
-
-Definition seq_ytildes0 k c a := fisqrt (seq_stilde0 k c a a).
-
-Fixpoint seq_store0 T s n (v : T) :=
-  match n, s with
-    | _, [::] => [::]
-    | O, _ :: t => v :: t
-    | S n, h :: t => h :: seq_store0 t n v
-  end.
-
-Fixpoint store0 T m i j (v : T) :=
-  match i, m with
-    | _, [::] => [::]
-    | O, h :: t => seq_store0 h j v :: t
-    | S i, h :: t => h :: store0 t i j v
-  end.
-
-Definition m_id := [:: [:: one; FI0]; [:: FI0; one]].
-Definition m_0 := [:: [:: FI0; FI0]; [:: FI0; FI0]].
-
-(** Time Eval vm_compute in map (map B2F) (store m_id 0 1 half). *)
-
-Require Import Recdef.
-
-(* note: R is transposed with respect to cholesky.v *)
-Section InnerLoop.
-Variable j : nat.
-Function inner_loop1 A R (i : nat)
-         {measure (fun i => (j - i)%N) i} :=
-  if (i < j)%N then
-    let R := store0 R j i (seq_ytilded0 i (nth FI0 (nth [::] A i) j)
-                                      (nth [::] R i) (nth [::] R j)
-                                      (nth FI0 (nth [::] R i) i)) in
-    inner_loop1 A R (i + 1)
-  else
-    R.
-move=> _ _ i H; apply /ltP; rewrite addn1 subnSK //.
-Defined.
-
-Fixpoint inner_loop_rec2 (k : nat) A R (i : nat) {struct k} :=
-  match k with
-  | O (* i >= j) *) => R
-  | S k => let R := store0 R j i (seq_ytilded0 i (nth FI0 (nth [::] A i) j)
-                                             (nth [::] R i) (nth [::] R j)
-                                             (nth FI0 (nth [::] R i) i)) in
-           inner_loop_rec2 k A R (S i)
-  end.
-Definition inner_loop2 A R i := inner_loop_rec2 (j - i) A R i.
-End InnerLoop.
-
-Section OuterLoop.
-Variable n : nat.
-Function outer_loop1 A R (j : nat)
-         {measure (fun i => (n - j)%N) j} :=
-  if (j < n)%N then
-    let R := inner_loop1 j A R 0 in
-    let R := store0 R j j (seq_ytildes0 j (nth FI0 (nth [::] A j) j)
-                                      (nth [::] R j)) in
-    outer_loop1 A R (j + 1)
-  else
-    R.
-move=> _ _ j H; apply /ltP; rewrite addn1 subnSK //.
-Defined.
-
-Fixpoint outer_loop_rec2 k A R (j : nat) {struct k} :=
-  match k with
-  | O (* j >= n *) => R
-  | S k =>
-    let R := inner_loop2 j A R 0 in
-    let R := store0 R j j (seq_ytildes0 j (nth FI0 (nth [::] A j) j)
-                                      (nth [::] R j)) in
-    outer_loop_rec2 k A R (j + 1)
-  end.
-Definition outer_loop2 A R j := outer_loop_rec2 (n - j) A R j.
-End OuterLoop.
-
-(* note: the result is transposed with respect to cholesky.v *)
-Definition cholesky1 A :=
-  let sz := size A in
-  outer_loop1 sz A A 0.
-Definition cholesky2 A :=
-  let sz := size A in
-  outer_loop2 sz A A 0.
-
-End seq_cholesky.
-
-(** Time Eval vm_compute in map (map B2F) (cholesky1 m_id). *)
-
-Definition m2 := [:: [:: Z2B 2; Z2B (-3); Z2B 1]; [:: Z2B (-3); Z2B 5; Z2B 0]; [:: Z2B 1; Z2B 0; Z2B 5]].
-
-(** Time Eval vm_compute in map (map B2F) (cholesky1 m2). *)
-
-(* returns approx:
-
-[ sqrt 2,  -3,     1;
-  -2.1213, 0.7071, 0;
-  0.7071,  2.1213, 0 ]
-
-then R is almost:
-
-1 / sqrt 2 * [ 2, -3, 1;
-               0,  1, 3;
-               0,  0, 0 ]
-*)
-
 Require Import Interval.Interval_float_sig.
 Require Import Interval.Interval_interval.
 Require Import Interval.Interval_interval_float_full.
@@ -267,32 +41,6 @@ Module F := SpecificFloat BigIntRadix2.
 Require Import BigZ.
 (* Print Module F. *)
 Local Open Scope bigZ_scope.
-
-(* Time Eval vm_compute in map (map B2F) (cholesky2 (map64 m8')). (* ~13 s *) *)
-(* Time Eval vm_compute in let res := map (map B2F) (cholesky2 (map64 m8')) in tt. (* ~12.7 s *) *)
-(* (* [Time Eval vm_compute in let res := _ in tt] to skip pretty-printing time *) *)
-
-(* Time Eval vm_compute in let res := map (map FF2F) (cholesky3 (mapFF m8')) in tt. (* ~12 s *) *)
-(* Time Eval vm_compute in let res := cholesky3 (mapFF m8') in tt. (* ~11.8 s *) *)
-
-Section test_CoqInterval_0.
-
-(*
-Fail Definition F2bigF (f : float radix2) :=
-  Float (BigZ.of_Z (Fnum f)) (BigZ.of_Z (Fexp f)).
-*)
-(*
-The command has indeed failed with message:
-In environment
-f : float radix2
-The term "f" has type "float radix2" while it is expected to have type "Fcore_defs.float ?beta0".
-*)
-
-End test_CoqInterval_0.
-
-(********************************************************************)
-(** Test #3 using CoqEAL and operational Type Classes               *)
-(********************************************************************)
 
 Require Import mathcomp.algebra.matrix.
 Require Import CoqEAL_refinements.seqmatrix.
@@ -314,22 +62,7 @@ Implicit Types n : nat.
 
 Class I0_class I n := I0 : I n.
 Class succ0_class I n := succ0 : I n -> I n.
-(*
-Example of instantiation for SSR matrices:
-
-Definition succ0 (n : nat) (i : 'I_n.+1) : 'I_n.+1 :=
-  match sumb ((val i).+1 < n.+1)%N with
-  | left prf => Ordinal prf
-  | right _ => ord0
-  end.
-*)
 Class nat_of_class I n := nat_of : I n -> nat.
-
-(*
-Local Open Scope ring_scope.
-Open Scope computable_scope.
-Open Scope hetero_computable_scope.
-*)
 
 Class map_mx_class mx := map_mx :
   forall {T T'} {m n : nat},
@@ -350,13 +83,6 @@ Local Open Scope nat_scope.
 Definition ytilded3 (k : ordT n) c a b bk := (dotmulB0 k c a b / bk)%C.
 
 Definition ytildes3 (k : ordT n) c a := (sqrt_op (dotmulB0 k c a a)).
-
-(*
-Definition m_id_v3 : seq (seq T) := [:: [:: 1%C; 0%C]; [:: 0%C; 1%C]].
-Definition m_0_v3 := [:: [:: 0%C; 0%C]; [:: 0%C; 0%C]].
-*)
-
-(** Time Eval vm_compute in map (map B2F) (store m_id 0 1 half). *)
 
 (* when j <= n, [iteri_ord j f x] returns
  *
@@ -426,7 +152,7 @@ Variable add1 mul1 div1 : T -> T -> T.
 Definition tr_up A := foldl_diag add1 0%C A.
 
 (* get a float overapprox of n *)
-Definition float_of_nat_up n := iter _ n (fun x => add1 x 1%C) 0%C.
+Definition float_of_nat_up n := iter n (fun x => add1 x 1%C) 0%C.
 
 (* [compute_c n A maxdiag] overapproximates
    /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
@@ -457,8 +183,6 @@ Context `{!fold_mx_class mx}.
 
 (* TODO: Generalize => mx T m n *)
 Definition all_mx f (A : mx T n n) := fold_mx (fun b c => b && f c) true A.
-
-Definition max_mx (A : mx T n n) := fold_mx max 0%C A.
 
 Definition posdef_check
   (* overapproximations of eps and eta *)
@@ -493,20 +217,6 @@ is_finite r && (0 <= r)%C &&
   let A' := map_diag (fun x => sub_down x nm) A in
   posdef_check eps eta is_finite test_n A'.
 
-Definition posdef_check_itv'
-  (* overapproximations of eps and eta *)
-  (eps eta : T)
-  (is_finite : T -> bool)
-  (* check that n is not too large *)
-  (test_n : nat -> bool)
-  (* matrix to check *)
-  (A Rad : mx T n n) : bool :=
-all_mx is_finite Rad &&
-  let m := max_mx Rad in
-  let nm := mul1 (float_of_nat_up n) m in
-  let A' := map_diag (fun x => sub_down x nm) A in
-  posdef_check eps eta is_finite test_n A'.
-
 Context `{!map_mx_class mx}.
 
 Variables (F : Type) (F2FI : F -> T).
@@ -522,24 +232,6 @@ Definition posdef_check_F
   let A' := (map_mx F2FI A) in
   all_mx is_finite A' && (* Remark: this could be removed and proved separately *)
   posdef_check eps eta is_finite test_n A'.
-
-Variable Q : Type.
-Variable ItvRadQ2T : Q -> Q -> T * T.
-
-Definition posdef_check_itv_Q
-  (* overapproximations of eps and eta *)
-  (eps eta : T)
-  (is_finite : T -> bool)
-  (* check that n is not too large *)
-  (test_n : nat -> bool)
-  (* matrix to check *)
-  (A : mx Q n n) (r : Q) : bool :=
-let A' := map_mx (ItvRadQ2T ^~ r) A in
-let A'' := map_mx fst A' in
-let Rad := map_mx snd A' in
-(* let r := @max_mat n n A'2 in *)
-all_mx is_finite A'' &&
-posdef_check_itv' eps eta is_finite test_n A'' Rad.
 
 End directed_rounding.
 
@@ -1250,21 +942,6 @@ apply Z2R_lt; revert H; rewrite Zlt_is_lt_bool BigZ.spec_ltb.
 by rewrite BigZ.spec_mul BigZ.spec_add BigZ.spec_of_Z.
 Qed.
 
-(*
-Attempt to provide an eqType structure for (FI fs)
-
-Lemma feqP : Equality.axiom feq.
-move=> a b; apply: (iffP idP); rewrite /feq.
-(* TODO: missing lemma for non-finite elts ? *)
-Admitted.
-
-Canonical FI_fs_eqMixin := EqMixin feqP.
-Canonical FI_fs_eqType := Eval hnf in EqType (FI fs) FI_fs_eqMixin.
-
-Instance fheq : @heq nat (fun n1 n2 => 'M[FI fs]_(n1, n2)) :=
-  fun n1 n2 => @eqtype.eq_op (matrix_eqType FI_fs_eqType n1 n2).
-*)
-
 Global Instance fheq : @heq nat (matrix (FI fs)) :=
   fun n1 n2 a b => [forall i, [forall j, fieq (a i j) (b i j)]].
 
@@ -1328,38 +1005,6 @@ apply foldl_diag_correct with (P0 := P); rewrite /P.
 by split; [apply finite0|rewrite FI2F0; right].
 Qed.
 
-Definition gen_max_mx := @max_mx (FI fs) matrix _ n _ _.
-
-Lemma max_mx_correct (A : 'M[FI fs]_n) : (forall i j, finite (A i j)) ->
-  forall i j, (MFI2F A) i j <= FI2F (gen_max_mx A).
-Proof.
-move=> HF i j.
-set P' := fun i j (s : FI fs) => (MFI2F A) i j <= FI2F s; rewrite -/(P' _ _ _).
-rewrite /gen_max_mx /max_mx /fold_mx.
-apply (fold_mx_correct' (P:=@finite fs)); last apply finite0.
-{ by move=> i' j' x Fx; apply fimax_spec_f. }
-move=> {i j} i j x Fx Hind i' j' Hi'j'; elim Hi'j' => [Hi'|[Hi' Hj']].
-{ by move: (fimax_spec_lel Fx (HF i j)); apply Rle_trans, Hind; left. }
-case (ltnP j' j) => Hj'j.
-{ by move: (fimax_spec_lel Fx (HF i j)); apply Rle_trans, Hind; right. }
-move: (fimax_spec_ler Fx (HF i j)); apply Rle_trans; right.
-rewrite mxE; apply /f_equal /f_equal /f_equal2; apply ord_inj => //.
-by apply anti_leq; rewrite -ltnS Hj'.
-Qed.
-
-Lemma max_mx_pos (A : 'M[FI fs]_n) : (forall i j, finite (A i j)) ->
-  0 <= FI2F (gen_max_mx A).
-Proof.
-move=> HF.
-set P := fun (i j : nat) (s : FI fs) => finite s /\ 0 <= FI2F s.
-suff: P n O (gen_max_mx A); [by move=> H; elim H|].
-rewrite /gen_max_mx /max_mx /fold_mx; apply fold_mx_correct.
-{ by move=> i z H; destruct H as (Fz, H); split. }
-{ move=> i j z H; destruct H as (Fz, H); split; [by apply fimax_spec_f|].
-  by apply (Rle_trans _ _ _ H), fimax_spec_lel. }
-by split; [by apply finite0|rewrite FI2F0; right].
-Qed.
-
 Definition gen_all_mx := @all_mx (FI fs) matrix n _.
 
 (*
@@ -1400,8 +1045,6 @@ Admitted.
 (* addition with upward rounding *)
 Variable add_up : FI fs -> FI fs -> FI fs.
 
-(* Instance add_up_infnan : add (FI fs) := add_up. *)
-
 Hypothesis add_up_spec : forall x y, finite (add_up x y) ->
   (FI2F x + FI2F y <= FI2F (add_up x y))%R.
 Hypothesis add_up_spec_fl : forall x y, finite (add_up x y) -> finite x.
@@ -1441,8 +1084,6 @@ Qed.
 (* multiplication with upward rounding *)
 Variable mul_up : FI fs -> FI fs -> FI fs.
 
-(* Instance mul_up_infnan : mul (FI fs) := mul_up. *)
-
 Hypothesis mul_up_spec : forall x y, finite (mul_up x y) ->
   (FI2F x * FI2F y <= FI2F (mul_up x y))%R.
 Hypothesis mul_up_spec_fl : forall x y, finite (mul_up x y) -> finite x.
@@ -1450,8 +1091,6 @@ Hypothesis mul_up_spec_fr : forall x y, finite (mul_up x y) -> finite y.
 
 (* division with upward rounding *)
 Variable div_up : FI fs -> FI fs -> FI fs.
-
-(* Instance div_up_infnan : div (FI fs) := div_up. *)
 
 Hypothesis div_up_spec : forall x y, finite (div_up x y) -> finite y ->
   (FI2F x / FI2F y <= FI2F (div_up x y))%R.
@@ -1736,66 +1375,6 @@ apply (Rle_trans _ (FI2F nr)).
 by move: (Hd' i i); rewrite !mxE eq_refl /GRing.natmul /GRing.mul /= Rmult_1_r.
 Qed.
 
-Definition gen_posdef_check_itv' (A Rad : 'M[FI fs]_n) : bool :=
-  @posdef_check_itv' _ _ _ _ _ _ div_infnan _
-    ssr_fun_of ssr_row ssr_store3 ssr_dotmulB0 _
-    ssr_I0 ssr_succ0 ssr_nat_of fheq (@matrix.trmx (FI fs)) _ _
-    add_up mul_up div_up ssr_fold_mx feps feta (@is_finite fs) test_n A Rad.
-
-Lemma posdef_check_itv'_correct A Rad : gen_posdef_check_itv' A Rad = true ->
-  forall Xt : 'M[R]_n, Xt^T = Xt ->
-  Mabs (Xt - cholesky.MF2R (MFI2F A)) <=m: cholesky.MF2R (MFI2F Rad) ->
-  posdef Xt.
-Proof.
-rewrite /gen_posdef_check_itv' /posdef_check_itv'.
-set m := max_mx _; set nm := mul_up _ _; set A' := map_diag _ _.
-rewrite Bool.andb_true_iff; elim=> PRad HA' Xt SXt HXt.
-have HA'' := posdef_check_correct HA'.
-have HF := posdef_check_f1_diag HA'.
-have HF' : forall i, finite (gen_sub_down (A i i) nm).
-{ by move=> i; move: (HF i); rewrite map_diag_correct_diag. }
-rewrite -(GRing.addr0 Xt) -(GRing.subrr (cholesky.MF2R (MFI2F A))).
-elim (map_diag_sub_down_correct HF') => d [Hd Hd'].
-rewrite /ssr_map_diag /gen_sub_down -/A' in Hd.
-have HA : cholesky.MF2R (MFI2F A) = cholesky.MF2R (MFI2F A') + diag_mx d.
-{ by rewrite Hd -GRing.addrA (GRing.addrC _ (_ d)) GRing.subrr GRing.addr0. }
-rewrite {1}HA.
-rewrite !GRing.addrA (GRing.addrC Xt) -!GRing.addrA (GRing.addrC (diag_mx d)).
-apply posdef_norm_eq_1 => x Hx.
-rewrite mulmxDr mulmxDl -(GRing.addr0 0); apply Madd_lt_le_compat.
-{ apply HA'' => Hx'; rewrite Hx' norm2_0 /GRing.zero /GRing.one /= in Hx.
-  move: Rlt_0_1; rewrite Hx; apply Rlt_irrefl. }
-rewrite GRing.addrA mulmxDr mulmxDl -(GRing.opprK (_ *m diag_mx d *m _)).
-apply Mle_sub.
-apply Mle_trans with (- Mabs (x^T *m (Xt - cholesky.MF2R (MFI2F A)) *m x));
-  [apply Mopp_le_contravar|by apply Mge_opp_abs].
-apply Mle_trans with ((Mabs x)^T *m Mabs (Xt - cholesky.MF2R (MFI2F A)) *m Mabs x).
-{ apply (Mle_trans (Mabs_mul _ _)), Mmul_le_compat_r; [by apply Mabs_pos|].
-  rewrite map_trmx; apply (Mle_trans (Mabs_mul _ _)).
-  by apply Mmul_le_compat_l; [apply Mabs_pos|apply Mle_refl]. }
-apply (Mle_trans (cholesky.Mmul_abs_lr _ HXt)).
-apply Mle_trans with (INR n * FI2F m)%Re%:M.
-{ apply cholesky.r_upper_bound => //.
-  { move: HXt; apply Mle_trans, Mabs_pos. }
-  by apply/max_mx_correct/all_mxP. }
-set IN := INR n; rewrite Mle_scalar !mxE /GRing.natmul /= -(Rmult_1_r (_ * _)).
-replace R1 with (R1^2) by ring; rewrite /GRing.one /= in Hx; rewrite -Hx.
-rewrite norm2_sqr_dotprod /dotprod mxE /= big_distrr /=.
-apply big_rec2 => [|i y1 y2 _ Hy12]; [by right|]; rewrite mul_mx_diag !mxE.
-rewrite /GRing.add /GRing.mul /=; apply Rplus_le_compat => //.
-rewrite (Rmult_comm _ (d _ _)) !Rmult_assoc -Rmult_assoc.
-apply Rmult_le_compat_r; [by apply Rle_0_sqr|].
-have Fnm : finite nm.
-{ move: (HF' ord0); rewrite /gen_sub_down /sub_down => F.
-  apply fiopp_spec_f1 in F; apply (add_up_spec_fl F). }
-apply (Rle_trans _ (FI2F nm)).
-{ apply (Rle_trans _ (FI2F (float_of_nat_up add_up n) * FI2F m)).
-  { apply Rmult_le_compat_r; [by apply/max_mx_pos/all_mxP|].
-    by apply float_of_nat_up_correct, (@mul_up_spec_fl _ m). }
-  by apply mul_up_spec. }
-by move: (Hd' i i); rewrite !mxE eq_refl /GRing.natmul /GRing.mul /= Rmult_1_r.
-Qed.
-
 Variables (F : Type) (F2FI : F -> FI fs) (toR : F -> R).
 Hypothesis (F2FI_correct : forall f, finite (F2FI f) -> FI2F (F2FI f) = toR f :> R).
 
@@ -1851,39 +1430,6 @@ rewrite (map_mx_ext (g := (@F_val _) \o @FI2F fs \o F2FI)
   move/all_mxP in H1.
   by move: (H1 i j); rewrite mxE.
 Qed.
-
-Variable Q : Type.
-Variable ItvRadQ2FI : Q -> Q -> FI fs * FI fs.
-
-Variable Q2R : Q -> R.
-
-Hypothesis ItvRadQ2FI_correct : forall q r,
-  is_finite (ItvRadQ2FI q r).1 = true -> is_finite (ItvRadQ2FI q r).2 = true ->
-  forall x : R, Rabs (x - Q2R q) <= Q2R r ->
-  Rabs (x - FI2F (ItvRadQ2FI q r).1) <= FI2F (ItvRadQ2FI q r).2.
-
-Definition gen_posdef_check_itv_Q (A : 'M[Q]_n) (r : Q) : bool :=
-  @posdef_check_itv_Q _ _ _ _ _ _ div_infnan _
-    ssr_fun_of ssr_row ssr_store3 ssr_dotmulB0 _
-    ssr_I0 ssr_succ0 ssr_nat_of fheq (@matrix.trmx (FI fs)) _ _
-    add_up mul_up div_up ssr_fold_mx
-    ssr_map_mx Q ItvRadQ2FI
-    feps feta (@is_finite fs) test_n A r.
-
-Lemma posdef_check_itv_Q_correct A r : gen_posdef_check_itv_Q A r = true ->
-  forall Xt : 'M[R]_n, Xt^T = Xt ->
-  Mabs (Xt - matrix.map_mx Q2R A) <=m: matrix.const_mx (Q2R r) ->
-  posdef Xt.
-Proof.
-rewrite /gen_posdef_check_itv_Q /posdef_check_itv_Q Bool.andb_true_iff.
-elim=> HF HA Xt SXt HXt; apply (posdef_check_itv'_correct HA SXt) => i j.
-rewrite !mxE /GRing.add /GRing.opp /=; apply ItvRadQ2FI_correct.
-{ admit; by move: (all_mx_correct HF i j); rewrite /map_mx /ssr_map_mx !mxE. }
-{ move: HA; rewrite /gen_posdef_check_itv /posdef_check_itv Bool.andb_true_iff.
-  admit; elim=> HF' _; move: (all_mx_correct HF' i j);
-  by rewrite /map_mx /ssr_map_mx !mxE. }
-by move: (HXt i j); rewrite !mxE /GRing.add /GRing.opp.
-Admitted.
 
 End proof_inst_ssr_matrix_float_infnan.
 
@@ -2040,7 +1586,6 @@ Proof. by move=> *; apply: size_nth_outer_loop4. Qed.
 Context `{eq T}.
 
 Instance eq_mxT : @heq nat (mx T) := fun _ _ => eq_seq (eq_seq H).
-(*  @eq_seqmx T H (* buggy (it ignores H and uses eq_op) *) *)
 
 Instance : transpose_class (mx T) := fun m n => @trseqmx T.
 
@@ -2065,10 +1610,6 @@ Definition posdef_check_itv4 (M : seqmatrix T) (r : T) : bool :=
   @posdef_check_itv T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
     add1 mul1 div1 feps feta is_finite (test_n eps_inv) M r.
 
-Definition posdef_check_itv'4 (M Rad : seqmatrix T) : bool :=
-  @posdef_check_itv' T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
-    add1 mul1 div1 (@seq_fold_mx T) feps feta is_finite (test_n eps_inv) M Rad.
-
 Global Instance seq_map_mx : map_mx_class mx :=
   fun T T' m n f s => map (map f) s.
 
@@ -2079,14 +1620,6 @@ Definition posdef_check_F4 (M : seqmatrix F) : bool :=
     add1 mul1 div1 (@seq_fold_mx T) seq_map_mx
     F F2FI feps feta is_finite (test_n eps_inv) M.
 
-Variable Q : Type.
-Variable ItvRadQ2T : Q -> Q -> T * T.
-
-Definition posdef_check_itv_Q4 (M : seqmatrix Q) (r : Q) : bool :=
-  @posdef_check_itv_Q T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
-    add1 mul1 div1 (@seq_fold_mx T) seq_map_mx
-    Q ItvRadQ2T feps feta is_finite (test_n eps_inv) M r.
-
 End inst_seq.
 
 Section Rseqmx_aux.
@@ -2094,12 +1627,6 @@ Section Rseqmx_aux.
 
 Context {A : Type}. (* {ordC : nat -> Type} {mxC : nat -> nat -> Type}. *)
 Context `{!zero A}.
-(*
-Local Notation ordA := (fun _ : nat => nat) (only parsing).
-Local Notation mxA := (fun _ _ : nat => seqmatrix A) (only parsing).
-Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A}.
-Context `{!fun_of A ordA mxA, !row_class ordA mxA}.
-*)
 
 (** Version of Rseqmx_fun_of_seqmx not assuming zmodType *)
 Instance Rseqmx_fun_of_seqmx' m n :
@@ -2131,16 +1658,8 @@ End Rseqmx_aux.
 
 Section data_refinement.
 
-(*
-(* Abstract types *)
-Context {A : Type}. (* {ordA : nat -> Type} {mxA : nat -> nat -> Type}. *)
-Local Notation ordA := ordinal (only parsing).
-Local Notation mxA := (fun m n => 'M[A]_(m, n)) (only parsing).
-Context `{!zero A, !one A, !add A, !opp A, (* !sub A, *) !mul A, !div A, !sqrt A}.
-*)
-
 (* Concrete types *)
-Context {C : Type}. (* {ordC : nat -> Type} {mxC : nat -> nat -> Type}. *)
+Context {C : Type}.
 Local Notation ordC := (fun _ : nat => nat) (only parsing).
 Local Notation mxC := (fun _ _ : nat => seqmatrix C) (only parsing).
 Context `{!zero C, !one C, !add C, !opp C, (* !sub C, *) !mul C, !div C, !sqrt C}.
@@ -2148,51 +1667,13 @@ Context {n : nat}.
 
 Instance : nat_of_class (fun _ => nat) n.+1 := id.
 
-(*
-Erik: Not required anymore, cf. *Global* Instance ssr_I0 above.
-
-Instance : I0_class ordinal n.+1 := ssr_I0.
-Instance : succ0_class ordinal n.+1 := ssr_succ0.
-Instance : nat_of_class ordinal n.+1 := ssr_nat_of.
-
-Instance : I0_correct ordinal n.+1.
-Proof. done. Qed.
-
-Instance : succ0_correct ordinal n.+1.
-Proof.
-move=> i; rewrite /nat_of /nat_of_class_instance_4 /ssr_nat_of => Hi.
-by rewrite /succ0 /succ0_class_instance_1 /ssr_succ0 inordK.
-Qed.
-*)
-
 Local Notation ordA := ordinal (only parsing).
-(* Local Notation mxA := (fun m n => 'M[C]_(m, n)) (only parsing). *)
 Local Notation mx := matrix (only parsing).
-
-(* Context {RmxC : forall {m n}, mxA m n -> mxC m n -> Prop}.
-Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
-
-Context {RordC : forall m, ordA m -> ordC m -> Prop}.
-Arguments RordC {m} _ _. *)
-
-(*
-Context {RC : A -> C -> Prop}.
-Let RmxC := (@RseqmxA A C RC).
-Arguments RmxC {m n} _ _. (* maximal implicit arguments *)
-*)
 
 Local Notation RmxC := Rseqmx (only parsing). (* from seqmatrix.v *)
 
 Local Notation RordC := Rord (only parsing).
 Arguments RordC {n} _ _.
-
-(*
-Context `{forall m n, param (RmxC ==> RordC ==> RordC ==> Logic.eq)
-  (@matrix.fun_of_matrix _ m n) (@fun_of_matrix _ _ mxC _ m n)}.
-
-Context `{forall m n, param (RordC ==> RmxC ==> RmxC)
-  (@matrix.row _ m n) (@row _ _ _ m n)}.
-*)
 
 Lemma foldl_iteri_ord T T' n' f x x' s :
   (seq.size s = n'.+1)%N ->
@@ -2254,17 +1735,6 @@ apply param_fold_mx.
 Qed.
 
 Context `{!leq C}.
-
-Lemma param_max_mx : param (RmxC ==> Logic.eq)
-  (max_mx (T := C) (mx := mx) (n := n))
-  (max_mx (T := C) (mx := (fun C _ _ => seqmatrix C)) (n := n) (fold_mx_class0 := @seq_fold_mx C)).
-Proof.
-eapply param_abstr => A As param_A.
-rewrite /max_mx.
-eapply param_apply; last exact: param_A.
-eapply param_apply; first eapply param_apply; try apply param_eq_refl.
-by eapply param_fold_mx.
-Qed.
 
 Lemma param_seq_store3 n' : param (RmxC ==> RordC ==> Logic.eq ==> RmxC)
   (fun M j v => @ssr_store3 C 1 n' M ord0 j v)
@@ -2664,19 +2134,10 @@ Definition posdef_check5 :=
 Definition posdef_check_itv5 :=
   gen_posdef_check_itv (n':=n) eps_inv add1 mul1 div1 feps feta.
 
-Definition posdef_check_itv'5 :=
-  gen_posdef_check_itv' (n':=n) eps_inv add1 mul1 div1 feps feta.
-
 Variables (F : Type) (F2FI : F -> FI fs).
 
 Definition posdef_check_F5 :=
   gen_posdef_check_F (n':=n) eps_inv add1 mul1 div1 feps feta F2FI.
-
-Variable Q : Type.
-Variable ItvRadQ2FI : Q -> Q -> FI fs * FI fs.
-
-Definition posdef_check_itv_Q5 :=
-  gen_posdef_check_itv_Q (n':=n) eps_inv add1 mul1 div1 feps feta ItvRadQ2FI.
 
 Instance : eq C := @fieq fs.
 Instance : leq C := @file fs.
@@ -2951,67 +2412,6 @@ eapply param_apply; first exact: param_map_diag.
 rewrite paramE => a b Hab; repeat f_equal => //.
 Qed.
 
-Lemma param_posdef_check_itv' :
-  param (Rseqmx ==> Rseqmx ==> Logic.eq)
-  (gen_posdef_check_itv' (n':=n) eps_inv add1 mul1 div1 feps feta)
-  (posdef_check_itv'4 (n:=n) eps_inv add1 mul1 div1 feps feta (@is_finite fs)).
-Proof.
-apply param_abstr => A As param_A.
-apply param_abstr => Rd Rds param_Rd.
-rewrite paramE /gen_posdef_check_itv' /posdef_check_itv'4 /posdef_check_itv' /posdef_check.
-apply f_equal2; [|apply f_equal2; [apply f_equal2; [apply f_equal|]|]].
-{ apply param_eq; eapply param_apply; [|apply param_Rd].
-  eapply param_apply; [apply param_all_mx|apply param_eq_refl]. }
-{ apply param_eq; eapply param_apply; first by apply param_is_sym.
-  eapply param_apply; last by tc.
-  eapply param_apply; first exact: param_map_diag.
-  (* This could be simplified with a param lemma for sub_down *)
-  rewrite paramE => a b Hab; repeat f_equal =>//.
-  eapply paramP; eapply param_apply; last exact: param_Rd.
-  by eapply param_max_mx.
-}
-{ apply param_eq; rewrite /noneg_diag.
-  eapply param_apply.
-  eapply param_apply; [by apply param_all_diag|apply param_eq_refl].
-  eapply param_apply; last exact: param_A.
-  eapply param_apply; first eapply param_map_diag.
-  rewrite paramE => a b Hab; repeat f_equal =>//.
-  eapply paramP; eapply param_apply; last exact: param_Rd.
-  by eapply param_max_mx.
-}
-set c := compute_c _ _ _ _ _ _ (_ _ A).
-set c' := compute_c _ _ _ _ _ _ (map_diag _ As).
-have Hcc' : c = c'; [|rewrite -Hcc'; case c => // {c c' Hcc'} c].
-{ rewrite /c /c'; apply paramP.
-  eapply param_apply; [by apply param_compute_c|].
-  eapply param_apply; last exact: param_A.
-  eapply param_apply; first exact param_map_diag.
-  rewrite paramE => a b Hab; repeat f_equal => //.
-  eapply paramP; eapply param_apply; last exact: param_Rd.
-  by eapply param_max_mx.
-}
-set R := cholesky3 _; set Rs := cholesky3 _; apply paramP.
-suff param_R : param Rseqmx R Rs; [|rewrite /R /Rs].
-{ rewrite paramE; apply f_equal2; apply paramP.
-  { eapply param_apply; [|exact param_R].
-    eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
-  rewrite /pos_diag; eapply param_apply; [|exact param_R].
-  eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
-set At := map_diag _ A; set Ats := map_diag _ As.
-suff HA : param Rseqmx At Ats; [|rewrite /At /Ats].
-{ rewrite -/cholesky4 -/cholesky5.
-eapply param_apply; first exact: param_cholesky.
-eapply param_apply; last exact: HA.
-eapply param_apply; [eapply param_map_diag|].
-by apply param_fun_eq, param_eq_refl.
-}
-eapply param_apply; last exact: param_A.
-eapply param_apply; first exact: param_map_diag.
-rewrite paramE => a b Hab; repeat f_equal => //.
-eapply paramP; eapply param_apply; last exact: param_Rd.
-by eapply param_max_mx.
-Qed.
-
 (* Version of Rseqmx_map_seqmx not assuming identical input and return types for f *)
 Lemma param_map_mx m n'' T T' :
   param (Logic.eq ==> Rseqmx ==> Rseqmx)
@@ -3043,43 +2443,7 @@ eapply param_apply; [|apply param_A].
 eapply param_apply; [apply param_map_mx|apply param_eq_refl].
 Qed.
 
-Lemma param_posdef_check_itv_Q :
-  param (Rseqmx ==> Logic.eq ==> Logic.eq)
-  (gen_posdef_check_itv_Q (n':=n) eps_inv add1 mul1 div1 feps feta ItvRadQ2FI)
-  (posdef_check_itv_Q4 (n:=n) eps_inv add1 mul1 div1 feps feta (@is_finite fs) ItvRadQ2FI).
-Proof.
-apply param_abstr => A As param_A.
-apply param_abstr => r r' param_r.
-rewrite paramE in param_r; rewrite -param_r.
-rewrite /gen_posdef_check_itv_Q /posdef_check_itv_Q4 /posdef_check_itv_Q.
-rewrite paramE; apply f_equal2; apply param_eq.
-{ eapply param_apply.
-  { eapply param_apply; [apply param_all_mx|apply param_eq_refl]. }
-  eapply param_apply.
-  { eapply param_apply; [apply param_map_mx|apply param_eq_refl]. }
-  eapply param_apply; [|apply param_A].
-  eapply param_apply; [apply param_map_mx|apply param_eq_refl]. }
-eapply param_apply.
-{ eapply param_apply; [apply param_posdef_check_itv'|].
-  eapply param_apply.
-  { eapply param_apply; [apply param_map_mx|apply param_eq_refl]. }
-  eapply param_apply; [|apply param_A].
-  eapply param_apply; [apply param_map_mx|apply param_eq_refl]. }
-eapply param_apply.
-{ eapply param_apply; [apply param_map_mx|apply param_eq_refl]. }
-eapply param_apply; [|apply param_A].
-eapply param_apply; [apply param_map_mx|apply param_eq_refl].
-Qed.
-
 End data_refinement'.
-
-(* ================================================================ *)
-(* Require Import String. Eval compute in "Début des tests."%string. *)
-(* Goal True. idtac "Début des tests". done. Qed. *)
-(* ================================================================ *)
-
-(* Load "testsuite". *)
-Require Import testsuite.
 
 Require Import BigQ.
 Require Import coqinterval_infnan.
@@ -3090,238 +2454,6 @@ Notation toR := (fun f => proj_val (F.toX f)).
 Section test_CoqInterval.
 
 Definition prec := 53%bigZ.
-
-(** Support results for "reasoning backwards w.r.t well-defined floats" *)
-
-Lemma real_FtoX f c : F.toX f = Xreal c -> F.real f.
-Proof. by rewrite FtoX_real /X_real; case: F.toX. Qed.
-
-Lemma real_toR f c : F.toX f = Xreal c -> c = toR f.
-Proof. by simpl; case E: F.toX =>//; case. Qed.
-
-Lemma real_FtoX_toR f : F.real f -> F.toX f = Xreal (toR f).
-Proof. by rewrite FtoX_real; rewrite /X_real; case: F.toX. Qed.
-
-Lemma Fadd_real m p a b : F.real (F.add m p a b) -> F.real a /\ F.real b.
-Proof.
-rewrite !FtoX_real /X_real F.add_correct /Xround /Xbind => H.
-by split; [case: (F.toX a) H|move: H; rewrite Xadd_comm; case: (F.toX b)].
-Qed.
-
-Lemma Fneg_real a : F.real (F.neg a) = F.real a.
-Proof. by rewrite !FtoX_real /X_real F.neg_correct; case: (F.toX a). Qed.
-
-Lemma Fsub_real m p a b : F.real (F.sub m p a b) -> F.real a /\ F.real b.
-Proof.
-rewrite /F.sub => H; split; first by apply: proj1 (@Fadd_real m p a _ H).
-by rewrite -Fneg_real; apply: proj2 (@Fadd_real m p a _ H).
-Qed.
-
-Lemma Fscale_real f e : F.real (F.scale2 f (F.ZtoS e)) = F.real f.
-Proof.
-rewrite !FtoX_real /X_real F.scale2_correct //.
-by case: (F.toX f).
-Qed.
-
-(** Support results to transpose terms with inequalities over reals.
-    To this aim, we reuse MathComp naming conventions. *)
-
-Lemma Rle_subl_addr x y z : (x - y <= z) <-> (x <= z + y).
-Proof.
-split=> H.
-  rewrite -(Rplus_0_r x) -(Rplus_opp_l y) -Rplus_assoc.
-  by apply Rplus_le_compat_r.
-rewrite -(Rplus_0_r z) -(Rplus_opp_r y) -Rplus_assoc.
-by apply Rplus_le_compat_r.
-Qed.
-
-Lemma Rle_subr_addr x y z : (x <= y - z) <-> (x + z <= y).
-Proof.
-split=> H.
-  rewrite -(Rplus_0_r y) -(Rplus_opp_l z) -Rplus_assoc.
-  by apply Rplus_le_compat_r.
-rewrite -(Rplus_0_r x) -(Rplus_opp_r z) -Rplus_assoc.
-by apply Rplus_le_compat_r.
-Qed.
-
-Definition Rle_sub_addr := (Rle_subl_addr, Rle_subr_addr).
-
-Lemma Rle_subl_addl x y z : (x - y <= z) <-> (x <= y + z).
-Proof.
-split=> H.
-  by rewrite Rplus_comm -Rle_sub_addr.
-by rewrite -Rle_sub_addr /Rminus Ropp_involutive Rplus_comm.
-Qed.
-
-Lemma Rle_subr_addl x y z : (x <= y - z) <-> (z + x <= y).
-split=> H.
-  by rewrite Rplus_comm -Rle_sub_addr.
-by rewrite -Rle_sub_addr /Rminus Ropp_involutive Rplus_comm.
-Qed.
-
-Definition Rle_sub_addl := (Rle_subl_addl, Rle_subr_addl).
-
-(* First attempt TO AVOID as it hides the functions that are composed:
-Coercion BigQ2R (q : bigQ) : R := RMicromega.IQR (BigQ.to_Q q).
-Coercion BigZ2R (n : bigZ) : R := Z2R (BigZ.to_Z n).
-*)
-Require Import QArith.
-Local Coercion RMicromega.IQR : Q >-> R.
-Local Coercion Z2R : Z >-> R.
-
-(** CoqInterval-based material to turn a center-radius rational interval
-    into a center-radio floating-point interval *)
-
-Definition BigQ2F (q : bigQ) : F.type * F.type :=
-  match q with
-  | BigQ.Qz m => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in (m0, m0)
-  | BigQ.Qq m n => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in
-                   let n0 := Interval_specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
-                   (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0)
-  end.
-
-Require Import Interval.Interval_missing.
-Lemma toR_Float (m e : bigZ) : toR (Float m e) = ([m] * bpow F.radix [e])%Re.
-Proof.
-rewrite /F.toX /F.toF /FtoX /=.
-have := Bir.mantissa_sign_correct m.
-case E_m: (Bir.mantissa_sign m); last case.
-  by rewrite /Bir.MtoZ =>-> /=; rewrite Rsimpl.
-rewrite /Bir.MtoZ =>-> /= _; rewrite /FtoR /Bir.EtoZ.
-case: e.
-Admitted.
-
-Lemma fiplus_proof (x y : F.type) : mantissa_bounded (F.add rnd_NE prec x y).
-Proof.
-unfold mantissa_bounded, x_bounded.
-rewrite F.add_correct; set (z := Xadd _ _).
-unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
-set r'' := round _ _ _ _; exists r''; [now simpl|].
-apply FLX_format_generic; [now simpl|].
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
-Qed.
-
-Definition fiplus' (x y : F.type) : FI := Build_FI _ (fiplus_proof x y).
-
-Lemma scale2_proof (x : FI) (n : bigZ) : mantissa_bounded (F.scale2 x n).
-Proof.
-Admitted.
-
-Definition scale2 (x : FI) (n : bigZ) : FI := Build_FI _ (scale2_proof x n).
-
-Lemma fisub_up_proof (x y : F.type) : mantissa_bounded (F.sub rnd_UP prec x y).
-Proof.
-unfold mantissa_bounded, x_bounded.
-rewrite F.sub_correct; set (z := Xsub _ _).
-unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
-set r'' := round _ _ _ _; exists r''; [now simpl|].
-apply FLX_format_generic; [now simpl|].
-by apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
-Qed.
-
-Definition fisub_up (x y : F.type) : FI := Build_FI _ (fisub_up_proof x y).
-
-(* @Érik: tu avais raison, ça aurait peut être été plus simple
-   de faire un truc du genre (Q2F NE q, Q2F UP r + /2 * ulp(Q2F NE q) *)
-Definition RadBigQ2F (q r : bigQ) : FI * FI :=
-  let (lq, uq) := BigQ2F q in
-  let (_, ur) := BigQ2F r in
-  let l := F.sub rnd_DN prec lq ur in
-  let u := F.add rnd_UP prec uq ur in
-  let c := scale2 (fiplus' l u) (-1)%bigZ in
-  (c, @fimax coqinterval_infnan (fisub_up u c) (fisub_up c l)).
-
-Lemma RadBigQ2F_correct (q r : bigQ) :
-  forall x : R, ([q]%bigQ - [r]%bigQ <= x <= [q]%bigQ + [r]%bigQ)%Re ->
-  let c := (RadBigQ2F q r).1 in
-  let r' := (RadBigQ2F q r).2 in
-  match F.toX c, F.toX r' with
-  | Xnan, _ | _, Xnan => True
-  | Xreal c, Xreal r' => (c - r' <= x <= c + r')%Re
-  end.
-Proof.
-move=> x Hx.
-rewrite /RadBigQ2F /scale2 /fiplus' /fisub_up /=.
-Admitted.
-(*
-case Eq: (BigQ2F q) => [lq uq].
-case Er: (BigQ2F r) => [_lr0 ur].
-set l := F.sub rnd_DN prec lq ur.
-set u := F.add rnd_UP prec uq ur.
-set c := F.scale2 (F.add rnd_NE prec l u) (-1)%bigZ.
-simpl.
-case Ec': F.toX=> [//|c'].
-case Er': F.toX=> [//|r'].
-have Rc := real_FtoX Ec'.
-have Rlu := Rc.
-unfold c in Rlu; change (-1)%bigZ with (F.ZtoS (-1)) in Rlu. (*!*)
-rewrite Fscale_real in Rlu.
-have [Rl Ru] := Fadd_real Rlu.
-have [Rlq Rur] := Fsub_real Rl.
-have [Ruq _] := Fadd_real Ru.
-pose fexp := (FLX_exp (Z.pos (F.prec prec))).
-suff Hlu : (toR l <= x <= toR u)%Re.
-  rewrite (real_toR Ec') (real_toR Er').
-  rewrite F.max_correct 2!F.sub_correct /=.
-  rewrite (real_FtoX_toR Rl) (real_FtoX_toR Ru) (real_FtoX_toR Rc) /=.
-  split.
-    rewrite Rle_sub_addr -Rle_subl_addl.
-    apply: Rle_trans _ (Rmax_r _ _).
-    rewrite /round.
-    have [_ [B _]] /= := round_UP_pt F.radix fexp (toR c - (toR l)).
-    apply: Rle_trans _ B.
-    suff: (toR l <= x)%Re by psatzl R.
-    by case: Hlu.
-  rewrite -Rle_subl_addl.
-  apply: Rle_trans _ (Rmax_l _ _).
-  rewrite /round.
-  have [_ [B _]] /= := round_UP_pt F.radix fexp (toR u - (toR c)).
-  apply: Rle_trans _ B.
-  apply: Rplus_le_compat_r.
-  by case: Hlu.
-rewrite {c Rc Rlu Rl Ru Ec' Er'}/l {}/u F.sub_correct F.add_correct.
-rewrite (real_FtoX_toR Rlq) (real_FtoX_toR Ruq) (real_FtoX_toR Rur) /=.
-have [[_ [H1 _]] [_ [H2 _]]] := conj
-  (round_DN_pt F.radix fexp (toR lq - toR ur))
-  (round_UP_pt F.radix fexp (toR uq + toR ur)).
-move: Eq; rewrite (surjective_pairing (BigQ2F q)); case => Eql Equ.
-split.
-  apply: Rle_trans H1 _.
-  (*?! apply: Rle_trans _ (proj1 Hx). *)
-  apply Rle_trans with (2 := proj1 Hx).
-  apply Rplus_le_compat; last apply: Ropp_le_contravar.
-  rewrite -{}Eql {Equ} /BigQ2F.
-  case E_q: q Hx => [m|m n]; rewrite -E_q.
-  rewrite /F.toX /FtoX /=.
-  have [_ [OK _]] := (round_DN_pt F.radix fexp [q]%bigQ).
-  admit.
-  admit.
-  admit.
-apply: Rle_trans _ H2.
-apply: Rle_trans (proj2 Hx) _.
-Admitted.
-*)
-
-Local Open Scope bigQ_scope.
-Local Open Scope R_scope.
-Lemma ItvRadQ2FI_correct : forall (q r : bigQ),
-  F.real (RadBigQ2F q r).1 = true -> F.real (RadBigQ2F q r).2 = true ->
-  forall x : R, Rabs (x - [q]) <= [r] ->
-  Rabs (x - FI2F (RadBigQ2F q r).1) <= FI2F (RadBigQ2F q r).2.
-Proof.
-move=> q r; set qr' := RadBigQ2F _ _; move=> Fq Fr x.
-case_eq (FI_prop qr'.1).
-{ move=> H; casetype False; move: Fq H; rewrite FtoX_real.
-  by case (F.toX qr'.1). }
-case_eq (FI_prop qr'.2).
-{ move=> H; casetype False; move: Fr H; rewrite FtoX_real.
-  by case (F.toX qr'.2). }
-move=> Hq _ Hr _; elim Hq => rq Hrq Hrq'; elim Hr => rr Hrr Hrr'.
-rewrite !FI2F_X2F_FtoX Hrq Hrr /=.
-do 2 (rewrite round_generic; [|by apply generic_format_FLX]).
-move: (@RadBigQ2F_correct q r x)=> /=; rewrite Hrq Hrr.
-move=> Hxq Hxq'; apply Rabs_le; apply Rabs_le_inv in Hxq'; lra.
-Qed.
 
 Local Notation T := (s_float BigZ.t_ BigZ.t_).
 
@@ -3374,41 +2506,6 @@ Definition posdef_check_itv4_coqinterval (M : seq (seq T)) (r : T) : bool :=
   @posdef_check_itv4 T _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
     eps_inv add1 mul1 div1 feps feta is_finite M r.
 
-Definition posdef_check_itv'4_coqinterval (M Rad : seq (seq T)) : bool :=
-  @posdef_check_itv'4 T _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
-    eps_inv add1 mul1 div1 feps feta is_finite M Rad.
-
-(*
-dupliqué de posdef_check_itv_Q et posdef_check_itv_Q_correct
-Let mxQ (m n : nat) := seq (seq bigQ).
-Let mxT (m n : nat) := seq (seq F.type).
-
-Definition max_mat m n (A : mxT m n) :=
-  foldl (foldl (fun acc c => if (acc <= c)%C then c else acc)) 0%C A.
-
-Definition posdef_check_itv_Q
-  (* overapproximations of eps and eta *)
-  (eps eta : T)
-  (is_finite : T -> bool)
-  (* check that n is not too large *)
-  (test_n : nat -> bool)
-  (* matrix to check *)
-  (A : seq (seq bigQ)) (r : bigQ) : bool :=
-  let n := (seq.size A).-1 in
-  let A' := map (map (RadBigQ2F ^~ r)) A in
-  let A'1 := map (map fst) A' in
-  let A'2 := map (map snd) A' in
-  (* let r := @max_mat n n A'2 in *)
-  posdef_check_itv4_coqinterval A'1 A'2.
-
-(* FIXME: statement
-Lemma posdef_check_itv_Q_correct A r : gen_posdef_check_itv_Q A r = true ->
-  forall Xt : 'M[R]_n, Xt^T = Xt ->
-  (forall i j : 'I_n, Rabs (Xt i j - MBigQ2R A i j) <= FI2F r) ->
-  posdef Xt.
-*)
-*)
-
 End test_CoqInterval.
 
 Section test_CoqInterval_F2FI.
@@ -3453,6 +2550,9 @@ Qed.
 
 Definition F2FI (f : F.type) : FI := Build_FI _ (F2FI_proof f).
 
+Lemma real_FtoX_toR f : F.real f -> F.toX f = Xreal (toR f).
+Proof. by rewrite FtoX_real; rewrite /X_real; case: F.toX. Qed.
+
 Lemma F2FI_correct (f : F.type) :
   finite (F2FI f) -> FI2F (F2FI f) = toR f :> R.
 Proof.
@@ -3464,16 +2564,6 @@ suff: Xreal r = Xreal (proj_val (F.toX (Float m e))).
 { by move=> H; inversion H. }
 by move: HF; rewrite -real_FtoX_toR // -Hr /F2FI /=; case (_ <? _).
 Qed.
-
-(*
-Compute seq.size m12.
-Check posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _ (mx_of_seqmx_val (seq.size m12) (seq.size m12) m12'))).
-Definition posdef_seqFI (mat : seqmatrix FI) : Prop :=
-  posdef (cholesky.MF2R (@MFI2F coqinterval_infnan _ _
-  (mx_of_seqmx_val (seq.size mat) (seq.size mat) mat))).
-*)
-
-(* Local Notation T := (s_float BigZ.t_ BigZ.t_). *)
 
 Instance add''' : add FI := fiplus.
 Instance mul''' : mul FI := fimult.
@@ -3647,6 +2737,14 @@ Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
   @posdef_check_itv4 FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
     eps_inv fiplus1 fimult1 fidiv1 feps' feta' (@float_infnan_spec.is_finite coqinterval_infnan) M r.
 
+Definition BigQ2F (q : bigQ) : F.type * F.type :=
+  match q with
+  | BigQ.Qz m => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in (m0, m0)
+  | BigQ.Qq m n => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in
+                   let n0 := Interval_specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
+                   (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0)
+  end.
+
 Definition test_posdef_check_itv (M : seq (seq F.type)) (r : bigQ) : bool :=
   posdef_check_itv4_coqinterval' (map (map F2FI) M) (F2FI (snd (BigQ2F r))).
 
@@ -3672,7 +2770,7 @@ Typeclasses eauto := debug.
 
 Lemma posdef_check_F_correct_inst (A : seqmatrix F.type) :
   let m := seq.size A in
-  (m != 0)%N ->
+  (0 < m)%N ->
   posdef_check_F4_coqinterval' A = true ->
   posdef_seqF A.
 Proof.
@@ -3696,6 +2794,8 @@ Admitted.
 
 Ltac prove_posdef :=
   by apply posdef_check_F_correct_inst; abstract (vm_cast_no_check (erefl true)).
+
+Require Import testsuite.
 
 Definition m12' := map (map (F2FI)) m12.
 
