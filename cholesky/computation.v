@@ -211,7 +211,7 @@ Definition posdef_check_itv
   (* check that n is not too large *)
   (test_n : nat -> bool)
   (* matrix to check *)
-  (A : mx T n n)(r : T) : bool :=
+  (A : mx T n n) (r : T) : bool :=
 is_finite r && (0 <= r)%C &&
   let nm := mul1 (float_of_nat_up n) r in
   let A' := map_diag (fun x => sub_down x nm) A in
@@ -232,6 +232,20 @@ Definition posdef_check_F
   let A' := (map_mx F2FI A) in
   all_mx is_finite A' && (* Remark: this could be removed and proved separately *)
   posdef_check eps eta is_finite test_n A'.
+
+Definition posdef_check_itv_F
+  (* overapproximations of eps and eta *)
+  (eps eta : T)
+  (is_finite : T -> bool)
+  (* check that n is not too large *)
+  (test_n : nat -> bool)
+  (* matrix to check *)
+  (A : mx F n n) (r : F) : bool :=
+  let A' := (map_mx F2FI A) in
+  let r' := F2FI r in
+  all_mx is_finite A' && (* Remark: this could be removed and proved separately *)
+  is_finite r' &&
+  posdef_check_itv eps eta is_finite test_n A' r'.
 
 End directed_rounding.
 
@@ -1388,9 +1402,20 @@ Definition gen_posdef_check_F (A : 'M[F]_n) :=
     ssr_I0 ssr_succ0 ssr_nat_of fheq (@matrix.trmx (FI fs)) _ _
   add_up mul_up div_up ssr_fold_mx ssr_map_mx F F2FI feps feta (@is_finite fs) test_n A.
 
+Definition gen_posdef_check_itv_F (A : 'M[F]_n) (r : F) :=
+  @posdef_check_itv_F _ _ _ _ _ _ _ _ ssr_fun_of ssr_row ssr_store3 ssr_dotmulB0 _
+    ssr_I0 ssr_succ0 ssr_nat_of fheq (@matrix.trmx (FI fs)) _ _
+  add_up mul_up div_up ssr_fold_mx ssr_map_mx F F2FI feps feta (@is_finite fs) test_n A r.
+
 Lemma posdef_check_F_f1 A : gen_posdef_check_F A = true ->
   forall i j, finite ((map_mx F2FI A) i j).
 Proof. by move /andP => [Hall _] i j; apply /all_mxP. Qed.
+
+Lemma posdef_check_itv_F_f1 A r : gen_posdef_check_itv_F A r = true ->
+  forall i j, finite ((map_mx F2FI A) i j).
+Proof.
+by move /andP => [H _] i j; move /andP in H; apply /all_mxP; apply H.
+Qed.
 
 Lemma map_mx_ext T T' (P : T -> bool) (g f : T -> T') (M : 'M[T]_n) :
   (forall x, P x -> f x = g x) ->
@@ -1429,6 +1454,21 @@ rewrite (map_mx_ext (g := (@F_val _) \o @FI2F fs \o F2FI)
   apply/all_mxP => i j; rewrite mxE.
   move/all_mxP in H1.
   by move: (H1 i j); rewrite mxE.
+Qed.
+
+Lemma posdef_check_itv_F_correct (A : 'M[F]_n) (r : F) :
+  gen_posdef_check_itv_F A r = true ->
+  forall Xt : 'M_n, Xt^T = Xt ->
+  Mabs (Xt - matrix.map_mx toR A) <=m: matrix.const_mx (toR r) ->
+  posdef Xt.
+Proof.
+move=> H.
+rewrite /gen_posdef_check_itv_F /posdef_check_itv_F in H.
+have /andP [H' H3] := H; have /andP [H1 H2] := H'.
+move/posdef_check_itv_correct in H3.
+move=> Xt SXt HXt; apply H3 => // i j; move: (HXt i j).
+rewrite !mxE F2FI_correct; [by rewrite F2FI_correct|].
+by move/all_mxP in H1; move: (H1 i j); rewrite mxE.
 Qed.
 
 End proof_inst_ssr_matrix_float_infnan.
