@@ -1606,11 +1606,6 @@ move=> i; move: (Hfat i); rewrite map_diag_correct_diag => HAt.
 by apply fiopp_spec_f1, (@add_up_spec_fr c' _), fiopp_spec_f1.
 Qed.
 
-Lemma posdef_check_f1 A : gen_posdef_check A = true ->
-  forall i j, finite (A i j).
-(* TODO: should be quick *)
-Admitted.
-
 Lemma posdef_check_correct A : gen_posdef_check A = true ->
   posdef (cholesky.MF2R (MFI2F A)).
 Proof.
@@ -1813,6 +1808,10 @@ Definition gen_posdef_check_F (A : 'M[F]_n) :=
   @posdef_check_F _ _ _ _ _ _ _ _ ssr_fun_of ssr_row ssr_store3 ssr_dotmulB0 _
     ssr_I0 ssr_succ0 ssr_nat_of fheq (@matrix.trmx (FI fs)) _ _
   add_up mul_up div_up ssr_fold_mx ssr_map_mx F F2FI feps feta (@is_finite fs) test_n A.
+
+Lemma posdef_check_F_f1 A : gen_posdef_check_F A = true ->
+  forall i j, finite ((map_mx F2FI A) i j).
+Proof. by move /andP => [Hall _] i j; apply /all_mxP. Qed.
 
 Lemma map_mx_ext T T' (P : T -> bool) (g f : T -> T') (M : 'M[T]_n) :
   (forall x, P x -> f x = g x) ->
@@ -2072,6 +2071,13 @@ Definition posdef_check_itv'4 (M Rad : seqmatrix T) : bool :=
 
 Global Instance seq_map_mx : map_mx_class mx :=
   fun T T' m n f s => map (map f) s.
+
+Variables (F : Type) (F2FI : F -> T).
+
+Definition posdef_check_F4 (M : seqmatrix F) : bool :=
+  @posdef_check_F T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
+    add1 mul1 div1 (@seq_fold_mx T) seq_map_mx
+    F F2FI feps feta is_finite (test_n eps_inv) M.
 
 Variable Q : Type.
 Variable ItvRadQ2T : Q -> Q -> T * T.
@@ -2661,6 +2667,11 @@ Definition posdef_check_itv5 :=
 Definition posdef_check_itv'5 :=
   gen_posdef_check_itv' (n':=n) eps_inv add1 mul1 div1 feps feta.
 
+Variables (F : Type) (F2FI : F -> FI fs).
+
+Definition posdef_check_F5 :=
+  gen_posdef_check_F (n':=n) eps_inv add1 mul1 div1 feps feta F2FI.
+
 Variable Q : Type.
 Variable ItvRadQ2FI : Q -> Q -> FI fs * FI fs.
 
@@ -3015,6 +3026,23 @@ rewrite mxE (nth_map [::]) ?sizeE //.
 by rewrite (nth_map (x i j)) ?sizeE // refines_nth.
 Qed.
 
+Lemma param_posdef_check_F :
+  param (Rseqmx ==> Logic.eq)
+  (gen_posdef_check_F (n':=n) eps_inv add1 mul1 div1 feps feta F2FI)
+  (posdef_check_F4 (n:=n) eps_inv add1 mul1 div1 feps feta (@is_finite fs) F2FI).
+Proof.
+apply param_abstr => A As param_A.
+rewrite /gen_posdef_check_F /posdef_check_F4 /posdef_check_F.
+rewrite paramE; apply f_equal2; apply param_eq.
+{ eapply param_apply.
+  { eapply param_apply; [apply param_all_mx|apply param_eq_refl]. }
+  eapply param_apply; [|apply param_A].
+  eapply param_apply; [apply param_map_mx|apply param_eq_refl]. }
+eapply param_apply; [apply param_posdef_check|].
+eapply param_apply; [|apply param_A].
+eapply param_apply; [apply param_map_mx|apply param_eq_refl].
+Qed.
+
 Lemma param_posdef_check_itv_Q :
   param (Rseqmx ==> Logic.eq ==> Logic.eq)
   (gen_posdef_check_itv_Q (n':=n) eps_inv add1 mul1 div1 feps feta ItvRadQ2FI)
@@ -3326,12 +3354,15 @@ Instance lt'' : lt T := fun x y =>
 
 Definition eps_inv := 9007199254740992%bigZ.  (* 2^53 *)
 
+Lemma eps_inv_correct : (Z2R [eps_inv]%bigZ <= / eps fis)%Re.
+Proof. by rewrite /= /flx64.eps /= Rinv_involutive; [right|lra]. Qed.
+
 Definition add1 := F.add rnd_UP prec.
 Definition mul1 := F.mul rnd_UP prec.
 Definition div1 := F.div rnd_UP prec.
 
-Definition feps : T := Float 2%bigZ (-53)%bigZ.
-Definition feta : T := Float 2%bigZ (-1075)%bigZ.
+Definition feps : T := Float 1%bigZ (-53)%bigZ.
+Definition feta : T := Float 1%bigZ (-1075)%bigZ.
 
 Definition is_finite : T -> bool := F.real.
 
@@ -3425,12 +3456,14 @@ Definition F2FI (f : F.type) : FI := Build_FI _ (F2FI_proof f).
 Lemma F2FI_correct (f : F.type) :
   finite (F2FI f) -> FI2F (F2FI f) = toR f :> R.
 Proof.
+case f => // m e.
 rewrite /finite FtoX_real /FI2F.
-case (FI_prop (F2FI f)) => Hf; [by rewrite Hf|].
-destruct Hf as (r, Hr, Hr'); move=> _ /=.
-Admitted.
-
-Check param_posdef_check.
+case (FI_prop (F2FI (Float m e))) => Hf; [by rewrite Hf|].
+destruct Hf as (r, Hr, Hr'); move=> HF /=.
+suff: Xreal r = Xreal (proj_val (F.toX (Float m e))).
+{ by move=> H; inversion H. }
+by move: HF; rewrite -real_FtoX_toR // -Hr /F2FI /=; case (_ <? _).
+Qed.
 
 (*
 Compute seq.size m12.
@@ -3457,29 +3490,158 @@ Instance leq''' : leq FI := @file coqinterval_infnan.
 Instance lt''' : lt FI := @filt coqinterval_infnan.
 
 Lemma fiplus1_proof (x y : FI) : mantissa_bounded (F.add rnd_UP 53%bigZ x y).
-Admitted.
+unfold mantissa_bounded, x_bounded.
+rewrite F.add_correct; set (z := Xadd _ _).
+unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
+set r'' := round _ _ _ _; exists r''; [now simpl|].
+apply FLX_format_generic; [now simpl|].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
+Qed.
 
 Definition fiplus1 (x y : FI) : FI :=
   {| FI_val := F.add rnd_UP 53%bigZ x y; FI_prop := fiplus1_proof x y |}.
 
+Lemma round_UP_ge beta fexp :  (* TODO: pas trouvé dans Flocq *)
+  Valid_exp fexp ->
+  forall x, (x <= Fcore_generic_fmt.round beta fexp Zceil x)%Re.
+Proof.
+intros vfexp x.
+destruct (generic_format_EM beta fexp x).
+{ now right; rewrite round_generic. }
+now apply Rlt_le, round_DN_UP_lt.
+Qed.
+
+Lemma fiplus1_spec_fl x y : finite (fiplus1 x y) -> finite x.
+Proof.
+unfold finite, fiplus1; simpl; do 2 rewrite FtoX_real.
+rewrite F.add_correct /Xround /Xbind.
+by case: (F.toX x).
+Qed.
+
+Lemma fiplus1_spec_fr x y : finite (fiplus1 x y) -> finite y.
+Proof.
+unfold finite, fiplus1; simpl; do 2 rewrite FtoX_real.
+rewrite F.add_correct /Xround /Xbind.
+case (F.toX y) =>//; by rewrite Xadd_comm.
+Qed.
+
+Lemma fiplus1_spec x y : finite (fiplus1 x y) ->
+  (FI2F x + FI2F y <= FI2F (fiplus1 x y))%Re.
+Proof.
+move=> Fxy.
+have Fx := fiplus1_spec_fl Fxy.
+have Fy := fiplus1_spec_fr Fxy.
+move: Fxy Fx Fy.
+unfold finite; rewrite !(FI2F_X2F_FtoX _) !FtoX_real.
+unfold fiplus1; simpl; rewrite F.add_correct.
+case (FI_prop x) => [->//|] [rx -> Hrx].
+case (FI_prop y) => [->//|] [ry -> Hry].
+set (z := Xadd _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
+rewrite !round_generic //; try now apply generic_format_FLX.
+{ rewrite /round /rnd_of_mode.
+  apply (Rle_trans _ r); [|by apply round_UP_ge, FLX_exp_valid].
+  by right; injection Hr. }
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
+Qed.
+
 Lemma fimult1_proof (x y : FI) : mantissa_bounded (F.mul rnd_UP 53%bigZ x y).
-Admitted.
+unfold mantissa_bounded, x_bounded.
+rewrite F.mul_correct; set (z := Xmul _ _).
+unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
+set r'' := round _ _ _ _; exists r''; [now simpl|].
+apply FLX_format_generic; [now simpl|].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
+Qed.
 
 Definition fimult1 (x y : FI) : FI :=
   {| FI_val := F.mul rnd_UP 53%bigZ x y; FI_prop := fimult1_proof x y |}.
 
+Lemma fimult1_spec_fl x y : finite (fimult1 x y) -> finite x.
+Proof.
+unfold finite, fimult1; simpl; do 2 rewrite FtoX_real.
+rewrite F.mul_correct /Xround /Xbind.
+by case: (F.toX x).
+Qed.
+
+Lemma fimult1_spec_fr x y : finite (fimult1 x y) -> finite y.
+Proof.
+unfold finite, fimult1; simpl; do 2 rewrite FtoX_real.
+rewrite F.mul_correct /Xround /Xbind.
+case (F.toX y) =>//; by rewrite Xmul_comm.
+Qed.
+
+Lemma fimult1_spec x y : finite (fimult1 x y) ->
+  (FI2F x * FI2F y <= FI2F (fimult1 x y))%Re.
+Proof.
+move=> Fxy.
+have Fx := fimult1_spec_fl Fxy.
+have Fy := fimult1_spec_fr Fxy.
+move: Fxy Fx Fy.
+unfold finite; rewrite !(FI2F_X2F_FtoX _) !FtoX_real.
+unfold fimult1; simpl; rewrite F.mul_correct.
+case (FI_prop x) => [->//|] [rx -> Hrx].
+case (FI_prop y) => [->//|] [ry -> Hry].
+set (z := Xmul _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
+rewrite !round_generic //; try now apply generic_format_FLX.
+{ rewrite /round /rnd_of_mode.
+  apply (Rle_trans _ r); [|by apply round_UP_ge, FLX_exp_valid].
+  by right; injection Hr. }
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
+Qed.
+
 Lemma fidiv1_proof (x y : FI) : mantissa_bounded (F.div rnd_UP 53%bigZ x y).
-Admitted.
+unfold mantissa_bounded, x_bounded.
+rewrite F.div_correct; set (z := Xdiv _ _).
+unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
+set (r'' := round _ _ _ _); exists r''; [now simpl|].
+apply FLX_format_generic; [now simpl|].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
+Qed.
 
 Definition fidiv1 (x y : FI) : FI :=
   {| FI_val := F.div rnd_UP 53%bigZ x y; FI_prop := fidiv1_proof x y |}.
 
+Lemma fidiv1_spec_fl x y : finite (fidiv1 x y) -> finite y -> finite x.
+Proof.
+move=> Fxy _; move: Fxy; unfold finite, fidiv; simpl; do 2 rewrite FtoX_real.
+now rewrite F.div_correct; case (F.toX x); [|intro r].
+Qed.
+
+Lemma fidiv1_spec x y : finite (fidiv1 x y) -> finite (y) ->
+  (FI2F x / FI2F y <= FI2F (fidiv1 x y))%Re.
+Proof.
+move=> Fxy Fy.
+have Fx := fidiv1_spec_fl Fxy Fy.
+move: Fxy Fx Fy.
+unfold finite; rewrite !(FI2F_X2F_FtoX _) !FtoX_real.
+unfold fidiv1; simpl; rewrite F.div_correct.
+case (FI_prop x) => [->//|] [rx -> Hrx].
+case (FI_prop y) => [->//|] [ry -> Hry].
+set (z := Xdiv _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
+rewrite !round_generic //; try now apply generic_format_FLX.
+{ rewrite /round /rnd_of_mode.
+  apply (Rle_trans _ r); [|by apply round_UP_ge, FLX_exp_valid].
+  right; move: Hr; rewrite /z /= /Xdiv'; case (is_zero ry) => //.
+  by move=> H; injection H. }
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
+Qed.
+
 Definition feps' : FI := F2FI feps.
 Definition feta' : FI := F2FI feta.
+
+Lemma feps'_correct : (eps fis <= FI2F feps')%Re.
+Proof. by rewrite F2FI_correct /=; [rewrite /Rdiv Rmult_1_l; right|]. Qed.
+
+Lemma feta'_correct : (eta fis <= FI2F feta')%Re.
+Proof. by rewrite F2FI_correct /=; [rewrite /Rdiv Rmult_1_l; right|]. Qed.
 
 Definition posdef_check4_coqinterval' (M : seq (seq FI)) : bool :=
   @posdef_check4 FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
     eps_inv fiplus1 fimult1 fidiv1 feps' feta' (@float_infnan_spec.is_finite coqinterval_infnan) M.
+
+Definition posdef_check_F4_coqinterval' (M : seq (seq F.type)) : bool :=
+  @posdef_check_F4 FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
+    eps_inv fiplus1 fimult1 fidiv1 feps' feta' (@float_infnan_spec.is_finite coqinterval_infnan) F.type F2FI M.
 
 Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
   @posdef_check_itv4 FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
@@ -3511,37 +3673,26 @@ Typeclasses eauto := debug.
 Lemma posdef_check_F_correct_inst (A : seqmatrix F.type) :
   let m := seq.size A in
   (m != 0)%N ->
-  posdef_check4_coqinterval' (map (map F2FI) A) = true ->
+  posdef_check_F4_coqinterval' A = true ->
   posdef_seqF A.
 Proof.
 case: A => [|A0 A1]; first by admit.
 move=> m Hm Hmain.
-eapply posdef_check_F_correct.
+eapply (@posdef_check_F_correct _ coqinterval_infnan).
+- apply eps_inv_correct.
+- apply fiplus1_spec.
+- apply fiplus1_spec_fl.
+- apply fiplus1_spec_fr.
+- apply fimult1_spec.
+- apply fimult1_spec_fl.
+- apply fimult1_spec_fr.
+- apply fidiv1_spec.
+- apply fidiv1_spec_fl.
+- apply feps'_correct.
+- apply feta'_correct.
+- apply F2FI_correct.
+(* ingredient: param_posdef_check_F *)
 Admitted.
-(*
-Print cholesky.MF2R.
-Check posdef_check_correct.
-
-erewrite (@param_eq _ (seq_map_mx toR (A0 :: A1))); last first.
-eapply param_apply; first eapply param_apply.
-SearchAbout Rseqmx.
-
-rewrite /mx_of_seqmx_val.
-Print Rseqmx.
-Print mx_of_seqmx.
-About param_map_mx.
-Print seq_map_mx.
-  forall (m n'' : nat) (T T' : Type),
-  param (Logic.eq ==> Rseqmx ==> Rseqmx) (ssr_map_mx (T':=T')) (seq_map_mx (T':=T'))
-
-SearchAbout "param" map.
-SearchAbout _ mx_of_seqmx_val
-Check F2FI_correct.
-Check param_posdef_check.
-Check posdef_check_correct.
-(* Reuse posdef_check_correct, param_posdef_check *)
-Admitted.
-*)
 
 Definition m12' := map (map (F2FI)) m12.
 

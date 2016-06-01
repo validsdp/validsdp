@@ -63,10 +63,10 @@
 ** CANCELED Proceed refinement of posdef_check_itv_Q (w.r.t map_mx)  :Pierre:
    CLOSED: [2016-05-30 Mon 17:17]
 ** TODO Finish proving all_mxP 					       :Erik:
-** TODO Finish proving posdef_check_f1				     :Pierre:
+** STARTED Finish proving posdef_check_f1                            :Pierre:
 ** TODO Finish proving toR_Float				       :Erik:
-** TODO Finish proving F2FI_correct				     :Pierre:
-** TODO Prove param_posdef_check_F				     :Pierre:
+** DONE Finish proving F2FI_correct                                  :Pierre:
+** DONE Prove param_posdef_check_F                                   :Pierre:
 ** TODO Prove posdef_check_F_correct_inst			       :Erik:
 ** TODO Do some cleanup, setup naming conventions		:Pierre:Erik:
 ** TODO Do the above steps for posdef_check_itv
