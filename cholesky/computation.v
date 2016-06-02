@@ -1038,7 +1038,7 @@ Qed.
 
 Lemma all_mxP T (f : T -> bool) (A : 'M[T]_n) :
   reflect (forall i j, f (A i j)) (@all_mx T _ _ _ f A).
-Proof using n'.
+Proof.
 apply: (iffP idP).
 { move=> H i j; move: H; rewrite /gen_all_mx /all_mx /fold_mx.
   set P := fun i j b => b = true -> f (A i j) = true; rewrite -/(P _ _ _).
@@ -1052,9 +1052,11 @@ apply: (iffP idP).
 { move=> H.
   rewrite /all_mx /fold_mx /ssr_fold_mx.
   case: n A H => [//|n''] A H.
-  admit. (* TODO: Use iteri_ord_ind *)
+  apply iteri_ord_ind =>// i b Hi {b}->.
+  apply iteri_ord_ind =>// j b' Hj {b'}-> /=.
+  by rewrite H.
 }
-Admitted.
+Qed.
 
 (* addition with upward rounding *)
 Variable add_up : FI fs -> FI fs -> FI fs.

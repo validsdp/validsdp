@@ -62,7 +62,8 @@
    CLOSED: [2016-05-30 Mon 17:17]
 ** CANCELED Proceed refinement of posdef_check_itv_Q (w.r.t map_mx)  :Pierre:
    CLOSED: [2016-05-30 Mon 17:17]
-** TODO Finish proving all_mxP 					       :Erik:
+** DONE Finish proving all_mxP					       :Erik:
+   CLOSED: [2016-06-02 Thu 17:50]
 ** STARTED Finish proving posdef_check_f1                            :Pierre:
 ** TODO Finish proving toR_Float				       :Erik:
 ** DONE Finish proving F2FI_correct                                  :Pierre:
