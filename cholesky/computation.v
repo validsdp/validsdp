@@ -2844,13 +2844,12 @@ Typeclasses eauto := debug.
 *)
 
 Lemma posdef_check_F_correct_inst (A : seqmatrix F.type) :
-  let m := seq.size A in
   posdef_check_F4_coqinterval' A = true ->
   posdef_seqF A.
 Proof.
 case: A => [|A0 A1].
-{ by move=> _ _ x Hx; casetype False; apply /Hx /matrixP; case. }
-move=> m Hmain.
+{ by move=> _ x Hx; casetype False; apply /Hx /matrixP; case. }
+move=> Hmain.
 eapply (@posdef_check_F_correct _ coqinterval_infnan).
 - apply eps_inv_correct.
 - apply fiplus1_spec.
@@ -2864,7 +2863,14 @@ eapply (@posdef_check_F_correct _ coqinterval_infnan).
 - apply feps'_correct.
 - apply feta'_correct.
 - apply F2FI_correct.
-(* ingredient: param_posdef_check_F *)
+- rewrite -Hmain /gen_posdef_check_F /posdef_check_F4_coqinterval'.
+apply paramP.
+eapply param_apply; first exact: param_posdef_check_F.
+(* suff{4}->: (A0 :: A1) =
+  (@padseqmx _ zero'' (seq.size (A0 :: A1)) (seq.size (A0 :: A1)) (A0 :: A1)). *)
+apply/trivial_param/refines_seqmxP=>//; rewrite -/(seq.size _).
+(* Erik: Missing hyp *) admit.
+admit.
 Admitted.
 
 (* TODO: improve error message in case of failure *)
