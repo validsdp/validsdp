@@ -1660,6 +1660,11 @@ Definition posdef_check_F4 (M : seqmatrix F) : bool :=
     add1 mul1 div1 (@seq_fold_mx T) seq_map_mx
     F F2FI feps feta is_finite (test_n eps_inv) M.
 
+Definition posdef_check_itv_F4 (M : seqmatrix F) (r : F) : bool :=
+  @posdef_check_itv_F T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
+    add1 mul1 div1 (@seq_fold_mx T) seq_map_mx
+    F F2FI feps feta is_finite (test_n eps_inv) M r.
+
 End inst_seq.
 
 Section Rseqmx_aux.
@@ -2483,6 +2488,30 @@ eapply param_apply; [|apply param_A].
 eapply param_apply; [apply param_map_mx|apply param_eq_refl].
 Qed.
 
+Definition posdef_check_itv_F5 :=
+  gen_posdef_check_itv_F (n':=n) eps_inv add1 mul1 div1 feps feta F2FI.
+
+Lemma param_posdef_check_itv_F :
+  param (Rseqmx ==> Logic.eq ==> Logic.eq)
+  (gen_posdef_check_itv_F (n':=n) eps_inv add1 mul1 div1 feps feta F2FI)
+  (posdef_check_itv_F4 (n:=n) eps_inv add1 mul1 div1 feps feta (@is_finite fs) F2FI).
+Proof.
+apply param_abstr => A As param_A.
+apply param_abstr => r r' param_r.
+rewrite paramE in param_r; rewrite -param_r.
+rewrite /gen_posdef_check_itv_F /posdef_check_itv_F4 /posdef_check_itv_F.
+rewrite paramE; apply f_equal2; [apply f_equal2|]; apply param_eq.
+{ eapply param_apply.
+  { eapply param_apply; [apply param_all_mx|apply param_eq_refl]. }
+  eapply param_apply; [|apply param_A].
+  eapply param_apply; [apply param_map_mx|apply param_eq_refl]. }
+{ apply param_eq_refl. }
+eapply param_apply; [|apply param_eq_refl].
+eapply param_apply; [apply param_posdef_check_itv|].
+eapply param_apply; [|apply param_A].
+eapply param_apply; [apply param_map_mx|apply param_eq_refl].
+Qed.
+
 End data_refinement'.
 
 Require Import BigQ.
@@ -2777,6 +2806,10 @@ Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
   @posdef_check_itv4 FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
     eps_inv fiplus1 fimult1 fidiv1 feps' feta' (@float_infnan_spec.is_finite coqinterval_infnan) M r.
 
+Definition posdef_check_itv_F4_coqinterval' (M : seq (seq F.type)) (r : F.type) : bool :=
+  @posdef_check_itv_F4 FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
+    eps_inv fiplus1 fimult1 fidiv1 feps' feta' (@float_infnan_spec.is_finite coqinterval_infnan) F.type F2FI M r.
+
 Definition BigQ2F (q : bigQ) : F.type * F.type :=
   match q with
   | BigQ.Qz m => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in (m0, m0)
@@ -2786,7 +2819,7 @@ Definition BigQ2F (q : bigQ) : F.type * F.type :=
   end.
 
 Definition test_posdef_check_itv (M : seq (seq F.type)) (r : bigQ) : bool :=
-  posdef_check_itv4_coqinterval' (map (map F2FI) M) (F2FI (snd (BigQ2F r))).
+  posdef_check_itv_F4_coqinterval' M (snd (BigQ2F r)).
 
 (* Remark: ultimately, we'll have to check that mat does not contain NaNs *)
 (*
@@ -2810,12 +2843,12 @@ Typeclasses eauto := debug.
 
 Lemma posdef_check_F_correct_inst (A : seqmatrix F.type) :
   let m := seq.size A in
-  (0 < m)%N ->
   posdef_check_F4_coqinterval' A = true ->
   posdef_seqF A.
 Proof.
-case: A => [|A0 A1]; first by admit.
-move=> m Hm Hmain.
+case: A => [|A0 A1].
+{ by move=> _ _ x Hx; casetype False; apply /Hx /matrixP; case. }
+move=> m Hmain.
 eapply (@posdef_check_F_correct _ coqinterval_infnan).
 - apply eps_inv_correct.
 - apply fiplus1_spec.
@@ -2832,15 +2865,54 @@ eapply (@posdef_check_F_correct _ coqinterval_infnan).
 (* ingredient: param_posdef_check_F *)
 Admitted.
 
+(* TODO: improve error message in case of failure *)
 Ltac prove_posdef :=
   by apply posdef_check_F_correct_inst; abstract (vm_cast_no_check (erefl true)).
 
-Require Import testsuite.
+Definition posdef_itv_seqF (mat : seqmatrix F.type) (r : F.type) : Prop :=
+  let m := seq.size mat in
+  forall Xt : 'M_m, Xt^T = Xt ->
+  Mabs (Xt - matrix.map_mx toR (@mx_of_seqmx_val _ zero'' m m mat))
+    <=m: matrix.const_mx (toR r) ->
+  posdef Xt.
 
-Definition m12' := map (map (F2FI)) m12.
+Lemma posdef_check_itv_F_correct_inst (A : seqmatrix F.type) (r : F.type) :
+  let m := seq.size A in
+  posdef_check_itv_F4_coqinterval' A r = true ->
+  posdef_itv_seqF A r.
+Proof.
+case: A => [|A0 A1].
+{ by move=> _ _ Xt _ _ x Hx; casetype False; apply /Hx /matrixP; case. }
+move=> m Hmain Xt SXt HXt.
+eapply (@posdef_check_itv_F_correct _ coqinterval_infnan).
+- apply eps_inv_correct.
+- apply fiplus1_spec.
+- apply fiplus1_spec_fl.
+- apply fiplus1_spec_fr.
+- apply fimult1_spec.
+- apply fimult1_spec_fl.
+- apply fimult1_spec_fr.
+- apply fidiv1_spec.
+- apply fidiv1_spec_fl.
+- apply feps'_correct.
+- apply feta'_correct.
+- apply F2FI_correct.
+- admit.  (* ingredient: param_posdef_check_itv_F *)
+- exact SXt.
+- exact HXt.
+Admitted.
+
+Ltac prove_posdef_itv :=
+  by apply posdef_check_itv_F_correct_inst; abstract (vm_cast_no_check (erefl true)).
+
+Require Import testsuite.
 
 Lemma test_m12 : posdef_seqF m12.
 Time prove_posdef.
+Qed.
+
+Lemma test_m12_r : posdef_itv_seqF m12 (Float 1%bigZ (-10)%bigZ).
+Time prove_posdef_itv.
 Qed.
 
 About one.
@@ -2849,7 +2921,7 @@ Goal True. idtac "test_posdef_check_CoqInterval". done. Qed.
 Time Eval vm_compute in posdef_check4_coqinterval m12.
 (* 6.3 s on Erik's laptop *)
 
-Time Eval vm_compute in posdef_check4_coqinterval' m12'.
+Time Eval vm_compute in posdef_check_F4_coqinterval' m12.
 (* 7.1 s on Erik's laptop *)
 
 Goal True. idtac "test_CoqInterval". done. Qed.
