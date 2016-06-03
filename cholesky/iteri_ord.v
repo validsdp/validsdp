@@ -1,7 +1,7 @@
 (* TODO: coqdoc *)
 
-Require Import mathcomp.ssreflect.ssreflect.
-Require Import mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrnat.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool.
+Require Import mathcomp.ssreflect.ssrnat mathcomp.ssreflect.ssrfun.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -135,6 +135,8 @@ have H' : j = i.
 rewrite -H'; apply H2; rewrite H' //.
 Qed.
 
+Section Ind2.
+
 Context {ord' : nat -> Type}.
 Context `{!I0_class ord' n, !succ0_class ord' n, !nat_of_class ord' n}.
 Context `{!I0_correct ord' n, !succ0_correct ord' n}.
@@ -184,6 +186,18 @@ move=> j Hj Hind s s' HP; rewrite /iteri_ord.
 replace j with (j - @nat_of ord _ _ I0)%N at 1; [|by rewrite I0_prop subn0].
 replace j with (j - nat_of I0)%N at 2; [|by rewrite I0_prop subn0].
 by apply iteri_ord_rec_ind2 => //; rewrite I0_prop.
+Qed.
+
+End Ind2.
+
+Variable T : Type.
+
+Lemma iteri_ord_ext j (f g : ord n -> T -> T) x : (j <= n)%N ->
+  f =2 g -> iteri_ord j f x = iteri_ord j g x.
+Proof.
+move=> Hj Hfg; apply iteri_ord_ind2 =>//.
+move=> i i' s s' Hi Hi' Hs; rewrite Hfg.
+f_equal =>//; eapply nat_of_prop => //.
 Qed.
 
 End Props.

@@ -213,29 +213,6 @@ End directed_rounding.
 
 End generic_algos.
 
-Section Corollaries.
-
-Variables (T : Type) (ordT : nat -> Type) (n : nat).
-Context
-  `{!I0_class ordT n.+1} `{!nat_of_class ordT n.+1} `{!succ0_class ordT n.+1}
-  `{!I0_correct ordT n.+1} `{!nat_of_correct ordT n.+1} `{!succ0_correct ordT n.+1}.
-
-Lemma iteri_ord_ext
-  j (f g : ordT n.+1 -> T -> T) x :
-  (j <= n.+1)%N ->
-  f =2 g -> iteri_ord j f x = iteri_ord j g x.
-Proof.
-move=> Hj Hfg.
-apply iteri_ord_ind2 =>//.
-move=> i i' s s' Hi Hi' Hs; rewrite Hfg.
-f_equal =>//.
-eapply nat_of_prop; first by tc.
-symmetry.
-by rewrite Hi'.
-Qed.
-
-End Corollaries.
-
 Section inst_ssr_matrix.
 
 Context {T : Type}.
