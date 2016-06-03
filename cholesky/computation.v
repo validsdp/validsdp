@@ -1,7 +1,3 @@
-(** * Bounds on the rounding error of dotproduct $c - \sum_{i=0}^k a_i b_i$#c - \sum_{i=0}^k a_i b_i#
-
-    Notations are similar to the one in [fsum]. *)
-
 Require Import Reals Flocq.Core.Fcore_Raux.
 
 Require Import misc.
@@ -257,23 +253,6 @@ Class nat_of_correct := nat_of_prop :
   forall i j : ordT n, nat_of i = nat_of j -> i = j.
 End nat_of_theory.
 Arguments nat_of_correct _ _ {nat_of_class0}.
-
-Section nat_of_theory2.
-Variable n : nat.
-Let ordT (n : nat) := nat.
-Instance : nat_of_class ordinal n := @nat_of_ord n.
-Global Instance id_nat : nat_of_class ordT n := id.
-Local Notation RordC := Rord (only parsing).
-Arguments RordC {n} _ _. (* maximal implicit arguments *)
-Global Instance param_nat_of :
-  param (RordC ==> Logic.eq) nat_of nat_of.
-Proof.
-eapply param_abstr => i i' param_i.
-rewrite paramE /Rord in param_i.
-rewrite -param_i.
-by rewrite paramE.
-Qed.
-End nat_of_theory2.
 
 Section generic_ind.
 Context {ordT : nat -> Type} {n' : nat}.
@@ -1990,7 +1969,7 @@ Proof. done. Qed.
 
 Instance : succ0_correct [eta ordinal] n.+1.
 Proof.
-move=> i; rewrite /nat_of /nat_of_class_instance_4 /ssr_nat_of => Hi.
+move=> i; rewrite /nat_of /nat_of_class_instance_3 /ssr_nat_of => Hi.
 by rewrite inordK.
 Qed.
 
