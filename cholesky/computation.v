@@ -46,6 +46,8 @@ Require Import CoqEAL_theory.hrel.
 
 Import Refinements.Op.
 
+Require Import iteri_ord.
+
 Class sqrt T := sqrt_op : T -> T.
 
 Class store_class A I B :=
@@ -53,12 +55,6 @@ Class store_class A I B :=
 
 Class dotmulB0_class A I B :=
   dotmulB0 : forall n : nat, I n -> A -> B 1%nat n -> B 1%nat n -> A.
-
-Implicit Types n : nat.
-
-Class I0_class I n := I0 : I n.
-Class succ0_class I n := succ0 : I n -> I n.
-Class nat_of_class I n := nat_of : I n -> nat.
 
 Class map_mx_class mx := map_mx :
   forall {T T'} {m n : nat},
@@ -76,19 +72,6 @@ Local Open Scope nat_scope.
 Definition ytilded3 (k : ordT n) c a b bk := (dotmulB0 k c a b / bk)%C.
 
 Definition ytildes3 (k : ordT n) c a := (sqrt_op (dotmulB0 k c a a)).
-
-(* when j <= n, [iteri_ord j f x] returns
- *
- * for k : ordT n from 0 to (j - 1) do
- *   x := f k x
- * done;
- * x *)
-Fixpoint iteri_ord_rec T k i (f : ordT n -> T -> T) (x : T) :=
-  match k with
-    | O => x
-    | S k => iteri_ord_rec k (succ0 i) f (f i x)
-  end.
-Definition iteri_ord T j (f : ordT n -> T -> T) x := iteri_ord_rec j I0 f x.
 
 (* note: R is transposed with respect to cholesky.v *)
 Definition inner_loop3 j A R :=
@@ -229,158 +212,6 @@ Definition posdef_check_itv_F
 End directed_rounding.
 
 End generic_algos.
-
-Section succ0_theory.
-Variables (ordT : nat -> Type) (n : nat).
-Context `{!succ0_class ordT n, !nat_of_class ordT n}.
-Class succ0_correct :=
-  succ0_prop :
-  forall i : ordT n, ((nat_of i).+1 < n)%N -> nat_of (succ0 i) = (nat_of i).+1.
-End succ0_theory.
-Arguments succ0_correct _ _ {succ0_class0} {nat_of_class0}.
-
-Section I0_theory.
-Variables (ordT : nat -> Type) (n : nat).
-Context `{!I0_class ordT n, !nat_of_class ordT n}.
-Class I0_correct := I0_prop : nat_of I0 = 0%N.
-End I0_theory.
-Arguments I0_correct _ _ {I0_class0} {nat_of_class0}.
-
-Section nat_of_theory.
-Variables (ordT : nat -> Type) (n : nat).
-Context `{!nat_of_class ordT n}.
-Class nat_of_correct := nat_of_prop :
-  forall i j : ordT n, nat_of i = nat_of j -> i = j.
-End nat_of_theory.
-Arguments nat_of_correct _ _ {nat_of_class0}.
-
-Section generic_ind.
-Context {ordT : nat -> Type} {n' : nat}.
-Let n := n'.+1.
-Context `{!I0_class ordT n, !succ0_class ordT n, !nat_of_class ordT n}.
-Context `{!I0_correct ordT n, !succ0_correct ordT n, !nat_of_correct ordT n}.
-
-Lemma iteri_ord_rec_ind M P (f : ordT n -> M -> M) :
-  forall j, (j <= n)%N ->
-  (forall (i : ordT n) s,
-    (nat_of i < n)%N -> P (nat_of i) s -> P (nat_of i).+1 (f i s)) ->
-  forall (i : ordT n) s, (nat_of i <= j)%N ->
-    P (nat_of i) s -> P j (iteri_ord_rec (j - nat_of i)%N i f s).
-Proof.
-move=> j Hj Hind i s Hi H.
-move Hk: (j - nat_of i)%N => k.
-move: i Hi Hk s H; elim: k => [|k IHk] i Hi Hk s H /=.
-{ replace j with (nat_of i); [by []|].
-  by apply anti_leq; rewrite Hi /= -subn_eq0 Hk. }
-case (ltnP (nat_of i) j) => [Hij|]; [|by rewrite /ssrnat.leq Hk].
-case (ltnP (nat_of i) n') => Hjn.
-{ have Hsisn : ((nat_of i).+1 < n)%N.
-  { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. }
-  apply IHk; erewrite (succ0_prop Hsisn) =>//.
-  { by rewrite subnS Hk. }
-  by apply Hind; [apply leqW|]. }
-have Hj' : j = n.
-{ by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). }
-have Hi' : nat_of i = n'.
-{ apply anti_leq; rewrite Hjn Bool.andb_true_r.
-  by apply (@leq_trans j.-1); [apply /leP /Nat.lt_le_pred /leP|rewrite Hj']. }
-have Hk' : k = 0%N.
-{ apply sym_eq; move: Hk; rewrite Hi' Hj' subSnn; apply eq_add_S. }
-by rewrite Hk' Hj' /n /= -Hi'; apply Hind; [rewrite Hi'|].
-Qed.
-
-Lemma iteri_ord_ind M P (f : ordT n -> M -> M) :
-  forall j, (j <= n)%N ->
-  (forall (i : ordT n) s,
-    (nat_of i < n)%N -> P (nat_of i) s -> P (nat_of i).+1 (f i s)) ->
-  forall s, P 0%N s -> P j (iteri_ord j f s).
-Proof.
-move=> j Hj Hind s HP; rewrite /iteri_ord.
-replace j with (j - nat_of I0)%N at 2; [|by rewrite I0_prop subn0].
-by apply iteri_ord_rec_ind => //; rewrite I0_prop.
-Qed.
-
-(* above lemma for P j s := forall i, nat_of i < j -> P i s *)
-Lemma iteri_ord_ind' M P (f : ordT n -> M -> M) :
-  (forall (i : ordT n) s, (nat_of i < n)%N ->
-   (forall (j : ordT n), (nat_of j < nat_of i)%N -> P j s) ->
-   forall (j : ordT n), (nat_of j < (nat_of i).+1)%N -> P j (f i s)) ->
-  forall (i : ordT n) s, (nat_of i < n)%N -> P i (iteri_ord n f s).
-Proof.
-move=> Hind i s Hi.
-set P' := fun j s => forall (i : ordT n), (nat_of i < j)%N -> P i s.
-set io := _ _ _ _; suff: P' n io; [by move=> H; apply H, Hi|]; rewrite /io.
-by have P0 : P' O s; [|move: P0; apply iteri_ord_ind].
-Qed.
-
-Lemma iteri_ord_ind'_case M P (f : ordT n -> M -> M) :
-  (forall (i : ordT n) s, (nat_of i < n)%N ->
-   (forall (j : ordT n), (nat_of j < nat_of i)%N -> P j s) ->
-   forall (j : ordT n), (nat_of j < nat_of i)%N -> P j (f i s)) ->
-  (forall (i : ordT n) s, (nat_of i < n)%N ->
-   (forall (j : ordT n), (nat_of j < nat_of i)%N -> P j s) -> P i (f i s)) ->
-  forall (i : ordT n) s, (nat_of i < n)%N -> P i (iteri_ord n f s).
-Proof.
-move=> H1 H2; apply iteri_ord_ind' with (f := f) => // i s Hi H j Hj.
-case (ltnP (nat_of j) (nat_of i)) => Hji; [by apply H1|].
-have H' : j = i.
-{ apply (@nat_of_prop _ _ nat_of_class0) => //; apply anti_leq.
-  rewrite Hji Bool.andb_true_r; apply Hj. }
-rewrite -H'; apply H2; rewrite H' //.
-Qed.
-
-Context {ordT' : nat -> Type}.
-Context `{!I0_class ordT' n, !succ0_class ordT' n, !nat_of_class ordT' n}.
-Context `{!I0_correct ordT' n, !succ0_correct ordT' n}.
-
-Lemma iteri_ord_rec_ind2 M M' P
-      (f : ordT n -> M -> M) (f' : ordT' n -> M' -> M') :
-  forall (j : nat), (j <= n)%N ->
-  (forall (i : ordT n) (i' : ordT' n) s s',
-    (nat_of i <= n)%N -> nat_of i' = nat_of i ->
-    P s s' -> P (f i s) (f' i' s')) ->
-  forall (i : ordT n) (i' : ordT' n) s s',
-    (nat_of i <= j)%N -> nat_of i' = nat_of i ->
-    P s s' ->
-    P (iteri_ord_rec (j - nat_of i)%N i f s)
-      (iteri_ord_rec (j - nat_of i')%N i' f' s').
-Proof.
-move=> j Hj Hind i i' s s' Hi Hi' H; rewrite Hi'.
-move Hk: (j - nat_of i)%N => k.
-elim: k i i' Hi Hi' Hk s s' H => // k IHk i i' Hi Hi' Hk s s' H /=.
-case (ltnP (nat_of i) j); [move=> Hij|by rewrite /ssrnat.leq Hk].
-case (ltnP (nat_of i) n') => Hjn.
-{ have Hsisn : ((nat_of i).+1 < n)%N.
-  { by move: Hjn; rewrite -(ltn_add2r 1) !addn1. }
-  apply: IHk; first by rewrite succ0_prop.
-  { rewrite !succ0_prop ?Hi' //. }
-  { by rewrite succ0_prop // subnS Hk. }
-  apply Hind; by [apply: leq_trans Hi Hj|]. }
-have Hj' : j = n.
-{ by apply anti_leq; rewrite Hj /=; apply (leq_ltn_trans Hjn). }
-have Hi'n : nat_of i = n'.
-{ apply anti_leq; rewrite Hjn andbT.
-  apply (@leq_trans j.-1); last by rewrite Hj'.
-  by apply /leP /Nat.lt_le_pred /leP. }
-have Hk' : k = 0%N.
-{ by rewrite Hi'n Hj' subSnn in Hk; case: Hk. }
-by rewrite Hk'; apply: Hind =>//; apply (leq_trans Hi).
-Qed.
-
-Lemma iteri_ord_ind2 M M' P (f : ordT n -> M -> M) (f' : ordT' n -> M' -> M') :
-  forall (j : nat), (j <= n)%N ->
-  (forall (i : ordT n) (i' : ordT' n) s s',
-    (nat_of i <= n)%N -> nat_of i' = nat_of i ->
-    P s s' -> P (f i s) (f' i' s')) ->
-  forall s s', P s s' -> P (iteri_ord j f s) (iteri_ord j f' s').
-Proof.
-move=> j Hj Hind s s' HP; rewrite /iteri_ord.
-replace j with (j - @nat_of ordT _ _ I0)%N at 1; [|by rewrite I0_prop subn0].
-replace j with (j - nat_of I0)%N at 2; [|by rewrite I0_prop subn0].
-by apply iteri_ord_rec_ind2 => //; rewrite I0_prop.
-Qed.
-
-End generic_ind.
 
 Section Corollaries.
 
@@ -697,7 +528,7 @@ Proof.
 move=> Had i; move: (ltn_ord i) Had; change (nat_of_ord i) with (nat_of i).
 set P := fun i b => b = true -> f (A i i) = true.
 rewrite -/(P i (ssr_all_diag f A)).
-apply iteri_ord_ind'_case.
+apply iteri_ord_ind_strong_cases.
 { move=> j' s Hj' H j'' Hj''.
   by rewrite /P Bool.andb_true_iff => Hb; elim Hb => Hb' _; apply H. }
 by move=> j' s Hj' H; rewrite /P Bool.andb_true_iff => Hb; elim Hb.
@@ -741,7 +572,7 @@ Proof.
 move=> i; rewrite /map_diag.
 set f' := fun _ _ => _.
 set P := fun i s => s i i = f (A i i); rewrite -/(P i _).
-apply iteri_ord_ind'_case with (i0 := i) => //.
+apply iteri_ord_ind_strong_cases with (i0 := i) => //.
 { move=> j s Hj Hind j' Hj'.
   rewrite /P /f' ssr_store3_lt1 //; apply Hind => //; apply ltn_ord. }
 { move=> j s Hj Hind; rewrite /P /f' ssr_store3_eq //. }
@@ -1569,7 +1400,7 @@ Arguments RordC {n} _ _.
 Lemma foldl_iteri_ord T T' n' f x x' s :
   (seq.size s = n'.+1)%N ->
   @foldl T T' f x s =
-  iteri_ord (ordT := ordinal) (n := n'.+1)
+  iteri_ord (ord := ordinal) (n := n'.+1)
     (seq.size s) (fun i x => f x (nth x' s i)) x.
 Proof.
 move=> Hsize.
