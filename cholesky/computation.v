@@ -67,9 +67,6 @@ Class nat_of_class I n := nat_of : I n -> nat.
 Class map_mx_class mx := map_mx :
   forall {T T'} {m n : nat},
   (T -> T') -> mx T m n -> mx T' m n.
-Class fold_mx_class mx := fold_mx :
-  forall {T T'} {m n : nat},
-  (T' -> T -> T') -> T' -> mx T m n -> T'.
 
 Section generic_algos.
 Context {T : Type} {ordT : nat -> Type} {mx : Type -> nat -> nat -> Type}.
@@ -179,11 +176,6 @@ Definition compute_c (is_finite : T -> bool) (eps eta : T) (A : mx T n n) :
 (* subtraction rounded downward *)
 Definition sub_down x y := (- (add1 y (- x)%C))%C.
 
-Context `{!fold_mx_class mx}.
-
-(* TODO: Generalize => mx T m n *)
-Definition all_mx f (A : mx T n n) := fold_mx (fun b c => b && f c) true A.
-
 Definition posdef_check
   (* overapproximations of eps and eta *)
   (eps eta : T)
@@ -192,9 +184,6 @@ Definition posdef_check
   (test_n : nat -> bool)
   (* matrix to check *)
   (A : mx T n n) : bool :=
-(* TODO: add this and update the proofs
-all_mx is_finite A && (* Remark: this could be removed and proved separately *)
-*)
 test_n n && is_sym A && noneg_diag A &&
   (match compute_c is_finite eps eta A with
      | None => false
@@ -780,76 +769,6 @@ apply iteri_ord_ind'_case with (i0 := i) => //.
 apply ltn_ord.
 Qed.
 
-Context {T' : Type}.
-
-Global Instance ssr_fold_mx : fold_mx_class matrix :=
-  fun T T' m n f x =>
-  match m, n return 'M_(m, n) -> T' with
-  | O, _ | _, O => fun A => x
-  | S m, S n => fun A =>
-    @iteri_ord ordinal _ (@ord0 m) (fun i => inord i.+1) _ m.+1
-      (fun i x => @iteri_ord ordinal _ (@ord0 n) (fun i => inord i.+1) _ n.+1
-         (fun j x => f x (A i j)) x) x
-  end.
-
-Lemma fold_mx_correct (f : T' -> T -> T') (z : T') (A : 'M[T]_n) :
-  forall (P : nat -> nat -> T' -> Prop),
-  (forall (i : 'I_n) z, P i n z -> P i.+1 O z) ->
-  (forall (i : 'I_n) (j : 'I_n) z, P i j z -> P i j.+1 (f z (A i j))) ->
-  P O O z -> P n O (ssr_fold_mx f z A).
-Proof.
-move=> P Hindl Hindc P0; rewrite /ssr_fold_mx /=.
-set f' := fun _ => [eta _ _ _].
-set P' := fun i s => P i O s; rewrite -/(P' _ _).
-apply (iteri_ord_ind (P := P')) => //.
-move=> i s Hi Pi; rewrite /P' /f'; apply Hindl.
-set P'' := fun j s => P i j s; rewrite -/(P'' _ _).
-by apply (iteri_ord_ind (P := P'')) => // j s' Hj Pn; apply Hindc.
-Qed.
-
-(* same as above with P' := P for all element of previous rows
-   and previous elements of current row *)
-Lemma fold_mx_correct' (f : T' -> T -> T') (z : T') (A : 'M[T]_n) :
-  forall (P : T' -> Prop) (P' : 'I_n -> 'I_n -> T' -> Prop),
-  (forall (i j : 'I_n) z, P z -> P (f z (A i j))) ->
-  (forall (i j : 'I_n) z,
-   P z ->
-   (forall i' j' : 'I_n,
-    (i' < i \/ i' = i :> nat /\ j' < j)%N -> P' i' j' z) ->
-   (forall i' j' : 'I_n,
-    (i' < i \/ i' = i :> nat /\ j' < j.+1)%N -> P' i' j' (f z (A i j)))) ->
-  P z -> forall i j : 'I_n, P' i j (ssr_fold_mx f z A).
-Proof.
-move=> P P' Hind Hind' Pz0 i j.
-pose P'' := fun i j s => P s /\ forall i' j' : 'I_n,
-  (i' < i \/ i' = i :> nat /\ j' < j)%N -> P' i' j' s.
-suff: P'' n O (ssr_fold_mx f z A).
-{ by rewrite {}/P'' => HP''; apply HP''; left. }
-apply fold_mx_correct; rewrite {}/P''.
-{ move=> i'' z' H; split; [by apply H|]; move=> i' j' Hi'j'; apply H.
-  elim Hi'j' => {Hi'j'} [Hi'|Hi'j'].
-  { case (ltnP i' i'') => Hi'i''; [by left|]; right; split => //.
-    by apply anti_leq; rewrite ltnS in Hi'; rewrite Hi'. }
-  by elim Hi'j'. }
-{ move=> i'' j'' z' H; split; [by apply Hind, H|].
-  move=> i' j' Hi'j'; apply Hind' => //; apply H. }
-by split=> // i' j' H; casetype False; elim H => H'; elim H'.
-Qed.
-
-(* Same as above with P := True *)
-Lemma fold_mx_correct'' (f : T' -> T -> T') (z : T') (A : 'M[T]_n) :
-  forall (P : 'I_n -> 'I_n -> T' -> Prop),
-  (forall (i j : 'I_n) z,
-   (forall i' j' : 'I_n,
-    (i' < i \/ i' = i :> nat /\ j' < j)%N -> P i' j' z) ->
-   (forall i' j' : 'I_n,
-    (i' < i \/ i' = i :> nat /\ j' < j.+1)%N -> P i' j' (f z (A i j)))) ->
-  forall i j : 'I_n, P i j (ssr_fold_mx f z A).
-Proof.
-move=> P Hind i j.
-apply (fold_mx_correct' (P:=fun _ => True)) => // i'' j'' z' _; apply Hind.
-Qed.
-
 End proof.
 
 End inst_ssr_matrix.
@@ -1013,45 +932,6 @@ apply foldl_diag_correct with (P0 := P); rewrite /P.
   { by case (fimax_spec_eq z (A i i)) => H; rewrite /f -/(fimax _ _) H. }
   by rewrite /f -/(fimax _ _); apply (Rle_trans _ _ _ Hind'), fimax_spec_lel. }
 by split; [apply finite0|rewrite FI2F0; right].
-Qed.
-
-Definition gen_all_mx := @all_mx (FI fs) matrix n _.
-
-(*
-Lemma all_mx_correct T f (A : 'M[T]_n) : @all_mx T _ _ _ f A = true ->
-  forall i j, f (A i j) = true.
-Proof.
-move=> H i j; move: H; rewrite /gen_all_mx /all_mx /fold_mx.
-set P := fun i j b => b = true -> f (A i j) = true; rewrite -/(P _ _ _).
-apply fold_mx_correct'' => {i j} i j b Hind i' j' Hi'j';
-  rewrite /P Bool.andb_true_iff; elim=> Hb HAij.
-elim Hi'j' => {Hi'j'} [Hi'|[Hi' Hj']]; [by apply Hind=> //; left|].
-case (ltnP j' j)=> Hj'j; [by apply Hind=> //; right|].
-rewrite -HAij; apply f_equal; apply f_equal2; apply ord_inj=> //.
-by apply anti_leq; rewrite ltnS in Hj'; rewrite Hj'.
-Qed.
-*)
-
-Lemma all_mxP T (f : T -> bool) (A : 'M[T]_n) :
-  reflect (forall i j, f (A i j)) (@all_mx T _ _ _ f A).
-Proof.
-apply: (iffP idP).
-{ move=> H i j; move: H; rewrite /gen_all_mx /all_mx /fold_mx.
-  set P := fun i j b => b = true -> f (A i j) = true; rewrite -/(P _ _ _).
-  apply fold_mx_correct'' => {i j} i j b Hind i' j' Hi'j';
-    rewrite /P Bool.andb_true_iff; elim=> Hb HAij.
-  elim Hi'j' => {Hi'j'} [Hi'|[Hi' Hj']]; [by apply Hind=> //; left|].
-  case (ltnP j' j)=> Hj'j; [by apply Hind=> //; right|].
-  rewrite -HAij; apply f_equal; apply f_equal2; apply ord_inj=> //.
-  by apply anti_leq; rewrite ltnS in Hj'; rewrite Hj'.
-}
-{ move=> H.
-  rewrite /all_mx /fold_mx /ssr_fold_mx.
-  case: n A H => [//|n''] A H.
-  apply iteri_ord_ind =>// i b Hi {b}->.
-  apply iteri_ord_ind =>// j b' Hj {b'}-> /=.
-  by rewrite H.
-}
 Qed.
 
 (* addition with upward rounding *)
@@ -1438,41 +1318,15 @@ Lemma posdef_check_itv_F_f1 A r : gen_posdef_check_itv_F A r = true ->
   forall i j, finite ((map_mx F2FI A) i j).
 Proof. apply posdef_check_itv_f1. Qed.
 
-Lemma map_mx_ext T T' (P : T -> bool) (g f : T -> T') (M : 'M[T]_n) :
-  (forall x, P x -> f x = g x) ->
-  all_mx P M ->
-  matrix.map_mx f M = matrix.map_mx g M.
-Proof.
-move=> Hfg Hall; apply/matrixP=> i j; rewrite !mxE Hfg //.
-by move/all_mxP: Hall =>->.
-Qed.
-
-Lemma map_mx_comp T T' T'' (f : T -> T') (g : T' -> T'') (M : 'M[T]_n) :
-  matrix.map_mx (g \o f) M = matrix.map_mx g (matrix.map_mx f M).
-Proof. by apply/matrixP => i j; rewrite !mxE. Qed.
-
-Lemma all_map_mx T T' (f : T -> T') (P : T' -> bool) (M : 'M[T]_n) :
-  all_mx (P \o f) M = all_mx P (matrix.map_mx f M).
-Proof.
-apply/all_mxP/all_mxP => H i j.
-{ by rewrite !mxE; apply: H. }
-by move/(_ i j) in H; rewrite !mxE in H; apply: H.
-Qed.
-
 Lemma posdef_check_F_correct (A : 'M[F]_n) :
   gen_posdef_check_F A = true ->
   posdef (matrix.map_mx toR A).
 Proof.
-move=> H.
-rewrite /gen_posdef_check_F /posdef_check_F in H.
-have H' := posdef_check_correct H.
-rewrite (map_mx_ext (g := (@F_val _) \o @FI2F fs \o F2FI)
-  (P := (@float_infnan_spec.is_finite fs) \o F2FI)).
-- by rewrite /cholesky.MF2R /MFI2F -!map_mx_comp in H'.
-- by move=> x Hx; rewrite /= F2FI_correct.
-  rewrite all_map_mx.
-  apply/all_mxP => i j; rewrite mxE.
-  by move: (posdef_check_f1 H i j); rewrite mxE.
+move=> H; move: (posdef_check_correct H).
+set A' := cholesky.MF2R _; set A'' := matrix.map_mx _ _.
+have->: A' = A''; [|by []].
+apply/matrixP=> i j; rewrite !mxE; apply F2FI_correct.
+by move: (posdef_check_f1 H i j); rewrite mxE.
 Qed.
 
 Lemma posdef_check_itv_F_correct (A : 'M[F]_n) (r : F) :
@@ -1655,9 +1509,6 @@ Variable feps feta : T.
 
 Variable is_finite : T -> bool.
 
-Global Instance seq_fold_mx {T' : Type} : fold_mx_class mx :=
-  fun T T' m n f x (s : mx T m n) => foldl (foldl f) x s.
-
 Definition posdef_check4 (M : seq (seq T)) : bool :=
   @posdef_check T ordT _ _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
     add1 mul1 div1 feps feta is_finite (test_n eps_inv) M.
@@ -1753,47 +1604,6 @@ f_equal.
 by rewrite Hsize.
 Qed.
 Arguments foldl_iteri_ord [_ _ _ _ _ x' _] _.
-
-Lemma param_fold_mx m n'' T' :
-  param (Logic.eq ==> Logic.eq ==> RmxC ==> Logic.eq)
-    (@fold_mx mx _ C T' m n'')
-    (@fold_mx (fun C (m n : nat) => seqmatrix C) (@seq_fold_mx C) C T' m n'').
-Proof.
-rewrite paramE=> f _ <- x _ <-; apply paramP.
-apply param_abstr => A As param_A.
-rewrite paramE /fold_mx.
-rewrite /ssr_fold_mx /seq_fold_mx.
-move: m A As param_A; case=> [|m] A As param_A.
-{ apply refines_row_size in param_A; move: param_A; case As => //. }
-move: n'' A As param_A; case=> [|n''] A As param_A.
-{ apply refines_all_col_size in param_A; move: param_A; elim As => // h t /=.
-  move=> Hind H; move/andP in H; destruct H as (Hh, Ht).
-  by move: Hh; case h => //= _; apply Hind. }
-rewrite (foldl_iteri_ord (n' := m) (x' := [::])).
-rewrite refines_row_size.
-eapply iteri_ord_ext; try by tc (*!*).
-move=> a a'.
-erewrite (foldl_iteri_ord (n' := n'') (x' := zero0)).
-rewrite refines_nth_col_size.
-eapply iteri_ord_ext; try by tc (*!*).
-move=> b b'; congr f.
-by rewrite refines_nth_def.
-by rewrite refines_row_size.
-by rewrite refines_nth_col_size // refines_row_size.
-by rewrite refines_row_size.
-Qed.
-
-Lemma param_all_mx :
-  param (Logic.eq ==> Rseqmx ==> Logic.eq)
-    (@all_mx C _ n.+1 ssr_fold_mx)
-    (@all_mx C _ n.+1 (@seq_fold_mx C)).
-Proof.
-rewrite /all_mx paramE=> f _ <-; apply paramP.
-apply param_abstr => A As param_A.
-eapply param_apply; [|exact param_A].
-do 2 (eapply param_apply; [|apply param_eq_refl]).
-apply param_fold_mx.
-Qed.
 
 Context `{!leq C}.
 
