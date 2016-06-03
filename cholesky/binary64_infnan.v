@@ -321,7 +321,19 @@ intro He; apply Z.compare_eq in He.
 intro Hm; inversion Hm as (Hm'); apply Pcompare_Eq_eq in Hm'.
 now rewrite He, Hm'.
 Qed.
-  
+
+Lemma ficompare_spec_eq_f x y : ficompare x y = Some Eq ->
+  (finite x <-> finite y).
+Proof.
+unfold ficompare.
+case x; case y; try now simpl.
+{ now intro b; case b. }
+{ now intros b b'; simpl; case b'. }
+{ now intros b m e He b'; simpl; case b'. }
+{ now intros b b'; case b'; case b. }
+now intros b n b'; case b'.
+Qed.
+
 Definition binary64_infnan : Float_infnan_spec :=
   @Build_Float_infnan_spec
     FI
@@ -364,6 +376,7 @@ Definition binary64_infnan : Float_infnan_spec :=
     fisqrt_spec_f
     ficompare
     ficompare_spec
-    ficompare_spec_eq.
+    ficompare_spec_eq
+    ficompare_spec_eq_f.
 
 End Binary64_infnan.

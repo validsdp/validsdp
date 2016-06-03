@@ -557,6 +557,13 @@ rewrite !FI2F_X2F_FtoX Hrx Hry; intros H _.
 now inversion H as [_|H'|_]; rewrite H'.
 Qed.
 
+Lemma ficompare_spec_eq_f x y : ficompare x y = Some Eq ->
+  (finite x <-> finite y).
+Proof.
+unfold ficompare, finite; rewrite F.cmp_correct !FtoX_real.
+now case (F.toX x); [now simpl|]; intros rx; case (F.toX y).
+Qed.
+
 Definition coqinterval_infnan : Float_infnan_spec :=
   @Build_Float_infnan_spec
     FI
@@ -599,6 +606,7 @@ Definition coqinterval_infnan : Float_infnan_spec :=
     fisqrt_spec_f
     ficompare
     ficompare_spec
-    ficompare_spec_eq.
+    ficompare_spec_eq
+    ficompare_spec_eq_f.
 
 End Coqinterval_infnan.

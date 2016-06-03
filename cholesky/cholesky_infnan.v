@@ -76,6 +76,13 @@ rewrite /stilde_infnan /= -/stilde_infnan => H.
 apply (@fiminus_spec_fl _ c (fimult (a ord0) (b ord0))), (IHk _ _ _ H).
 Qed.
 
+Lemma ytilded_infnan_fc k c a b d : finite (@ytilded_infnan k c a b d) ->
+  finite d -> finite c.
+Proof. move=> H Fd; apply (stilde_infnan_fc (fidiv_spec_fl H Fd)). Qed.
+
+Lemma ytildes_infnan_fc k c a : finite (@ytildes_infnan k c a) -> finite c.
+Proof. move=> H; apply (stilde_infnan_fc (fisqrt_spec_f1 H)). Qed.
+
 Lemma stilde_infnan_fa k c a b : finite (@stilde_infnan k c a b) ->
   forall i, finite (a i).
 Proof.
@@ -89,6 +96,19 @@ Qed.
 Lemma ytildes_infnan_fa k c a : finite (@ytildes_infnan k c a) ->
   forall i, finite (a i).
 Proof. move=> H; apply (stilde_infnan_fa (fisqrt_spec_f1 H)). Qed.
+
+Lemma cholesky_success_infnan_f1 : cholesky_success_infnan ->
+  forall (i j : 'I_n.+1), (i <= j)%N -> finite (A i j).
+Proof.
+move=> [H0 H1] i j Hij.
+have HRtj := FI2F_spec (Rgt_not_eq _ _ (Rlt_gt _ _ (H1 j))).
+rewrite (proj2 H0) in HRtj; case (ltnP i j) => Hij'.
+{ move: (ytildes_infnan_fa HRtj (Ordinal Hij')); rewrite ffunE inord_val.
+  rewrite (proj1 H0) // /ytilded_infnan => H.
+  apply (ytilded_infnan_fc H), FI2F_spec, Rgt_not_eq, Rlt_gt, H1. }
+have -> : i = j; [by apply ord_inj, anti_leq; rewrite Hij|].
+apply (ytildes_infnan_fc HRtj).
+Qed.
 
 Lemma stilde_infnan_eq_stilde k c a b : finite (@stilde_infnan k c a b) ->
   (FI2F (stilde_infnan c a b)
