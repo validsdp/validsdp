@@ -14,11 +14,19 @@
 - (Class name, constructor name) := (=foo_class=, =foo=)
 - Example:
 : Class row_class I B := row : forall (m n : nat), I m -> B m n -> B 1 n.
+** Type classes for specifications
+- (Class name, constructor name) := (=foo_spec=, =foo_prop=)
+- Example:
+: Class I0_spec
+:   (ord : nat -> Type) (n : nat)
+:   `{!I0_class ord n, !nat_of_class ord n}
+:   := I0_prop : nat_of I0 = 0%N.
+: Arguments I0_spec _ _ {_ _}.
 ** Type-class instances and related definitions
 - for proof-oriented instances : (prefix or) suffix =ssr=
 - for computation-oriented instances :
   - (prefix =cpt=, =eff=, =raw= ?)
-  - suffix =seq= := list-based types
+  - suffix =seqmx= := list-based matrices
   - suffix =instN= := natural numbers
   - suffix =instFI= := =float_infnan_spec.FI (_ : Float_infnan_spec)=
   - suffix =instFI_b64= := =float_infnan_spec.FI binary64_infnan=
