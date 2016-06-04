@@ -1859,14 +1859,19 @@ Qed.
 Definition fiplus1 (x y : FI) : FI :=
   {| FI_val := F.add rnd_UP 53%bigZ x y; FI_prop := fiplus1_proof x y |}.
 
-Lemma round_UP_ge beta fexp :  (* TODO: pas trouvé dans Flocq *)
+Lemma round_UP_ge beta fexp :
   Valid_exp fexp ->
   forall x, (x <= Fcore_generic_fmt.round beta fexp Zceil x)%Re.
+  (* TODO: pas trouvé dans Flocq *)
+  (* Erik: peut-être parce que la preuve peut être simplifiée en 1 ligne ? *)
 Proof.
+(*
 intros vfexp x.
 destruct (generic_format_EM beta fexp x).
 { now right; rewrite round_generic. }
 now apply Rlt_le, round_DN_UP_lt.
+*)
+intros H x; exact (@round_UP_pt beta fexp H x).2.1.
 Qed.
 
 Lemma fiplus1_spec_fl x y : finite (fiplus1 x y) -> finite x.
