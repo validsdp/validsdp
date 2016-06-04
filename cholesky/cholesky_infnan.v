@@ -46,6 +46,16 @@ Fixpoint stilde_infnan (k : nat) (c : FI fs) {struct k} :=
                                 [ffun i => b (lift ord0 i)]
   end.
 
+Lemma stilde_infnan_eq k
+      (c1 : FI fs) (a1 b1 : FI fs ^ k) (c2 : FI fs) (a2 b2 : FI fs ^ k) :
+  (c1 = c2) ->
+  (forall i, a1 i = a2 i) -> (forall i, b1 i = b2 i) ->
+  stilde_infnan c1 a1 b1 = stilde_infnan c2 a2 b2.
+Proof.
+elim: k c1 a1 b1 c2 a2 b2 => [//|k IHk] c1 a1 b1 c2 a2 b2 Hc Ha Hb.
+by apply IHk; [by rewrite Hc Ha Hb| |]; move=> i; rewrite !ffunE.
+Qed.
+
 Definition ytilded_infnan k (c : FI fs) (a b : FI fs ^ k) (bk : FI fs) :=
   fidiv (stilde_infnan c a b) bk.
 
