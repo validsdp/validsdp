@@ -383,13 +383,13 @@ Qed.
 (** If [A] contains no infinity or NaN, then [MFI2F A] = [A] and
     [posdef (MF2R (MFI2F A))] means that [A] is positive definite. *)
 Lemma corollary_2_4_with_c_upper_bound :
-  4 * INR n.+1 * eps (fis fs) < 1 ->
+  4 * INR n.+1 * eps fs < 1 ->
   forall A : 'M[FI fs]_n, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
   (forall i : 'I_n, 0 <= (MFI2F A) i i) ->
   forall maxdiag : R, (forall i : 'I_n, (MFI2F A) i i <= maxdiag) ->
   forall c : R,
-  (/2 * gamma.gamma (fis fs) (2 * n.+1) * (\tr (MF2R (MFI2F A)))
-   + 4 * eta (fis fs) * INR n * (2 * INR n.+1 + maxdiag)
+  (/2 * gamma.gamma fs (2 * n.+1) * (\tr (MF2R (MFI2F A)))
+   + 4 * eta fs * INR n * (2 * INR n.+1 + maxdiag)
    <= c)%Re ->
   forall At : 'M[FI fs]_n,
   ((forall i j : 'I_n, (i < j)%N -> At i j = A i j) /\

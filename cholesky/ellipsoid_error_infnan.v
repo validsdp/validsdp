@@ -123,7 +123,7 @@ Qed.
 
 (** A bound such that if all arguments of [fidotprod_l2r_fstr]
     are less than it, then no overflow can occur. *)
-Definition md2k k := sqrt (m fs / (2 * INR k.+1) - eta (fis fs)) - eta (fis fs).
+Definition md2k k := sqrt (m fs / (2 * INR k.+1) - eta fs) - eta fs.
 
 Lemma md2k_contravar n m : (n <= m)%N -> md2k m <= md2k n.
 Proof.
@@ -135,15 +135,15 @@ apply (Rmult_le_compat_l _ _ _ (m_pos fs)), Rinv_le.
 by apply Rmult_le_compat_l; [lra|]; apply /le_INR /le_n_S /leP.
 Qed.
 
-Lemma md2k_expr_lt_m_aux k (Hke : 2 * INR k.+1 * eta (fis fs) < 1) (x : R) :
+Lemma md2k_expr_lt_m_aux k (Hke : 2 * INR k.+1 * eta fs < 1) (x : R) :
   Rabs x < md2k k ->
-  2 * INR k * x² + 2 * INR k * (1 + Rabs x) * eta (fis fs) < m fs.
+  2 * INR k * x² + 2 * INR k * (1 + Rabs x) * eta fs < m fs.
 Proof.
 move=> Hx.
 have H2k : 0 < 2 * INR k.+1.
 { apply Rmult_lt_0_compat; [lra|]; change 0 with (INR 0); apply lt_INR; omega. }
 apply (Rmult_lt_reg_r (/ (2 * INR k.+1))); [by apply Rinv_0_lt_compat|].
-apply Rle_lt_trans with (x² + (1 + Rabs x) * eta (fis fs)).
+apply Rle_lt_trans with (x² + (1 + Rabs x) * eta fs).
 { rewrite Rmult_comm; apply (Rmult_le_reg_l (2 * INR k.+1)); [by []|].
   rewrite -Rmult_assoc Rinv_r; [|lra]; rewrite Rmult_1_l.
   rewrite (Rmult_assoc _ (_ +_)) -Rmult_plus_distr_l; apply Rmult_le_compat_r.
@@ -151,8 +151,8 @@ apply Rle_lt_trans with (x² + (1 + Rabs x) * eta (fis fs)).
     { apply Rplus_le_le_0_compat; [lra|apply Rabs_pos]. }
     apply Rlt_le, eta_pos. }
   apply Rmult_le_compat_l; [lra|]; apply le_INR; omega. }
-apply (Rplus_lt_reg_r (- eta (fis fs))); ring_simplify.
-apply Rle_lt_trans with ((Rabs x + eta (fis fs) / 2)²).
+apply (Rplus_lt_reg_r (- eta fs)); ring_simplify.
+apply Rle_lt_trans with ((Rabs x + eta fs / 2)²).
 { rewrite /Rsqr; field_simplify; rewrite /Rdiv Rinv_1 Rmult_1_r.
   rewrite /Rdiv (Rmult_comm _ (/ 4)) 2!Rmult_plus_distr_l.
   rewrite -!(Rmult_assoc (/ 4)) !(Rmult_assoc (/ 4) 2) Rinv_l; [|lra].
@@ -162,29 +162,29 @@ apply Rle_lt_trans with ((Rabs x + eta (fis fs) / 2)²).
 rewrite (Rplus_comm (- _)) -(Rsqr_sqrt (_ + - _)).
 { apply Rsqr_lt_abs_1; rewrite Rabs_pos_eq.
   { rewrite (Rabs_pos_eq (sqrt _)); [|by apply sqrt_pos].
-    apply (Rplus_lt_reg_r (- eta (fis fs))).
+    apply (Rplus_lt_reg_r (- eta fs)).
     apply (Rle_lt_trans _ (Rabs x)); [|by apply Hx].
     rewrite Rplus_assoc -{2}(Rplus_0_r (Rabs _)); apply Rplus_le_compat_l.
-    apply (Rplus_le_reg_r (eta (fis fs))); ring_simplify.
+    apply (Rplus_le_reg_r (eta fs)); ring_simplify.
     rewrite -{2}(Rmult_1_r (eta _)); apply Rmult_le_compat_l; [|lra].
     apply Rlt_le, eta_pos. }
   apply Rplus_le_le_0_compat; [by apply Rabs_pos|].
   by apply Rmult_le_pos; [apply Rlt_le, eta_pos|lra]. }
-apply (Rplus_le_reg_r (eta (fis fs))); ring_simplify; rewrite Rmult_comm.
+apply (Rplus_le_reg_r (eta fs)); ring_simplify; rewrite Rmult_comm.
 apply (Rmult_le_reg_l (2 * INR k.+1)); [by []|].
 rewrite -Rmult_assoc Rinv_r; [|lra]; rewrite Rmult_1_l.
 apply (Rle_trans _ _ _ (Rlt_le _ _ Hke)), (Rle_trans _ 2); [lra|]; apply m_ge_2.
 Qed.
 
-Lemma md2k_expr_lt_m k (Hke : 2 * INR k.+1 * eta (fis fs) < 1) (x y : R) :
+Lemma md2k_expr_lt_m k (Hke : 2 * INR k.+1 * eta fs < 1) (x y : R) :
   Rabs x < md2k k -> Rabs y < md2k k ->
   2 * INR k * (Rabs x * Rabs y)
-  + 2 * INR k * (1 + Rabs y) * eta (fis fs) < m fs.
+  + 2 * INR k * (1 + Rabs y) * eta fs < m fs.
 Proof.
 move=> Hx Hy.
 set (z := Rmax (Rabs x) (Rabs y)).
 apply Rle_lt_trans
-with (2 * INR k * z² + 2 * INR k * (1 + z) * eta (fis fs)).
+with (2 * INR k * z² + 2 * INR k * (1 + z) * eta fs).
 { apply Rplus_le_compat.
   { rewrite !Rmult_assoc; apply Rmult_le_compat_l; [lra|].
     apply Rmult_le_compat_l; [by apply pos_INR|].
@@ -202,21 +202,21 @@ Qed.
 Lemma lemma_rnd_f k x : Rabs x < md2k k -> finite (firnd fs x).
 Proof.
 move=> Hx; apply firnd_spec_f.
-have [d [e Hde]] := frnd_spec (fis fs) x.
+have [d [e Hde]] := frnd_spec fs x.
 rewrite Hde.
 apply (Rle_lt_trans _ _ _ (Rabs_triang _ _)).
-apply Rle_lt_trans with (2 * Rabs x + eta (fis fs)).
+apply Rle_lt_trans with (2 * Rabs x + eta fs).
 { apply Rplus_le_compat; [|by case e].
   rewrite Rabs_mult; apply Rmult_le_compat_r; [by apply Rabs_pos|].
   apply (Rle_trans _ _ _ (Rabs_triang _ _)); rewrite Rabs_pos_eq; [|lra].
   apply Rplus_le_compat_l; case d => d' Hd' /=.
   apply (Rle_trans _ _ _ Hd'), Rlt_le, eps_lt_1. }
-apply (Rplus_lt_reg_r (- eta (fis fs))); ring_simplify.
+apply (Rplus_lt_reg_r (- eta fs)); ring_simplify.
 apply (Rmult_lt_reg_l (/ 2)); [lra|].
 rewrite -Rmult_assoc Rinv_l; [|lra]; rewrite Rmult_1_l.
 apply (Rlt_le_trans _ _ _ Hx).
 rewrite /md2k.
-apply (Rplus_le_reg_r (eta (fis fs))); ring_simplify.
+apply (Rplus_le_reg_r (eta fs)); ring_simplify.
 apply Rle_trans with (/ 2 * m fs).
 { apply Rle_trans with (sqrt (m fs / (2 * INR k.+1))).
   { apply sqrt_le_1_alt.
@@ -238,11 +238,11 @@ apply Rlt_le, eta_pos.
 Qed.
 
 Lemma lemma_rnd k x :
-  Rabs x < md2k k -> FI2F (firnd fs x) = frnd (fis fs) x :> R.
+  Rabs x < md2k k -> FI2F (firnd fs x) = frnd fs x :> R.
 Proof. move=> Hx; apply firnd_spec, (lemma_rnd_f Hx). Qed.
 
-Lemma lemma_prod_f (H2 : 2 * INR 2 * eps (fis fs) < 1)
-      (H2e : 2 * INR 2 * eta (fis fs) < 1)
+Lemma lemma_prod_f (H2 : 2 * INR 2 * eps fs < 1)
+      (H2e : 2 * INR 2 * eta fs < 1)
       (x : R) (y : FI fs) :
   Rabs x < md2k 1 -> finite y -> Rabs (FI2F y) < md2k 1 ->
   finite (fimult (firnd fs x) y).
@@ -250,15 +250,15 @@ Proof.
 move=> Hx Fx Hy.
 apply fimult_spec_f; [by apply (lemma_rnd_f Hx)|by []|].
 rewrite /fmult (lemma_rnd Hx).
-replace (frnd _ _ : F (fis fs))
-with (@fdotprod_l2r_fstr (fis fs) 1 [ffun _ => x] [ffun _ => FI2F y]);
+replace (frnd _ _ : F fs)
+with (@fdotprod_l2r_fstr fs 1 [ffun _ => x] [ffun _ => FI2F y]);
   [|by rewrite /fdotprod_l2r_fstr /fdotprod_l2r /fsum_l2r /= !ffunE].
 have [o [e [e' Hoee']]] :=
   fdotprod_l2r_fstr_err H2 [ffun _ => x] [ffun _ => FI2F y].
 rewrite Hoee' !zmodp.big_ord1 !ffunE.
 rewrite Rplus_assoc; apply (Rle_lt_trans _ _ _ (Rabs_triang _ _)).
 apply Rle_lt_trans
-with (2 * Rabs x * Rabs (FI2F y) + 2 * (1 + Rabs (FI2F y)) * eta (fis fs)).
+with (2 * Rabs x * Rabs (FI2F y) + 2 * (1 + Rabs (FI2F y)) * eta fs).
 { apply Rplus_le_compat.
   { apply (Rle_trans _ _ _ (Rabs_triang _ _)); rewrite !Rabs_mult !Rabs_Rabsolu.
     rewrite -{1}(Rmult_1_l (_ * _)) -Rmult_plus_distr_r Rmult_assoc.
@@ -273,16 +273,16 @@ with (2 * Rabs x * Rabs (FI2F y) + 2 * (1 + Rabs (FI2F y)) * eta (fis fs)).
   by apply Rmult_le_compat_l; [by apply Rabs_pos|]; case e'. }
 apply Rle_lt_trans
 with (2 * INR 1 * (Rabs x * Rabs (FI2F y))
-      + 2 * INR 1 * (1 + Rabs (FI2F y)) * eta (fis fs));
+      + 2 * INR 1 * (1 + Rabs (FI2F y)) * eta fs);
   [by simpl; right; ring|].
 by apply (md2k_expr_lt_m H2e).
 Qed.
 
-Lemma lemma_prod (H2 : 2 * INR 2 * eps (fis fs) < 1)
-      (H2e : 2 * INR 2 * eta (fis fs) < 1)
+Lemma lemma_prod (H2 : 2 * INR 2 * eps fs < 1)
+      (H2e : 2 * INR 2 * eta fs < 1)
       (x : R) (y : FI fs) :
   Rabs x < md2k 1 -> finite y -> Rabs (FI2F y) < md2k 1 ->
-  FI2F (fimult (firnd fs x) y) = fmult (frnd (fis fs) x) (FI2F y) :> R.
+  FI2F (fimult (firnd fs x) y) = fmult (frnd fs x) (FI2F y) :> R.
 Proof.
 move=> Hx Fx Hy.
 rewrite fimult_spec; [|by apply lemma_prod_f].
@@ -292,8 +292,8 @@ Qed.
 (** If all arguments of [fidotprod_l2r_fstr] are less than [md2k],
     then no overflow occurs and the result is finite and the same than
     previously obtained from [fdotprod_l2r_fstr] when ignorign overflows. *)
-Lemma fidotprod_l2r_fstr_bounded k (Hk : 2 * INR k.+1 * eps (fis fs) < 1)
-      (Hke : 2 * INR k.+1 * eta (fis fs) < 1)
+Lemma fidotprod_l2r_fstr_bounded k (Hk : 2 * INR k.+1 * eps fs < 1)
+      (Hke : 2 * INR k.+1 * eta fs < 1)
       (a : R ^ k) (b : FI fs ^ k) :
       (forall i, Rabs (a i) < md2k k) ->
       (forall i, finite (b i)) ->
@@ -311,8 +311,8 @@ elim: k Hk Hke a b Ha Fb Hb => [|k IHk] Hk Hke a b Ha Fb Hb.
   rewrite /fdotprod_l2r_fstr /fdotprod_l2r /fsum_l2r /fsum_l2r_rec !ffunE.
   by split; [apply lemma_prod_f|apply lemma_prod]. }
 have Hk' := bg_2S Hk.
-have Hke' : 2 * INR k.+2 * eta (fis fs) < 1.
-{ apply Rle_lt_trans with (2 * INR k.+3 * eta (fis fs)); [|by []].
+have Hke' : 2 * INR k.+2 * eta fs < 1.
+{ apply Rle_lt_trans with (2 * INR k.+3 * eta fs); [|by []].
   apply Rmult_le_compat_r; [by apply Rlt_le, eta_pos|].
   apply Rmult_le_compat_l; [lra|]; apply le_INR; omega. }
 set (a' := [ffun i : 'I_k.+1 => a (inord i)]).
@@ -326,9 +326,9 @@ have Hb' : forall i, Rabs (FI2F (b' i)) < md2k k.+1.
   by apply Rlt_le_trans with (md2k k.+2); [|apply md2k_contravar]. }
 have H'' := (IHk Hk' Hke' a' b' Ha' Fb' Hb').
 destruct H'' as (F', H'); clear IHk.
-have H2 : 2 * INR 2 * eps (fis fs) < 1; [by apply (@ bg_2_le _ _ k.+2)|].
-have H2e : 2 * INR 2 * eta (fis fs) < 1.
-{ apply Rle_lt_trans with (2 * INR k.+2 * eta (fis fs)); [|by []].
+have H2 : 2 * INR 2 * eps fs < 1; [by apply (@ bg_2_le _ _ k.+2)|].
+have H2e : 2 * INR 2 * eta fs < 1.
+{ apply Rle_lt_trans with (2 * INR k.+2 * eta fs); [|by []].
   apply Rmult_le_compat_r; [by apply Rlt_le, eta_pos|].
   apply Rmult_le_compat_l; [lra|]; apply le_INR; omega. }
 have Ha1 : Rabs (a (inord k.+1)) < md2k 1.
@@ -346,7 +346,7 @@ have F : finite (fidotprod_l2r_fstr a b); [|split; [by []|]].
     set (aa := [ffun i => Rabs (a i)]); set (ma := max_tuple aa).
     set (ab := [ffun i => Rabs (FI2F (b i))]); set (mb := max_tuple ab).
     apply Rle_lt_trans with (2 * INR k.+2 * (Rabs ma * Rabs mb)
-                             + 2 * INR k.+2 * (1 + Rabs mb) * eta (fis fs)).
+                             + 2 * INR k.+2 * (1 + Rabs mb) * eta fs).
     { rewrite Rplus_assoc; apply (Rle_trans _ _ _ (Rabs_triang _ _)).
       apply Rplus_le_compat.
       { apply (Rle_trans _ _ _ (Rabs_triang _ _)); rewrite Rabs_mult.
@@ -415,8 +415,8 @@ Definition fiAxBu (n p : nat)
 
 Definition MFI2F := map_mx (@FI2F fs).
 
-Lemma fiAxBu_bounded_aux n p (Hnp : 2 * INR (n + p).+1 * eps (fis fs) < 1)
-      (Hnpe : 2 * INR (n + p).+1 * eta (fis fs) < 1)
+Lemma fiAxBu_bounded_aux n p (Hnp : 2 * INR (n + p).+1 * eps fs < 1)
+      (Hnpe : 2 * INR (n + p).+1 * eta fs < 1)
       (A : 'M[R]_n) (x : 'cV[FI fs]_n) (B : 'M[R]_(n, p)) (u : 'cV[FI fs]_p) :
   (forall i j, Rabs (A i j) < md2k (n + p)) ->
   (forall i j, Rabs (B i j) < md2k (n + p)) ->
@@ -444,8 +444,8 @@ by move=> i; apply fidotprod_l2r_fstr_bounded => // k;
   rewrite ffunE mxE; case splitP => j _.
 Qed.
 
-Lemma fiAxBu_bounded n p (Hnp : 2 * INR (n + p).+1 * eps (fis fs) < 1)
-      (Hnpe : 2 * INR (n + p).+1 * eta (fis fs) < 1) (Hnpm : 1 < md2k (n + p))
+Lemma fiAxBu_bounded n p (Hnp : 2 * INR (n + p).+1 * eps fs < 1)
+      (Hnpe : 2 * INR (n + p).+1 * eta fs < 1) (Hnpm : 1 < md2k (n + p))
       (P : 'M[R]_n) (PP : posdef P)
       (A : 'M[R]_n) (B : 'M[R]_(n, p)) (x : 'cV[FI fs]_n) (u : 'cV[FI fs]_p)
       (s lambda : R) :

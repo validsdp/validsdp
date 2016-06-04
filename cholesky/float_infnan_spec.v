@@ -28,7 +28,7 @@ Record Float_infnan_spec := {
   
   (** Underlying unbounded floating-point format.
       [FI] and [F fis] match when [finite] holds. *)
-  fis : Float_spec;
+  fis :> Float_spec;
 
   (** Any float less than [m] (in absolute value) will be finite
       (typically, [m] can be the smallest non representable positive float). *)

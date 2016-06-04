@@ -291,18 +291,18 @@ Variable eps_inv : BigZ.t_.
 (* Example:
  * Definition eps_inv := Eval vm_compute in (2^53)%bigZ. *)
 
-Hypothesis eps_inv_spec : Z2R [eps_inv] <= / eps (fis fs).
+Hypothesis eps_inv_spec : Z2R [eps_inv] <= / eps fs.
 
 Definition test_n n'' : bool :=
   (4 * (BigZ.of_Z (Z.of_nat n'') + 1) <? eps_inv)%bigZ.
 
 Lemma test_n_correct : test_n n = true ->
-  4 * INR n.+1 * eps (fis fs) < 1.
+  4 * INR n.+1 * eps fs < 1.
 Proof.
 unfold test_n; intro H.
-case (Req_dec (eps (fis fs)) 0); intro Heps; [rewrite Heps; lra|].
+case (Req_dec (eps fs) 0); intro Heps; [rewrite Heps; lra|].
 rewrite <- (Rinv_l _ Heps) at 5.
-apply Rmult_lt_compat_r; [assert (H' := eps_pos (fis fs)); lra|].
+apply Rmult_lt_compat_r; [assert (H' := eps_pos fs); lra|].
 revert eps_inv_spec; apply Rlt_le_trans.
 rewrite S_INR INR_IZR_INZ -Z2R_IZR.
 change 4 with (Z2R 4); rewrite -(Z2R_plus _ 1) -Z2R_mult.
@@ -432,18 +432,18 @@ Hypothesis div_up_spec_fl : forall x y, finite (div_up x y) -> finite y ->
 
 Variable feps : FI fs.
 
-Hypothesis feps_spec : eps (fis fs) <= FI2F feps.
+Hypothesis feps_spec : eps fs <= FI2F feps.
 
 Variable feta : FI fs.
 
-Hypothesis feta_spec : eta (fis fs) <= FI2F feta.
+Hypothesis feta_spec : eta fs <= FI2F feta.
 
 Definition gen_compute_c_aux (A : 'M[FI fs]_n) (maxdiag : FI fs) : FI fs :=
   @compute_c_aux _ _ _ _ _ _ fun_of_mx _ I0_ord succ0_ord add_up mul_up div_up
     feps feta A maxdiag.
 
 Lemma compute_c_aux_correct (A : 'M[FI fs]_n) maxdiag :
-  (INR (2 * n.+1) * eps (fis fs) < 1) ->
+  (INR (2 * n.+1) * eps fs < 1) ->
   (finite (add_up
              (mul_up ((gen_float_of_nat_up (2 * n.+1)%N)) feps)
              (- (1)))%C) ->
@@ -453,13 +453,13 @@ Lemma compute_c_aux_correct (A : 'M[FI fs]_n) maxdiag :
   (forall i, 0 <= FI2F (A i i)) ->
   (0 <= FI2F maxdiag) ->
   finite (gen_compute_c_aux A maxdiag) ->
-  (/2 * gamma (fis fs) (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
-   + 4 * eta (fis fs) * INR n * (2 * INR n.+1 + FI2F maxdiag)
+  (/2 * gamma fs (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
+   + 4 * eta fs * INR n * (2 * INR n.+1 + FI2F maxdiag)
   <= FI2F (gen_compute_c_aux A maxdiag))%R.
 Proof.
 have Pnp2 := pos_INR (n.+1)%N.
 have P2np2 := pos_INR (2 * n.+1)%N.
-have Pe := eps_pos (fis fs).
+have Pe := eps_pos fs.
 move=> Heps Fnem1 Nnem1 Pdiag Pmaxdiag Fc.
 rewrite /gen_compute_c_aux /compute_c_aux.
 move: (add_up_spec Fc); apply Rle_trans, Rplus_le_compat.
@@ -518,12 +518,12 @@ Definition gen_compute_c (A : 'M[FI fs]_n) :
     (@is_finite fs) feps feta A.
 
 Lemma compute_c_correct (A : 'M[FI fs]_n) :
-  (INR (2 * n.+1) * eps (fis fs) < 1) ->
+  (INR (2 * n.+1) * eps fs < 1) ->
   (forall i, finite (A i i)) ->
   (forall i, (0 <= FI2F (A i i))%R) ->
   forall c : FI fs, gen_compute_c A = Some c ->
-  (/2 * gamma (fis fs) (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
-   + 4 * eta (fis fs) * INR n * (2 * INR n.+1 + FI2F (gen_max_diag A))
+  (/2 * gamma fs (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
+   + 4 * eta fs * INR n * (2 * INR n.+1 + FI2F (gen_max_diag A))
    <= FI2F c)%R.
 Proof.
 move=> Heps Fdiag Pdiag c.
@@ -597,9 +597,9 @@ move=> H; have Hfdiag := posdef_check_f1 H; move: H.
 rewrite /gen_posdef_check /posdef_check !Bool.andb_true_iff.
 do 3 elim; move=> Hn Hsym Htpdiag.
 apply test_n_correct in Hn.
-have Hn' : 2 * INR n.+1 * eps (fis fs) < 1.
-{ move: (neps_pos (fis fs) n.+1); rewrite !Rmult_assoc; lra. }
-have Hn'' : INR (2 * n.+1) * eps (fis fs) < 1 by rewrite mult_INR.
+have Hn' : 2 * INR n.+1 * eps fs < 1.
+{ move: (neps_pos fs n.+1); rewrite !Rmult_assoc; lra. }
+have Hn'' : INR (2 * n.+1) * eps fs < 1 by rewrite mult_INR.
 apply is_sym_correct in Hsym.
 set cc := compute_c _ _ _ _ _ _ _; case_eq cc => // c' Hc'.
 rewrite Bool.andb_true_iff; elim.
@@ -724,7 +724,7 @@ have Fnr : finite nr.
 apply (Rle_trans _ (FI2F nr)).
 { apply (Rle_trans _ (FI2F (float_of_nat_up add_up n) * FI2F r)).
   { apply Rmult_le_compat_r.
-    { change R0 with (F0 (fis fs) : R); rewrite -FI2F0; apply file_spec.
+    { change R0 with (F0 fs : R); rewrite -FI2F0; apply file_spec.
       { apply finite0. }
       { move: Fnr; rewrite /nr; apply mul_up_spec_fr. }
       by move: Pr. }
@@ -1259,8 +1259,6 @@ eapply param_apply; last by tc.
 by rewrite paramE; move=> ? ? ->.
 Qed.
 
-About iteri_ord.
-
 Lemma param_iteri_ord :
   forall T T', forall RT : T -> T' -> Prop,
   param ((fun j j' => j = j' /\ (j <= n.+1)%N) ==> (RordC ==> RT ==> RT) ==> RT
@@ -1577,10 +1575,10 @@ Qed.
 Lemma param_map_diag :
   param ((Logic.eq ==> Logic.eq) ==> Rseqmx ==> Rseqmx)
   (@map_diag _ _ _
-     (@ssr_fun_of (FI fs)) (@ssr_store3 (FI fs)) n.+1
-     (@ssr_I0 n) (@ssr_succ0 n))
+     (@fun_of_mx (FI fs)) (@store_mx (FI fs)) n.+1
+     (@I0_ord n) (@succ0_ord n))
   (@map_diag _ _ _
-     (@fun_of_instance_0 C zero_instance_0) (@store_class_instance_1 C) n.+1
+     (@fun_of_instance_0 C zero_instance_0) (@store_class_instance_0 C) n.+1
      (@I0_class_instance_0 n) (@succ0_class_instance_0 n)).
 Proof.
 apply param_abstr => f f' param_f.
@@ -1588,7 +1586,7 @@ apply param_abstr => A As param_A.
 rewrite /map_diag.
 eapply param_apply; [|exact param_A].
 eapply param_apply.
-{ rewrite -/iteri_ord4 -/iteri_ord5.
+{ rewrite -/iteri_ord4.
   by eapply param_apply; [apply param_iteri_ord|rewrite paramE]. }
 apply param_abstr => i i' param_i.
 apply param_abstr => s s' param_s.
@@ -1626,7 +1624,7 @@ suff param_R : param Rseqmx R Rs; [|rewrite /R /Rs].
   eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
 set At := map_diag _ A; set Ats := map_diag _ As.
 suff: param Rseqmx At Ats; [|rewrite /At /Ats].
-{ rewrite -/cholesky4 -/cholesky5; apply param_apply, param_cholesky. }
+{ rewrite -/cholesky4 -/cholesky_mx; apply param_apply, param_cholesky. }
 eapply param_apply; [|exact param_A].
 eapply param_apply; [exact param_map_diag|].
 by eapply param_fun_eq; rewrite paramE.
@@ -1670,7 +1668,7 @@ suff param_R : param Rseqmx R Rs; [|rewrite /R /Rs].
   eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
 set At := map_diag _ A; set Ats := map_diag _ As.
 suff HA : param Rseqmx At Ats; [|rewrite /At /Ats].
-{ rewrite -/cholesky4 -/cholesky5.
+{ rewrite -/cholesky4 -/cholesky_mx.
 eapply param_apply; first exact: param_cholesky.
 eapply param_apply; last exact: HA.
 eapply param_apply; [eapply param_map_diag|].
@@ -2133,8 +2131,6 @@ Qed.
 Lemma test_m12_r : posdef_itv_seqF m12 (Float 1%bigZ (-10)%bigZ).
 Time prove_posdef_itv.
 Qed.
-
-About one.
 
 Goal True. idtac "test_posdef_check_CoqInterval". done. Qed.
 Time Eval vm_compute in posdef_check4_coqinterval m12.
