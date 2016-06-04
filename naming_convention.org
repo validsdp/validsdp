@@ -1,0 +1,42 @@
+#+TITLE: Naming convention for validsdp
+#+AUTHOR: Érik Martin-Dorel
+#+DATE: First draft on 2016-06-04
+#+OPTIONS: toc:nil
+#+LATEX_CLASS_OPTIONS: [a4paper,11pt]
+* Naming convention
+** Type classes for arithmetic operations (associated with a notation)
+- (Class name, constructor name) := (=foo=, =foo_op=)
+- Example:
+: Class add B := add_op : B -> B -> B.
+: Local Notation "+%C" := add_op.
+: Local Notation "x + y" := (add_op x y) : computable_scope.
+** Type classes associated with no notation
+- (Class name, constructor name) := (=foo_class=, =foo=)
+- Example:
+: Class row_class I B := row : forall (m n : nat), I m -> B m n -> B 1 n.
+** Type classes for specifications
+- (Class name, constructor name) := (=foo_spec=, =foo_prop=)
+- Example:
+: Class I0_spec
+:   (ord : nat -> Type) (n : nat)
+:   `{!I0_class ord n, !nat_of_class ord n}
+:   := I0_prop : nat_of I0 = 0%N.
+: Arguments I0_spec _ _ {_ _}.
+** Type-class instances and related definitions
+- for proof-oriented instances : (prefix or) suffix =ssr=
+- for computation-oriented instances :
+  - (prefix =cpt=, =eff=, =raw= ?)
+  - suffix =seqmx= := list-based matrices
+  - suffix =instN= := natural numbers
+  - suffix =instFI= := =float_infnan_spec.FI (_ : Float_infnan_spec)=
+  - suffix =instFI_b64= := =float_infnan_spec.FI binary64_infnan=
+  - suffix =instFI_flx53= := =float_infnan_spec.FI coqinterval_infnan=
+  - suffix =instF_flx53= := =Interval_specific_ops.s_float _ _=,
+    without the proof invariant =FI_prop : mantissa_bounded FI_val=
+- all "canonical" instances should be declared as global instances
+** Lemma names
+- =param_(Def)= or =(Pred)_(Def)= for "parametricity lemmas", e.g.:
+  =Rseqmx_rowseqmx=
+- =refines_(Goal)= for necessary/sufficient cond. of refinement pred.,
+  e.g.: =refines_nth=, =refines_seqmxP=
+- (...)

@@ -34,36 +34,30 @@ Definition iteri_ord T j (f : ord n -> T -> T) x := iteri_ord_rec j I0 f x.
 
 End Def.
 
-Section succ0_theory.
+Section nat_theory.
 Variables (ord : nat -> Type) (n : nat).
-Context `{!succ0_class ord n, !nat_of_class ord n}.
-Class succ0_correct :=
+
+Class I0_spec `{!I0_class ord n, !nat_of_class ord n} :=
+  I0_prop : nat_of I0 = 0%N.
+
+Class succ0_spec `{!succ0_class ord n, !nat_of_class ord n} :=
   succ0_prop :
   forall i : ord n, ((nat_of i).+1 < n)%N -> nat_of (succ0 i) = (nat_of i).+1.
-End succ0_theory.
-Arguments succ0_correct _ _ {succ0_class0} {nat_of_class0}.
 
-Section I0_theory.
-Variables (ord : nat -> Type) (n : nat).
-Context `{!I0_class ord n, !nat_of_class ord n}.
-Class I0_correct := I0_prop : nat_of I0 = 0%N.
-End I0_theory.
-Arguments I0_correct _ _ {I0_class0} {nat_of_class0}.
-
-Section nat_of_theory.
-Variables (ord : nat -> Type) (n : nat).
-Context `{!nat_of_class ord n}.
-Class nat_of_correct := nat_of_prop :
+Class nat_of_spec `{!nat_of_class ord n} :=
+  nat_of_prop :
   forall i j : ord n, nat_of i = nat_of j -> i = j.
-End nat_of_theory.
-Arguments nat_of_correct _ _ {nat_of_class0}.
+End nat_theory.
+Arguments I0_spec _ _ {_ _}.
+Arguments succ0_spec _ _ {_ _}.
+Arguments nat_of_spec _ _ {_}.
 
 Section Props.
 
 Context {ord : nat -> Type} {n' : nat}.
 Let n := n'.+1.
 Context `{!I0_class ord n, !succ0_class ord n, !nat_of_class ord n}.
-Context `{!I0_correct ord n, !succ0_correct ord n, !nat_of_correct ord n}.
+Context `{!I0_spec ord n, !succ0_spec ord n, !nat_of_spec ord n}.
 
 Lemma iteri_ord_rec_ind M P (f : ord n -> M -> M) :
   forall j, (j <= n)%N ->
@@ -137,7 +131,7 @@ Qed.
 
 Context {ord' : nat -> Type}.
 Context `{!I0_class ord' n, !succ0_class ord' n, !nat_of_class ord' n}.
-Context `{!I0_correct ord' n, !succ0_correct ord' n}.
+Context `{!I0_spec ord' n, !succ0_spec ord' n}.
 
 Lemma iteri_ord_rec_ind2 M M' P
       (f : ord n -> M -> M) (f' : ord' n -> M' -> M') :
