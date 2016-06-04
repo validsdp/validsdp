@@ -18,17 +18,17 @@
 - for proof-oriented instances : (prefix or) suffix =ssr=
 - for computation-oriented instances :
   - (prefix =cpt=, =eff=, =raw= ?)
-  - suffix =seq= for list-based types
-  - suffix =instN= for natural numbers
-  - suffix =instFI= for =float_infnan_spec.FI (_ : Float_infnan_spec)=
-  - suffix =instFI_b64= for =float_infnan_spec.FI binary64_infnan=
-  - suffix =instFI_itv= for =float_infnan_spec.FI coqinterval_infnan=
-  - suffix =instF_itv= for =Interval_specific_ops.s_float _ _= →
+  - suffix =seq= := list-based types
+  - suffix =instN= := natural numbers
+  - suffix =instFI= := =float_infnan_spec.FI (_ : Float_infnan_spec)=
+  - suffix =instFI_b64= := =float_infnan_spec.FI binary64_infnan=
+  - suffix =instFI_flx53= := =float_infnan_spec.FI coqinterval_infnan=
+  - suffix =instF_flx53= := =Interval_specific_ops.s_float _ _=,
     without the proof invariant =FI_prop : mantissa_bounded FI_val=
 - all "canonical" instances should be declared as global instances
-** TODO Lemma names
-- =param_(Def)= or =(Pred)_(Def)= for "parametricity lemmas" → e.g.:
+** Lemma names
+- =param_(Def)= or =(Pred)_(Def)= for "parametricity lemmas", e.g.:
   =Rseqmx_rowseqmx=
-- =refines_(Goal)= for necessary/sufficient cond. for refinement pred.
-  → e.g.: =refines_nth=, =refines_seqmxP=
+- =refines_(Goal)= for necessary/sufficient cond. of refinement pred.,
+  e.g.: =refines_nth=, =refines_seqmxP=
 - (...)
