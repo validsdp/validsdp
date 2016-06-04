@@ -10,6 +10,9 @@
 : Class add B := add_op : B -> B -> B.
 : Local Notation "+%C" := add_op.
 : Local Notation "x + y" := (add_op x y) : computable_scope.
+- PR: maybe we could just make Float_infnan_spec (or even
+  Float_round_up_infnan_spec) a record typeclass with all operations,
+  we only need floats anyway ?
 ** Type classes associated with no notation
 - (Class name, constructor name) := (=foo_class=, =foo=)
 - Example:
@@ -22,8 +25,11 @@
 :   `{!I0_class ord n, !nat_of_class ord n}
 :   := I0_prop : nat_of I0 = 0%N.
 : Arguments I0_spec _ _ {_ _}.
+- PR: shouldn't we put the spec in a common record with the specified
+  function ? (we don't plan to use the function without its spec)
 ** Type-class instances and related definitions
 - for proof-oriented instances : (prefix or) suffix =ssr=
+- PR: suffix is ok for me
 - for computation-oriented instances :
   - (prefix =cpt=, =eff=, =raw= ?)
   - suffix =seqmx= := list-based matrices
