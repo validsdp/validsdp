@@ -394,7 +394,7 @@ rewrite -/(P _ _); apply foldl_diag_correct; rewrite /P.
 move=> _; rewrite big_ord0 FI2F0; apply Rle_refl.
 Qed.
 
-Definition gen_float_of_nat_up : nat -> FI fs := float_of_nat_up add_up.
+Definition gen_float_of_nat_up : nat -> FI fs := Top.float_of_nat_up add_up.
 
 Lemma float_of_nat_up_correct k : finite (gen_float_of_nat_up k) ->
   INR k <= FI2F (gen_float_of_nat_up k).
@@ -714,7 +714,7 @@ have Fnr : finite nr.
 { move: (HF' ord0); rewrite /gen_sub_down /sub_down => F.
   apply fiopp_spec_f1 in F; apply (add_up_spec_fl F). }
 apply (Rle_trans _ (FI2F nr)).
-{ apply (Rle_trans _ (FI2F (float_of_nat_up add_up n) * FI2F r)).
+{ apply (Rle_trans _ (FI2F (Top.float_of_nat_up add_up n) * FI2F r)).
   { apply Rmult_le_compat_r.
     { change R0 with (F0 fs : R); rewrite -FI2F0; apply file_spec.
       { apply finite0. }
@@ -1563,8 +1563,8 @@ Qed.
 Lemma param_map_diag :
   param ((Logic.eq ==> Logic.eq) ==> Rseqmx ==> Rseqmx)
   (@map_diag _ _ _
-     (@fun_of_mx (FI fs)) (@store_mx (FI fs)) n.+1
-     (@I0_ord n) (@succ0_ord n))
+     (@fun_of_ssr (FI fs)) (@store_ssr (FI fs)) n.+1
+     (@I0_ssr n) (@succ0_ssr n))
   (@map_diag _ _ seqmatrix'
      (@fun_of_seqmx C zero_instFI) (@store_seqmx C) n.+1
      (@I0_instN n) (@succ0_instN n)).
@@ -1611,7 +1611,7 @@ suff param_R : param Rseqmx R Rs; [|rewrite /R /Rs].
   eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
 set At := map_diag _ A; set Ats := map_diag _ As.
 suff: param Rseqmx At Ats; [|rewrite /At /Ats].
-{ rewrite -/cholesky_seqmx -/cholesky_mx; apply param_apply, param_cholesky. }
+{ rewrite -/cholesky_seqmx -/cholesky_ssr; apply param_apply, param_cholesky. }
 eapply param_apply; [|exact param_A].
 eapply param_apply; [exact param_map_diag|].
 by eapply param_fun_eq; rewrite paramE.
@@ -1655,7 +1655,7 @@ suff param_R : param Rseqmx R Rs; [|rewrite /R /Rs].
   eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
 set At := map_diag _ A; set Ats := map_diag _ As.
 suff HA : param Rseqmx At Ats; [|rewrite /At /Ats].
-{ rewrite -/cholesky_seqmx -/cholesky_mx.
+{ rewrite -/cholesky_seqmx -/cholesky_ssr.
   eapply param_apply; first exact: param_cholesky.
   eapply param_apply; last exact: HA.
   eapply param_apply; [eapply param_map_diag|].
