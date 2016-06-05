@@ -222,14 +222,14 @@ Record Float_round_up_infnan_spec := {
   fris :> Float_infnan_spec;
 
   (** Overapproximation of eps. *)
-  frieps : FI fris;
+  fieps : FI fris;
 
-  frieps_spec : eps fris <= FI2F frieps;
+  fieps_spec : eps fris <= FI2F fieps;
   
   (** Overapproximation of eta. *)
-  frieta : FI fris;
+  fieta : FI fris;
 
-  frieta_spec : eta fris <= FI2F frieta;
+  fieta_spec : eta fris <= FI2F fieta;
   
   (** Addition with upward rounding. *)
   fiplus_up : FI fris -> FI fris -> FI fris;

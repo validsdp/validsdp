@@ -52,22 +52,19 @@ Qed.
 
 Definition FI0 := Build_FI _ FI0_proof.
 
-Definition FI1_proof :
-  mantissa_bounded (Interval_specific_ops.Float 1%bigZ 0%bigZ).
+Lemma mantissa_bounded_bpow n :
+  mantissa_bounded (Interval_specific_ops.Float 1%bigZ n).
 Proof.
-unfold mantissa_bounded, x_bounded; simpl; right; exists 1; [now simpl|].
-apply FLX_format_generic; [now simpl|].
-unfold generic_format, F2R, scaled_mantissa, canonic_exp, FLX_exp; simpl.
-replace (ln_beta _ _ : Z) with 1%Z; simpl.
-{ change 4503599627370496 with (Z2R 4503599627370496).
-  rewrite Rmult_1_l Ztrunc_Z2R Rinv_r; [reflexivity|].
-  now change 0 with (Z2R 0); apply Z2R_neq. }
-apply eq_sym, ln_beta_unique_pos; split; [now right|].
-rewrite <- (Rplus_0_r 1); apply Rplus_le_lt_compat; [now right|].
-apply Rlt_0_1.
+unfold mantissa_bounded, x_bounded; simpl; right; exists (bpow radix2 [n]%bigZ).
+{ unfold F.toX, F.toF, FtoX, FtoR, Bir.EtoZ; simpl.
+  case ([n]%bigZ); [now simpl| |]; intro p; unfold bpow; simpl.
+  { now case (Z.pow_pos 2 p). }
+  now unfold Rdiv; rewrite Rmult_1_l. }
+apply FLX_format_generic; [now simpl|]; apply generic_format_bpow.
+unfold FLX_exp; omega.
 Qed.
 
-Definition FI1 := Build_FI _ FI1_proof.
+Definition FI1 := Build_FI _ (mantissa_bounded_bpow 0%bigZ).
 
 Definition finite (x : FI) := F.real x = true.
 
@@ -285,38 +282,33 @@ Lemma ftoX_ftoF (x : F.type) : F.toX x = FtoX (F.toF x).
 Proof. now simpl. Qed.
 *)
 
-Lemma fiplus_proof (x y : FI) : mantissa_bounded (F.add rnd_NE 53%bigZ x y).
-Proof.
+Lemma fiplus_proof rm (x y : FI) : mantissa_bounded (F.add rm 53%bigZ x y).
 unfold mantissa_bounded, x_bounded.
 rewrite F.add_correct; set (z := Xadd _ _).
 unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
 set r'' := round _ _ _ _; exists r''; [now simpl|].
 apply FLX_format_generic; [now simpl|].
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_of_mode].
 Qed.
 
-Definition fiplus (x y : FI) : FI :=
-  {| FI_val := F.add rnd_NE 53%bigZ x y; FI_prop := fiplus_proof x y |}.
+Definition fiplus (x y : FI) : FI := Build_FI _ (fiplus_proof rnd_NE x y).
 
 Lemma fiplus_spec_fl x y : finite (fiplus x y) -> finite x.
 Proof.
-unfold finite, fiplus; simpl; do 2 rewrite FtoX_real.
-rewrite F.add_correct /Xround /Xbind.
-by case: (F.toX x).
+unfold finite; simpl; do 2 rewrite FtoX_real.
+now rewrite F.add_correct /Xround /Xbind; case: (F.toX x).
 Qed.
 
 Lemma fiplus_spec_fr x y : finite (fiplus x y) -> finite y.
 Proof.
-unfold finite, fiplus; simpl; do 2 rewrite FtoX_real.
-rewrite F.add_correct /Xround /Xbind.
-case (F.toX y) =>//; by rewrite Xadd_comm.
+unfold finite; simpl; do 2 rewrite FtoX_real.
+now rewrite F.add_correct /Xround /Xbind; case (F.toX y)=>//; rewrite Xadd_comm.
 Qed.
 
 Lemma fiplus_spec_f_aux x y : finite x -> finite y -> finite (fiplus x y).
 Proof.
 unfold finite, fiplus; simpl; do 3 rewrite FtoX_real.
-rewrite F.add_correct.
-by case (F.toX y); [|intro r]; case (F.toX x).
+now rewrite F.add_correct; case (F.toX y); [|intro r]; case (F.toX x).
 Qed.
 
 Lemma fiplus_spec_f x y : finite x -> finite y ->
@@ -346,37 +338,33 @@ rewrite round_generic //.
 now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
-Lemma fimult_proof (x y : FI) : mantissa_bounded (F.mul rnd_NE 53%bigZ x y).
-Proof.
+Lemma fimult_proof rm (x y : FI) : mantissa_bounded (F.mul rm 53%bigZ x y).
 unfold mantissa_bounded, x_bounded.
 rewrite F.mul_correct; set (z := Xmul _ _).
 unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
-set (r'' := round _ _ _ _); exists r''; [now simpl|].
+set r'' := round _ _ _ _; exists r''; [now simpl|].
 apply FLX_format_generic; [now simpl|].
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_of_mode].
 Qed.
 
-Definition fimult (x y : FI) : FI :=
-  {| FI_val := F.mul rnd_NE 53%bigZ x y; FI_prop := fimult_proof x y |}.
+Definition fimult (x y : FI) : FI := Build_FI _ (fimult_proof rnd_NE x y).
 
 Lemma fimult_spec_fl x y : finite (fimult x y) -> finite x.
 Proof.
-unfold finite, fiplus; simpl; do 2 rewrite FtoX_real.
+unfold finite; simpl; do 2 rewrite FtoX_real.
 now rewrite F.mul_correct; case (F.toX x); [|intro r].
 Qed.
 
 Lemma fimult_spec_fr x y : finite (fimult x y) -> finite y.
 Proof.
-unfold finite, fiplus; simpl; do 2 rewrite FtoX_real.
-rewrite F.mul_correct.
-now case (F.toX y); [|intro r]; case (F.toX).
+unfold finite; simpl; do 2 rewrite FtoX_real.
+now rewrite F.mul_correct; case (F.toX y); [|intro r]; case (F.toX).
 Qed.
 
 Lemma fimult_spec_f_aux x y : finite x -> finite y -> finite (fimult x y).
 Proof.
-unfold finite, fiplus; simpl; do 3 rewrite FtoX_real.
-rewrite F.mul_correct.
-now case (F.toX y); [|intro r]; case (F.toX x).
+unfold finite; simpl; do 3 rewrite FtoX_real.
+now rewrite F.mul_correct; case (F.toX y); [|intro r]; case (F.toX x).
 Qed.
 
 Lemma fimult_spec_f x y : finite x -> finite y ->
@@ -406,18 +394,17 @@ rewrite round_generic.
 now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
-Lemma fidiv_proof (x y : FI) : mantissa_bounded (F.div rnd_NE 53%bigZ x y).
+Lemma fidiv_proof rm (x y : FI) : mantissa_bounded (F.div rm 53%bigZ x y).
 Proof.
 unfold mantissa_bounded, x_bounded.
 rewrite F.div_correct; set (z := Xdiv _ _).
 unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
 set (r'' := round _ _ _ _); exists r''; [now simpl|].
 apply FLX_format_generic; [now simpl|].
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_of_mode].
 Qed.
 
-Definition fidiv (x y : FI) : FI :=
-  {| FI_val := F.div rnd_NE 53%bigZ x y; FI_prop := fidiv_proof x y |}.
+Definition fidiv (x y : FI) : FI := Build_FI _ (fidiv_proof rnd_NE x y).
 
 Lemma fidiv_spec_fl_aux x y : finite (fidiv x y) -> finite x.
 Proof.
@@ -608,5 +595,128 @@ Definition coqinterval_infnan : Float_infnan_spec :=
     ficompare_spec
     ficompare_spec_eq
     ficompare_spec_eq_f.
+
+Definition fieps := Build_FI _ (mantissa_bounded_bpow (-53)%bigZ).
+
+Lemma fieps_spec :
+  (eps (float_infnan_spec.fis coqinterval_infnan) <= FI2F fieps)%Re.
+Proof.
+simpl; unfold flx64.eps, FI2F; simpl.
+case (mantissa_bounded_bpow _); [now simpl|]; intro H.
+destruct H as [r Hr Hr']; simpl; revert Hr.
+unfold F.toX, F.toF, FtoX; simpl; intro H; injection H; lra.
+Qed.
+
+Definition fieta := Build_FI _ (mantissa_bounded_bpow (-1075)%bigZ).
+
+Lemma fieta_spec : (eta fis <= FI2F fieta)%Re.
+Proof.
+simpl; unfold flx64.eta, FI2F; simpl.
+case (mantissa_bounded_bpow _); [now simpl|]; intro H.
+destruct H as [r Hr Hr']; simpl; revert Hr.
+unfold F.toX, F.toF, FtoX; simpl; intro H; injection H; lra.
+Qed.
+
+Definition fiplus_up (x y : FI) : FI := Build_FI _ (fiplus_proof rnd_UP x y).
+
+Lemma fiplus_up_spec_fl x y : finite (fiplus_up x y) -> finite x.
+Proof.
+unfold finite; simpl; do 2 rewrite FtoX_real.
+now rewrite F.add_correct /Xround /Xbind; case: (F.toX x).
+Qed.
+
+Lemma fiplus_up_spec_fr x y : finite (fiplus_up x y) -> finite y.
+Proof.
+unfold finite; simpl; do 2 rewrite FtoX_real.
+now rewrite F.add_correct /Xround /Xbind; case (F.toX y)=>//; rewrite Xadd_comm.
+Qed.
+
+Lemma fiplus_up_spec x y : finite (fiplus_up x y) ->
+  (FI2F x + FI2F y <= FI2F (fiplus_up x y))%Re.
+Proof.
+move=> Fxy.
+have Fx := fiplus_up_spec_fl _ _ Fxy; have Fy := fiplus_up_spec_fr _ _ Fxy.
+move: Fxy Fx Fy; unfold finite; rewrite !(FI2F_X2F_FtoX _) !FtoX_real.
+unfold fiplus_up; simpl; rewrite F.add_correct.
+case (FI_prop x) => [->//|] [rx -> Hrx].
+case (FI_prop y) => [->//|] [ry -> Hry].
+set (z := Xadd _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
+rewrite !round_generic //; try now apply generic_format_FLX.
+{ rewrite /round /rnd_of_mode; apply (Rle_trans _ r); [by right; injection Hr|].
+  now apply round_UP_pt, FLX_exp_valid. }
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
+Qed.
+
+Definition fimult_up (x y : FI) : FI := Build_FI _ (fimult_proof rnd_UP x y).
+
+Lemma fimult_up_spec_fl x y : finite (fimult_up x y) -> finite x.
+Proof.
+unfold finite; simpl; do 2 rewrite FtoX_real.
+now rewrite F.mul_correct /Xround /Xbind; case: (F.toX x).
+Qed.
+
+Lemma fimult_up_spec_fr x y : finite (fimult_up x y) -> finite y.
+Proof.
+unfold finite; simpl; do 2 rewrite FtoX_real.
+now rewrite F.mul_correct /Xround /Xbind; case (F.toX y)=>//; rewrite Xmul_comm.
+Qed.
+
+Lemma fimult_up_spec x y : finite (fimult_up x y) ->
+  (FI2F x * FI2F y <= FI2F (fimult_up x y))%Re.
+Proof.
+move=> Fxy.
+have Fx := fimult_up_spec_fl _ _ Fxy; have Fy := fimult_up_spec_fr _ _ Fxy.
+move: Fxy Fx Fy; unfold finite; rewrite !(FI2F_X2F_FtoX _) !FtoX_real.
+unfold fimult_up; simpl; rewrite F.mul_correct.
+case (FI_prop x) => [->//|] [rx -> Hrx].
+case (FI_prop y) => [->//|] [ry -> Hry].
+set (z := Xmul _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
+rewrite !round_generic //; try now apply generic_format_FLX.
+{ rewrite /round /rnd_of_mode; apply (Rle_trans _ r); [by right; injection Hr|].
+  now apply round_UP_pt, FLX_exp_valid. }
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
+Qed.
+
+Definition fidiv_up (x y : FI) : FI := Build_FI _ (fidiv_proof rnd_UP x y).
+
+Lemma fidiv_up_spec_fl x y : finite (fidiv_up x y) -> finite y -> finite x.
+Proof.
+move=> Fxy _; move: Fxy; unfold finite, fidiv; simpl; do 2 rewrite FtoX_real.
+now rewrite F.div_correct; case (F.toX x); [|intro r].
+Qed.
+
+Lemma fidiv_up_spec x y : finite (fidiv_up x y) -> finite (y) ->
+  (FI2F x / FI2F y <= FI2F (fidiv_up x y))%Re.
+Proof.
+move=> Fxy Fy.
+have Fx := fidiv_up_spec_fl _ _ Fxy Fy.
+move: Fxy Fx Fy.
+unfold finite; rewrite !(FI2F_X2F_FtoX _) !FtoX_real.
+unfold fidiv_up; simpl; rewrite F.div_correct.
+case (FI_prop x) => [->//|] [rx -> Hrx].
+case (FI_prop y) => [->//|] [ry -> Hry].
+set (z := Xdiv _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
+rewrite !round_generic //; try now apply generic_format_FLX.
+{ rewrite /round /rnd_of_mode; apply (Rle_trans _ r).
+  { right; move: Hr; rewrite /z /= /Xdiv'; case (is_zero ry) => //.
+    now move=> H; injection H. }
+  now apply round_UP_pt, FLX_exp_valid. }
+now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
+Qed.
+
+Set Printing All.
+
+Definition coqinterval_round_up_infnan : Float_round_up_infnan_spec :=
+  Build_Float_round_up_infnan_spec
+    fieps_spec
+    fieta_spec
+    fiplus_up_spec
+    fiplus_up_spec_fl
+    fiplus_up_spec_fr
+    fimult_up_spec
+    fimult_up_spec_fl
+    fimult_up_spec_fr
+    fidiv_up_spec
+    fidiv_up_spec_fl.
 
 End Coqinterval_infnan.
