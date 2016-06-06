@@ -2,6 +2,8 @@
 
 Require Import Reals Flocq.Core.Fcore.
 
+Require Import mathcomp.ssreflect.ssrnat.
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 
@@ -28,7 +30,7 @@ Record Float_infnan_spec := {
   
   (** Underlying unbounded floating-point format.
       [FI] and [F fis] match when [finite] holds. *)
-  fis : Float_spec;
+  fis :> Float_spec;
 
   (** Any float less than [m] (in absolute value) will be finite
       (typically, [m] can be the smallest non representable positive float). *)
@@ -214,3 +216,82 @@ Lemma fimax_spec_f x y : finite x -> finite y -> finite (fimax x y).
 Proof. by case (fimax_spec_eq x y) => H; rewrite H. Qed.
 
 End Derived_spec.
+
+Record Float_round_up_infnan_spec := {
+  (** Underlying floating-point format. *)
+  fris :> Float_infnan_spec;
+
+  (** Overapproximation of eps. *)
+  fieps : FI fris;
+
+  fieps_spec : eps fris <= FI2F fieps;
+  
+  (** Overapproximation of eta. *)
+  fieta : FI fris;
+
+  fieta_spec : eta fris <= FI2F fieta;
+  
+  (** Addition with upward rounding. *)
+  fiplus_up : FI fris -> FI fris -> FI fris;
+
+  fiplus_up_spec x y : finite (fiplus_up x y) ->
+    (FI2F x + FI2F y <= FI2F (fiplus_up x y))%R;
+  fiplus_up_spec_fl x y : finite (fiplus_up x y) -> finite x;
+  fiplus_up_spec_fr x y : finite (fiplus_up x y) -> finite y;
+  
+  (** Multiplication with upward rounding. *)
+  fimult_up : FI fris -> FI fris -> FI fris;
+
+  fimult_up_spec x y : finite (fimult_up x y) ->
+    (FI2F x * FI2F y <= FI2F (fimult_up x y))%R;
+  fimult_up_spec_fl x y : finite (fimult_up x y) -> finite x;
+  fimult_up_spec_fr x y : finite (fimult_up x y) -> finite y;
+  
+  (** Division with upward rounding. *)
+  fidiv_up : FI fris -> FI fris -> FI fris;
+
+  fidiv_up_spec x y : finite (fidiv_up x y) -> finite y ->
+    (FI2F x / FI2F y <= FI2F (fidiv_up x y))%R;
+  fidiv_up_spec_fl x y : finite (fidiv_up x y) -> finite y -> finite x
+}.
+
+Section Derived_up_spec.
+
+Variable fs : Float_round_up_infnan_spec.
+
+(** get a float overapprox of n *)
+Definition float_of_nat_up n := iter n (fun x => fiplus_up x (FI1 fs)) (FI0 fs).
+
+Lemma float_of_nat_up_spec k : finite (float_of_nat_up k) ->
+  INR k <= FI2F (float_of_nat_up k).
+Proof.
+induction k; [by intros _; rewrite FI2F0; right|].
+intros Fa; rewrite S_INR; simpl.
+apply (Rle_trans _ (FI2F (float_of_nat_up k) + FI2F (FI1 fs))).
+{ rewrite FI2F1; apply Rplus_le_compat_r, IHk.
+  revert Fa; apply fiplus_up_spec_fl. }
+by apply fiplus_up_spec.
+Qed.
+
+Definition fiminus_down (x y : FI fs) := (fiopp (fiplus_up y (fiopp x))).
+
+Lemma fiminus_down_spec x y : finite (fiminus_down x y) ->
+  FI2F (fiminus_down x y) <= FI2F x - FI2F y.
+Proof.
+intros Fxy; unfold fiminus_down.
+rewrite (fiopp_spec Fxy), <-Ropp_minus_distr; apply Ropp_le_contravar.
+assert (Fxy' : finite (fiplus_up y (fiopp x))); [by apply fiopp_spec_f1|].
+apply (Rle_trans _ (FI2F y + FI2F (fiopp x))); [|by apply fiplus_up_spec].
+apply Rplus_le_compat_l.
+by rewrite (fiopp_spec (fiplus_up_spec_fr Fxy')); right.
+Qed.
+
+Lemma fiminus_down_spec_fl x y : finite (fiminus_down x y) -> finite x.
+Proof.
+by intro H; apply fiopp_spec_f1, fiplus_up_spec_fr, fiopp_spec_f1 in H.
+Qed.
+
+Lemma fiminus_down_spec_fr x y : finite (fiminus_down x y) -> finite y.
+Proof. by intro H; apply fiopp_spec_f1, fiplus_up_spec_fl in H. Qed.
+
+End Derived_up_spec.

@@ -46,6 +46,16 @@ Fixpoint stilde_infnan (k : nat) (c : FI fs) {struct k} :=
                                 [ffun i => b (lift ord0 i)]
   end.
 
+Lemma stilde_infnan_eq k
+      (c1 : FI fs) (a1 b1 : FI fs ^ k) (c2 : FI fs) (a2 b2 : FI fs ^ k) :
+  (c1 = c2) ->
+  (forall i, a1 i = a2 i) -> (forall i, b1 i = b2 i) ->
+  stilde_infnan c1 a1 b1 = stilde_infnan c2 a2 b2.
+Proof.
+elim: k c1 a1 b1 c2 a2 b2 => [//|k IHk] c1 a1 b1 c2 a2 b2 Hc Ha Hb.
+by apply IHk; [by rewrite Hc Ha Hb| |]; move=> i; rewrite !ffunE.
+Qed.
+
 Definition ytilded_infnan k (c : FI fs) (a b : FI fs ^ k) (bk : FI fs) :=
   fidiv (stilde_infnan c a b) bk.
 
@@ -179,13 +189,13 @@ End Cholesky_def_infnan.
 (** If [A] contains no infinity or NaN, then [MFI2F A] = [A] and
     [posdef (MF2R (MFI2F A))] means that [A] is positive definite. *)
 Lemma corollary_2_4_with_c_upper_bound_infnan :
-  forall n, 4 * INR n.+2 * eps (fis fs) < 1 ->
+  forall n, 4 * INR n.+2 * eps fs < 1 ->
   forall A : 'M[FI fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
   (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->
   forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->
   forall c : R,
-  (/2 * gamma (fis fs) (2 * n.+2) * (\tr (MF2R (MFI2F A)))
-   + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + maxdiag)
+  (/2 * gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
+   + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
   forall At : 'M[FI fs]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
@@ -202,14 +212,14 @@ Qed.
 
 (* TODO: MF2R should be a coercion *)
 Lemma corollary_2_7_with_c_r_upper_bounds_infnan :
-  forall n, 4 * INR n.+2 * eps (fis fs) < 1 ->
+  forall n, 4 * INR n.+2 * eps fs < 1 ->
   forall A : 'M[FI fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
   (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->
   forall Rad : 'M[FI fs]_n.+1, 0 <=m: MF2R (MFI2F Rad) ->
   forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->
   forall c : R,
-  (/2 * gamma (fis fs) (2 * n.+2) * (\tr (MF2R (MFI2F A)))
-   + 4 * eta (fis fs) * INR n.+1 * (2 * INR n.+2 + maxdiag)
+  (/2 * gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
+   + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
   forall r : R, (forall (i j : 'I_n.+1), ((MFI2F Rad) i j <= r)%Re) ->
   forall At : 'M[FI fs]_n.+1,

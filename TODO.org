@@ -70,7 +70,7 @@
 ** DONE Prove param_posdef_check_F                                   :Pierre:
 ** TODO Prove posdef_check_F_correct_inst			       :Erik:
 ** STARTED Do the above steps for posdef_check_itv                     :Erik:
-** TODO Do some cleanup, setup naming conventions		:Pierre:Erik:
+** STARTED Do some cleanup, setup naming conventions            :Pierre:Erik:
 ** STARTED Make some benchmarks for the Boolean positivity test (itv_Q) :Pierre:
 * SOS/SDP
 ** TODO Look-at libraries for multipolys			       :Erik:

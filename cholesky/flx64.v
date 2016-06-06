@@ -59,7 +59,7 @@ Qed.
 
 Lemma format_opp x : format x -> format (- x).
 Proof. apply generic_format_opp. Qed.
-  
+
 Definition eps := bpow radix2 (-53).
 
 Lemma eps_pos : 0 <= eps.
