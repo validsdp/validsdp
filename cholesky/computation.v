@@ -60,6 +60,14 @@ Class map_mx_class mx := map_mx :
   forall {T T'} {m n : nat},
   (T -> T') -> mx T m n -> mx T' m n.
 
+(* upward rounded operations *)
+Class addup_class B := addup : B -> B -> B.
+Class mulup_class B := mulup : B -> B -> B.
+Class divup_class B := divup : B -> B -> B.
+Class nat2Fup_class B := nat2Fup : nat -> B.
+
+Class subdn_class B := subdn : B -> B -> B.
+
 Require Import cholesky_prog.
 
 Section generic_algos.
@@ -98,32 +106,28 @@ Definition map_diag f A :=
 
 Section directed_rounding.
 
-(* upward rounded operations *)
-Variables add1 mul1 div1 : T -> T -> T.
-Variable float_of_nat_up : nat -> T.
-Variable sub_down : T -> T -> T.
-(* @Érik: idéalement, on aimerait utiliser des typeclasses,
-   mais je galère trop, on verra ça ensemble. *)
+Context `{!addup_class T, !mulup_class T, !divup_class T}.
+Context `{!nat2Fup_class T, !subdn_class T}.
 
-Definition tr_up A := foldl_diag add1 0%C A.
+Definition tr_up A := foldl_diag addup 0%C A.
 
 (* [compute_c n A maxdiag] overapproximates
    /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
 Definition compute_c_aux (eps eta : T)  (* overapproximations of eps and eta *)
   (A : mx T n n) (maxdiag : T) : T :=
-let np1 := float_of_nat_up n.+1 in
-let dnp1 := float_of_nat_up (2 * n.+1)%N in
-let tnp1 := mul1 dnp1 eps in
-let g := div1 (mul1 np1 eps) (- (add1 tnp1 (-1%C)))%C in
-add1
-  (mul1 g (tr_up A))
-  (mul1
-    (mul1 (mul1 (float_of_nat_up 4) eta) (float_of_nat_up n))
-    (add1 dnp1 maxdiag)).
+let np1 := nat2Fup n.+1 in
+let dnp1 := nat2Fup (2 * n.+1)%N in
+let tnp1 := mulup dnp1 eps in
+let g := divup (mulup np1 eps) (- (addup tnp1 (-1%C)))%C in
+addup
+  (mulup g (tr_up A))
+  (mulup
+    (mulup (mulup (nat2Fup 4) eta) (nat2Fup n))
+    (addup dnp1 maxdiag)).
 
 Definition compute_c (is_finite : T -> bool) (eps eta : T) (A : mx T n n) :
   option T :=
-  let nem1 := add1 (mul1 ((float_of_nat_up (2 * n.+1)%N)) eps) (-1%C)%C in
+  let nem1 := addup (mulup ((nat2Fup (2 * n.+1)%N)) eps) (-1%C)%C in
   if is_finite nem1 && (nem1 < 0)%C then
     let c := compute_c_aux eps eta A (max_diag A) in
     if is_finite c then Some c else None
@@ -141,7 +145,7 @@ test_n n && is_sym A && noneg_diag A &&
   (match compute_c is_finite eps eta A with
      | None => false
      | Some c =>
-       let A' := map_diag (fun x => sub_down x c) A in
+       let A' := map_diag (fun x => subdn x c) A in
        let R := cholesky A' in
        all_diag is_finite R && pos_diag R
    end).
@@ -155,8 +159,8 @@ Definition posdef_check_itv
   (* matrix to check *)
   (A : mx T n n) (r : T) : bool :=
 is_finite r && (0 <= r)%C &&
-  let nm := mul1 (float_of_nat_up n) r in
-  let A' := map_diag (fun x => sub_down x nm) A in
+  let nm := mulup (nat2Fup n) r in
+  let A' := map_diag (fun x => subdn x nm) A in
   posdef_check eps eta is_finite test_n A'.
 
 Context `{!map_mx_class mx}.
@@ -271,15 +275,12 @@ Require Import float_infnan_spec real_matrix cholesky_infnan.
 
 Variable fs : Float_round_up_infnan_spec.
 
-(* REMARK: Already defined in cholesky_prog.v ...
-Instance add_instFI : add (FI fs) := @fiplus fs.
-Instance mul_instFI : mul (FI fs) := @fimult fs.
-Instance sqrt_instFI : sqrt (FI fs) := @fisqrt fs.
-Instance div_instFI : div (FI fs) := @fidiv fs.
-Instance opp_instFI : opp (FI fs) := @fiopp fs.
-Instance zero_instFI : zero (FI fs) := @FI0 fs.
-Instance one_instFI : one (FI fs) := @FI1 fs.
-*)
+Global Instance addup_instFI : addup_class (FI (fris fs)) := @fiplus_up fs.
+Global Instance mulup_instFI : mulup_class (FI (fris fs)) := @fimult_up fs.
+Global Instance divup_instFI : divup_class (FI (fris fs)) := @fidiv_up fs.
+Global Instance nat2Fup_instFI : nat2Fup_class (FI (fris fs)) :=
+  @float_of_nat_up fs.
+Global Instance subdn_instFI : subdn_class (FI (fris fs)) := @fiminus_down fs.
 
 Global Instance fheq : @heq nat (matrix (FI fs)) :=
   fun n1 n2 a b => [forall i, [forall j, fieq (a i j) (b i j)]].
@@ -383,7 +384,7 @@ apply (Rle_lt_trans _ (FI2F f)).
 apply (Rlt_le_trans _ _ _ (filt_spec Ff (finite1 fs) Hf)).
 by rewrite FI2F1; right.
 Qed.
-  
+
 Definition gen_compute_c_aux (A : 'M[FI fs]_n) (maxdiag : FI fs) : FI fs :=
   @compute_c_aux _ _ _ _ _ _ fun_of_ssr _ I0_ssr succ0_ssr
     (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs) (float_of_nat_up fs)
@@ -477,10 +478,10 @@ Lemma compute_c_correct (A : 'M[FI fs]_n) :
 Proof.
 move=> Heps Fdiag Pdiag c.
 rewrite /gen_compute_c /compute_c.
-set nem1 := fiplus_up _ _.
+set nem1 := addup _ _.
 case_eq (is_finite nem1 && (nem1 < 0)%C); [|by []].
 rewrite Bool.andb_true_iff => H; elim H => Fnem1 Nnem1.
-set c' := compute_c_aux _ _ _ _ _ _ _ _.
+set c' := compute_c_aux _ _ _ _.
 case_eq (is_finite c') => Hite'; [|by []]; move=> Hc'.
 have Hc'' : c' = c by injection Hc'.
 rewrite -Hc''; apply compute_c_aux_correct => //.
@@ -502,7 +503,7 @@ Lemma posdef_check_f1 A : gen_posdef_check A = true ->
 Proof.
 rewrite /gen_posdef_check /posdef_check !Bool.andb_true_iff.
 do 3 elim; move=> _ SA _.
-set cc := compute_c _ _ _ _ _ _ _ _; case_eq cc => // c' Hc'.
+set cc := compute_c _ _ _ _; case_eq cc => // c' Hc'.
 set At := map_diag _ _; set Rt := cholesky _.
 move/andP => [Had Hpd].
 suff: forall i j : 'I_n, (i <= j)%N -> finite (A i j).
@@ -535,7 +536,7 @@ have Hn' : 2 * INR n.+1 * eps fs < 1.
 { move: (neps_pos fs n.+1); rewrite !Rmult_assoc; lra. }
 have Hn'' : INR (2 * n.+1) * eps fs < 1 by rewrite mult_INR.
 apply is_sym_correct in Hsym.
-set cc := compute_c _ _ _ _ _ _ _ _; case_eq cc => // c' Hc'.
+set cc := compute_c _ _ _ _; case_eq cc => // c' Hc'.
 rewrite Bool.andb_true_iff; elim.
 set At := map_diag _ _; set Rt := cholesky _.
 move=> HtfRt HtpRt.
@@ -571,7 +572,7 @@ Lemma map_diag_sub_down_correct (A : 'M_n) r :
     = cholesky.MF2R (MFI2F A) - diag_mx d
     /\ (FI2F r : R) *: 1 <=m: diag_mx d.
 Proof.
-move=> HF; set A' := ssr_map_diag _ _.  
+move=> HF; set A' := ssr_map_diag _ _.
 exists (\row_i (((MFI2F A) i i : R) - ((MFI2F A') i i : R))); split.
 { rewrite -matrixP => i j; rewrite !mxE.
   set b := (_ == _)%B; case_eq b; rewrite /b /GRing.natmul /= => Hij.
@@ -617,7 +618,7 @@ Lemma posdef_check_itv_correct A r : gen_posdef_check_itv A r = true ->
   posdef Xt.
 Proof.
 rewrite /gen_posdef_check_itv /posdef_check_itv.
-set nr := fimult_up _ _; set A' := map_diag _ _.
+set nr := mulup _ _; set A' := map_diag _ _.
 rewrite 2!Bool.andb_true_iff; elim; elim=> Fr Pr HA' Xt SXt HXt.
 have HA'' := posdef_check_correct HA'.
 have HF := posdef_check_f1 HA'.
@@ -885,9 +886,9 @@ Global Instance transpose_seqmx : transpose_class (seqmatrix' T) :=
 Context `{!leq T, !lt T}.
 
 (* arithmetic operations with directed rounding *)
-Variable add1 mul1 div1 : T -> T -> T.
-Variable float_of_nat_up : nat -> T.
-Variable sub1 : T -> T -> T.
+Context `{!addup_class T, !mulup_class T, !divup_class T}.
+Context `{!nat2Fup_class T, !subdn_class T}.
+
 Variable feps feta : T.
 
 Variable is_finite : T -> bool.
@@ -895,12 +896,12 @@ Variable is_finite : T -> bool.
 Variable test_n : nat -> bool.
 
 Definition posdef_check_seqmx (M : seqmatrix T) : bool :=
-  @posdef_check T ord_instN seqmatrix' _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
-    add1 mul1 div1 float_of_nat_up sub1 feps feta is_finite test_n M.
+  posdef_check (T := T) (ordT := ord_instN) (mx := seqmatrix')
+    feps feta is_finite test_n M.
 
 Definition posdef_check_itv_seqmx (M : seqmatrix T) (r : T) : bool :=
-  @posdef_check_itv T ord_instN seqmatrix' _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
-    add1 mul1 div1 float_of_nat_up sub1 feps feta is_finite test_n M r.
+  posdef_check_itv (T := T) (ordT := ord_instN) (mx := seqmatrix')
+    feps feta is_finite test_n M r.
 
 Global Instance map_mx_seqmx : map_mx_class seqmatrix' :=
   fun T T' m n f s => map (map f) s.
@@ -908,14 +909,12 @@ Global Instance map_mx_seqmx : map_mx_class seqmatrix' :=
 Variables (F : Type) (F2FI : F -> T).
 
 Definition posdef_check_F_seqmx (M : seqmatrix F) : bool :=
-  @posdef_check_F T ord_instN seqmatrix' _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
-    add1 mul1 div1 float_of_nat_up sub1 map_mx_seqmx
-    F F2FI feps feta is_finite test_n M.
+  posdef_check_F (T := T) (ordT := ord_instN) (mx := seqmatrix')
+    F2FI feps feta is_finite test_n M.
 
 Definition posdef_check_itv_F_seqmx (M : seqmatrix F) (r : F) : bool :=
-  @posdef_check_itv_F T ord_instN seqmatrix' _ _ _ _ _ _ _ _ _ n.+1 _ _ _ _ _ _ _
-    add1 mul1 div1 float_of_nat_up sub1 map_mx_seqmx
-    F F2FI feps feta is_finite test_n M r.
+  posdef_check_itv_F (T := T) (ordT := ord_instN) (mx := seqmatrix')
+    F2FI feps feta is_finite test_n M r.
 
 End inst_seqmx.
 
@@ -1306,22 +1305,6 @@ Variable fs : Float_round_up_infnan_spec.
 
 Notation C := (FI fs) (only parsing).
 
-(*
-Instance : add (FI fs) := @fiplus fs.
-Instance : mul (FI fs) := @fimult fs.
-Instance : sqrt (FI fs) := @fisqrt fs.
-Instance : div (FI fs) := @fidiv fs.
-Instance : opp (FI fs) := @fiopp fs.
-Instance : zero (FI fs) := @FI0 fs.
-Instance : one (FI fs) := @FI1 fs.
-
-Would be useless. Indeed:
-
-Goal add (FI fs).
-tc.
-Qed.
-*)
-
 Context {n : nat}.
 
 Definition posdef_check5 := @gen_posdef_check n fs.
@@ -1487,8 +1470,8 @@ Proof.
 apply param_abstr => A As param_A.
 rewrite paramE /compute_c /C.
 case (_ && _) => //.
-set cc := compute_c_aux _ _ _ _ _ _ A _.
-set cc' := compute_c_aux _ _ _ _ _ _ As _.
+set cc := compute_c_aux _ _ A _.
+set cc' := compute_c_aux _ _ As _.
 have Hcccc' : cc = cc'; [rewrite /cc /cc'|by rewrite Hcccc'].
 apply paramP; apply (param_apply (R:=Logic.eq)).
 { eapply param_apply; [apply param_compute_c_aux|exact param_A]. }
@@ -1523,7 +1506,7 @@ Qed.
 Lemma param_posdef_check :
   param (Rseqmx ==> Logic.eq)
   (@gen_posdef_check n fs)
-  (posdef_check_seqmx (n:=n) (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs) (float_of_nat_up fs) (@fiminus_down fs) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs)).
+  (posdef_check_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs)).
 Proof.
 apply param_abstr => A As param_A.
 rewrite paramE /gen_posdef_check /posdef_check_seqmx /posdef_check.
@@ -1532,8 +1515,8 @@ apply f_equal2; [apply f_equal2; [apply f_equal|]|].
 { apply param_eq; rewrite /noneg_diag.
   eapply param_apply; [|exact param_A].
   eapply param_apply; [apply param_all_diag|apply param_eq_refl]. }
-set c := compute_c _ _ _ _ _ _ _ A.
-set c' := compute_c _ _ _ _ _ _ _ As.
+set c := compute_c _ _ _ A.
+set c' := compute_c _ _ _ As.
 have Hcc' : c = c'; [|rewrite -Hcc'; case c => // {c c' Hcc'} c].
 { rewrite /c /c'; apply paramP.
   eapply param_apply; [apply param_compute_c|exact param_A]. }
@@ -1555,7 +1538,7 @@ Qed.
 Lemma param_posdef_check_itv :
   param (Rseqmx ==> Logic.eq ==> Logic.eq)
   (@gen_posdef_check_itv n fs)
-  (posdef_check_itv_seqmx (n:=n) (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs) (float_of_nat_up fs) (@fiminus_down fs) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs)).
+  (posdef_check_itv_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs)).
 Proof.
 apply param_abstr => A As param_A.
 apply param_abstr => r r' param_r.
@@ -1573,8 +1556,8 @@ apply f_equal2=> //; apply f_equal2; [apply f_equal2; [apply f_equal2=> //|]|].
   eapply param_apply; last exact: param_A.
   eapply param_apply; first eapply param_map_diag.
   rewrite paramE => a b Hab; repeat f_equal =>//. }
-set c := compute_c _ _ _ _ _ _ _ (_ _ A).
-set c' := compute_c _ _ _ _ _ _ _ (map_diag _ As).
+set c := compute_c _ _ _ (_ _ A).
+set c' := compute_c _ _ _ (map_diag _ As).
 have Hcc' : c = c'; [|rewrite -Hcc'; case c => // {c c' Hcc'} c].
 { rewrite /c /c'; apply paramP.
   eapply param_apply; [by apply param_compute_c|].
@@ -1617,7 +1600,7 @@ Qed.
 Lemma param_posdef_check_F :
   param (Rseqmx ==> Logic.eq)
   (@gen_posdef_check_F n fs _ F2FI)
-  (posdef_check_F_seqmx (n:=n) (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs) (float_of_nat_up fs) (@fiminus_down fs) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs) F2FI).
+  (posdef_check_F_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs) F2FI).
 Proof.
 apply param_abstr => A As param_A.
 rewrite /gen_posdef_check_F /posdef_check_F_seqmx /posdef_check_F.
@@ -1631,7 +1614,7 @@ Definition posdef_check_itv_F5 := @gen_posdef_check_itv_F n fs _ F2FI.
 Lemma param_posdef_check_itv_F :
   param (Rseqmx ==> Logic.eq ==> Logic.eq)
   (@gen_posdef_check_itv_F n fs _ F2FI)
-  (posdef_check_itv_F_seqmx (n:=n) (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs) (float_of_nat_up fs) (@fiminus_down fs) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs) F2FI).
+  (posdef_check_itv_F_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs) F2FI).
 Proof.
 apply param_abstr => A As param_A.
 apply param_abstr => r r' param_r.
@@ -1684,30 +1667,31 @@ Instance lt'' : lt T := fun x y =>
     | _ => false
   end.
 
-Definition add1 := F.add rnd_UP prec.
-Definition mul1 := F.mul rnd_UP prec.
-Definition div1 := F.div rnd_UP prec.
+Instance add1 : addup_class T := F.add rnd_UP prec.
+Instance mul1 : mulup_class T := F.mul rnd_UP prec.
+Instance div1 : divup_class T := F.div rnd_UP prec.
 
 Definition feps : T := Float 1%bigZ (-53)%bigZ.
 Definition feta : T := Float 1%bigZ (-1075)%bigZ.
 
 Definition is_finite : T -> bool := F.real.
 
-Definition float_of_nat_up'' n := iter n (fun x => add1 x one'') zero''.
+Instance float_of_nat_up'' : nat2Fup_class T :=
+  fun n => iter n (fun x => add1 x one'') zero''.
 
 Definition test_n'' : nat -> bool :=
-  fun n => lt'' (mul1 (mul1 (float_of_nat_up'' 4)
+  fun n => lt'' (mul1 (mul1 (float_of_nat_up'' 4%N)
                             (float_of_nat_up'' n.+1)) feps) one''.
 
-Definition sub1 x y := opp'' (add1 y (opp'' x)).
+Instance sub1 : subdn_class T := fun x y => opp'' (add1 y (opp'' x)).
 
 Definition posdef_check4_coqinterval (M : seq (seq T)) : bool :=
-  @posdef_check_seqmx T _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
-    add1 mul1 div1 float_of_nat_up'' sub1 feps feta is_finite test_n'' M.
+  posdef_check_seqmx (T := T) (n := (seq.size M).-1)
+    feps feta is_finite test_n'' M.
 
 Definition posdef_check_itv4_coqinterval (M : seq (seq T)) (r : T) : bool :=
-  @posdef_check_itv_seqmx T _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
-    add1 mul1 div1 float_of_nat_up'' sub1 feps feta is_finite test_n'' M r.
+  posdef_check_itv_seqmx (T := T) (n := (seq.size M).-1)
+    feps feta is_finite test_n'' M r.
 
 End test_CoqInterval.
 
@@ -1785,28 +1769,28 @@ Qed.
 Local Notation FI := (float_infnan_spec.FI coqinterval_infnan.coqinterval_round_up_infnan).
 
 Definition posdef_check4_coqinterval' (M : seq (seq FI)) : bool :=
-  @posdef_check_seqmx FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
-    fiplus_up fimult_up fidiv_up (float_of_nat_up coqinterval_round_up_infnan) (@fiminus_down coqinterval_round_up_infnan) fieps fieta
-    (@float_infnan_spec.is_finite coqinterval_infnan)
+  posdef_check_seqmx (T := FI) (n := (seq.size M).-1)
+    fieps fieta
+    (@float_infnan_spec.is_finite _)
     (@test_n coqinterval_round_up_infnan) M.
 
 Definition posdef_check_F4_coqinterval' (M : seq (seq F.type)) : bool :=
-  @posdef_check_F_seqmx FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
-    fiplus_up fimult_up fidiv_up (float_of_nat_up coqinterval_round_up_infnan) (@fiminus_down coqinterval_round_up_infnan) fieps fieta
-    (@float_infnan_spec.is_finite coqinterval_infnan)
-    (@test_n coqinterval_round_up_infnan) F.type F2FI M.
+  posdef_check_F_seqmx (T := FI) (n := (seq.size M).-1)
+    fieps fieta
+    (@float_infnan_spec.is_finite _)
+    (@test_n coqinterval_round_up_infnan) F2FI M.
 
 Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
-  @posdef_check_itv_seqmx FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
-    fiplus_up fimult_up fidiv_up (float_of_nat_up coqinterval_round_up_infnan) (@fiminus_down coqinterval_round_up_infnan) fieps fieta
-    (@float_infnan_spec.is_finite coqinterval_infnan)
+  posdef_check_itv_seqmx (T := FI) (n := (seq.size M).-1)
+    fieps fieta
+    (@float_infnan_spec.is_finite _)
     (@test_n coqinterval_round_up_infnan) M r.
 
 Definition posdef_check_itv_F4_coqinterval' (M : seq (seq F.type)) (r : F.type) : bool :=
-  @posdef_check_itv_F_seqmx FI _ _ _ _ _ _ _ (seq.size M).-1 _ _ _
-    fiplus_up fimult_up fidiv_up (float_of_nat_up coqinterval_round_up_infnan) (@fiminus_down coqinterval_round_up_infnan) fieps fieta
-    (@float_infnan_spec.is_finite coqinterval_infnan)
-    (@test_n coqinterval_round_up_infnan) F.type F2FI M r.
+  posdef_check_itv_F_seqmx (T := FI) (n := (seq.size M).-1)
+    fieps fieta
+    (@float_infnan_spec.is_finite _)
+    (@test_n coqinterval_round_up_infnan) F2FI M r.
 
 Definition BigQ2F (q : bigQ) : F.type * F.type :=
   match q with
