@@ -184,8 +184,7 @@ Section proof.
 Definition all_diag_ssr : (T -> bool) -> 'M[T]_n -> bool :=
   @all_diag _ _ _ fun_of_ssr _ _ succ0_ssr.
 
-Lemma all_diag_correct f (A : 'M[T]_n) :
-  all_diag_ssr f A = true -> forall i, f (A i i) = true.
+Lemma all_diag_correct f A : all_diag_ssr f A -> forall i, f (A i i).
 Proof.
 move=> Had i; move: (ltn_ord i) Had.
 set P := fun i b => b = true -> f (A i i) = true.
@@ -268,11 +267,11 @@ Global Instance fheq : @heq nat (matrix (FI fs)) :=
 Global Instance ftrmx : transpose_class (matrix (FI fs)) := @matrix.trmx (FI fs).
 
 Lemma is_sym_correct_aux (A : 'M[FI fs]_n) :
-  is_sym A = true -> forall i j, fieq (A^T i j) (A i j).
+  is_sym A -> forall i j, fieq (A^T i j) (A i j).
 Proof. by move=> H i j; move/forallP/(_ i)/forallP/(_ j) in H. Qed.
 
 Lemma is_sym_correct (A : 'M[FI fs]_n) :
-  is_sym A = true -> cholesky.MF2R (MFI2F A^T) = cholesky.MF2R (MFI2F A).
+  is_sym A -> cholesky.MF2R (MFI2F A^T) = cholesky.MF2R (MFI2F A).
 Proof.
 move/is_sym_correct_aux=> H; apply /matrixP=> i j.
 move: (H i j); rewrite !mxE; apply fieq_spec.
@@ -464,12 +463,12 @@ Definition posdef_check_ssr (A : 'M[FI fs]_n) : bool :=
   @posdef_check _ _ _ _ _ _ _ _ _ _ _ _ _ _ succ0_ssr _ _ _ _ _ _ _ _ _ _
     (fieps fs) (fieta fs) (@is_finite fs) A.
 
-Lemma posdef_check_f1 A : posdef_check_ssr A = true ->
+Lemma posdef_check_f1 A : posdef_check_ssr A ->
   forall i j, finite (A i j).
 Proof.
-rewrite /posdef_check_ssr /posdef_check !Bool.andb_true_iff.
-do 3 elim; move=> _ SA _.
-set cc := compute_c _ _ _ _; case_eq cc => // c' Hc'.
+rewrite /posdef_check_ssr /posdef_check.
+move/andP=> [H H']; move: H; move/andP=> [H _]; move: H; move/andP=> [_ SA].
+move: H'; set cc := compute_c _ _ _ _; case_eq cc => // c' Hc'.
 set At := map_diag _ _; set Rt := cholesky _.
 move/andP => [Had Hpd].
 suff: forall i j : 'I_n, (i <= j)%N -> finite (A i j).
@@ -492,10 +491,10 @@ apply filt_spec; [by apply finite0| |].
 move: Hpd i'; rewrite /pos_diag -/(all_diag_ssr _ _); apply all_diag_correct.
 Qed.
 
-Lemma posdef_check_correct A : posdef_check_ssr A = true ->
+Lemma posdef_check_correct A : posdef_check_ssr A ->
   posdef (cholesky.MF2R (MFI2F A)).
 Proof.
-move=> H; have Hfdiag := posdef_check_f1 H; move: H.
+move=> H; have Hfdiag := posdef_check_f1 H; move: H; move/eqP/eqP.
 rewrite /posdef_check_ssr /posdef_check 3!Bool.andb_true_iff.
 do 3 elim; move/test_n_correct => Hn Hsym Htpdiag.
 have Hn' : 2 * INR n.+1 * eps fs < 1.
@@ -514,7 +513,7 @@ have HfRt := all_diag_correct HtfRt.
 have HtpRt' := all_diag_correct HtpRt.
 have HpRt : forall i, 0 < (MFI2F Rt) i i.
 { move=> i; eapply (Rle_lt_trans _ (FI2F 0%C)); [by right; rewrite FI2F0|].
-  by rewrite mxE; apply filt_spec => //; [apply finite0|apply HtpRt']. }
+  rewrite mxE; apply filt_spec => //; [apply finite0|apply HfRt|apply HtpRt']. }
 move {Htpdiag HtfRt HtpRt Htpdiag' HtpRt'}.
 apply corollary_2_4_with_c_upper_bound with
  (maxdiag := FI2F (max_diag_ssr A)) (c := FI2F c') (At0 := At) => //.
@@ -560,7 +559,7 @@ Definition posdef_check_itv_ssr (A : 'M[FI fs]_n) (r : FI fs) : bool :=
   @posdef_check_itv _ _ _ _ _ _ _ _ _ _ _ _ _ _ succ0_ssr _ _ _ _ _ _ _ _ _ _
     (fieps fs) (fieta fs) (@is_finite fs) A r.
 
-Lemma posdef_check_itv_f1 A r : posdef_check_itv_ssr A r = true ->
+Lemma posdef_check_itv_f1 A r : posdef_check_itv_ssr A r ->
   forall i j, finite (A i j).
 Proof.
 rewrite /posdef_check_itv_ssr /posdef_check_itv; set A' := map_diag _ _.
@@ -573,7 +572,7 @@ rewrite map_diag_correct_ndiag //.
 by move /eqP in Hij' => H; apply Hij'; rewrite H.
 Qed.
 
-Lemma posdef_check_itv_correct A r : posdef_check_itv_ssr A r = true ->
+Lemma posdef_check_itv_correct A r : posdef_check_itv_ssr A r ->
   forall Xt : 'M[R]_n, Xt^T = Xt ->
   Mabs (Xt - cholesky.MF2R (MFI2F A)) <=m:
     cholesky.MF2R (MFI2F (matrix.const_mx r)) ->
@@ -581,7 +580,7 @@ Lemma posdef_check_itv_correct A r : posdef_check_itv_ssr A r = true ->
 Proof.
 rewrite /posdef_check_itv_ssr /posdef_check_itv.
 set nr := mulup _ _; set A' := map_diag _ _.
-rewrite 2!Bool.andb_true_iff; elim; elim=> Fr Pr HA' Xt SXt HXt.
+move/eqP/eqP; rewrite 2!Bool.andb_true_iff; elim; elim=> Fr Pr HA' Xt SXt HXt.
 have HA'' := posdef_check_correct HA'.
 have HF := posdef_check_f1 HA'.
 have HF' : forall i, finite (fiminus_down (A i i) nr).
@@ -646,16 +645,16 @@ Definition posdef_check_itv_F_ssr (A : 'M[F]_n) (r : F) :=
   @posdef_check_itv_F _ _ _ _ _ _ _ _ _ _ _ _ _ _ succ0_ssr _ _ _ _ _ _ _ _ _ _
   (fieps fs) (fieta fs) (@is_finite fs) map_mx_ssr F F2FI A r.
 
-Lemma posdef_check_F_f1 A : posdef_check_F_ssr A = true ->
+Lemma posdef_check_F_f1 A : posdef_check_F_ssr A ->
   forall i j, finite ((map_mx F2FI A) i j).
 Proof. apply posdef_check_f1. Qed.
 
-Lemma posdef_check_itv_F_f1 A r : posdef_check_itv_F_ssr A r = true ->
+Lemma posdef_check_itv_F_f1 A r : posdef_check_itv_F_ssr A r ->
   forall i j, finite ((map_mx F2FI A) i j).
 Proof. apply posdef_check_itv_f1. Qed.
 
 Lemma posdef_check_F_correct (A : 'M[F]_n) :
-  posdef_check_F_ssr A = true -> posdef (matrix.map_mx toR A).
+  posdef_check_F_ssr A -> posdef (matrix.map_mx toR A).
 Proof.
 move=> H; move: (posdef_check_correct H).
 set A' := cholesky.MF2R _; set A'' := matrix.map_mx _ _.
@@ -665,7 +664,7 @@ by move: (posdef_check_f1 H i j); rewrite mxE.
 Qed.
 
 Lemma posdef_check_itv_F_correct (A : 'M[F]_n) (r : F) :
-  posdef_check_itv_F_ssr A r = true ->
+  posdef_check_itv_F_ssr A r ->
   forall Xt : 'M_n, Xt^T = Xt ->
   Mabs (Xt - matrix.map_mx toR A) <=m: matrix.const_mx (toR r) ->
   posdef Xt.
@@ -1766,7 +1765,7 @@ Typeclasses eauto := debug.
 *)
 
 Lemma posdef_check_F_correct_inst (A : seqmatrix F.type) :
-  posdef_check_F4_coqinterval' A = true ->
+  posdef_check_F4_coqinterval' A ->
   posdef_seqF A.
 Proof.
 case: A => [|A0 A1].
@@ -1774,9 +1773,10 @@ case: A => [|A0 A1].
 move=> Hmain.
 eapply (@posdef_check_F_correct _ coqinterval_round_up_infnan).
 - apply F2FI_correct.
-- rewrite -Hmain /posdef_check_F_ssr /posdef_check_F4_coqinterval'.
-apply paramP.
+- 
 (*
+rewrite -Hmain /posdef_check_F_ssr /posdef_check_F4_coqinterval'.
+apply paramP.
 eapply param_apply; first exact: param_posdef_check_F.  (* very slow ? *)
 (* suff{4}->: (A0 :: A1) =
   (@padseqmx _ zero'' (seq.size (A0 :: A1)) (seq.size (A0 :: A1)) (A0 :: A1)). *)
@@ -1799,7 +1799,7 @@ Definition posdef_itv_seqF (mat : seqmatrix F.type) (r : F.type) : Prop :=
 
 Lemma posdef_check_itv_F_correct_inst (A : seqmatrix F.type) (r : F.type) :
   let m := seq.size A in
-  posdef_check_itv_F4_coqinterval' A r = true ->
+  posdef_check_itv_F4_coqinterval' A r ->
   posdef_itv_seqF A r.
 Proof.
 case: A => [|A0 A1].
