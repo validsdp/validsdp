@@ -111,10 +111,12 @@ Context `{!nat2Fup_class T, !subdn_class T}.
 
 Definition tr_up A := foldl_diag addup 0%C A.
 
+(* overapproximations of eps and eta *)
+Variables eps eta : T.
+
 (* [compute_c n A maxdiag] overapproximates
    /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
-Definition compute_c_aux (eps eta : T)  (* overapproximations of eps and eta *)
-  (A : mx T n n) (maxdiag : T) : T :=
+Definition compute_c_aux (A : mx T n n) (maxdiag : T) : T :=
 let np1 := nat2Fup n.+1 in
 let dnp1 := nat2Fup (2 * n.+1)%N in
 let tnp1 := mulup dnp1 eps in
@@ -125,24 +127,24 @@ addup
     (mulup (mulup (nat2Fup 4) eta) (nat2Fup n))
     (addup dnp1 maxdiag)).
 
-Definition compute_c (is_finite : T -> bool) (eps eta : T) (A : mx T n n) :
+Variable is_finite : T -> bool.
+
+Definition compute_c (A : mx T n n) :
   option T :=
   let nem1 := addup (mulup ((nat2Fup (2 * n.+1)%N)) eps) (-1%C)%C in
   if is_finite nem1 && (nem1 < 0)%C then
-    let c := compute_c_aux eps eta A (max_diag A) in
+    let c := compute_c_aux A (max_diag A) in
     if is_finite c then Some c else None
   else None.
 
-Definition posdef_check
-  (* overapproximations of eps and eta *)
-  (eps eta : T)
-  (is_finite : T -> bool)
-  (* check that n is not too large *)
-  (test_n : nat -> bool)
-  (* matrix to check *)
-  (A : mx T n n) : bool :=
+(* check that n is not too large *)
+Definition test_n n'' : bool :=
+  let f := mulup (mulup (nat2Fup 4%N) (nat2Fup n''.+1)) eps in
+  is_finite f && (f < 1)%C.
+
+Definition posdef_check (A : mx T n n) : bool :=
 test_n n && is_sym A && noneg_diag A &&
-  (match compute_c is_finite eps eta A with
+  (match compute_c A with
      | None => false
      | Some c =>
        let A' := map_diag (fun x => subdn x c) A in
@@ -150,42 +152,20 @@ test_n n && is_sym A && noneg_diag A &&
        all_diag is_finite R && pos_diag R
    end).
 
-Definition posdef_check_itv
-  (* overapproximations of eps and eta *)
-  (eps eta : T)
-  (is_finite : T -> bool)
-  (* check that n is not too large *)
-  (test_n : nat -> bool)
-  (* matrix to check *)
-  (A : mx T n n) (r : T) : bool :=
+Definition posdef_check_itv (A : mx T n n) (r : T) : bool :=
 is_finite r && (0 <= r)%C &&
   let nm := mulup (nat2Fup n) r in
   let A' := map_diag (fun x => subdn x nm) A in
-  posdef_check eps eta is_finite test_n A'.
+  posdef_check A'.
 
 Context `{!map_mx_class mx}.
 
 Variables (F : Type) (F2FI : F -> T).
 
-Definition posdef_check_F
-  (* overapproximations of eps and eta *)
-  (eps eta : T)
-  (is_finite : T -> bool)
-  (* check that n is not too large *)
-  (test_n : nat -> bool)
-  (* matrix to check *)
-  (A : mx F n n) : bool :=
-  posdef_check eps eta is_finite test_n (map_mx F2FI A).
+Definition posdef_check_F (A : mx F n n) : bool := posdef_check (map_mx F2FI A).
 
-Definition posdef_check_itv_F
-  (* overapproximations of eps and eta *)
-  (eps eta : T)
-  (is_finite : T -> bool)
-  (* check that n is not too large *)
-  (test_n : nat -> bool)
-  (* matrix to check *)
-  (A : mx F n n) (r : F) : bool :=
-  posdef_check_itv eps eta is_finite test_n (map_mx F2FI A) (F2FI r).
+Definition posdef_check_itv_F (A : mx F n n) (r : F) : bool :=
+  posdef_check_itv (map_mx F2FI A) (F2FI r).
 
 End directed_rounding.
 
@@ -201,42 +181,42 @@ Let n := n'.+1.
 
 Section proof.
 
-Definition ssr_all_diag : (T -> bool) -> 'M[T]_n -> bool :=
+Definition all_diag_ssr : (T -> bool) -> 'M[T]_n -> bool :=
   @all_diag _ _ _ fun_of_ssr _ _ succ0_ssr.
 
 Lemma all_diag_correct f (A : 'M[T]_n) :
-  ssr_all_diag f A = true -> forall i, f (A i i) = true.
+  all_diag_ssr f A = true -> forall i, f (A i i) = true.
 Proof.
 move=> Had i; move: (ltn_ord i) Had.
 set P := fun i b => b = true -> f (A i i) = true.
-rewrite -/(P i (ssr_all_diag f A)).
+rewrite -/(P i (all_diag_ssr f A)).
 rewrite -/(nat_of _); apply iteri_ord_ind_strong_cases.
 { move=> j' s Hj' H j'' Hj''.
   by rewrite /P Bool.andb_true_iff => Hb; elim Hb => Hb' _; apply H. }
 by move=> j' s Hj' H; rewrite /P Bool.andb_true_iff => Hb; elim Hb.
 Qed.
 
-Definition ssr_foldl_diag (T' : Type) : (T' -> T -> T') -> T' -> 'M[T]_n -> T' :=
+Definition foldl_diag_ssr (T' : Type) : (T' -> T -> T') -> T' -> 'M_n -> T' :=
   @foldl_diag _ _ _ fun_of_ssr _ _ succ0_ssr T'.
 
-Lemma foldl_diag_correct (T' : Type) (f : T' -> T -> T') (z : T') (A : 'M[T]_n) :
+Lemma foldl_diag_correct (T' : Type) (f : T' -> T -> T') (z : T') (A : 'M_n) :
   forall (P : nat -> T' -> Type),
   (forall (i : 'I_n) z, P i z -> P i.+1 (f z (A i i))) ->
-  P O z -> P n (ssr_foldl_diag f z A).
+  P O z -> P n (foldl_diag_ssr f z A).
 Proof.
-move=> P Hind; rewrite /ssr_foldl_diag /foldl_diag.
+move=> P Hind; rewrite /foldl_diag_ssr /foldl_diag.
 apply iteri_ord_ind => // i s Hi HPi; apply Hind.
 by move: HPi; rewrite /nat_of /nat_of_ord.
 Qed.
 
-Definition ssr_map_diag : (T -> T) -> 'M[T]_n -> 'M[T]_n :=
+Definition map_diag_ssr : (T -> T) -> 'M[T]_n -> 'M[T]_n :=
   @map_diag _ _ _ fun_of_ssr _ _ _ succ0_ssr.
 
 Lemma map_diag_correct_ndiag f (A : 'M[T]_n) :
-  forall i j : 'I_n, i <> j -> (ssr_map_diag f A) i j = A i j.
+  forall i j : 'I_n, i <> j -> (map_diag_ssr f A) i j = A i j.
 Proof.
 move=> i j Hij.
-rewrite /ssr_map_diag /map_diag /iteri_ord; set f' := fun _ _ => _.
+rewrite /map_diag_ssr /map_diag /iteri_ord; set f' := fun _ _ => _.
 suff H : forall k R i',
            (matrix.fun_of_matrix (@iteri_ord_rec _ _ succ0_ssr _ k i' f' R) i j
             = R i j) => //; elim => // k IHk R i' /=.
@@ -250,9 +230,9 @@ by casetype False; apply Hij, ord_inj, anti_leq; rewrite Hij''.
 Qed.
 
 Lemma map_diag_correct_diag f (A : 'M[T]_n) :
-  forall i, (ssr_map_diag f A) i i = f (A i i).
+  forall i, (map_diag_ssr f A) i i = f (A i i).
 Proof.
-move=> i; rewrite /ssr_map_diag /map_diag.
+move=> i; rewrite /map_diag_ssr /map_diag.
 set f' := fun _ _ => _.
 set P := fun i s => s i i = f (A i i); rewrite -/(P i _).
 apply iteri_ord_ind_strong_cases with (i0 := i) => //.
@@ -298,19 +278,19 @@ move/is_sym_correct_aux=> H; apply /matrixP=> i j.
 move: (H i j); rewrite !mxE; apply fieq_spec.
 Qed.
 
-Definition gen_max_diag (A : 'M[FI fs]_n) : FI fs :=
-  @max_diag _ _ _ _ fun_of_ssr _ I0_ssr succ0_ssr _ A.
+Definition max_diag_ssr (A : 'M[FI fs]_n) : FI fs :=
+  @max_diag _ _ _ _ fun_of_ssr _ _ succ0_ssr _ A.
 
 Lemma max_diag_correct (A : 'M[FI fs]_n) : (forall i, finite (A i i)) ->
-  forall i, (MFI2F A) i i <= FI2F (gen_max_diag A).
+  forall i, (MFI2F A) i i <= FI2F (max_diag_ssr A).
 Proof.
 move=> HF.
 set f := fun m c : FI fs => if (m <= c)%C then c else m.
 move=> i; move: i (ltn_ord i).
 set P' := fun j (s : FI fs) => forall (i : 'I_n), (i < j)%N ->
   (MFI2F A) i i <= FI2F s; rewrite -/(P' _ _).
-suff : (finite (ssr_foldl_diag f (FI0 fs) A)
-        /\ P' n (ssr_foldl_diag f (FI0 fs) A)).
+suff : (finite (foldl_diag_ssr f (FI0 fs) A)
+        /\ P' n (foldl_diag_ssr f (FI0 fs) A)).
 { by move=> H; elim H. }
 set P := fun j s => finite s /\ P' j s; rewrite -/(P _ _).
 apply foldl_diag_correct; rewrite /P /P'.
@@ -326,12 +306,12 @@ by split; [apply finite0|].
 Qed.
 
 Lemma max_diag_pos (A : 'M[FI fs]_n) : (forall i, finite (A i i)) ->
-  0 <= FI2F (gen_max_diag A).
+  0 <= FI2F (max_diag_ssr A).
 Proof.
 move=> HF.
 set f := fun m c : FI fs => if (m <= c)%C then c else m.
-suff : (finite (ssr_foldl_diag f (FI0 fs) A)
-        /\ 0 <= FI2F (ssr_foldl_diag f (FI0 fs) A)).
+suff : (finite (foldl_diag_ssr f (FI0 fs) A)
+        /\ 0 <= FI2F (foldl_diag_ssr f (FI0 fs) A)).
 { by move=> H; elim H. }
 set P := fun (j : nat) s => @finite fs s /\ 0 <= FI2F s.
 apply foldl_diag_correct with (P0 := P); rewrite /P.
@@ -341,13 +321,12 @@ apply foldl_diag_correct with (P0 := P); rewrite /P.
 by split; [apply finite0|rewrite FI2F0; right].
 Qed.
 
-Definition gen_tr_up (n : nat) (A : 'M[FI fs]_n.+1) : FI fs :=
-  @tr_up _ _ _ _ fun_of_ssr _ I0_ssr succ0_ssr (@fiplus_up fs) A.
+Definition tr_up_ssr (n : nat) (A : 'M[FI fs]_n.+1) : FI fs := tr_up A.
 
-Lemma tr_up_correct (A : 'M[FI fs]_n) : finite (gen_tr_up A) ->
-  \tr (cholesky.MF2R (MFI2F A)) <= FI2F (gen_tr_up A).
+Lemma tr_up_correct (A : 'M[FI fs]_n) : finite (tr_up_ssr A) ->
+  \tr (cholesky.MF2R (MFI2F A)) <= FI2F (tr_up_ssr A).
 Proof.
-rewrite /gen_tr_up /tr_up -/(ssr_foldl_diag _ _ _).
+rewrite /tr_up_ssr /tr_up -/(foldl_diag_ssr _ _ _).
 replace (\tr _) with (\sum_(i < n) (FI2F (A (inord i) (inord i)) : R));
   [|by apply eq_big => // i _; rewrite !mxE inord_val].
 set P := fun j (s : FI fs) => finite s ->
@@ -359,15 +338,13 @@ rewrite -/(P _ _); apply foldl_diag_correct; rewrite /P.
 move=> _; rewrite big_ord0 FI2F0; apply Rle_refl.
 Qed.
 
-Definition test_n n'' : bool :=
-  let f := fimult_up (fimult_up (float_of_nat_up fs 4%N)
-                                (float_of_nat_up fs n''.+1))
-                  (fieps fs) in
-  is_finite f && filt f (FI1 fs).
+Definition test_n_ssr : nat -> bool :=
+  @test_n _ (FI1 fs) _ _ _ (fieps fs) (@is_finite fs).
 
-Lemma test_n_correct : test_n n -> 4 * INR n.+1 * eps fs < 1.
+Lemma test_n_correct : test_n_ssr n -> 4 * INR n.+1 * eps fs < 1.
 Proof.
-rewrite /test_n; set f4 := _ 4%N; set fn := _ n.+1; set f := _ (fieps _).
+rewrite /test_n_ssr /test_n.
+set f4 := _ 4%N; set fn := _ n.+1; set f := _ (fieps _).
 move/andP => [Ff Hf]; have Ffeps := fimult_up_spec_fr Ff.
 have Fp := fimult_up_spec_fl Ff.
 have Ff4 := fimult_up_spec_fl Fp; have Ffn := fimult_up_spec_fr Fp.
@@ -385,31 +362,26 @@ apply (Rlt_le_trans _ _ _ (filt_spec Ff (finite1 fs) Hf)).
 by rewrite FI2F1; right.
 Qed.
 
-Definition gen_compute_c_aux (A : 'M[FI fs]_n) (maxdiag : FI fs) : FI fs :=
-  @compute_c_aux _ _ _ _ _ _ fun_of_ssr _ I0_ssr succ0_ssr
-    (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs) (float_of_nat_up fs)
+Definition compute_c_aux_ssr (A : 'M[FI fs]_n) (maxdiag : FI fs) : FI fs :=
+  @compute_c_aux _ _ _ _ _ _ fun_of_ssr _ _ succ0_ssr _ _ _ _
     (fieps fs) (fieta fs) A maxdiag.
 
 Lemma compute_c_aux_correct (A : 'M[FI fs]_n) maxdiag :
   (INR (2 * n.+1) * eps fs < 1) ->
-  (finite (fiplus_up
-             (fimult_up ((float_of_nat_up fs (2 * n.+1)%N)) (fieps fs))
-             (- (1)))%C) ->
-  (FI2F (fiplus_up
-             (fimult_up ((float_of_nat_up fs (2 * n.+1)%N)) (fieps fs))
-             (- (1)))%C < 0) ->
+  (finite (addup (mulup ((nat2Fup (2 * n.+1)%N)) (fieps fs)) (- (1)))%C) ->
+  (FI2F (addup (mulup ((nat2Fup (2 * n.+1)%N)) (fieps fs)) (- (1)))%C < 0) ->
   (forall i, 0 <= FI2F (A i i)) ->
   (0 <= FI2F maxdiag) ->
-  finite (gen_compute_c_aux A maxdiag) ->
+  finite (compute_c_aux_ssr A maxdiag) ->
   (/2 * gamma fs (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
    + 4 * eta fs * INR n * (2 * INR n.+1 + FI2F maxdiag)
-  <= FI2F (gen_compute_c_aux A maxdiag))%R.
+  <= FI2F (compute_c_aux_ssr A maxdiag))%R.
 Proof.
 have Pnp2 := pos_INR (n.+1)%N.
 have P2np2 := pos_INR (2 * n.+1)%N.
 have Pe := eps_pos fs.
 move=> Heps Fnem1 Nnem1 Pdiag Pmaxdiag Fc.
-rewrite /gen_compute_c_aux /compute_c_aux.
+rewrite /compute_c_aux_ssr /compute_c_aux.
 move: (fiplus_up_spec Fc); apply Rle_trans, Rplus_le_compat.
 { have Fl := fiplus_up_spec_fl Fc.
   move: (fimult_up_spec Fl); apply Rle_trans, Rmult_le_compat.
@@ -461,23 +433,21 @@ have Frrl := fiplus_up_spec_fl Frr.
 by change 2 with (INR 2); rewrite -mult_INR; apply float_of_nat_up_spec.
 Qed.
 
-Definition gen_compute_c (A : 'M[FI fs]_n) :
-  option (FI fs) :=
-  @compute_c _ _ _ _ _ _ fun_of_ssr _ I0_ssr succ0_ssr
-    leq_instFI lt_instFI (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs)
-    (float_of_nat_up fs) (@is_finite fs) (fieps fs) (fieta fs) A.
+Definition compute_c_ssr (A : 'M[FI fs]_n) : option (FI fs) :=
+  @compute_c _ _ _ _ _ _ fun_of_ssr _ _ succ0_ssr _ _ _ _ _ _
+    (fieps fs) (fieta fs) (@is_finite fs) A.
 
 Lemma compute_c_correct (A : 'M[FI fs]_n) :
   (INR (2 * n.+1) * eps fs < 1) ->
   (forall i, finite (A i i)) ->
   (forall i, (0 <= FI2F (A i i))%R) ->
-  forall c : FI fs, gen_compute_c A = Some c ->
+  forall c : FI fs, compute_c_ssr A = Some c ->
   (/2 * gamma fs (2 * n.+1) * (\tr (cholesky.MF2R (MFI2F A)))
-   + 4 * eta fs * INR n * (2 * INR n.+1 + FI2F (gen_max_diag A))
+   + 4 * eta fs * INR n * (2 * INR n.+1 + FI2F (max_diag_ssr A))
    <= FI2F c)%R.
 Proof.
 move=> Heps Fdiag Pdiag c.
-rewrite /gen_compute_c /compute_c.
+rewrite /compute_c_ssr /compute_c.
 set nem1 := addup _ _.
 case_eq (is_finite nem1 && (nem1 < 0)%C); [|by []].
 rewrite Bool.andb_true_iff => H; elim H => Fnem1 Nnem1.
@@ -490,18 +460,14 @@ rewrite -Hc''; apply compute_c_aux_correct => //.
 by apply max_diag_pos.
 Qed.
 
-Definition gen_posdef_check (A : 'M[FI fs]_n) : bool :=
-  @posdef_check _ _ _ _ _ _ (@div_instFI _) _
-    fun_of_ssr row_ssr store_ssr dotmulB0_ssr _
-    I0_ssr succ0_ssr nat_of_ssr fheq (@matrix.trmx (FI fs)) _ _
-    (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs)
-    (float_of_nat_up fs) (@fiminus_down fs)
-    (fieps fs) (fieta fs) (@is_finite fs) test_n A.
+Definition posdef_check_ssr (A : 'M[FI fs]_n) : bool :=
+  @posdef_check _ _ _ _ _ _ _ _ _ _ _ _ _ _ succ0_ssr _ _ _ _ _ _ _ _ _ _
+    (fieps fs) (fieta fs) (@is_finite fs) A.
 
-Lemma posdef_check_f1 A : gen_posdef_check A = true ->
+Lemma posdef_check_f1 A : posdef_check_ssr A = true ->
   forall i j, finite (A i j).
 Proof.
-rewrite /gen_posdef_check /posdef_check !Bool.andb_true_iff.
+rewrite /posdef_check_ssr /posdef_check !Bool.andb_true_iff.
 do 3 elim; move=> _ SA _.
 set cc := compute_c _ _ _ _; case_eq cc => // c' Hc'.
 set At := map_diag _ _; set Rt := cholesky _.
@@ -522,15 +488,15 @@ apply (@cholesky_success_infnan_f1 _ _ At Rt^T) => //; split.
 move=> i'; rewrite mxE.
 have->: R0 = FI2F (FI0 fs) by rewrite FI2F0.
 apply filt_spec; [by apply finite0| |].
-{ move: Had i'; rewrite -/(ssr_all_diag _ _); apply all_diag_correct. }
-move: Hpd i'; rewrite /pos_diag -/(ssr_all_diag _ _); apply all_diag_correct.
+{ move: Had i'; rewrite -/(all_diag_ssr _ _); apply all_diag_correct. }
+move: Hpd i'; rewrite /pos_diag -/(all_diag_ssr _ _); apply all_diag_correct.
 Qed.
 
-Lemma posdef_check_correct A : gen_posdef_check A = true ->
+Lemma posdef_check_correct A : posdef_check_ssr A = true ->
   posdef (cholesky.MF2R (MFI2F A)).
 Proof.
 move=> H; have Hfdiag := posdef_check_f1 H; move: H.
-rewrite /gen_posdef_check /posdef_check 3!Bool.andb_true_iff.
+rewrite /posdef_check_ssr /posdef_check 3!Bool.andb_true_iff.
 do 3 elim; move/test_n_correct => Hn Hsym Htpdiag.
 have Hn' : 2 * INR n.+1 * eps fs < 1.
 { move: (neps_pos fs n.+1); rewrite !Rmult_assoc; lra. }
@@ -551,7 +517,7 @@ have HpRt : forall i, 0 < (MFI2F Rt) i i.
   by rewrite mxE; apply filt_spec => //; [apply finite0|apply HtpRt']. }
 move {Htpdiag HtfRt HtpRt Htpdiag' HtpRt'}.
 apply corollary_2_4_with_c_upper_bound with
- (maxdiag := FI2F (gen_max_diag A)) (c := FI2F c') (At0 := At) => //.
+ (maxdiag := FI2F (max_diag_ssr A)) (c := FI2F c') (At0 := At) => //.
 { by move=> i; rewrite mxE. }
 { by apply max_diag_correct. }
 { by apply compute_c_correct. }
@@ -568,11 +534,11 @@ Qed.
 Lemma map_diag_sub_down_correct (A : 'M_n) r :
   (forall i, finite (fiminus_down (A i i) r)) ->
   exists d : 'rV_n,
-    cholesky.MF2R (MFI2F (ssr_map_diag ((@fiminus_down fs)^~ r) A))
+    cholesky.MF2R (MFI2F (map_diag_ssr ((@fiminus_down fs)^~ r) A))
     = cholesky.MF2R (MFI2F A) - diag_mx d
     /\ (FI2F r : R) *: 1 <=m: diag_mx d.
 Proof.
-move=> HF; set A' := ssr_map_diag _ _.
+move=> HF; set A' := map_diag_ssr _ _.
 exists (\row_i (((MFI2F A) i i : R) - ((MFI2F A') i i : R))); split.
 { rewrite -matrixP => i j; rewrite !mxE.
   set b := (_ == _)%B; case_eq b; rewrite /b /GRing.natmul /= => Hij.
@@ -590,18 +556,14 @@ set b := (_ == _)%B; case_eq b; rewrite /b /GRing.natmul /= => Hij.
 by rewrite GRing.mulr0; right.
 Qed.
 
-Definition gen_posdef_check_itv (A : 'M[FI fs]_n) (r : FI fs) : bool :=
-  @posdef_check_itv _ _ _ _ _ _ (@div_instFI _) _
-    fun_of_ssr row_ssr store_ssr dotmulB0_ssr _
-    I0_ssr succ0_ssr nat_of_ssr fheq (@matrix.trmx (FI fs)) _ _
-    (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs)
-    (float_of_nat_up fs) (@fiminus_down fs)
-    (fieps fs) (fieta fs) (@is_finite fs) test_n A r.
+Definition posdef_check_itv_ssr (A : 'M[FI fs]_n) (r : FI fs) : bool :=
+  @posdef_check_itv _ _ _ _ _ _ _ _ _ _ _ _ _ _ succ0_ssr _ _ _ _ _ _ _ _ _ _
+    (fieps fs) (fieta fs) (@is_finite fs) A r.
 
-Lemma posdef_check_itv_f1 A r : gen_posdef_check_itv A r = true ->
+Lemma posdef_check_itv_f1 A r : posdef_check_itv_ssr A r = true ->
   forall i j, finite (A i j).
 Proof.
-rewrite /gen_posdef_check_itv /posdef_check_itv; set A' := map_diag _ _.
+rewrite /posdef_check_itv_ssr /posdef_check_itv; set A' := map_diag _ _.
 move/andP => [_ Hp] i j.
 suff: finite (A' i j); [|by apply posdef_check_f1].
 case_eq (i == j :> nat) => Hij'.
@@ -611,13 +573,13 @@ rewrite map_diag_correct_ndiag //.
 by move /eqP in Hij' => H; apply Hij'; rewrite H.
 Qed.
 
-Lemma posdef_check_itv_correct A r : gen_posdef_check_itv A r = true ->
+Lemma posdef_check_itv_correct A r : posdef_check_itv_ssr A r = true ->
   forall Xt : 'M[R]_n, Xt^T = Xt ->
   Mabs (Xt - cholesky.MF2R (MFI2F A)) <=m:
     cholesky.MF2R (MFI2F (matrix.const_mx r)) ->
   posdef Xt.
 Proof.
-rewrite /gen_posdef_check_itv /posdef_check_itv.
+rewrite /posdef_check_itv_ssr /posdef_check_itv.
 set nr := mulup _ _; set A' := map_diag _ _.
 rewrite 2!Bool.andb_true_iff; elim; elim=> Fr Pr HA' Xt SXt HXt.
 have HA'' := posdef_check_correct HA'.
@@ -626,7 +588,7 @@ have HF' : forall i, finite (fiminus_down (A i i) nr).
 { by move=> i; move: (HF i i); rewrite map_diag_correct_diag. }
 rewrite -(GRing.addr0 Xt) -(GRing.subrr (cholesky.MF2R (MFI2F A))).
 elim (map_diag_sub_down_correct HF') => d [Hd Hd'].
-rewrite /ssr_map_diag /fiminus_down -/A' in Hd.
+rewrite /map_diag_ssr /fiminus_down -/A' in Hd.
 have HA : cholesky.MF2R (MFI2F A) = cholesky.MF2R (MFI2F A') + diag_mx d.
 { by rewrite Hd -GRing.addrA (GRing.addrC _ (_ d)) GRing.subrr GRing.addr0. }
 rewrite {1}HA.
@@ -673,36 +635,27 @@ Qed.
 Variables (F : Type) (F2FI : F -> FI fs) (toR : F -> R).
 Hypothesis (F2FI_correct : forall f, finite (F2FI f) -> FI2F (F2FI f) = toR f :> R).
 
-(* TODO: rename "gen_" to "inst_" or so *)
-
 Global Instance map_mx_ssr : map_mx_class matrix :=
   fun T T' m n f A => matrix.map_mx f A.
 
-Definition gen_posdef_check_F (A : 'M[F]_n) :=
-  @posdef_check_F _ _ _ _ _ _ _ _ fun_of_ssr row_ssr store_ssr dotmulB0_ssr _
-  I0_ssr succ0_ssr nat_of_ssr fheq (@matrix.trmx (FI fs)) _ _
-  (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs) (float_of_nat_up fs)
-  (@fiminus_down fs) map_mx_ssr F F2FI (fieps fs) (fieta fs) (@is_finite fs)
-  test_n A.
+Definition posdef_check_F_ssr (A : 'M[F]_n) :=
+  @posdef_check_F _ _ _ _ _ _ _ _ _ _ _ _ _ _ succ0_ssr _ _ _ _ _ _ _ _ _ _
+  (fieps fs) (fieta fs) (@is_finite fs) map_mx_ssr F F2FI A.
 
-Definition gen_posdef_check_itv_F (A : 'M[F]_n) (r : F) :=
-  @posdef_check_itv_F _ _ _ _ _ _ _ _ fun_of_ssr row_ssr store_ssr dotmulB0_ssr _
-  I0_ssr succ0_ssr nat_of_ssr fheq (@matrix.trmx (FI fs)) _ _
-  (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs) (float_of_nat_up fs)
-  (@fiminus_down fs) map_mx_ssr F F2FI (fieps fs) (fieta fs) (@is_finite fs)
-  test_n A r.
+Definition posdef_check_itv_F_ssr (A : 'M[F]_n) (r : F) :=
+  @posdef_check_itv_F _ _ _ _ _ _ _ _ _ _ _ _ _ _ succ0_ssr _ _ _ _ _ _ _ _ _ _
+  (fieps fs) (fieta fs) (@is_finite fs) map_mx_ssr F F2FI A r.
 
-Lemma posdef_check_F_f1 A : gen_posdef_check_F A = true ->
+Lemma posdef_check_F_f1 A : posdef_check_F_ssr A = true ->
   forall i j, finite ((map_mx F2FI A) i j).
 Proof. apply posdef_check_f1. Qed.
 
-Lemma posdef_check_itv_F_f1 A r : gen_posdef_check_itv_F A r = true ->
+Lemma posdef_check_itv_F_f1 A r : posdef_check_itv_F_ssr A r = true ->
   forall i j, finite ((map_mx F2FI A) i j).
 Proof. apply posdef_check_itv_f1. Qed.
 
 Lemma posdef_check_F_correct (A : 'M[F]_n) :
-  gen_posdef_check_F A = true ->
-  posdef (matrix.map_mx toR A).
+  posdef_check_F_ssr A = true -> posdef (matrix.map_mx toR A).
 Proof.
 move=> H; move: (posdef_check_correct H).
 set A' := cholesky.MF2R _; set A'' := matrix.map_mx _ _.
@@ -712,7 +665,7 @@ by move: (posdef_check_f1 H i j); rewrite mxE.
 Qed.
 
 Lemma posdef_check_itv_F_correct (A : 'M[F]_n) (r : F) :
-  gen_posdef_check_itv_F A r = true ->
+  posdef_check_itv_F_ssr A r = true ->
   forall Xt : 'M_n, Xt^T = Xt ->
   Mabs (Xt - matrix.map_mx toR A) <=m: matrix.const_mx (toR r) ->
   posdef Xt.
@@ -782,11 +735,6 @@ Definition ytildes_seqmx : ord_instN n.+1 -> T -> seqmatrix' T 1%N n.+1 -> T :=
 
 Definition cholesky_seqmx (M : seqmatrix T) : seqmatrix T :=
   cholesky (T := T) (ord := ord_instN) (mx := seqmatrix') M.
-
-(*
-Definition iteri_ord_instN : forall T, nat -> (ordT n -> T -> T) -> T -> T :=
-  @iteri_ord ordT _ O S. (* ?? *)
-*)
 
 Definition outer_loop_seqmx :
   seqmatrix' T n.+1 n.+1 -> seqmatrix' T n.+1 n.+1 -> seqmatrix' T n.+1 n.+1 :=
@@ -893,15 +841,13 @@ Variable feps feta : T.
 
 Variable is_finite : T -> bool.
 
-Variable test_n : nat -> bool.
-
 Definition posdef_check_seqmx (M : seqmatrix T) : bool :=
   posdef_check (T := T) (ordT := ord_instN) (mx := seqmatrix')
-    feps feta is_finite test_n M.
+    feps feta is_finite M.
 
 Definition posdef_check_itv_seqmx (M : seqmatrix T) (r : T) : bool :=
   posdef_check_itv (T := T) (ordT := ord_instN) (mx := seqmatrix')
-    feps feta is_finite test_n M r.
+    feps feta is_finite M r.
 
 Global Instance map_mx_seqmx : map_mx_class seqmatrix' :=
   fun T T' m n f s => map (map f) s.
@@ -910,11 +856,11 @@ Variables (F : Type) (F2FI : F -> T).
 
 Definition posdef_check_F_seqmx (M : seqmatrix F) : bool :=
   posdef_check_F (T := T) (ordT := ord_instN) (mx := seqmatrix')
-    F2FI feps feta is_finite test_n M.
+    feps feta is_finite F2FI M.
 
 Definition posdef_check_itv_F_seqmx (M : seqmatrix F) (r : F) : bool :=
   posdef_check_itv_F (T := T) (ordT := ord_instN) (mx := seqmatrix')
-    F2FI feps feta is_finite test_n M r.
+    feps feta is_finite F2FI M r.
 
 End inst_seqmx.
 
@@ -1307,13 +1253,13 @@ Notation C := (FI fs) (only parsing).
 
 Context {n : nat}.
 
-Definition posdef_check5 := @gen_posdef_check n fs.
+Definition posdef_check5 := @posdef_check_ssr n fs.
 
-Definition posdef_check_itv5 := @gen_posdef_check_itv n fs.
+Definition posdef_check_itv5 := @posdef_check_itv_ssr n fs.
 
 Variables (F : Type) (F2FI : F -> FI fs).
 
-Definition posdef_check_F5 := @gen_posdef_check_F n fs F F2FI.
+Definition posdef_check_F5 := @posdef_check_F_ssr n fs F F2FI.
 
 Lemma param_heq_op :
   param (Rseqmx ==> Rseqmx ==> Logic.eq)
@@ -1460,12 +1406,12 @@ Lemma param_compute_c :
      (@zero_instFI fs) (@one_instFI fs) (@opp_instFI fs)
      (@fun_of_ssr (FI fs)) n.+1 (@I0_ssr n)
      (@succ0_ssr n) (@leq_instFI fs) (@lt_instFI fs) (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs)
-     (float_of_nat_up fs) (@is_finite fs) (fieps fs) (fieta fs))
+     (float_of_nat_up fs) (fieps fs) (fieta fs) (@is_finite fs))
   (@compute_c C _ seqmatrix'
      zero_instFI one_instFI opp_instFI
      (@fun_of_seqmx C zero_instFI) n.+1 (@I0_instN n)
      (@succ0_instN n) leq_instFI lt_instFI (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs)
-     (float_of_nat_up fs) (@is_finite fs) (fieps fs) (fieta fs)).
+     (float_of_nat_up fs) (fieps fs) (fieta fs) (@is_finite fs)).
 Proof.
 apply param_abstr => A As param_A.
 rewrite paramE /compute_c /C.
@@ -1505,11 +1451,11 @@ Qed.
 
 Lemma param_posdef_check :
   param (Rseqmx ==> Logic.eq)
-  (@gen_posdef_check n fs)
-  (posdef_check_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs)).
+  (@posdef_check_ssr n fs)
+  (posdef_check_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs)).
 Proof.
 apply param_abstr => A As param_A.
-rewrite paramE /gen_posdef_check /posdef_check_seqmx /posdef_check.
+rewrite paramE /posdef_check_ssr /posdef_check_seqmx /posdef_check.
 apply f_equal2; [apply f_equal2; [apply f_equal|]|].
 { by apply param_eq; eapply param_apply; [apply param_is_sym|exact param_A]. }
 { apply param_eq; rewrite /noneg_diag.
@@ -1537,13 +1483,13 @@ Qed.
 
 Lemma param_posdef_check_itv :
   param (Rseqmx ==> Logic.eq ==> Logic.eq)
-  (@gen_posdef_check_itv n fs)
-  (posdef_check_itv_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs)).
+  (@posdef_check_itv_ssr n fs)
+  (posdef_check_itv_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs)).
 Proof.
 apply param_abstr => A As param_A.
 apply param_abstr => r r' param_r.
 rewrite paramE in param_r; rewrite -param_r.
-rewrite paramE /gen_posdef_check_itv /posdef_check_itv_seqmx /posdef_check_itv /posdef_check.
+rewrite paramE /posdef_check_itv_ssr /posdef_check_itv_seqmx /posdef_check_itv /posdef_check.
 apply f_equal2=> //; apply f_equal2; [apply f_equal2; [apply f_equal2=> //|]|].
 { apply param_eq; eapply param_apply; first by apply param_is_sym.
   eapply param_apply; last by tc.
@@ -1599,27 +1545,27 @@ Qed.
 
 Lemma param_posdef_check_F :
   param (Rseqmx ==> Logic.eq)
-  (@gen_posdef_check_F n fs _ F2FI)
-  (posdef_check_F_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs) F2FI).
+  (@posdef_check_F_ssr n fs _ F2FI)
+  (posdef_check_F_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) F2FI).
 Proof.
 apply param_abstr => A As param_A.
-rewrite /gen_posdef_check_F /posdef_check_F_seqmx /posdef_check_F.
+rewrite /posdef_check_F_ssr /posdef_check_F_seqmx /posdef_check_F.
 eapply param_apply; [apply param_posdef_check|].
 eapply param_apply; [|apply param_A].
 eapply param_apply; [apply param_map_mx|apply param_eq_refl].
 Qed.
 
-Definition posdef_check_itv_F5 := @gen_posdef_check_itv_F n fs _ F2FI.
+Definition posdef_check_itv_F5 := @posdef_check_itv_F_ssr n fs _ F2FI.
 
 Lemma param_posdef_check_itv_F :
   param (Rseqmx ==> Logic.eq ==> Logic.eq)
-  (@gen_posdef_check_itv_F n fs _ F2FI)
-  (posdef_check_itv_F_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) (@test_n fs) F2FI).
+  (@posdef_check_itv_F_ssr n fs _ F2FI)
+  (posdef_check_itv_F_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) F2FI).
 Proof.
 apply param_abstr => A As param_A.
 apply param_abstr => r r' param_r.
 rewrite paramE in param_r; rewrite -param_r.
-rewrite /gen_posdef_check_itv_F /posdef_check_itv_F_seqmx /posdef_check_itv_F.
+rewrite /posdef_check_itv_F_ssr /posdef_check_itv_F_seqmx /posdef_check_itv_F.
 eapply param_apply; [|apply param_eq_refl].
 eapply param_apply; [apply param_posdef_check_itv|].
 eapply param_apply; [|apply param_A].
@@ -1687,11 +1633,11 @@ Instance sub1 : subdn_class T := fun x y => opp'' (add1 y (opp'' x)).
 
 Definition posdef_check4_coqinterval (M : seq (seq T)) : bool :=
   posdef_check_seqmx (T := T) (n := (seq.size M).-1)
-    feps feta is_finite test_n'' M.
+    feps feta is_finite M.
 
 Definition posdef_check_itv4_coqinterval (M : seq (seq T)) (r : T) : bool :=
   posdef_check_itv_seqmx (T := T) (n := (seq.size M).-1)
-    feps feta is_finite test_n'' M r.
+    feps feta is_finite M r.
 
 End test_CoqInterval.
 
@@ -1771,26 +1717,22 @@ Local Notation FI := (float_infnan_spec.FI coqinterval_infnan.coqinterval_round_
 Definition posdef_check4_coqinterval' (M : seq (seq FI)) : bool :=
   posdef_check_seqmx (T := FI) (n := (seq.size M).-1)
     fieps fieta
-    (@float_infnan_spec.is_finite _)
-    (@test_n coqinterval_round_up_infnan) M.
+    (@float_infnan_spec.is_finite _) M.
 
 Definition posdef_check_F4_coqinterval' (M : seq (seq F.type)) : bool :=
   posdef_check_F_seqmx (T := FI) (n := (seq.size M).-1)
     fieps fieta
-    (@float_infnan_spec.is_finite _)
-    (@test_n coqinterval_round_up_infnan) F2FI M.
+    (@float_infnan_spec.is_finite _) F2FI M.
 
 Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
   posdef_check_itv_seqmx (T := FI) (n := (seq.size M).-1)
     fieps fieta
-    (@float_infnan_spec.is_finite _)
-    (@test_n coqinterval_round_up_infnan) M r.
+    (@float_infnan_spec.is_finite _) M r.
 
 Definition posdef_check_itv_F4_coqinterval' (M : seq (seq F.type)) (r : F.type) : bool :=
   posdef_check_itv_F_seqmx (T := FI) (n := (seq.size M).-1)
     fieps fieta
-    (@float_infnan_spec.is_finite _)
-    (@test_n coqinterval_round_up_infnan) F2FI M r.
+    (@float_infnan_spec.is_finite _) F2FI M r.
 
 Definition BigQ2F (q : bigQ) : F.type * F.type :=
   match q with
@@ -1832,7 +1774,7 @@ case: A => [|A0 A1].
 move=> Hmain.
 eapply (@posdef_check_F_correct _ coqinterval_round_up_infnan).
 - apply F2FI_correct.
-- rewrite -Hmain /gen_posdef_check_F /posdef_check_F4_coqinterval'.
+- rewrite -Hmain /posdef_check_F_ssr /posdef_check_F4_coqinterval'.
 apply paramP.
 (*
 eapply param_apply; first exact: param_posdef_check_F.  (* very slow ? *)
