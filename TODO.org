@@ -55,8 +55,10 @@
    CLOSED: [2016-05-17 Tue 10:50]
 ** CANCELED Prove RadBigQ2F_correct				       :Erik:
    CLOSED: [2016-05-30 Mon 17:15]
-** TODO State/prove mantissa_bounded subproof for BigQ2FI, if need be  :Erik:
-** TODO Setup TCs and Inst. for the small new functions (add1, etc.)   :Erik:
+** DONE State/prove mantissa_bounded subproof for BigQ2FI, if need be  :Erik:
+   CLOSED: [2016-06-08 Wed 11:30]
+** DONE Setup TCs and Inst. for the small new functions (add1, etc.)   :Erik:
+   CLOSED: [2016-06-08 Wed 09:08]
 ** LATER Refinement to remove proofs from coqinterval_infnan	       :Erik:
 ** DONE Design a reflexive tactic for positivity (Ltac)		       :Erik:
    CLOSED: [2016-05-30 Mon 17:17]
@@ -65,19 +67,24 @@
 ** DONE Finish proving all_mxP					       :Erik:
    CLOSED: [2016-06-02 Thu 17:50]
 ** DONE Finish proving posdef_check_f1                               :Pierre:
-** TODO Finish proving toR_Float				       :Erik:
+** DONE Finish proving toR_Float				       :Erik:
+   CLOSED: [2016-06-08 Wed 10:23]
 ** DONE Finish proving F2FI_correct                                  :Pierre:
 ** DONE Prove param_posdef_check_F                                   :Pierre:
-** TODO Prove posdef_check_F_correct_inst			       :Erik:
-** STARTED Do the above steps for posdef_check_itv                     :Erik:
-** STARTED Do some cleanup, setup naming conventions            :Pierre:Erik:
+** DONE Prove posdef_check_F_correct_inst			       :Erik:
+   CLOSED: [2016-06-08 Wed 10:23]
+** DONE Do the above steps for posdef_check_itv			       :Erik:
+   CLOSED: [2016-06-08 Wed 10:23]
+** STARTED Do some cleanup, setup naming conventions		       :Erik:
 ** STARTED Make some benchmarks for the Boolean positivity test (itv_Q) :Pierre:
 * SOS/SDP
-** TODO Look-at libraries for multipolys			       :Erik:
+** STARTED Look-at libraries for multipolys			       :Erik:
 ** TODO Look-at doc on OCaml tactics
-** TODO Look-at Victor's JFR paper				       :Erik:
+** DONE Look-at Victor's JFR paper				:Erik:Pierre:
+   CLOSED: [2016-06-08 Wed 11:31]
 - Reuse the interface to ease future benchmarks?
-** TODO Reread Pierre's paper and OSDP doc			       :Erik:
+** DONE Reread Pierre's paper and OSDP doc			       :Erik:
+   CLOSED: [2016-06-08 Wed 11:31]
 * Optimizations
 ** TODO Specialize the algos with fine-tuned binary64 arith	       :Erik:
 - int31 (or int63)

@@ -851,9 +851,10 @@ Definition posdef_check_itv_seqmx (M : seqmatrix T) (r : T) : bool :=
 Global Instance map_mx_seqmx : map_mx_class seqmatrix' :=
   fun T T' m n f s => map (map f) s.
 
-Variables (F : Type) (F2FI : F -> T).
+Variables (F : Type) (F2FI : F -> T) (zeroF : F).
 
 Definition posdef_check_F_seqmx (M : seqmatrix F) : bool :=
+  let m := seq.size M in
   posdef_check_F (T := T) (ordT := ord_instN) (mx := seqmatrix')
     feps feta is_finite F2FI M.
 
@@ -1714,32 +1715,55 @@ Qed.
 Local Notation FI := (float_infnan_spec.FI coqinterval_infnan.coqinterval_round_up_infnan).
 
 Definition posdef_check4_coqinterval' (M : seq (seq FI)) : bool :=
-  posdef_check_seqmx (T := FI) (n := (seq.size M).-1)
+  let m := seq.size M in
+  all (fun l => seq.size l == m)%B M &&
+  posdef_check_seqmx (T := FI) (n := m.-1)
     fieps fieta
     (@float_infnan_spec.is_finite _) M.
 
 Definition posdef_check_F4_coqinterval' (M : seq (seq F.type)) : bool :=
-  posdef_check_F_seqmx (T := FI) (n := (seq.size M).-1)
+  let m := seq.size M in
+  all (fun l => seq.size l == m)%B M &&
+  posdef_check_F_seqmx (T := FI) (n := m.-1)
     fieps fieta
     (@float_infnan_spec.is_finite _) F2FI M.
 
 Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
-  posdef_check_itv_seqmx (T := FI) (n := (seq.size M).-1)
+  let m := seq.size M in
+  all (fun l => seq.size l == m)%B M &&
+  posdef_check_itv_seqmx (T := FI) (n := m.-1)
     fieps fieta
     (@float_infnan_spec.is_finite _) M r.
 
 Definition posdef_check_itv_F4_coqinterval' (M : seq (seq F.type)) (r : F.type) : bool :=
-  posdef_check_itv_F_seqmx (T := FI) (n := (seq.size M).-1)
+  let m := seq.size M in
+  all (fun l => seq.size l == m)%B M &&
+  posdef_check_itv_F_seqmx (T := FI) (n := m.-1)
     fieps fieta
     (@float_infnan_spec.is_finite _) F2FI M r.
 
 Definition BigQ2F (q : bigQ) : F.type * F.type :=
   match q with
-  | BigQ.Qz m => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in (m0, m0)
+  | BigQ.Qz m => let m0 := Interval_specific_ops.Float m Bir .exponent_zero in (m0, m0)
   | BigQ.Qq m n => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in
                    let n0 := Interval_specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
                    (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0)
   end.
+
+Require Import Interval.Interval_missing.
+Lemma toR_Float (m e : bigZ) : toR (Float m e) = (Z2R [m]%bigZ * bpow F.radix [e])%Re.
+Proof.
+rewrite /F.toX /F.toF /=.
+have := Bir.mantissa_sign_correct m.
+case E_m: (Bir.mantissa_sign m) => [|s m']; last case.
+  by rewrite /Bir.MtoZ =>-> /=; rewrite Rsimpl.
+rewrite /proj_val /FtoX.
+rewrite (FtoR_split radix2 s (Bir.MtoP m') ((* Bir.EtoZ *) [e])).
+rewrite /F2R /= /cond_Zopp => H1 H2; congr Rmult.
+move: H1; case: (s) => H1.
+by rewrite Pos2Z.opp_pos -H1.
+by rewrite -H1.
+Qed.
 
 Definition test_posdef_check_itv (M : seq (seq F.type)) (r : bigQ) : bool :=
   posdef_check_itv_F4_coqinterval' M (snd (BigQ2F r)).
@@ -1751,9 +1775,11 @@ Definition posdef_seqF (mat : seqmatrix F.type) : Prop :=
   posdef (@mx_of_seqmx_val _ R0 m m (map (map toR) mat)).
 *)
 
+Local Existing Instance zero''.
+
 Definition posdef_seqF (mat : seqmatrix F.type) : Prop :=
   let m := seq.size mat in
-  posdef (matrix.map_mx toR (@mx_of_seqmx_val _ zero'' m m mat)).
+  posdef (matrix.map_mx toR (mx_of_seqmx_val m m mat)).
 
 (* First attempt
 Context `{mx : Type -> nat -> nat -> Type, !map_mx_class mx}.
@@ -1772,19 +1798,19 @@ case: A => [|A0 A1].
 { by move=> _ x Hx; casetype False; apply /Hx /matrixP; case. }
 move=> Hmain.
 eapply (@posdef_check_F_correct _ coqinterval_round_up_infnan).
-- apply F2FI_correct.
-- 
-(*
-rewrite -Hmain /posdef_check_F_ssr /posdef_check_F4_coqinterval'.
+{ by apply F2FI_correct. }
+rewrite /posdef_check_F4_coqinterval' in Hmain.
+have /andP[Hall Hmain'] := Hmain.
+rewrite /is_true -Hmain' /posdef_check_F4_coqinterval'.
 apply paramP.
-eapply param_apply; first exact: param_posdef_check_F.  (* very slow ? *)
-(* suff{4}->: (A0 :: A1) =
-  (@padseqmx _ zero'' (seq.size (A0 :: A1)) (seq.size (A0 :: A1)) (A0 :: A1)). *)
-apply/trivial_param/refines_seqmxP=>//; rewrite -/(seq.size _).
-(* Erik: Missing hyp *) admit.
-admit.
-*)
-Admitted.
+eapply param_apply; first exact: param_posdef_check_F.
+move/all_nthP in Hall.
+apply/trivial_param/refines_seqmxP; rewrite -/(seq.size _); first done.
+by move=> i Hi; move/(_ [::] i Hi)/eqP in Hall.
+move=> [i Hi] j /=; rewrite !mxE.
+apply: set_nth_default.
+by move/(_ [::] i Hi)/eqP: Hall =>->.
+Qed.
 
 (* TODO: improve error message in case of failure *)
 Ltac prove_posdef :=
@@ -1804,13 +1830,24 @@ Lemma posdef_check_itv_F_correct_inst (A : seqmatrix F.type) (r : F.type) :
 Proof.
 case: A => [|A0 A1].
 { by move=> _ _ Xt _ _ x Hx; casetype False; apply /Hx /matrixP; case. }
-move=> m Hmain Xt SXt HXt.
-eapply (@posdef_check_itv_F_correct _ coqinterval_round_up_infnan).
-- apply F2FI_correct.
-- admit.  (* ingredient: param_posdef_check_itv_F *)
-- exact SXt.
-- exact HXt.
-Admitted.
+move=> m Hmain Xt.
+set mA := mx_of_seqmx_val _ _ _.
+change (proj_val (F.toX r)) with (toR r).
+apply (posdef_check_itv_F_correct (fs := coqinterval_round_up_infnan) (F2FI := F2FI)).
+- exact: F2FI_correct.
+- rewrite /posdef_check_F4_coqinterval' in Hmain.
+  have /andP[Hall Hmain'] := Hmain.
+  rewrite /is_true -Hmain' /posdef_check_F4_coqinterval'.
+  apply paramP.
+  eapply param_apply; [eapply param_apply|exact: param_eq_refl].
+  { exact: param_posdef_check_itv_F. }
+  move/all_nthP in Hall.
+  apply/trivial_param/refines_seqmxP; rewrite -/(seq.size _); first done.
+  by move=> i Hi; move/(_ [::] i Hi)/eqP in Hall.
+  move=> [i Hi] j /=; rewrite !mxE.
+  apply: set_nth_default.
+  by move/(_ [::] i Hi)/eqP: Hall =>->.
+Qed.
 
 Ltac prove_posdef_itv :=
   by apply posdef_check_itv_F_correct_inst; abstract (vm_cast_no_check (erefl true)).
