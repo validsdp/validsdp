@@ -1,6 +1,6 @@
 (** * Application: program for Cholesky decomposition. *)
 
-(* TODO: coqdoc *)
+(* TODO/WIP: coqdoc *)
 
 Require Import Reals.
 
@@ -27,15 +27,28 @@ Import Refinements.Op.
 
 Require Import iteri_ord float_infnan_spec real_matrix cholesky cholesky_infnan.
 
+(** Define extra TCs for cholesky *)
 Class sqrt T := sqrt_op : T -> T.
-
 Class store_class A I B :=
   store : forall (m n : nat), B m n -> I m -> I n -> A -> B m n.
-
 Class dotmulB0_class A I B :=
   dotmulB0 : forall n : nat, I n -> A -> B 1%nat n -> B 1%nat n -> A.
 
-Section Generic_prog.
+(** Define extra TCs for cholesky-based tactic, incl. up/d(ow)n-rounded ops *)
+Class map_mx_class mx := map_mx :
+  forall {T T'} {m n : nat},
+  (T -> T') -> mx T m n -> mx T' m n.
+Class addup_class B := addup : B -> B -> B.
+Class mulup_class B := mulup : B -> B -> B.
+Class divup_class B := divup : B -> B -> B.
+Class nat2Fup_class B := nat2Fup : nat -> B.
+Class subdn_class B := subdn : B -> B -> B.
+
+
+(** Part 1: Generic operations *)
+Section generic_operations.
+
+(** 1.1 Cholesky *)
 
 Context {T : Type} {ord : nat -> Type} {mx : Type -> nat -> nat -> Type}.
 Context `{!zero T, !one T, !add T, !opp T, !mul T, !div T, !sqrt T}.
@@ -67,9 +80,99 @@ Definition outer_loop A R :=
 (* note: the result is transposed with respect to cholesky.v *)
 Definition cholesky A := outer_loop A A.
 
-End Generic_prog.
+(** 1.2 Reflexive tactic *)
 
-Section Inst_ssr_matrix.
+Context `{!heq (mx T)}.
+Context `{!transpose_class (mx T)}.
+
+Definition is_sym (A : mx T n n) : bool := (A^T == A)%HC.
+
+Definition foldl_diag T' f (z : T') A :=
+  iteri_ord n (fun i z => f z (fun_of_matrix A i i)) z.
+
+Definition all_diag f A := foldl_diag (fun b c => b && f c) true A.
+
+Context `{!leq T}.
+
+Definition noneg_diag := all_diag (fun x => 0 <= x)%C.
+
+Context `{!lt T}.
+
+Definition pos_diag := all_diag (fun x => 0 < x)%C.
+
+Definition max x y := if (x <= y)%C then y else x.
+
+Definition max_diag A := foldl_diag max 0%C A.
+
+Definition map_diag f A :=
+  iteri_ord n (fun i A' => store A' i i (f (fun_of_matrix A i i))) A.
+
+Context `{!addup_class T, !mulup_class T, !divup_class T}.
+Context `{!nat2Fup_class T, !subdn_class T}.
+
+Definition tr_up A := foldl_diag addup 0%C A.
+
+(* overapproximations of eps and eta *)
+Variables eps eta : T.
+
+(* [compute_c n A maxdiag] overapproximates
+   /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
+Definition compute_c_aux (A : mx T n n) (maxdiag : T) : T :=
+let np1 := nat2Fup n.+1 in
+let dnp1 := nat2Fup (2 * n.+1)%N in
+let tnp1 := mulup dnp1 eps in
+let g := divup (mulup np1 eps) (- (addup tnp1 (-1%C)))%C in
+addup
+  (mulup g (tr_up A))
+  (mulup
+    (mulup (mulup (nat2Fup 4) eta) (nat2Fup n))
+    (addup dnp1 maxdiag)).
+
+Variable is_finite : T -> bool.
+
+Definition compute_c (A : mx T n n) :
+  option T :=
+  let nem1 := addup (mulup ((nat2Fup (2 * n.+1)%N)) eps) (-1%C)%C in
+  if is_finite nem1 && (nem1 < 0)%C then
+    let c := compute_c_aux A (max_diag A) in
+    if is_finite c then Some c else None
+  else None.
+
+(* check that n is not too large *)
+Definition test_n n'' : bool :=
+  let f := mulup (mulup (nat2Fup 4%N) (nat2Fup n''.+1)) eps in
+  is_finite f && (f < 1)%C.
+
+Definition posdef_check (A : mx T n n) : bool :=
+test_n n && is_sym A && noneg_diag A &&
+  (match compute_c A with
+     | None => false
+     | Some c =>
+       let A' := map_diag (fun x => subdn x c) A in
+       let R := cholesky A' in
+       all_diag is_finite R && pos_diag R
+   end).
+
+Definition posdef_check_itv (A : mx T n n) (r : T) : bool :=
+is_finite r && (0 <= r)%C &&
+  let nm := mulup (nat2Fup n) r in
+  let A' := map_diag (fun x => subdn x nm) A in
+  posdef_check A'.
+
+Context `{!map_mx_class mx}.
+
+Variables (F : Type) (F2FI : F -> T).
+
+Definition posdef_check_F (A : mx F n n) : bool := posdef_check (map_mx F2FI A).
+
+Definition posdef_check_itv_F (A : mx F n n) (r : F) : bool :=
+  posdef_check_itv (map_mx F2FI A) (F2FI r).
+
+End generic_operations.
+
+
+(** Part 2: Correctness proof for proof-oriented types and programs *)
+Section theory.
 
 Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, !div T, !mul T, !sqrt T}.
@@ -109,7 +212,7 @@ Global Instance I0_ssr : I0_class ord n := ord0.
 Global Instance succ0_ssr : succ0_class ord n := fun i => inord i.+1.
 Global Instance nat_of_ssr : nat_of_class ord n := @nat_of_ord n.
 
-(* Is the following really useful? *)
+(* TODO/FIXME: these definition may be unnecessary *)
 
 Definition ytilded_ssr : 'I_n -> T -> 'M[T]_(1, n) -> 'M[T]_(1, n) -> T -> T :=
   ytilded.
@@ -129,7 +232,7 @@ Definition outer_loop_ssr : 'M[T]_n -> 'M[T]_n -> 'M[T]_n :=
 Definition cholesky_ssr : 'M[T]_n -> 'M[T]_n :=
   cholesky.
 
-Section proof.
+(* Proofs. *)
 
 Lemma store_ssr_eq (M : 'M[T]_n) (i j : 'I_n) v i' j' :
   nat_of_ord i' = i -> nat_of_ord j' = j -> (store_ssr M i j v) i' j' = v.
@@ -315,17 +418,10 @@ with (ytildes_ssr j (A j j) (row j (cholesky_ssr A))).
 by apply sym_eq, outer_loop_correct, ltn_ord.
 Qed.
 
-End proof.
-
-End Inst_ssr_matrix.
+End theory. (* TO TIDY: Part 3: Parametricity: Section parametricity. *)
 
 (** *** And this spec corresponds to the one in cholesky.v. *)
-
-Section Inst_ssr_matrix_float_infnan.
-
-Context {n' : nat}.
-(* ?? *)
-Let n := n'.+1.
+Section inst_ssr_matrix_float_infnan.
 
 Context {fs : Float_infnan_spec}.
 
@@ -341,10 +437,13 @@ Global Instance eq_instFI : eq (FI fs) := @fieq fs.
 Global Instance leq_instFI : leq (FI fs) := @file fs.
 Global Instance lt_instFI : lt (FI fs) := @filt fs.
 
+Context {n' : nat}.
+Let n := n'.+1.
+
 Lemma dotmulB0_correct k (c : FI fs) (a b : 'rV_n) :
   dotmulB0_ssr k c a b = stilde_infnan c
-                                       [ffun i : 'I_k => a ord0 (inord i)]
-                                       [ffun i : 'I_k => b ord0 (inord i)].
+                                       [ffun i : 'I_k => a ord0 (inord i)] 
+                                      [ffun i : 'I_k => b ord0 (inord i)].
 Proof.
 case: k => //= k Hk; elim: k Hk c a b => //= k IHk Hk c a b.
 pose a' := \row_(i < n) a ord0 (inord (lift ord0 i)).
@@ -411,4 +510,4 @@ apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At R^T;
 apply cholesky_spec_correct, cholesky_correct.
 Qed.
 
-End Inst_ssr_matrix_float_infnan.
+End inst_ssr_matrix_float_infnan.

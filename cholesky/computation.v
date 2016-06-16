@@ -48,128 +48,7 @@ Import Refinements.Op.
 
 Require Import iteri_ord.
 
-Class sqrt T := sqrt_op : T -> T.
-
-Class store_class A I B :=
-  store : forall (m n : nat), B m n -> I m -> I n -> A -> B m n.
-
-Class dotmulB0_class A I B :=
-  dotmulB0 : forall n : nat, I n -> A -> B 1%nat n -> B 1%nat n -> A.
-
-Class map_mx_class mx := map_mx :
-  forall {T T'} {m n : nat},
-  (T -> T') -> mx T m n -> mx T' m n.
-
-(* upward rounded operations *)
-Class addup_class B := addup : B -> B -> B.
-Class mulup_class B := mulup : B -> B -> B.
-Class divup_class B := divup : B -> B -> B.
-Class nat2Fup_class B := nat2Fup : nat -> B.
-
-Class subdn_class B := subdn : B -> B -> B.
-
 Require Import cholesky_prog.
-
-Section generic_algos.
-Context {T : Type} {ordT : nat -> Type} {mx : Type -> nat -> nat -> Type}.
-Context `{!zero T, !one T, !add T, !opp T, (* !sub T, *) !mul T, !div T, !sqrt T}.
-Context `{!fun_of T ordT (mx T), !row_class ordT (mx T), !store_class T ordT (mx T), !dotmulB0_class T ordT (mx T)}.
-Context {n : nat}.
-Context `{!I0_class ordT n, !succ0_class ordT n, !nat_of_class ordT n}.
-
-Local Open Scope nat_scope.
-
-Context `{!heq (mx T)}.
-Context `{!transpose_class (mx T)}.
-
-Definition is_sym (A : mx T n n) : bool := (A^T == A)%HC.
-
-Definition foldl_diag T' f (z : T') A :=
-  iteri_ord n (fun i z => f z (fun_of_matrix A i i)) z.
-
-Definition all_diag f A := foldl_diag (fun b c => b && f c) true A.
-
-Context `{!leq T}.
-
-Definition noneg_diag := all_diag (fun x => 0 <= x)%C.
-
-Context `{!lt T}.
-
-Definition pos_diag := all_diag (fun x => 0 < x)%C.
-
-Definition max x y := if (x <= y)%C then y else x.
-
-Definition max_diag A := foldl_diag max 0%C A.
-
-Definition map_diag f A :=
-  iteri_ord n (fun i A' => store A' i i (f (fun_of_matrix A i i))) A.
-
-Section directed_rounding.
-
-Context `{!addup_class T, !mulup_class T, !divup_class T}.
-Context `{!nat2Fup_class T, !subdn_class T}.
-
-Definition tr_up A := foldl_diag addup 0%C A.
-
-(* overapproximations of eps and eta *)
-Variables eps eta : T.
-
-(* [compute_c n A maxdiag] overapproximates
-   /2 gamma (2 (n + 1)) \tr A + 4 eta n * (2 (n + 1) + maxdiag) *)
-Definition compute_c_aux (A : mx T n n) (maxdiag : T) : T :=
-let np1 := nat2Fup n.+1 in
-let dnp1 := nat2Fup (2 * n.+1)%N in
-let tnp1 := mulup dnp1 eps in
-let g := divup (mulup np1 eps) (- (addup tnp1 (-1%C)))%C in
-addup
-  (mulup g (tr_up A))
-  (mulup
-    (mulup (mulup (nat2Fup 4) eta) (nat2Fup n))
-    (addup dnp1 maxdiag)).
-
-Variable is_finite : T -> bool.
-
-Definition compute_c (A : mx T n n) :
-  option T :=
-  let nem1 := addup (mulup ((nat2Fup (2 * n.+1)%N)) eps) (-1%C)%C in
-  if is_finite nem1 && (nem1 < 0)%C then
-    let c := compute_c_aux A (max_diag A) in
-    if is_finite c then Some c else None
-  else None.
-
-(* check that n is not too large *)
-Definition test_n n'' : bool :=
-  let f := mulup (mulup (nat2Fup 4%N) (nat2Fup n''.+1)) eps in
-  is_finite f && (f < 1)%C.
-
-Definition posdef_check (A : mx T n n) : bool :=
-test_n n && is_sym A && noneg_diag A &&
-  (match compute_c A with
-     | None => false
-     | Some c =>
-       let A' := map_diag (fun x => subdn x c) A in
-       let R := cholesky A' in
-       all_diag is_finite R && pos_diag R
-   end).
-
-Definition posdef_check_itv (A : mx T n n) (r : T) : bool :=
-is_finite r && (0 <= r)%C &&
-  let nm := mulup (nat2Fup n) r in
-  let A' := map_diag (fun x => subdn x nm) A in
-  posdef_check A'.
-
-Context `{!map_mx_class mx}.
-
-Variables (F : Type) (F2FI : F -> T).
-
-Definition posdef_check_F (A : mx F n n) : bool := posdef_check (map_mx F2FI A).
-
-Definition posdef_check_itv_F (A : mx F n n) (r : F) : bool :=
-  posdef_check_itv (map_mx F2FI A) (F2FI r).
-
-End directed_rounding.
-
-End generic_algos.
 
 Section inst_ssr_matrix.
 
@@ -1812,9 +1691,9 @@ apply: set_nth_default.
 by move/(_ [::] i Hi)/eqP: Hall =>->.
 Qed.
 
-(* TODO: improve error message in case of failure *)
 Ltac prove_posdef :=
-  by apply posdef_check_F_correct_inst; abstract (vm_cast_no_check (erefl true)).
+  (by apply posdef_check_F_correct_inst; abstract (vm_cast_no_check (erefl true)))
+  || fail "Numerical evaluation failed to prove positive-definiteness".
 
 Definition posdef_itv_seqF (mat : seqmatrix F.type) (r : F.type) : Prop :=
   let m := seq.size mat in
@@ -1850,7 +1729,8 @@ apply (posdef_check_itv_F_correct (fs := coqinterval_round_up_infnan) (F2FI := F
 Qed.
 
 Ltac prove_posdef_itv :=
-  by apply posdef_check_itv_F_correct_inst; abstract (vm_cast_no_check (erefl true)).
+  (by apply posdef_check_itv_F_correct_inst; abstract (vm_cast_no_check (erefl true)))
+  || fail "Numerical evaluation failed to prove positive-definiteness".
 
 Require Import testsuite.
 
