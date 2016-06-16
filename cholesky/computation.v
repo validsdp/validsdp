@@ -1812,9 +1812,9 @@ apply: set_nth_default.
 by move/(_ [::] i Hi)/eqP: Hall =>->.
 Qed.
 
-(* TODO: improve error message in case of failure *)
 Ltac prove_posdef :=
-  by apply posdef_check_F_correct_inst; abstract (vm_cast_no_check (erefl true)).
+  (by apply posdef_check_F_correct_inst; abstract (vm_cast_no_check (erefl true)))
+  || fail "Numerical evaluation failed to prove positive-definiteness".
 
 Definition posdef_itv_seqF (mat : seqmatrix F.type) (r : F.type) : Prop :=
   let m := seq.size mat in
@@ -1850,7 +1850,8 @@ apply (posdef_check_itv_F_correct (fs := coqinterval_round_up_infnan) (F2FI := F
 Qed.
 
 Ltac prove_posdef_itv :=
-  by apply posdef_check_itv_F_correct_inst; abstract (vm_cast_no_check (erefl true)).
+  (by apply posdef_check_itv_F_correct_inst; abstract (vm_cast_no_check (erefl true)))
+  || fail "Numerical evaluation failed to prove positive-definiteness".
 
 Require Import testsuite.
 
