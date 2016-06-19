@@ -167,7 +167,7 @@ End generic_cholesky.
 
 Section theory_cholesky.
 
-(** *** Proof-oriented definitions *)
+(** *** Proof-oriented definitions, polymorphic w.r.t scalars *)
 
 Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, !div T, !mul T, !sqrt T}.
@@ -395,10 +395,77 @@ with (ytildes_ssr j (A j j) (row j (cholesky_ssr A))).
 by apply sym_eq, outer_loop_correct, ltn_ord.
 Qed.
 
-End theory_cholesky. (* TO TIDY: Part 3: Parametricity: Section parametricity. *)
+(** *** Proofs for cholesky-based tactic *)
 
-(** *** And this spec corresponds to the one in cholesky.v. *)
-Section inst_ssr_matrix_float_infnan.
+(* FIXME: these definition may be unnecessary *)
+
+Definition all_diag_ssr : (T -> bool) -> 'M[T]_n.+1 -> bool :=
+  all_diag.
+
+Definition foldl_diag_ssr (T' : Type) : (T' -> T -> T') -> T' -> 'M_n.+1 -> T' :=
+  foldl_diag (T' := T').
+
+Definition map_diag_ssr : (T -> T) -> 'M[T]_n.+1 -> 'M[T]_n.+1 :=
+  map_diag.
+
+Lemma all_diag_correct f A : all_diag_ssr f A -> forall i, f (A i i).
+Proof.
+move=> Had i; move: (ltn_ord i) Had.
+set P := fun i b => b = true -> f (A i i) = true.
+rewrite -/(P i (all_diag_ssr f A)).
+rewrite -/(nat_of _); apply iteri_ord_ind_strong_cases.
+{ move=> j' s Hj' H j'' Hj''.
+  by rewrite /P Bool.andb_true_iff => Hb; elim Hb => Hb' _; apply H. }
+by move=> j' s Hj' H; rewrite /P Bool.andb_true_iff => Hb; elim Hb.
+Qed.
+
+Lemma foldl_diag_correct (T' : Type) (f : T' -> T -> T') (z : T') (A : 'M_n.+1) :
+  forall (P : nat -> T' -> Type),
+  (forall (i : 'I_n.+1) z, P i z -> P i.+1 (f z (A i i))) ->
+  P O z -> P n.+1 (foldl_diag_ssr f z A).
+Proof.
+move=> P Hind; rewrite /foldl_diag_ssr /foldl_diag.
+apply iteri_ord_ind => // i s Hi HPi; apply Hind.
+by move: HPi; rewrite /nat_of /nat_of_ord.
+Qed.
+
+Lemma map_diag_correct_ndiag f (A : 'M[T]_n.+1) :
+  forall i j : 'I_n.+1, i <> j -> (map_diag_ssr f A) i j = A i j.
+Proof.
+move=> i j Hij.
+rewrite /map_diag_ssr /map_diag /iteri_ord; set f' := fun _ _ => _.
+suff H : forall k R i',
+           (matrix.fun_of_matrix (@iteri_ord_rec _ _ succ0_ssr _ k i' f' R) i j
+            = R i j) => //; elim => // k IHk R i' /=.
+rewrite IHk; case (ltnP i' j) => Hi'j; [by rewrite store_ssr_gt2|].
+case (ltnP i j) => Hij'.
+{ by rewrite store_ssr_lt1 //; apply (leq_trans Hij'). }
+case (ltnP i' i) => Hi'i; [by rewrite store_ssr_gt1|].
+rewrite store_ssr_lt2 //; move: Hi'i; apply leq_trans.
+case (leqP i j) => Hij'' //.
+by casetype False; apply Hij, ord_inj, anti_leq; rewrite Hij''.
+Qed.
+
+Lemma map_diag_correct_diag f (A : 'M[T]_n.+1) :
+  forall i, (map_diag_ssr f A) i i = f (A i i).
+Proof.
+move=> i; rewrite /map_diag_ssr /map_diag.
+set f' := fun _ _ => _.
+set P := fun i s => s i i = f (A i i); rewrite -/(P i _).
+apply iteri_ord_ind_strong_cases with (i0 := i) => //.
+{ move=> j s Hj Hind j' Hj'.
+  rewrite /P /f' store_ssr_lt1 //; apply Hind => //; apply ltn_ord. }
+{ move=> j s Hj Hind; rewrite /P /f' store_ssr_eq //. }
+apply ltn_ord.
+Qed.
+
+End theory_cholesky.
+
+Section theory_cholesky_2.
+
+(** *** Proof-oriented definitions, Float_infnan_spec scalars *)
+
+(** This spec corresponds to the one in [cholesky.v]... *)
 
 Context {fs : Float_infnan_spec}.
 
@@ -414,17 +481,16 @@ Global Instance eq_instFI : eq (FI fs) := @fieq fs.
 Global Instance leq_instFI : leq (FI fs) := @file fs.
 Global Instance lt_instFI : lt (FI fs) := @filt fs.
 
-Context {n' : nat}.
-Let n := n'.+1.
+Context {n : nat}.
 
-Lemma dotmulB0_correct k (c : FI fs) (a b : 'rV_n) :
+Lemma dotmulB0_correct k (c : FI fs) (a b : 'rV_n.+1) :
   dotmulB0_ssr k c a b = stilde_infnan c
                                        [ffun i : 'I_k => a ord0 (inord i)] 
-                                      [ffun i : 'I_k => b ord0 (inord i)].
+                                       [ffun i : 'I_k => b ord0 (inord i)].
 Proof.
 case: k => //= k Hk; elim: k Hk c a b => //= k IHk Hk c a b.
-pose a' := \row_(i < n) a ord0 (inord (lift ord0 i)).
-pose b' := \row_(i < n) b ord0 (inord (lift ord0 i)).
+pose a' := \row_(i < n.+1) a ord0 (inord (lift ord0 i)).
+pose b' := \row_(i < n.+1) b ord0 (inord (lift ord0 i)).
 rewrite (@fsum_l2r_rec_eq _ _ _ _ _ _
   [ffun i : 'I_k => (- (a' ord0 (inord i) * b' ord0 (inord i)))%C] erefl).
 { rewrite (IHk (ltnW Hk)).
@@ -434,24 +500,24 @@ by move=> i; rewrite !ffunE !mxE /=; apply f_equal, f_equal2;
   do 3 apply f_equal; apply sym_eq, inordK, (ltn_trans (ltn_ord i)), ltnW.
 Qed.
 
-Lemma ytilded_correct k (c : FI fs) (a b : 'rV_n) (bk : FI fs) :
+Lemma ytilded_correct k (c : FI fs) (a b : 'rV_n.+1) (bk : FI fs) :
   ytilded_ssr k c a b bk = ytilded_infnan c
-                                         [ffun i : 'I_k => a ord0 (inord i)]
-                                         [ffun i : 'I_k => b ord0 (inord i)]
-                                         bk.
+                                          [ffun i : 'I_k => a ord0 (inord i)]
+                                          [ffun i : 'I_k => b ord0 (inord i)]
+                                          bk.
 Proof.
 rewrite /ytilded_ssr /ytilded /ytilded_infnan; apply f_equal2 => //.
 apply dotmulB0_correct.
 Qed.
 
-Lemma ytildes_correct k (c : FI fs) (a : 'rV_n) :
+Lemma ytildes_correct k (c : FI fs) (a : 'rV_n.+1) :
   ytildes_ssr k c a = ytildes_infnan c [ffun i : 'I_k => a ord0 (inord i)].
 Proof.
 rewrite /ytildes_ssr /ytildes /ytildes_infnan; apply f_equal => //.
 apply dotmulB0_correct.
 Qed.
 
-Lemma cholesky_spec_correct (A R : 'M_n) :
+Lemma cholesky_spec_correct (A R : 'M_n.+1) :
   cholesky_spec_ssr A R -> cholesky_spec_infnan A R.
 Proof.
 move=> H; split.
@@ -461,30 +527,37 @@ move=> j; rewrite (proj2 H) ytildes_correct /ytildes_infnan; apply f_equal.
 by apply stilde_infnan_eq=>// i; rewrite !ffunE !mxE.
 Qed.
 
-(** *** Which enables to restate corollaries from cholesky.v. *)
+(** ... which enables to restate corollaries from [cholesky.v]. *)
 
 (** If [A] contains no infinity or NaN, then [MFI2F A] = [A] and
     [posdef (MF2R (MFI2F A))] means that [A] is positive definite. *)
 Lemma corollary_2_4_with_c_upper_bound :
-  4 * INR n.+1 * eps fs < 1 ->
-  forall A : 'M[FI fs]_n, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
-  (forall i : 'I_n, 0 <= (MFI2F A) i i) ->
-  forall maxdiag : R, (forall i : 'I_n, (MFI2F A) i i <= maxdiag) ->
+  4 * INR n.+2 * eps fs < 1 ->
+  forall A : 'M[FI fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
+  (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->
+  forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->
   forall c : R,
-  (/2 * gamma.gamma fs (2 * n.+1) * (\tr (MF2R (MFI2F A)))
-   + 4 * eta fs * INR n * (2 * INR n.+1 + maxdiag)
+  (/2 * gamma.gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
+   + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
-  forall At : 'M[FI fs]_n,
-  ((forall i j : 'I_n, (i < j)%N -> At i j = A i j) /\
-   (forall i : 'I_n, (MFI2F At) i i <= (MFI2F A) i i - c)) ->
+  forall At : 'M[FI fs]_n.+1,
+  ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
+   (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->
   let R := cholesky_ssr At in
   (forall i, (0 < (MFI2F R) i i)%Re) ->
   posdef (MF2R (MFI2F A)).
 Proof.
 move=> H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt R HAR.
-apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At R^T;
-  try assumption; split; [|by move=> i; move: (HAR i); rewrite !mxE].
-apply cholesky_spec_correct, cholesky_correct.
+apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At R^T =>//.
+split.
+- by apply cholesky_spec_correct, cholesky_correct.
+- by move=> i; move: (HAR i); rewrite !mxE.
 Qed.
 
-End inst_ssr_matrix_float_infnan.
+(** ** Part 3: Parametricity *)
+
+Section parametricity_cholesky.
+
+End parametricity_cholesky.
+
+End theory_cholesky_2.
