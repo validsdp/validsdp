@@ -1,19 +1,14 @@
-(** * Application: program for Cholesky decomposition. *)
-
-(* TODO/WIP: coqdoc *)
-
 Require Import Reals.
-
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool
-        mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype
-        mathcomp.ssreflect.ssrnat mathcomp.ssreflect.fintype
-        mathcomp.ssreflect.finfun mathcomp.algebra.matrix.
-
+From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finfun matrix.
+From CoqEAL_refinements Require Import refinements.
 Require Import Rstruct.
+Require Import iteri_ord float_infnan_spec real_matrix cholesky cholesky_infnan.
+
+(** * Application: program for Cholesky decomposition *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Open Scope R_scope.
 Open Scope ring_scope.
@@ -21,20 +16,18 @@ Open Scope ring_scope.
 Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
 
-Require Import CoqEAL_refinements.refinements.
-
 Import Refinements.Op.
 
-Require Import iteri_ord float_infnan_spec real_matrix cholesky cholesky_infnan.
+(** ** Part 0: Definition of operational type classes *)
 
-(** Define extra TCs for cholesky *)
+(** for cholesky *)
 Class sqrt T := sqrt_op : T -> T.
 Class store_class A I B :=
   store : forall (m n : nat), B m n -> I m -> I n -> A -> B m n.
 Class dotmulB0_class A I B :=
   dotmulB0 : forall n : nat, I n -> A -> B 1%nat n -> B 1%nat n -> A.
 
-(** Define extra TCs for cholesky-based tactic, incl. up/d(ow)n-rounded ops *)
+(** for cholesky-based tactic, including up/d(ow)n-rounded operations *)
 Class map_mx_class mx := map_mx :
   forall {T T'} {m n : nat},
   (T -> T') -> mx T m n -> mx T' m n.
@@ -44,11 +37,11 @@ Class divup_class B := divup : B -> B -> B.
 Class nat2Fup_class B := nat2Fup : nat -> B.
 Class subdn_class B := subdn : B -> B -> B.
 
+(** ** Part 1: Generic programs *)
 
-(** Part 1: Generic operations *)
-Section generic_operations.
+Section generic_cholesky.
 
-(** 1.1 Cholesky *)
+(** *** 1.1 Cholesky *)
 
 Context {T : Type} {ord : nat -> Type} {mx : Type -> nat -> nat -> Type}.
 Context `{!zero T, !one T, !add T, !opp T, !mul T, !div T, !sqrt T}.
@@ -80,7 +73,7 @@ Definition outer_loop A R :=
 (* note: the result is transposed with respect to cholesky.v *)
 Definition cholesky A := outer_loop A A.
 
-(** 1.2 Reflexive tactic *)
+(** *** 1.2 Reflexive tactic *)
 
 Context `{!heq (mx T)}.
 Context `{!transpose_class (mx T)}.
@@ -168,24 +161,23 @@ Definition posdef_check_F (A : mx F n n) : bool := posdef_check (map_mx F2FI A).
 Definition posdef_check_itv_F (A : mx F n n) (r : F) : bool :=
   posdef_check_itv (map_mx F2FI A) (F2FI r).
 
-End generic_operations.
+End generic_cholesky.
 
+(** ** Part 2: Correctness proofs for proof-oriented types and programs *)
 
-(** Part 2: Correctness proof for proof-oriented types and programs *)
-Section theory.
+Section theory_cholesky.
+
+(** *** Proof-oriented definitions *)
 
 Context {T : Type}.
 Context `{!zero T, !one T, !add T, !opp T, !div T, !mul T, !sqrt T}.
 
-Let ord := ordinal.
-Let mx := matrix.
-
-Global Instance fun_of_ssr : fun_of T ord (mx T) :=
+Global Instance fun_of_ssr : fun_of T ordinal (matrix T) :=
   fun m n => @matrix.fun_of_matrix T m n.
 
-Global Instance row_ssr : row_class ord (mx T) := @matrix.row T.
+Global Instance row_ssr : row_class ordinal (matrix T) := @matrix.row T.
 
-Global Instance store_ssr : store_class T ord (mx T) :=
+Global Instance store_ssr : store_class T ordinal (matrix T) :=
   fun m n (M : 'M[T]_(m, n)) (i : 'I_m) (j : 'I_n) v =>
   \matrix_(i', j')
     if ((nat_of_ord i' == i) && (nat_of_ord j' == j))%N then v else M i' j'.
@@ -197,7 +189,7 @@ Fixpoint fsum_l2r_rec n (c : T) : T ^ n -> T :=
       fun a => fsum_l2r_rec (c + (a ord0))%C [ffun i => a (lift ord0 i)]
   end.
 
-Global Instance dotmulB0_ssr : dotmulB0_class T ord (mx T) :=
+Global Instance dotmulB0_ssr : dotmulB0_class T ordinal (matrix T) :=
   fun n =>
     match n with
       | 0%N => fun i c a b => c
@@ -206,51 +198,47 @@ Global Instance dotmulB0_ssr : dotmulB0_class T ord (mx T) :=
         [ffun k : 'I_i => (- ((a ord0 (inord k)) * (b ord0 (inord k))))%C]
     end.
 
-Context {n' : nat}.
-Let n := n'.+1.
-Global Instance I0_ssr : I0_class ord n := ord0.
-Global Instance succ0_ssr : succ0_class ord n := fun i => inord i.+1.
-Global Instance nat_of_ssr : nat_of_class ord n := @nat_of_ord n.
+Context {n : nat}.
 
-(* TODO/FIXME: these definition may be unnecessary *)
+(* FIXME: these definition may be unnecessary *)
 
-Definition ytilded_ssr : 'I_n -> T -> 'M[T]_(1, n) -> 'M[T]_(1, n) -> T -> T :=
+Definition ytilded_ssr : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> 'M[T]_(1, n.+1) -> T -> T :=
   ytilded.
 
-Definition ytildes_ssr : 'I_n -> T -> 'M[T]_(1, n) -> T :=
+Definition ytildes_ssr : 'I_n.+1 -> T -> 'M[T]_(1, n.+1) -> T :=
   ytildes.
 
-Definition iteri_ord_ssr : forall T, nat -> ('I_n -> T -> T) -> T -> T :=
+Definition iteri_ord_ssr : forall T, nat -> ('I_n.+1 -> T -> T) -> T -> T :=
   iteri_ord.
 
-Definition inner_loop_ssr : 'I_n -> 'M[T]_n -> 'M[T]_n -> 'M[T]_n :=
+Definition inner_loop_ssr : 'I_n.+1 -> 'M[T]_n.+1 -> 'M[T]_n.+1 -> 'M[T]_n.+1 :=
   inner_loop.
 
-Definition outer_loop_ssr : 'M[T]_n -> 'M[T]_n -> 'M[T]_n :=
+Definition outer_loop_ssr : 'M[T]_n.+1 -> 'M[T]_n.+1 -> 'M[T]_n.+1 :=
   outer_loop.
 
-Definition cholesky_ssr : 'M[T]_n -> 'M[T]_n :=
+Definition cholesky_ssr : 'M[T]_n.+1 -> 'M[T]_n.+1 :=
   cholesky.
 
-(* Proofs. *)
+(** *** Proofs *)
 
-Lemma store_ssr_eq (M : 'M[T]_n) (i j : 'I_n) v i' j' :
+Lemma store_ssr_eq (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
   nat_of_ord i' = i -> nat_of_ord j' = j -> (store_ssr M i j v) i' j' = v.
 Proof. by rewrite /nat_of_ssr mxE => -> ->; rewrite !eq_refl. Qed.
 
-Lemma store_ssr_lt1 (M : 'M[T]_n) (i j : 'I_n) v i' j' :
+Lemma store_ssr_lt1 (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
   (nat_of_ord i' < i)%N -> (store_ssr M i j v) i' j' = M i' j'.
 Proof. by move=> Hi; rewrite mxE (ltn_eqF Hi). Qed.
 
-Lemma store_ssr_lt2 (M : 'M[T]_n) (i j : 'I_n) v i' j' :
+Lemma store_ssr_lt2 (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
   (nat_of_ord j' < j)%N -> (store_ssr M i j v) i' j' = M i' j'.
 Proof. by move=> Hj; rewrite mxE (ltn_eqF Hj) Bool.andb_false_r. Qed.
 
-Lemma store_ssr_gt1 (M : 'M[T]_n) (i j : 'I_n) v i' j' :
+Lemma store_ssr_gt1 (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
   (i < nat_of_ord i')%N -> (store_ssr M i j v) i' j' = M i' j'.
 Proof. by move=> Hi; rewrite mxE eq_sym (ltn_eqF Hi). Qed.
 
-Lemma store_ssr_gt2 (M : 'M[T]_n) (i j : 'I_n) v i' j' :
+Lemma store_ssr_gt2 (M : 'M[T]_n.+1) (i j : 'I_n.+1) v i' j' :
   (j < nat_of_ord j')%N -> (store_ssr M i j v) i' j' = M i' j'.
 Proof.
 move=> Hj.
@@ -278,66 +266,56 @@ apply fsum_l2r_rec_eq => // j; rewrite !ffunE Ha ?Hb //;
   (rewrite inordK; [|apply (ltn_trans (ltn_ord j))]); apply ltn_ord.
 Qed.
 
-Lemma ytilded_ssr_eq (k : 'I_n)
-      (c1 : T) (a1 b1 : 'rV_n) (bk1 : T)
-      (c2 : T) (a2 b2 : 'rV_n) (bk2 : T) :
-  c1 = c2 -> (forall i : 'I_n, (i < k)%N -> a1 ord0 i = a2 ord0 i) ->
-  (forall i : 'I_n, (i < k)%N -> b1 ord0 i = b2 ord0 i) -> (bk1 = bk2) ->
+Lemma ytilded_ssr_eq (k : 'I_n.+1)
+      (c1 : T) (a1 b1 : 'rV_n.+1) (bk1 : T)
+      (c2 : T) (a2 b2 : 'rV_n.+1) (bk2 : T) :
+  c1 = c2 -> (forall i : 'I_n.+1, (i < k)%N -> a1 ord0 i = a2 ord0 i) ->
+  (forall i : 'I_n.+1, (i < k)%N -> b1 ord0 i = b2 ord0 i) -> (bk1 = bk2) ->
   ytilded_ssr k c1 a1 b1 bk1 = ytilded_ssr k c2 a2 b2 bk2.
 Proof.
 move=> Hc Ha Hb Hbk.
 by rewrite /ytilded_ssr /ytilded; apply f_equal2; [apply dotmulB0_ssr_eq|].
 Qed.
 
-Lemma ytildes_ssr_eq (k : 'I_n) (c1 : T) (a1 : 'rV_n) (c2 : T) (a2 : 'rV_n) :
-  c1 = c2 -> (forall i : 'I_n, (i < k)%N -> a1 ord0 i = a2 ord0 i) ->
+Lemma ytildes_ssr_eq (k : 'I_n.+1) (c1 : T) (a1 : 'rV_n.+1) (c2 : T) (a2 : 'rV_n.+1) :
+  c1 = c2 -> (forall i : 'I_n.+1, (i < k)%N -> a1 ord0 i = a2 ord0 i) ->
   ytildes_ssr k c1 a1 = ytildes_ssr k c2 a2.
 Proof.
 by move=> Hc Ha; rewrite /ytildes_ssr /ytildes; apply f_equal, dotmulB0_ssr_eq.
 Qed.
 
-Definition cholesky_spec_ssr (A R : 'M_n) : Prop :=
-  (forall (j i : 'I_n),
+Definition cholesky_spec_ssr (A R : 'M_n.+1) : Prop :=
+  (forall (j i : 'I_n.+1),
      (i < j)%N ->
      (R i j = ytilded_ssr i (A i j) (row i R^T) (row j R^T) (R i i)))
-  /\ (forall (j : 'I_n),
+  /\ (forall (j : 'I_n.+1),
         (R j j = ytildes_ssr j (A j j) (row j R^T))).
 
-(** *** Loop invariants. *)
+(** *** Loop invariants *)
 
-Definition outer_loop_inv (A R : 'M_n) j : Prop :=
-  (forall (j' i' : 'I_n),
+Definition outer_loop_inv (A R : 'M_n.+1) j : Prop :=
+  (forall (j' i' : 'I_n.+1),
      (j' < j)%N ->
      (i' < j')%N ->
      (R j' i' = ytilded_ssr i' (A i' j') (row i' R) (row j' R) (R i' i')))
-  /\ (forall (j' : 'I_n),
+  /\ (forall (j' : 'I_n.+1),
         (j' < j)%N ->
         (R j' j' = ytildes_ssr j' (A j' j') (row j' R))).
 
-Definition inner_loop_inv (A R : 'M_n) j i : Prop :=
+Definition inner_loop_inv (A R : 'M_n.+1) j i : Prop :=
   outer_loop_inv A R j /\
-  (forall (j' i' : 'I_n),
+  (forall (j' i' : 'I_n.+1),
         nat_of_ord j' = j ->
         (i' < i)%N ->
         (i' < j)%N ->
         (R j' i' = ytilded_ssr i' (A i' j') (row i' R) (row j' R) (R i' i'))).
 
-Global Instance succ0_spec_ssr : succ0_spec ord n.
-Proof. by move=> i H; rewrite /nat_of /nat_of_ssr inordK. Qed.
-
-Global Instance I0_spec_ssr : I0_spec ord n.
-Proof. done. Qed.
-
-Global Instance nat_of_correct_ord : nat_of_spec ord n.
-Proof. exact: ord_inj. Qed.
-
-Lemma inner_loop_correct (A R : 'M_n) (j : 'I_n) :
-  inner_loop_inv A R j 0 -> inner_loop_inv A (inner_loop_ssr j A R) j n.
+Lemma inner_loop_correct (A R : 'M_n.+1) (j : 'I_n.+1) :
+  inner_loop_inv A R j 0 -> inner_loop_inv A (inner_loop_ssr j A R) j n.+1.
 Proof.
 move=> H; cut (inner_loop_inv A (inner_loop_ssr j A R) j j).
 { by move=> {H} [Ho Hi]; split; [|move=> j' i' Hj' _ Hi'; apply Hi]. }
 rewrite /inner_loop_ssr /inner_loop /nat_of /nat_of_ssr.
-set f := fun _ _ => _.
 set P := fun i s => inner_loop_inv A s j i; rewrite -/(P _ _).
 apply iteri_ord_ind => //.
 { apply /ltnW /(ltn_ord j). }
@@ -366,10 +344,9 @@ move: Hini Hinj; rewrite !inord_val => <- <-; apply ytilded_ssr_eq => //.
 by rewrite store_ssr_lt1 //; move: Hi'i; rewrite /nat_of_ord => <-.
 Qed.
 
-Lemma outer_loop_correct (A R : 'M_n) : outer_loop_inv A (outer_loop_ssr A R) n. 
+Lemma outer_loop_correct (A R : 'M_n.+1) : outer_loop_inv A (outer_loop_ssr A R) n.+1. 
 Proof.
 rewrite /outer_loop_ssr /outer_loop.
-set f := fun _ _ => _.
 set P := fun i s => outer_loop_inv A s i; rewrite -/(P _ _).
 apply iteri_ord_ind => // j R' _ H.
 have Hin_0 : inner_loop_inv A R' j 0; [by []|].
@@ -403,7 +380,7 @@ Qed.
 
 (** *** The implementation satisfies the specification above. *)
 
-Lemma cholesky_correct (A : 'M[T]_n) : cholesky_spec_ssr A (cholesky_ssr A)^T.
+Lemma cholesky_correct (A : 'M[T]_n.+1) : cholesky_spec_ssr A (cholesky_ssr A)^T.
 Proof.
 split; [move=> j i Hij|move=> j]; rewrite !mxE.
 { replace ((cholesky_ssr A) j i)
@@ -418,7 +395,7 @@ with (ytildes_ssr j (A j j) (row j (cholesky_ssr A))).
 by apply sym_eq, outer_loop_correct, ltn_ord.
 Qed.
 
-End theory. (* TO TIDY: Part 3: Parametricity: Section parametricity. *)
+End theory_cholesky. (* TO TIDY: Part 3: Parametricity: Section parametricity. *)
 
 (** *** And this spec corresponds to the one in cholesky.v. *)
 Section inst_ssr_matrix_float_infnan.

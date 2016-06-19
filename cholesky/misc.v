@@ -11,7 +11,7 @@ Require Import Rstruct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Open Scope R_scope.
 Open Scope ring_scope.

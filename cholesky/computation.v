@@ -556,7 +556,7 @@ Qed.
 
 End proof_inst_ssr_matrix_float_infnan.
 
-Notation ord_instN := (fun _ : nat => nat) (only parsing).
+(* Notation ord_instN := (fun _ : nat => nat) (only parsing). *)
 Notation seqmatrix' := ((fun (A : Type) (_ _ : nat) => seqmatrix A)) (only parsing).
 
 Section inst_seqmx.
