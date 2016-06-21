@@ -1,6 +1,8 @@
 Require Import FMaps FMapAVL.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import choice finfun tuple fintype ssralg.
+(* tests with multipolys from
+   git clone https://github.com/math-comp/multinomials.git *)
 From SsrMultinomials Require Import mpoly freeg.
 From CoqEAL_theory Require Import hrel.
 From CoqEAL_refinements Require Import refinements.

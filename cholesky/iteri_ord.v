@@ -46,6 +46,8 @@ Definition iteri_ord T j (f : ord n -> T -> T) x := iteri_ord_rec j I0 f x.
 
 End generic_iteri.
 
+Notation ord_instN := (fun _ : nat => nat) (only parsing).
+
 (** ** Main instantiations *)
 Section theory_nat_of.
 
@@ -61,7 +63,6 @@ constructor.
 - exact: ord_inj.
 Qed.
 
-Notation ord_instN := (fun _ : nat => nat) (only parsing).
 Global Instance I0_instN : I0_class ord_instN n.+1 := O.
 Global Instance succ0_instN : succ0_class ord_instN n.+1 := S.
 Global Instance nat_of_instN : nat_of_class ord_instN n.+1 := id.
@@ -223,5 +224,7 @@ replace j with (j - @nat_of ord _ _ I0)%N at 1; [|by rewrite I0_prop subn0].
 replace j with (j - nat_of I0)%N at 2; [|by rewrite I0_prop subn0].
 by apply iteri_ord_rec_ind2; rewrite // !I0_prop.
 Qed.
+
+End Ind2.
 
 End theory_iteri.
