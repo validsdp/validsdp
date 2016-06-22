@@ -6,12 +6,14 @@ From mathcomp Require Import choice finfun tuple fintype ssralg.
 From SsrMultinomials Require Import mpoly freeg.
 From CoqEAL_theory Require Import hrel.
 From CoqEAL_refinements Require Import refinements.
-From CoqEAL_refinements Require Import seqmatrix (* for Rord *).
+From CoqEAL_refinements Require Import seqmatrix (* for Rord, zipwith *).
 Require Import misc.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+
+Import Refinements.Op.
 
 (** Tip to leverage a Boolean condition *)
 Definition optb (b : bool) : option (is_true b) :=
@@ -36,8 +38,8 @@ Definition seqmultinom := seq nat.
 Definition mnm0_seq {n} := nseq n 0%N.
 
 (* TODO: may be refactored by using mnm1, mnm_add, mnm_muln *)
-Definition mnmd {n} (c : 'I_n) (d : nat) :=
-  [multinom (if (c == i :> nat) then d else 0%N) | i < n].
+Definition mnmd {n} (i : 'I_n) (d : nat) :=
+  [multinom (if (i == j :> nat) then d else 0%N) | j < n].
 
 Definition mnmd_seq {n} (i d : nat) :=
   nseq i 0%N ++ [:: d] ++ nseq (n - i - 1) 0%N.
@@ -115,6 +117,7 @@ Admitted.
 End MultinomOrd.
 
 Module M := FMapList.Make MultinomOrd.
+Arguments M.empty {elt}.
 (*
 Module M := FMapAVL.Make MultinomOrd.
 *)
@@ -122,7 +125,70 @@ Definition effmpoly := M.t.
 
 Module MFacts := Facts M.
 
-Module MProps := Properties M.
+Module MProps.
+Include Properties M.
+Definition singleton T key (val : T) := M.add key val M.empty.
+End MProps.
+
+Section seqmpoly_generic_2.
+
+Definition effmpoly_of_list : forall T, seq (seqmultinom * T) -> effmpoly T :=
+  MProps.of_list.
+
+Definition list_of_effmpoly : forall T, effmpoly T -> seq (seqmultinom * T) :=
+  M.elements.
+
+Context {T : Type} `{!one T, !add T, !sub T, !mul T} {n : nat}.
+
+Definition mp0_eff : effmpoly T := M.empty.
+
+Definition mp1_eff  := MProps.singleton (@mnm0_seq n) 1%C.
+
+Definition mpvar_eff (c : T) (d : nat) (i : nat) : effmpoly T :=
+  MProps.singleton (@mnmd_seq n i d) c.
+
+Definition mpolyC_eff (c : T) : effmpoly T :=
+  MProps.singleton (@mnm0_seq n) c.
+
+Definition mpolyX_eff (m : seqmultinom) : effmpoly T :=
+  MProps.singleton m 1%C.
+
+Definition mpoly_scale_eff (c : T) (p : effmpoly T) : effmpoly T :=
+  M.map (fun x => c * x)%C p.
+
+Definition mpoly_add_eff : effmpoly T -> effmpoly T -> effmpoly T :=
+  M.map2 (fun c1 c2 =>
+    match c1, c2 with
+    | Some c1, Some c2 => Some (c1 + c2)%C
+    | Some c, _ | _, Some c => Some c
+    | None, None => None
+    end).
+
+Definition mpoly_sub_eff : effmpoly T -> effmpoly T -> effmpoly T :=
+  M.map2 (fun c1 c2 =>
+    match c1, c2 with
+    | Some c1, Some c2 => Some (c1 - c2)%C
+    | Some c, _ | _, Some c => Some c
+    | None, None => None
+    end).
+
+Let mult_monomial_eff (m : seqmultinom) (c : T) : effmpoly T -> effmpoly T :=
+  M.fold (fun m' c' (*acc*) => M.add (mnm_add_seq m m') (c * c')%C (*acc*)) M.empty.
+
+Definition mpoly_mul_eff (p q : effmpoly T) : effmpoly T :=
+  M.fold (fun m c (*acc*) => mpoly_add_eff (mult_monomial_eff m c p) (*acc*)) M.empty q.
+
+(* TODO: fast exponentiation *)
+Definition mpoly_exp_eff (p : effmpoly T) (n : nat) := iterop n mpoly_mul_eff p mp0_eff.
+
+Let comp_monomial_eff (m : seqmultinom) (c : T) (lq : seq (effmpoly T)) : effmpoly T :=
+  let mq := zipwith mpoly_exp_eff lq m in
+  mpoly_scale_eff c (foldl mpoly_mul_eff mp1_eff mq).
+
+Definition comp_mpoly_eff (lq : seq (effmpoly T)) (p : effmpoly T) : effmpoly T :=
+  M.fold (fun m c p => mpoly_add_eff p (comp_monomial_eff m c lq)) p mp0_eff.
+
+End seqmpoly_generic_2.
 
 (** Part II: Proofs for proof-oriented types and programs *)
 Section seqmpoly_theory.
@@ -285,7 +351,7 @@ case_eq (M.find m' p') => [c|] Hc.
     Search "" map uniq.
 apply reduced_uniq.
 map_inj_uniq
-*/
+*)
 Admitted.
 
 End seqmpoly_theory.
