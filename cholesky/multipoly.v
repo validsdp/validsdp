@@ -49,15 +49,12 @@ Definition mnmd_seq {n} (i d : nat) :=
 (** Multiplication of multinomials *)
 Definition mnm_add_seq m1 m2 := map2 addn m1 m2.
 
-(** Translation of [poset.ltx] *)
 Fixpoint mnmc_lt_seq (s1 s2 : seq nat) {struct s1} : bool :=
-  match s1 with
-  | [::] => true
-  | x1 :: s1' =>
-      match s2 with
-      | [::] => false
-      | x2 :: s2' => (x1 < x2)%N && mnmc_lt_seq s1' s2'
-      end
+  match s1, s2 with
+    | [::], [::] => false
+    | [::], _ => true
+    | x1 :: s1', [::] => false
+    | x1 :: s1', x2 :: s2' => (x1 < x2)%N || (x1 == x2)%N && mnmc_lt_seq s1' s2'
   end.
 
 Definition mnmc_eq_seq := eq_seq (fun n m : nat => n == m)%N.
@@ -84,8 +81,12 @@ Definition lt : t -> t -> Prop := mnmc_lt_seq.
 Lemma intro_eq x y :
   (mnmc_lt_seq x y = false) -> (mnmc_lt_seq y x = false) -> mnmc_eq_seq x y.
 Proof.
-Admitted.
-(* Pierre *)
+move: x y; elim => [|hx tx Hind]; case=> // hy ty.
+rewrite /lt /=; case (ltnP hx hy) => //= Hxy.
+case (ltnP hy hx) => //= Hyx.
+assert (Exy : hx == hy); [by apply/eqP /anti_leq; rewrite Hyx|].
+rewrite /mnmc_eq_seq /= Exy; rewrite eq_sym in Exy; rewrite Exy /=; apply Hind.
+Qed.
 
 (* Remark: only compare is used in implementation (eq_dec isn't). *)
 Definition compare (x y : t) : Compare lt eq x y :=
@@ -114,10 +115,25 @@ Lemma eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z.
 Proof. by move=> x y z /mnmc_eq_seqP/eqP =>->. Qed.
 
 Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
-Admitted. (* Pierre *)
+Proof.
+elim => [|hx tx Hind] y z; [by case y => // hy ty; case z|].
+case y => // hy ty; case z => // hz tz.
+move/orP => [Hxy|Hxy].
+{ move/orP => [Hyz|Hyz]; apply/orP; left; [by move: Hyz; apply ltn_trans|].
+  move/andP in Hyz; destruct Hyz as [Hyz Hyz'].
+  by move/eqP in Hyz; rewrite -Hyz. }
+move/andP in Hxy; destruct Hxy as [Hxy Hxy']; move/eqP in Hxy; rewrite Hxy.
+move/orP => [Hyz|Hyz]; apply/orP; [by left|right].
+move/andP in Hyz; destruct Hyz as [Hyz Hyz']; rewrite Hyz /=.
+by move: Hyz'; apply Hind.
+Qed.
 
 Lemma lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
-Admitted. (* Pierre *)
+Proof.
+move=> x y Hlt /mnmc_eq_seqP/eqP Heq; move: Hlt; rewrite Heq.
+elim y => [//|h t Hind] /orP [H|H]; [by move: H; rewrite ltnn|].
+move/andP in H; apply Hind, H.
+Qed.
 
 End MultinomOrd.
 
@@ -316,12 +332,6 @@ Lemma param_mnm_add n :
   (@mnm_add n) mnm_add_seq.
 Proof.
 Admitted. (* Erik *)
-
-Lemma param_mnmc_lt n :
-  param (Rseqmultinom ==> Rseqmultinom ==> Logic.eq)
-  (@mnmc_lt n) mnmc_lt_seq.
-Proof.
-Admitted. (* Pierre *)
 
 (** Multivariate polynomials *)
 
