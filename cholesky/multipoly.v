@@ -1,6 +1,8 @@
 Require Import FMaps FMapAVL.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import choice finfun tuple fintype ssralg.
+(* tests with multipolys from
+   git clone https://github.com/math-comp/multinomials.git *)
 From SsrMultinomials Require Import mpoly freeg.
 From CoqEAL_theory Require Import hrel.
 From CoqEAL_refinements Require Import refinements.
@@ -109,6 +111,7 @@ Admitted.
 
 Lemma lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
 Admitted.
+
 End MultinomOrd.
 
 Module M := FMapList.Make MultinomOrd.
@@ -117,6 +120,9 @@ Module M := FMapAVL.Make MultinomOrd.
 *)
 Definition effmpoly := M.t.
 
+Module MFacts := Facts M.
+
+Module MProps := Properties M.
 
 (** Part II: Proofs for proof-oriented types and programs *)
 Section seqmpoly_theory.
@@ -247,17 +253,39 @@ Admitted.
 (** Multivariate polynomials *)
 
 Definition mpoly_of_effmpoly (T : ringType) n (p' : effmpoly T) : option (mpoly n T) :=
-  if M.fold (fun k e b => b && (size k == n)%N) p' true then
-    Some [mpoly [freeg [seq (a.2, multinom_of_seqmultinom_val n a.1) | a <- M.elements p']]]
+  if MProps.for_all (fun k _ => size k == n)%N p' then
+    Some [mpoly [freeg [seq (a.2, multinom_of_seqmultinom_val n a.1) |
+                        a <- M.elements p']]]
   else None.
 
-Definition Mt_of_seq T (s : seq (_ * T)) :=
-  foldl (fun acc x => M.add x.1 x.2 acc) (M.empty T) s.
-
 Definition effmpoly_of_mpoly (T : ringType) n (p : mpoly n T) : effmpoly T :=
-  Mt_of_seq [seq (seqmultinom_of_multinom a.2, a.1) | a <- fgenum (val p)].
+  MProps.of_list [seq (seqmultinom_of_multinom a.2, a.1) |
+                  a <- fgenum (val p)].
 
 Definition Reffmpoly `{T : ringType, n : nat} :=
   ofun_hrel (@mpoly_of_effmpoly T n).
+
+Lemma refines_seqmultipolyP (n : nat) T (p : mpoly n T) (p' : effmpoly T) :
+  MProps.for_all (fun k _ => size k == n)%N p' ->
+  (forall m m', Rseqmultinom m m' ->
+   p@_m = match M.find m' p' with None => 0 | Some c => c end) ->
+  Reffmpoly p p'.
+Proof.
+move=> eq_sz eq_monom.
+rewrite /Reffmpoly /mpoly_of_effmpoly /ofun_hrel ifT //; f_equal.
+apply mpolyP => m.
+pose m' := seqmultinom_of_multinom m.
+have Hm' : Rseqmultinom m m' by apply seqmultinom_of_multinomK.
+rewrite (eq_monom _ _ Hm') mcoeff_MPoly coeff_Freeg.
+case_eq (M.find m' p') => [c|] Hc.
+{ change c with ((c, m).1); change m with ((c, m).2).
+  apply precoeff_mem_uniqE.
+  { rewrite /predom -map_comp.
+(*
+    Search "" map uniq.
+apply reduced_uniq.
+map_inj_uniq
+*/
+Admitted.
 
 End seqmpoly_theory.
