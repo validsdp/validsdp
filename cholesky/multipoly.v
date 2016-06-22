@@ -33,16 +33,18 @@ Section seqmpoly_generic.
 
 (** Monomials *)
 
+(* TODO: may be refactored by using mnm1, mnm_add, mnm_muln *)
+Definition mnmd {n} (i : 'I_n) (d : nat) :=
+  [multinom (if (i == j :> nat) then d else 0%N) | j < n].
+Definition mpvar {T : ringType} {n} (c : T) d i : {mpoly T[n]} := c *: 'X_[mnmd i d].
+
 Definition seqmultinom := seq nat.
 
 Definition mnm0_seq {n} := nseq n 0%N.
 
-(* TODO: may be refactored by using mnm1, mnm_add, mnm_muln *)
-Definition mnmd {n} (i : 'I_n) (d : nat) :=
-  [multinom (if (i == j :> nat) then d else 0%N) | j < n].
-
 Definition mnmd_seq {n} (i d : nat) :=
   nseq i 0%N ++ [:: d] ++ nseq (n - i - 1) 0%N.
+
 
 (** Multiplication of multinomials *)
 Definition mnm_add_seq m1 m2 := map2 addn m1 m2.
@@ -79,6 +81,7 @@ Lemma intro_eq x y :
   (mnmc_lt_seq x y = false) -> (mnmc_lt_seq y x = false) -> mnmc_eq_seq x y.
 Proof.
 Admitted.
+(* Pierre *)
 
 Definition compare (x y : t) : Compare lt eq x y :=
   match sumb (mnmc_lt_seq x y) with
@@ -103,16 +106,16 @@ by rewrite /eq /mnmc_eq_seq eqxx /=.
 Qed.
 
 Lemma eq_sym : forall x y : t, eq x y -> eq y x.
-Admitted.
+Admitted. (* Pierre *)
 
 Lemma eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z.
-Admitted.
+Admitted. (* Pierre *)
 
 Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
-Admitted.
+Admitted. (* Pierre *)
 
 Lemma lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
-Admitted.
+Admitted. (* Pierre *)
 
 End MultinomOrd.
 
@@ -190,8 +193,10 @@ Definition comp_mpoly_eff (lq : seq (effmpoly T)) (p : effmpoly T) : effmpoly T 
 
 End seqmpoly_generic_2.
 
-(** Part II: Proofs for proof-oriented types and programs *)
+(** ** Part II: Proofs for proof-oriented types and programs *)
 Section seqmpoly_theory.
+
+(** *** Data refinement for seqmultinom *)
 
 Definition multinom_of_seqmultinom n (m : seqmultinom) : option 'X_{1..n} :=
   if sumb (size m == n) is left prf then
@@ -279,7 +284,7 @@ apply param_abstr => d d' param_d.
 rewrite -(param_eq param_d).
 apply/trivial_param/refines_seqmultinomP.
   rewrite /mnmd_seq !(size_cat,size_nseq) /=.
-  admit. (* easy but tedious *)
+  admit. (* easy but tedious ; Pierre *)
 move=> i.
 rewrite /mnmd_seq /mnmd multinomE (tnth_nth 0%N) /=.
 rewrite !(nth_cat,nth_nseq).
@@ -308,13 +313,13 @@ Lemma param_mnm_add n :
   param (Rseqmultinom ==> Rseqmultinom ==> Rseqmultinom)
   (@mnm_add n) mnm_add_seq.
 Proof.
-Admitted.
+Admitted. (* Erik *)
 
 Lemma param_mnmc_lt n :
   param (Rseqmultinom ==> Rseqmultinom ==> Logic.eq)
   (@mnmc_lt n) mnmc_lt_seq.
 Proof.
-Admitted.
+Admitted. (* Pierre *)
 
 (** Multivariate polynomials *)
 
@@ -352,6 +357,81 @@ case_eq (M.find m' p') => [c|] Hc.
 apply reduced_uniq.
 map_inj_uniq
 *)
-Admitted.
+Admitted. (* Pierre *)
+
+(** *** Data refinement for effmpoly *)
+
+Context {T : ringType}.
+Context `{!one T, !add T, !sub T, !mul T}.
+Context {n : nat}.
+
+Global Instance param_mp0_eff : param (@Reffmpoly T n) 0%R mp0_eff.
+Proof.
+rewrite paramE.
+Admitted. (* Erik *)
+
+Global Instance param_mp1_eff : param (@Reffmpoly T n) 1%R (mp1_eff (n := n)).
+Proof.
+rewrite paramE.
+Admitted. (* Erik *)
+
+Global Instance param_mpvar_eff :
+  param (Logic.eq ==> Logic.eq ==> Rord ==> Reffmpoly (T := T) (n := n))
+  mpvar (mpvar_eff (n := n)).
+Admitted. (* Pierre *)
+
+Arguments mpolyC {n R} c.
+Global Instance param_mpolyC_eff :
+  param (Logic.eq ==> Reffmpoly (T := T) (n := n))
+  mpolyC (mpolyC_eff (n := n)).
+Admitted. (* Pierre *)
+
+Arguments mpolyX {n R} m.
+Global Instance param_mpolyX_eff :
+  param (Logic.eq ==> Reffmpoly (T := T) (n := n))
+  mpolyX mpolyX_eff.
+Admitted. (* Pierre *)
+
+Arguments mpoly_scale {n R} c p.
+Global Instance param_mpoly_scale_eff :
+  param (Logic.eq ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
+  mpoly_scale mpoly_scale_eff.
+Admitted. (* Erik *)
+
+Arguments mpoly_add {n R} p q.
+Global Instance param_mpoly_add_eff :
+  param (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
+  mpoly_add mpoly_add_eff.
+Admitted. (* Erik *)
+
+Definition mpoly_sub (p : {mpoly T[n]}) q := mpoly_add p (mpoly_opp q).
+
+Global Instance param_mpoly_sub_eff :
+  param (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
+  mpoly_sub mpoly_sub_eff.
+Admitted. (* Erik *)
+
+Arguments mpoly_mul {n R} p q.
+Global Instance param_mpoly_mul_eff :
+  param (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
+  mpoly_mul mpoly_mul_eff.
+Admitted. (* Erik *)
+
+Definition mpoly_exp (p : {mpoly T[n]}) (n : nat) := (p ^+ n)%R.
+
+Global Instance param_mpoly_exp_eff :
+  param (Reffmpoly ==> Logic.eq ==> Reffmpoly (T := T) (n := n))
+  mpoly_exp mpoly_exp_eff.
+Admitted. (* Erik/Pierre *)
+
+Definition seq_Reffmpoly k (lq : k.-tuple {mpoly T[n]}) (lq' : seq (effmpoly T)) :=
+  size lq' = k /\
+  forall i, i < size lq -> Reffmpoly (nth 0%R lq i) (nth mp0_eff lq' i).
+
+Arguments comp_mpoly {n R k} lq p.
+Global Instance param_comp_mpoly_eff k :
+  param (@seq_Reffmpoly k ==> Reffmpoly ==> Reffmpoly)
+  comp_mpoly (comp_mpoly_eff (n:= n)).
+Admitted. (* Pierre *)
 
 End seqmpoly_theory.
