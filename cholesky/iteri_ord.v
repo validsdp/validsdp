@@ -12,6 +12,8 @@ Unset Printing Implicit Defensive.
 
 Implicit Types n : nat.
 
+Notation ord_instN := (fun _ : nat => nat) (only parsing).
+
 (** ** Definition of type classes *)
 Class I0_class I n := I0 : I n.
 Class succ0_class I n := succ0 : I n -> I n.
