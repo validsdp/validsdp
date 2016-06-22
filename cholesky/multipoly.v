@@ -6,7 +6,7 @@ From mathcomp Require Import choice finfun tuple fintype ssralg.
 From SsrMultinomials Require Import mpoly freeg.
 From CoqEAL_theory Require Import hrel.
 From CoqEAL_refinements Require Import refinements.
-From CoqEAL_refinements Require Import seqmatrix (* for Rord, zipwith *).
+From CoqEAL_refinements Require Import seqmatrix (* for Rord, zipwith and eq_seq *).
 Require Import misc.
 
 Set Implicit Arguments.
@@ -60,13 +60,17 @@ Fixpoint mnmc_lt_seq (s1 s2 : seq nat) {struct s1} : bool :=
       end
   end.
 
-(* Maybe redundant with CoqEAL def *)
-Fixpoint mnmc_eq_seq (s1 s2 : seq nat) {struct s1} : bool :=
-  match s1, s2 with
-  | [::], [::] => true
-  | x1 :: s1', x2 :: s2' => (x1 == x2)%N && mnmc_eq_seq s1' s2'
-  | _, _ => false
-  end.
+Definition mnmc_eq_seq := eq_seq (fun n m : nat => n == m)%N.
+
+Lemma mnmc_eq_seqP s1 s2 : reflect (mnmc_eq_seq s1 s2) (s1 == s2).
+Proof.
+move: s2; elim s1 => {s1}[|a1 s1 Hind] s2.
+{ now case s2 => [|n l]; apply (iffP idP). }
+case s2 => {s2}[|a2 s2]; [by apply (iffP idP)|].
+specialize (Hind s2); rewrite /mnmc_eq_seq /=; apply (iffP idP).
+{ by move/eqP => H; injection H => Hs Ha; rewrite Ha eqxx; apply /Hind/eqP. }
+by move/andP => [Ha Hs]; apply/eqP; f_equal; apply /eqP => //; apply/Hind.
+Qed.
 
 End seqmpoly_generic.
 
@@ -83,6 +87,7 @@ Proof.
 Admitted.
 (* Pierre *)
 
+(* Remark: only compare is used in implementation (eq_dec isn't). *)
 Definition compare (x y : t) : Compare lt eq x y :=
   match sumb (mnmc_lt_seq x y) with
   | left prf => LT prf
@@ -100,16 +105,13 @@ Definition eq_dec (x y : t) : {eq x y} + {~ eq x y} :=
   end.
 
 Lemma eq_refl : forall x : t, eq x x.
-Proof.
-elim=> [//|x s IHs].
-by rewrite /eq /mnmc_eq_seq eqxx /=.
-Qed.
+Proof. by move=> x; apply/mnmc_eq_seqP/eqP. Qed.
 
 Lemma eq_sym : forall x y : t, eq x y -> eq y x.
-Admitted. (* Pierre *)
+Proof. move=> x y /mnmc_eq_seqP/eqP =>->; apply eq_refl. Qed.
 
 Lemma eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z.
-Admitted. (* Pierre *)
+Proof. by move=> x y z /mnmc_eq_seqP/eqP =>->. Qed.
 
 Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
 Admitted. (* Pierre *)
@@ -214,7 +216,7 @@ Lemma seqmultinom_of_multinomK n :
 Proof.
 move=> x; rewrite /seqmultinom_of_multinom /multinom_of_seqmultinom.
 case: sumb => [prf|].
-  congr Some; apply: val_inj; simpl; apply: val_inj; simpl; by case: (x).
+  by congr Some; apply: val_inj; simpl; apply: val_inj; simpl; case: (x).
 case: x => [t].
 by rewrite size_tuple eqxx.
 Qed.
@@ -336,6 +338,62 @@ Definition effmpoly_of_mpoly (T : ringType) n (p : mpoly n T) : effmpoly T :=
 Definition Reffmpoly `{T : ringType, n : nat} :=
   ofun_hrel (@mpoly_of_effmpoly T n).
 
+Lemma eq_key_elt_eq T x y : (M.eq_key_elt (elt:=T)) x y <-> x = y.
+Proof.
+split.
+{ move=> [H1 H2].
+  rewrite (surjective_pairing x) (surjective_pairing y); f_equal=> //.
+  by apply/eqP/mnmc_eq_seqP. }
+move=> ->; split=> //; apply M.E.eq_refl.
+Qed.
+
+Lemma in_InA_eq_key_elt_iff (T : eqType) x s :
+  x \in s <-> InA (M.eq_key_elt (elt:=T)) x s.
+Proof.
+split.
+{ elim s => // h t Hind; rewrite inE; move/orP => [Hh|Ht].
+  { by move: Hh => /eqP ->; apply InA_cons_hd; split; [apply M.E.eq_refl|]. }
+  by apply InA_cons_tl, Hind. }
+elim s => [|h t Hind]; [by rewrite InA_nil|].
+rewrite InA_cons; elim.
+{ by move/eq_key_elt_eq=>->; rewrite inE eqxx. }
+by move/Hind; rewrite inE orb_comm=>->.
+Qed.
+
+Lemma in_fst_InA_eq_key_iff (T : Type) x s :
+  x.1 \in [seq x.1 | x <- s] <-> InA (M.eq_key (elt:=T)) x s.
+Proof.
+split.
+{ elim s => // h t Hind; rewrite inE; move/orP => [Hh|Ht].
+  { apply InA_cons_hd; rewrite /M.eq_key /M.Raw.PX.eqk.
+    move: Hh => /eqP ->; apply M.E.eq_refl. }
+  by apply InA_cons_tl, Hind. }
+elim s => [|h t Hind]; [by rewrite InA_nil|].
+rewrite InA_cons; elim.
+{ rewrite /M.eq_key /M.Raw.PX.eqk; move/mnmc_eq_seqP/eqP =>->.
+  by rewrite inE eqxx. }
+by rewrite inE orb_comm; move/Hind =>->.
+Qed.
+
+Lemma NoDupA_eq_key_uniq_fst elt s : 
+  NoDupA (M.eq_key (elt:=elt)) s -> uniq [seq i.1 | i <- s].
+Proof.
+elim s => // h t Hind Hnd /=.
+inversion Hnd as [x|h' t' H1 H2].  (* @Érik: equivalent ssreflect ? *)
+apply/andP; split; [|by apply Hind].
+by apply/negP => Hin; apply H1, in_fst_InA_eq_key_iff.
+Qed.
+
+Lemma multinom_of_seqmultinom_val_inj n x y :
+  size x = n -> size y = n ->
+  multinom_of_seqmultinom_val n x = multinom_of_seqmultinom_val n y -> x = y.
+Proof.
+move=> Sx Sy; rewrite /multinom_of_seqmultinom_val /multinom_of_seqmultinom.
+case (sumb _) => [prfx|] /=; [|by rewrite Sx eqxx].
+case (sumb _) => [prfy|] /=; [|by rewrite Sy eqxx].
+by move=> H; injection H.
+Qed.
+
 Lemma refines_seqmultipolyP (n : nat) T (p : mpoly n T) (p' : effmpoly T) :
   MProps.for_all (fun k _ => size k == n)%N p' ->
   (forall m m', Rseqmultinom m m' ->
@@ -344,6 +402,8 @@ Lemma refines_seqmultipolyP (n : nat) T (p : mpoly n T) (p' : effmpoly T) :
 Proof.
 move=> eq_sz eq_monom.
 rewrite /Reffmpoly /mpoly_of_effmpoly /ofun_hrel ifT //; f_equal.
+rewrite /is_true in eq_sz.
+rewrite->MProps.for_all_iff in eq_sz; [|by move=> x y /mnmc_eq_seqP /eqP ->].
 apply mpolyP => m.
 pose m' := seqmultinom_of_multinom m.
 have Hm' : Rseqmultinom m m' by apply seqmultinom_of_multinomK.
@@ -352,12 +412,31 @@ case_eq (M.find m' p') => [c|] Hc.
 { change c with ((c, m).1); change m with ((c, m).2).
   apply precoeff_mem_uniqE.
   { rewrite /predom -map_comp.
-(*
-    Search "" map uniq.
-apply reduced_uniq.
-map_inj_uniq
-*)
-Admitted. (* Pierre *)
+    rewrite (@eq_map _ _ _ ((multinom_of_seqmultinom_val n) \o fst)) //.
+    rewrite map_comp map_inj_in_uniq.
+    { apply NoDupA_eq_key_uniq_fst, M.elements_3w. }
+    move=> x y Hx Hy; apply multinom_of_seqmultinom_val_inj.
+    { move: Hx; move/mapP => [xe Hxe ->].
+      apply/eqP /eq_sz /(M.elements_2 (e:=xe.2)).
+      by apply in_InA_eq_key_elt_iff; rewrite -surjective_pairing. }
+    move: Hy; move/mapP => [ye Hye ->].
+    apply/eqP /eq_sz /(M.elements_2 (e:=ye.2)).
+    by apply in_InA_eq_key_elt_iff; rewrite -surjective_pairing. }
+  apply M.find_2, M.elements_1, in_InA_eq_key_elt_iff in Hc.
+  apply/mapP; exists (m', c) => //=; f_equal.
+  by rewrite /m' /multinom_of_seqmultinom_val seqmultinom_of_multinomK. }
+apply precoeff_outdom.
+rewrite /predom -map_comp.
+rewrite (@eq_map _ _ _ ((multinom_of_seqmultinom_val n) \o fst)) //.
+apply/negP=> Hm; apply MFacts.not_find_in_iff in Hc; apply Hc.
+move/mapP in Hm; destruct Hm as [xe Hxe Hm].
+rewrite MFacts.elements_in_iff; exists xe.2.
+rewrite -in_InA_eq_key_elt_iff /m' Hm /= /multinom_of_seqmultinom_val.
+rewrite /multinom_of_seqmultinom /seqmultinom_of_multinom.
+case (sumb _) => [prf|] /=; [by rewrite -surjective_pairing|].
+rewrite (@eq_sz xe.1 xe.2) //.
+by apply /M.elements_2 /in_InA_eq_key_elt_iff; rewrite -surjective_pairing.
+Qed.
 
 (** *** Data refinement for effmpoly *)
 
