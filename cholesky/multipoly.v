@@ -341,7 +341,14 @@ Lemma param_mnm_add n :
   param (Rseqmultinom ==> Rseqmultinom ==> Rseqmultinom)
   (@mnm_add n) mnm_add_seq.
 Proof.
-Admitted. (* Erik *)
+apply param_abstr => mnm1 mnm1' param_mnm1.
+apply param_abstr => mnm2 mnm2' param_mnm2.
+apply/trivial_param/refines_seqmultinomP.
+  by rewrite /mnm_add_seq size_map2 !refines_size minnn.
+move=> i; rewrite /mnm_add_seq (nth_map2 _ (da := O) (db := O)) //; last first.
+  by rewrite !refines_size.
+by rewrite mnmDE !refines_nth.
+Qed.
 
 (** Multivariate polynomials *)
 
@@ -494,11 +501,16 @@ Hypothesis one_spec : 1%C = 1.
 Global Instance param_mp0_eff : param (@Reffmpoly T n) 0%R mp0_eff.
 Proof.
 rewrite paramE.
-Admitted. (* Erik *)
+apply: refines_effmpolyP.
+- by move=> m /MProps.F.empty_in_iff Hm.
+- by move=> m m' param_m; rewrite MFacts.empty_o mcoeff0.
+Qed.
 
 Global Instance param_mp1_eff : param (@Reffmpoly T n) 1%R (mp1_eff (n := n)).
 Proof.
 rewrite paramE.
+apply: refines_effmpolyP.
+rewrite /mp1_eff.
 Admitted. (* Erik *)
 
 Global Instance param_mpvar_eff :
