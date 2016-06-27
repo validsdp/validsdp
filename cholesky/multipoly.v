@@ -147,6 +147,14 @@ rewrite F.add_mapsto_iff; elim; move=> [Hk He]; [split; [|by[]]|].
 by move: He; rewrite F.empty_mapsto_iff.
 Qed.
 
+Lemma singleton_in_iff {T} y k (e : T) :
+  M.In y (MProps.singleton k e) <-> M.E.eq y k.
+Proof.
+split; [move/MFacts.add_in_iff|move=> H; apply/MFacts.add_in_iff].
+by intuition; move/MFacts.empty_in_iff in H.
+by left; symmetry.
+Qed.
+
 End MProps.
 
 Section seqmpoly_generic_2.
@@ -559,10 +567,16 @@ Qed.
 
 Global Instance param_mp1_eff : param (@Reffmpoly T n) 1%R (mp1_eff (n := n)).
 Proof.
-rewrite paramE.
-apply: refines_effmpolyP.
-rewrite /mp1_eff.
-Admitted. (* Erik *)
+apply trivial_param; apply refines_effmpolyP.
+- rewrite /mp1_eff => k /MProps.singleton_in_iff/mnmc_eq_seqP/eqP ->.
+  by rewrite size_nseq.
+- move=> m m' Hm; rewrite mcoeff1 MProps.F.add_o.
+  have H0 := param_mnm0 n; rewrite paramE in H0.
+  rewrite (Rseqmultinom_eq Hm H0).
+  case: M.E.eq_dec => [EQ|nEQ].
+  + by move/mnmc_eq_seqP/eqP: EQ <-; rewrite eqxx.
+  + by rewrite eq_sym; move/mnmc_eq_seqP/negbTE: nEQ ->.
+Qed.
 
 Global Instance param_mpvar_eff :
   param (Logic.eq ==> Logic.eq ==> Rord ==> Reffmpoly (T := T) (n := n))
