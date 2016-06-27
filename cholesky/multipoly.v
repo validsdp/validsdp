@@ -16,16 +16,8 @@ Unset Printing Implicit Defensive.
 Import Refinements.Op.
 
 (** Tip to leverage a Boolean condition *)
-Definition optb (b : bool) : option (is_true b) :=
-  if b then Some erefl else None.
 Definition sumb (b : bool) : {b = true} + {b = false} :=
-  if b is true
-  then left erefl else right erefl.
-Definition sumb' (b : bool) : {b = true} + {b -> False}.
-  refine (if b is true
-          then left erefl else right _).
-  done.
-Defined.
+  if b is true then left erefl else right erefl.
 
 (** Part I: Generic operations *)
 
@@ -81,8 +73,7 @@ Lemma intro_eq x y :
   (mnmc_lt_seq x y = false) -> (mnmc_lt_seq y x = false) -> mnmc_eq_seq x y.
 Proof.
 move: x y; elim => [|hx tx Hind]; case=> // hy ty.
-rewrite /lt /=; case (ltnP hx hy) => //= Hxy.
-case (ltnP hy hx) => //= Hyx.
+rewrite /lt /=; case (ltnP hx hy) => //= Hxy; case (ltnP hy hx) => //= Hyx.
 assert (Exy : hx == hy); [by apply/eqP /anti_leq; rewrite Hyx|].
 rewrite /mnmc_eq_seq /= Exy; rewrite eq_sym in Exy; rewrite Exy /=; apply Hind.
 Qed.
@@ -98,11 +89,8 @@ Definition compare (x y : t) : Compare lt eq x y :=
     end
   end.
 
-Definition eq_dec (x y : t) : {eq x y} + {~ eq x y} :=
-  match sumb' (mnmc_eq_seq x y) with
-  | left prf => left prf
-  | right prf => right prf
-  end.
+Lemma eq_dec (x y : t) : {eq x y} + {~ eq x y}.
+Proof. by rewrite /eq; case (mnmc_eq_seq x y); [left|right]. Qed.
 
 Lemma eq_refl : forall x : t, eq x x.
 Proof. by move=> x; apply/mnmc_eq_seqP/eqP. Qed.
