@@ -48,8 +48,6 @@ Definition iteri_ord T j (f : ord n -> T -> T) x := iteri_ord_rec j I0 f x.
 
 End generic_iteri.
 
-Notation ord_instN := (fun _ : nat => nat) (only parsing).
-
 (** ** Main instantiations *)
 Section theory_nat_of.
 
