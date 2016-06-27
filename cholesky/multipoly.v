@@ -202,7 +202,7 @@ Definition mpoly_exp_eff (p : effmpoly T) (n : nat) := iterop n mpoly_mul_eff p 
 
 Definition comp_monomial_eff (m : seqmultinom) (c : T) (lq : seq (effmpoly T)) : effmpoly T :=
   let mq := zipwith mpoly_exp_eff lq m in
-  mpoly_scale_eff c (foldl mpoly_mul_eff mp1_eff mq).
+  mpoly_scale_eff c (foldr mpoly_mul_eff mp1_eff mq).
 
 Definition comp_mpoly_eff (lq : seq (effmpoly T)) (p : effmpoly T) : effmpoly T :=
   M.fold (fun m c p => mpoly_add_eff p (comp_monomial_eff m c lq)) p mp0_eff.
@@ -277,6 +277,14 @@ case: sumb => [prf|].
   congr Some; apply: val_inj; simpl.
   by apply: eq_from_tnth => i; rewrite (tnth_nth 0%N) /= eq_nth.
 by rewrite eq_sz eqxx.
+Qed.
+
+Lemma refines_multinom_of_seqmultinom_val (n : nat) (m : seqmultinom) :
+  size m == n -> Rseqmultinom (multinom_of_seqmultinom_val n m) m.
+Proof.
+move=> Hsz; rewrite /Rseqmultinom /multinom_of_seqmultinom_val /ofun_hrel.
+case_eq (multinom_of_seqmultinom n m) => //.
+by rewrite /multinom_of_seqmultinom; case sumb => //; rewrite Hsz.
 Qed.
 
 Lemma param_mnm0 n : param Rseqmultinom (@mnm0 n) (@mnm0_seq n).
@@ -664,12 +672,37 @@ rewrite paramE in param_c; rewrite -{}param_c {c'}.
 apply param_abstr => lq lq' param_lq.
 rewrite mul_mpolyC /comp_monomial_eff; eapply param_apply.
 { eapply param_apply; [apply param_mpoly_scale_eff|apply param_eq_refl]. }
-move: m m' param_m lq lq' param_lq.
-elim: k => [|k IHk] m m' param_m lq lq' param_lq.
+move: param_lq; rewrite paramE /seq_Reffmpoly; move => [sz_lq param_lq].
+move: m m' param_m lq lq' sz_lq param_lq.
+elim: k => [|k IHk] m m' param_m lq lq' sz_lq param_lq.
 { rewrite /mmap1 bigop.big_ord0.
-  move: param_lq; rewrite paramE /seq_Reffmpoly; move => [sz_lq _].
   move: (size0nil sz_lq) => ->; rewrite /zipwith /=; apply param_mp1_eff. }
-Admitted.
+move: sz_lq; case_eq lq' => //= q0 lqt' Hlq' sz_lq.
+move: (@refines_size _ _ _ param_m); case_eq m' => //= m0 mt' Hm' sz_m'.
+rewrite /foldr /= -/(foldr _ _) /mmap1 bigop.big_ord_recl.
+eapply param_apply; [eapply param_apply; [by apply param_mpoly_mul_eff|]|].
+{ move: (@refines_nth _ _ _ ord0 param_m); rewrite Hm' /= => <-.
+  eapply param_apply; [|by apply param_eq_refl].
+  eapply param_apply; [by apply param_mpoly_exp_eff|]; rewrite paramE.
+  replace (tnth _ _) with (lq`_O); [|by case lq, tval].
+  change q0 with (nth mp0_eff (q0 :: lqt') O); rewrite -Hlq'; apply param_lq. }
+injection sz_lq => {sz_lq} sz_lq; injection sz_m' => {sz_m'} sz_m'.
+assert (param_mt : param Rseqmultinom (multinom_of_seqmultinom_val k mt') mt').
+{ by rewrite paramE; apply /refines_multinom_of_seqmultinom_val /eqP. }
+assert (Hlq_lq' : forall i : nat,
+                    Reffmpoly [tuple of behead lq]`_i (nth mp0_eff lqt' i)).
+{ by move=> i; move: (param_lq i.+1); rewrite Hlq' /=; case tval; elim i. }
+move: (IHk _ _ param_mt [tuple of behead lq] _ sz_lq Hlq_lq').
+rewrite paramE /Reffmpoly /ofun_hrel => ->; f_equal.
+apply bigop.eq_big => // i _; f_equal.
+{ rewrite tnth_behead; f_equal.
+  by apply ord_inj; rewrite inordK //; move: (ltn_ord i). }
+move /eqP in sz_m'; move: (refines_multinom_of_seqmultinom_val sz_m') => Hmt'.
+apply trivial_param in Hmt'; move: (@refines_nth _ _ _ i Hmt') => <-.
+move: (@refines_nth _ _ _ (inord i.+1) param_m); rewrite Hm' /=.
+rewrite inordK /=; [|by rewrite ltnS]; move=> ->; apply f_equal.
+by apply ord_inj; rewrite inordK //; move: (ltn_ord i).
+Qed.
 
 Arguments comp_mpoly {n R k} lq p.
 Global Instance param_comp_mpoly_eff k :
