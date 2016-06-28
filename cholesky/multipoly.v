@@ -206,7 +206,7 @@ Definition mpoly_mul_eff (p q : effmpoly T) : effmpoly T :=
   M.fold (fun m c (*acc*) => mpoly_add_eff (mult_monomial_eff m c p) (*acc*)) M.empty q.
 
 (* TODO: fast exponentiation *)
-Definition mpoly_exp_eff (p : effmpoly T) (n : nat) := iterop n mpoly_mul_eff p mp0_eff.
+Definition mpoly_exp_eff (p : effmpoly T) (n : nat) := iterop n mpoly_mul_eff p mp1_eff.
 
 Definition comp_monomial_eff (m : seqmultinom) (c : T) (lq : seq (effmpoly T)) : effmpoly T :=
   let mq := zipwith mpoly_exp_eff lq m in
@@ -674,8 +674,16 @@ Definition mpoly_exp (p : {mpoly T[n]}) (n : nat) := (p ^+ n)%R.
 
 Global Instance param_mpoly_exp_eff :
   param (Reffmpoly ==> Logic.eq ==> Reffmpoly (T := T) (n := n))
-  mpoly_exp mpoly_exp_eff.
-Admitted. (* Erik/Pierre *)
+  mpoly_exp (mpoly_exp_eff (n:=n)).
+Proof.
+apply param_abstr => p p' param_p.
+apply param_abstr => n' n''; rewrite paramE => <- {n''}.
+rewrite /mpoly_exp /mpoly_exp_eff.
+elim: n' => [|n' IHn]; [by rewrite GRing.expr0; apply param_mp1_eff|].
+rewrite GRing.exprS /=; case_eq n'; [by rewrite GRing.expr0 GRing.mulr1|].
+move=> _ <-; eapply param_apply; [|exact IHn].
+by eapply param_apply; [apply param_mpoly_mul_eff|].
+Qed.
 
 Definition seq_Reffmpoly k (lq : k.-tuple {mpoly T[n]}) (lq' : seq (effmpoly T)) :=
   size lq' = k /\ forall i, Reffmpoly lq`_i (nth mp0_eff lq' i).
