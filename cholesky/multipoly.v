@@ -1,6 +1,6 @@
 Require Import FMaps FMapAVL.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
-From mathcomp Require Import choice finfun tuple fintype ssralg.
+From mathcomp Require Import choice finfun tuple fintype ssralg bigop.
 (* tests with multipolys from
    git clone https://github.com/math-comp/multinomials.git *)
 From SsrMultinomials Require Import mpoly freeg.
@@ -205,7 +205,7 @@ Definition mult_monomial_eff (m : seqmultinom) (c : T) : effmpoly T -> effmpoly 
   M.fold (fun m' c' (*acc*) => M.add (mnm_add_seq m m') (c * c')%C (*acc*)) M.empty.
 
 Definition mpoly_mul_eff (p q : effmpoly T) : effmpoly T :=
-  M.fold (fun m c (*acc*) => mpoly_add_eff (mult_monomial_eff m c p) (*acc*)) M.empty q.
+  M.fold (fun m c (*acc*) => mpoly_add_eff (mult_monomial_eff m c q) (*acc*)) M.empty p.
 
 (* TODO: fast exponentiation *)
 Definition mpoly_exp_eff (p : effmpoly T) (n : nat) := iterop n mpoly_mul_eff p mp1_eff.
@@ -668,6 +668,23 @@ Arguments mpoly_mul {n R} p q.
 Global Instance param_mpoly_mul_eff :
   param (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
   mpoly_mul mpoly_mul_eff.
+Proof.
+apply param_abstr => q q' param_q.
+apply param_abstr => p p' param_p.
+rewrite [mpoly_mul q p]mpolyME -ssrcomplements.pair_bigA_seq_curry /=.
+rewrite /mpoly_mul_eff.
+pose f m c := \big[+%R/0]_(i2 <- msupp p) ((c * p@_i2) *: 'X_[(m + i2)]).
+pose f' m c := @mult_monomial_eff _ mul0 m c.
+change (param Reffmpoly (\sum_(m <- msupp q) f m q@_m)
+  (M.fold (fun m c => mpoly_add_eff (f' m c q')) M.empty q')).
+move: q param_q; apply MProps.fold_rec.
+{ move=> _ _ q param_q.
+  rewrite paramE; apply: refines_effmpolyP.
+    by move=> m Hm; apply refines_size_mpoly with (1 := param_q).
+  move=> m m' Hm.
+  admit.
+}
+move=> m c a' m' m''.
 Admitted. (* Erik *)
 
 Definition mpoly_exp (p : {mpoly T[n]}) (n : nat) := (p ^+ n)%R.
