@@ -758,7 +758,7 @@ Lemma is_sym_correct_aux (A : 'M[FI fs]_n.+1) :
 Proof. by move=> H i j; move/forallP/(_ i)/forallP/(_ j) in H. Qed.
 
 Lemma is_sym_correct (A : 'M[FI fs]_n.+1) :
-  is_sym A -> cholesky.MF2R (MFI2F A^T) = cholesky.MF2R (MFI2F A).
+  is_sym A -> MF2R (MFI2F A^T) = MF2R (MFI2F A).
 Proof.
 move/is_sym_correct_aux=> H; apply /matrixP=> i j.
 move: (H i j); rewrite !mxE; apply fieq_spec.
@@ -807,11 +807,10 @@ apply foldl_diag_correct with (P0 := P); rewrite /P.
 by split; [apply finite0|rewrite FI2F0; right].
 Qed.
 
-Definition tr_up_ssr (n : nat) : 'M[FI fs]_n.+1 -> FI fs :=
-    tr_up.
+Definition tr_up_ssr (n : nat) : 'M[FI fs]_n.+1 -> FI fs := tr_up.
 
 Lemma tr_up_correct (A : 'M[FI fs]_n.+1) : finite (tr_up_ssr A) ->
-  \tr (cholesky.MF2R (MFI2F A)) <= FI2F (tr_up_ssr A).
+  \tr (MF2R (MFI2F A)) <= FI2F (tr_up_ssr A).
 Proof.
 rewrite /tr_up_ssr /tr_up -/(foldl_diag_ssr _ _ _).
 replace (\tr _) with (\sum_(i < n.+1) (FI2F (A (inord i) (inord i)) : R));
@@ -858,7 +857,7 @@ Lemma compute_c_aux_correct (A : 'M[FI fs]_n.+1) maxdiag :
   (forall i, 0 <= FI2F (A i i)) ->
   (0 <= FI2F maxdiag) ->
   finite (compute_c_aux_ssr A maxdiag) ->
-  (/2 * gamma fs (2 * n.+2) * (\tr (cholesky.MF2R (MFI2F A)))
+  (/2 * gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + FI2F maxdiag)
   <= FI2F (compute_c_aux_ssr A maxdiag))%R.
 Proof.
@@ -926,7 +925,7 @@ Lemma compute_c_correct (A : 'M[FI fs]_n.+1) :
   (forall i, finite (A i i)) ->
   (forall i, (0 <= FI2F (A i i))%R) ->
   forall c : FI fs, compute_c_ssr A = Some c ->
-  (/2 * gamma fs (2 * n.+2) * (\tr (cholesky.MF2R (MFI2F A)))
+  (/2 * gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + FI2F (max_diag_ssr A))
    <= FI2F c)%R.
 Proof.
@@ -976,8 +975,7 @@ move: Hpd i'; rewrite /pos_diag -/(all_diag_ssr _ _); apply all_diag_correct.
 Qed.
 
 Lemma posdef_check_correct A :
-  posdef_check_ssr A ->
-  posdef (cholesky.MF2R (MFI2F A)).
+  posdef_check_ssr A -> posdef (MF2R (MFI2F A)).
 Proof.
 move=> H; have Hfdiag := posdef_check_f1 H.
 move: H; move/eqP/eqP.
@@ -1022,8 +1020,8 @@ Qed.
 Lemma map_diag_sub_down_correct (A : 'M_n.+1) r :
   (forall i, finite (fiminus_down (A i i) r)) ->
   exists d : 'rV_n.+1,
-    cholesky.MF2R (MFI2F (map_diag_ssr ((@fiminus_down fs)^~ r) A))
-    = cholesky.MF2R (MFI2F A) - diag_mx d
+    MF2R (MFI2F (map_diag_ssr ((@fiminus_down fs)^~ r) A))
+    = MF2R (MFI2F A) - diag_mx d
     /\ (FI2F r : R) *: 1 <=m: diag_mx d.
 Proof.
 move=> HF; set A' := map_diag_ssr _ _.
@@ -1062,8 +1060,7 @@ Qed.
 
 Lemma posdef_check_itv_correct A r : posdef_check_itv_ssr A r ->
   forall Xt : 'M[R]_n.+1, Xt^T = Xt ->
-  Mabs (Xt - cholesky.MF2R (MFI2F A)) <=m:
-    cholesky.MF2R (MFI2F (matrix.const_mx r)) ->
+  Mabs (Xt - MF2R (MFI2F A)) <=m: MF2R (MFI2F (matrix.const_mx r)) ->
   posdef Xt.
 Proof.
 rewrite /posdef_check_itv_ssr /posdef_check_itv.
@@ -1073,10 +1070,10 @@ have HA'' := posdef_check_correct HA'.
 have HF := posdef_check_f1 HA'.
 have HF' : forall i, finite (fiminus_down (A i i) nr).
 { by move=> i; move: (HF i i); rewrite map_diag_correct_diag. }
-rewrite -(GRing.addr0 Xt) -(GRing.subrr (cholesky.MF2R (MFI2F A))).
+rewrite -(GRing.addr0 Xt) -(GRing.subrr (MF2R (MFI2F A))).
 elim (map_diag_sub_down_correct HF') => d [Hd Hd'].
 rewrite /map_diag_ssr /fiminus_down -/A' in Hd.
-have HA : cholesky.MF2R (MFI2F A) = cholesky.MF2R (MFI2F A') + diag_mx d.
+have HA : MF2R (MFI2F A) = MF2R (MFI2F A') + diag_mx d.
 { by rewrite Hd -GRing.addrA (GRing.addrC _ (_ d)) GRing.subrr GRing.addr0. }
 rewrite {1}HA.
 rewrite !GRing.addrA (GRing.addrC Xt) -!GRing.addrA (GRing.addrC (diag_mx d)).
@@ -1086,15 +1083,15 @@ rewrite mulmxDr mulmxDl -(GRing.addr0 0); apply Madd_lt_le_compat.
   move: Rlt_0_1; rewrite Hx; apply Rlt_irrefl. }
 rewrite GRing.addrA mulmxDr mulmxDl -(GRing.opprK (_ *m diag_mx d *m _)).
 apply Mle_sub.
-apply Mle_trans with (- Mabs (x^T *m (Xt - cholesky.MF2R (MFI2F A)) *m x));
+apply Mle_trans with (- Mabs (x^T *m (Xt - MF2R (MFI2F A)) *m x));
   [apply Mopp_le_contravar|by apply Mge_opp_abs].
-apply Mle_trans with ((Mabs x)^T *m Mabs (Xt - cholesky.MF2R (MFI2F A)) *m Mabs x).
+apply Mle_trans with ((Mabs x)^T *m Mabs (Xt - MF2R (MFI2F A)) *m Mabs x).
 { apply (Mle_trans (Mabs_mul _ _)), Mmul_le_compat_r; [by apply Mabs_pos|].
   rewrite map_trmx; apply (Mle_trans (Mabs_mul _ _)).
   by apply Mmul_le_compat_l; [apply Mabs_pos|apply Mle_refl]. }
-apply (Mle_trans (cholesky.Mmul_abs_lr _ HXt)).
+apply (Mle_trans (Mmul_abs_lr _ HXt)).
 apply Mle_trans with (INR n.+1 * FI2F r)%Re%:M.
-{ apply cholesky.r_upper_bound => //.
+{ apply r_upper_bound => //.
   { move: HXt; apply Mle_trans, Mabs_pos. }
   by move=> i j; rewrite !mxE; right. }
 set IN := INR n.+1; rewrite Mle_scalar !mxE /GRing.natmul /= -(Rmult_1_r (_ * _)).
@@ -1143,7 +1140,7 @@ Lemma posdef_check_F_correct (A : 'M[F]_n.+1) :
   posdef_check_F_ssr A -> posdef (matrix.map_mx toR A).
 Proof.
 move=> H; move: (posdef_check_correct H).
-set A' := cholesky.MF2R _; set A'' := matrix.map_mx _ _.
+set A' := MF2R _; set A'' := matrix.map_mx _ _.
 have->: A' = A''; [|by []].
 apply/matrixP=> i j; rewrite !mxE; apply F2FI_correct.
 by move: (posdef_check_f1 H i j); rewrite mxE.
