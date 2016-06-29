@@ -1887,7 +1887,7 @@ Section refinement_cholesky_3.
 
 Let fis := coqinterval_infnan.coqinterval_infnan.
 
-Definition eps_inv := 9007199254740992%bigZ.  (* 2^53 *)
+Definition eps_inv := Eval compute in (2 ^ 53)%bigZ.
 
 Lemma eps_inv_correct : (Z2R [eps_inv]%bigZ <= / eps fis)%Re.
 Proof. by rewrite /= /flx64.eps /= Rinv_involutive; [right|lra]. Qed.

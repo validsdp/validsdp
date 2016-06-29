@@ -28,7 +28,9 @@ Section seqmpoly_generic.
 (* TODO: may be refactored by using mnm1, mnm_add, mnm_muln *)
 Definition mnmd {n} (i : 'I_n) (d : nat) :=
   [multinom (if (i == j :> nat) then d else 0%N) | j < n].
-Definition mpvar {T : ringType} {n} (c : T) d i : {mpoly T[n]} := c *: 'X_[mnmd i d].
+
+Definition mpvar {T : ringType} {n} (c : T) d i : {mpoly T[n]} :=
+  c *: 'X_[mnmd i d].
 
 Definition seqmultinom := seq nat.
 
@@ -465,8 +467,7 @@ Qed.
 
 Lemma refines_find_mpoly (n : nat) T (p : mpoly n T) (p' : effmpoly T) :
   Reffmpoly p p' ->
-  forall m m', Rseqmultinom m m' ->
-  p@_m = match M.find m' p' with None => 0 | Some c => c end.
+  forall m m', Rseqmultinom m m' -> p@_m = odflt 0 (M.find m' p').
 Proof.
 rewrite /Reffmpoly /mpoly_of_effmpoly /ofun_hrel.
 set t := MProps.for_all _ _; case_eq t => //.
@@ -509,8 +510,7 @@ Qed.
 
 Lemma refines_effmpolyP (n : nat) T (p : mpoly n T) (p' : effmpoly T) :
   (forall m, M.In m p' -> size m == n)%N ->
-  (forall m m', Rseqmultinom m m' ->
-   p@_m = match M.find m' p' with None => 0 | Some c => c end) ->
+  (forall m m', Rseqmultinom m m' -> p@_m = odflt 0 (M.find m' p')) ->
   Reffmpoly p p'.
 Proof.
 move=> eq_sz eq_monom.
