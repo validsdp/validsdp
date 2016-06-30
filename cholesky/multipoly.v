@@ -201,11 +201,11 @@ Definition mpoly_sub_eff : effmpoly T -> effmpoly T -> effmpoly T :=
     | None, None => None
     end).
 
-Definition mult_monomial_eff (m : seqmultinom) (c : T) : effmpoly T -> effmpoly T :=
-  M.fold (fun m' c' (*acc*) => M.add (mnm_add_seq m m') (c * c')%C (*acc*)) M.empty.
+Definition mult_monomial_eff (m : seqmultinom) (c : T) (p : effmpoly T) : effmpoly T :=
+  M.fold (fun m' c' (*acc*) => M.add (mnm_add_seq m m') (c * c')%C (*acc*)) p M.empty.
 
 Definition mpoly_mul_eff (p q : effmpoly T) : effmpoly T :=
-  M.fold (fun m c (*acc*) => mpoly_add_eff (mult_monomial_eff m c q) (*acc*)) M.empty p.
+  M.fold (fun m c => mpoly_add_eff (mult_monomial_eff m c q)) p mp0_eff.
 
 (* TODO: fast exponentiation *)
 Definition mpoly_exp_eff (p : effmpoly T) (n : nat) := iterop n mpoly_mul_eff p mp1_eff.
@@ -215,7 +215,7 @@ Definition comp_monomial_eff (m : seqmultinom) (c : T) (lq : seq (effmpoly T)) :
   mpoly_scale_eff c (foldr mpoly_mul_eff mp1_eff mq).
 
 Definition comp_mpoly_eff (lq : seq (effmpoly T)) (p : effmpoly T) : effmpoly T :=
-  M.fold (fun m c p => mpoly_add_eff p (comp_monomial_eff m c lq)) p mp0_eff.
+  M.fold (fun m c => mpoly_add_eff (comp_monomial_eff m c lq)) p mp0_eff.
 
 End seqmpoly_generic_2.
 
@@ -557,11 +557,10 @@ Qed.
 
 Context {T : ringType}.
 Context `{!one T, !add T, !sub T, !mul T}.
-Context {n : nat}.
 
 Hypothesis one_spec : 1%C = 1.
 
-Global Instance param_mp0_eff : param (@Reffmpoly T n) 0%R mp0_eff.
+Global Instance param_mp0_eff n : param (@Reffmpoly T n) 0%R mp0_eff.
 Proof.
 rewrite paramE.
 apply: refines_effmpolyP.
@@ -569,7 +568,7 @@ apply: refines_effmpolyP.
 - by move=> m m' param_m; rewrite MFacts.empty_o mcoeff0.
 Qed.
 
-Global Instance param_mp1_eff : param (@Reffmpoly T n) 1%R (mp1_eff (n := n)).
+Global Instance param_mp1_eff n : param (@Reffmpoly T n) 1%R (mp1_eff (n := n)).
 Proof.
 apply trivial_param; apply refines_effmpolyP.
 - rewrite /mp1_eff => k /MProps.singleton_in_iff/mnmc_eq_seqP/eqP ->.
@@ -582,7 +581,7 @@ apply trivial_param; apply refines_effmpolyP.
   + by rewrite eq_sym; move/mnmc_eq_seqP/negbTE: nEQ ->.
 Qed.
 
-Global Instance param_mpvar_eff :
+Global Instance param_mpvar_eff n :
   param (Logic.eq ==> Logic.eq ==> Rord ==> Reffmpoly (T := T) (n := n))
   mpvar (mpvar_eff (n := n)).
 Proof.
@@ -607,7 +606,7 @@ by apply/mnmc_eq_seqP; rewrite eq_sym Hm'.
 Qed.
 
 Arguments mpolyC {n R} c.
-Global Instance param_mpolyC_eff :
+Global Instance param_mpolyC_eff n :
   param (Logic.eq ==> Reffmpoly (T := T) (n := n))
   mpolyC (mpolyC_eff (n := n)).
 Proof.
@@ -627,7 +626,7 @@ by apply/mnmc_eq_seqP; move: Hm'; rewrite eq_sym =>->.
 Qed.
 
 Arguments mpolyX {n R} m.
-Global Instance param_mpolyX_eff :
+Global Instance param_mpolyX_eff n :
   param (Rseqmultinom ==> Reffmpoly (T := T) (n := n))
   mpolyX mpolyX_eff.
 Proof.
@@ -646,26 +645,95 @@ by apply/mnmc_eq_seqP; rewrite eq_sym Hm'.
 Qed.
 
 Arguments mpoly_scale {n R} c p.
-Global Instance param_mpoly_scale_eff :
+Global Instance param_mpoly_scale_eff n :
   param (Logic.eq ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
   mpoly_scale mpoly_scale_eff.
 Admitted. (* Erik *)
 
 Arguments mpoly_add {n R} p q.
-Global Instance param_mpoly_add_eff :
+Global Instance param_mpoly_add_eff n :
   param (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
   mpoly_add mpoly_add_eff.
 Admitted. (* Erik *)
 
-Definition mpoly_sub (p : {mpoly T[n]}) q := mpoly_add p (mpoly_opp q).
+Definition mpoly_sub {n} (p : {mpoly T[n]}) q := mpoly_add p (mpoly_opp q).
 
-Global Instance param_mpoly_sub_eff :
+Global Instance param_mpoly_sub_eff n :
   param (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
   mpoly_sub mpoly_sub_eff.
 Admitted. (* Erik *)
 
+Lemma param_mpoly_sum_eff n k f f' (p : mpoly k T) p' :
+  (forall m, f m 0 = 0) ->
+  param (Rseqmultinom ==> Logic.eq ==> Reffmpoly (T:=T) (n:=n)) f f' ->
+  param Reffmpoly p p' ->
+  param Reffmpoly (\sum_(m <- msupp p) f m p@_m)
+                  (M.fold (fun m c => mpoly_add_eff (f' m c)) p' mp0_eff).
+Proof.
+move=> Hf param_f; move: p; rewrite paramE.
+apply MProps.fold_rec.
+{ move=> q' Eq' q Hq.
+  suff -> : q = 0; [by rewrite msupp0 big_nil; apply param_mp0_eff|].
+  apply /mpolyP => m.
+  rewrite (refines_find_mpoly Hq (refines_seqmultinom_of_multinom m)).
+  rewrite mcoeff0; case_eq (M.find (seqmultinom_of_multinom m) q') => [s|->]//.
+  rewrite -MFacts.find_mapsto_iff MFacts.elements_mapsto_iff.
+  by rewrite -in_InA_eq_key_elt_iff (proj1 (MProps.elements_Empty _ ) Eq'). }
+move=> m' c p'' q q' Hp'' Hq Hq' IH p Hp.
+pose m := multinom_of_seqmultinom_val k m'; pose cm := c *: 'X_[m].
+have param_m : Rseqmultinom m m'.
+{ apply refines_multinom_of_seqmultinom_val.
+  move: (Hq' m'); rewrite MFacts.add_eq_o; [|by apply/mnmc_eq_seqP]; move=> Hm'.
+  apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)).
+  by exists c; apply M.find_2. }
+have Hc : p@_m = c.
+{ rewrite (refines_find_mpoly Hp param_m) (Hq' m') MFacts.add_eq_o //.
+  apply M.E.eq_refl. }
+pose pmcm := p - cm.
+have Hpmcm : pmcm@_m = 0.
+{ by rewrite mcoeffB mcoeffZ mcoeffX eqxx Hc GRing.mulr1 GRing.subrr. }
+have -> : \sum_(m <- msupp p) f m p@_m
+  = f m c + \sum_(m <- msupp pmcm) f m pmcm@_m.
+{ case_eq (m \in msupp p) => Hmsuppp.
+  { rewrite (big_rem _ Hmsuppp) /= Hc; f_equal.
+    rewrite /pmcm /cm -Hc -(eq_big_perm _ (msupp_rem p m)) /=.
+    apply eq_big_seq => i.
+    rewrite mcoeffB mcoeffZ mcoeffX.
+    rewrite mcoeff_msupp Hc -/cm -/pmcm -Hpmcm.
+    case (@eqP _ m i) => [->|]; [by rewrite eqxx|].
+    by rewrite GRing.mulr0 GRing.subr0. }
+  move: Hmsuppp; rewrite /pmcm /cm mcoeff_msupp Hc; move/eqP ->.
+  by rewrite Hf GRing.add0r GRing.scale0r GRing.subr0. }
+eapply param_apply.
+{ eapply param_apply; [by apply param_mpoly_add_eff|].
+  eapply param_apply; [|by apply param_eq_refl].
+  eapply param_apply; [apply param_f|rewrite paramE; apply param_m]. }
+apply IH, refines_effmpolyP.
+{ move=> m'' [c' Hc']; move: (Hq' m''); rewrite MFacts.add_o.
+  case M.E.eq_dec.
+  { move/mnmc_eq_seqP/eqP <-; rewrite -MFacts.find_mapsto_iff => Hm.
+    by apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)); exists c. }
+  rewrite (proj1 (MFacts.find_mapsto_iff q m'' c')) // => _ H.
+  apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)).
+  by exists c'; move: H; rewrite -MFacts.find_mapsto_iff. }
+move=> mm mm' param_mm; move: (Hq' mm'); rewrite MFacts.add_o.
+rewrite mcoeffB mcoeffZ mcoeffX.
+case M.E.eq_dec.
+{ move/mnmc_eq_seqP/eqP => Hmm'; rewrite -Hmm'.
+  have Hmm : m = mm.
+  { by apply/eqP; rewrite (Rseqmultinom_eq param_m param_mm); apply/eqP. }
+  rewrite (proj1 (MFacts.not_find_in_iff _ _) Hq) -Hmm eqxx GRing.mulr1.
+  by rewrite (refines_find_mpoly Hp param_m) => ->; rewrite GRing.subrr. }
+move=> Hmm' <-.
+have Hmm : ~ m = mm.
+{ move=> Hmmm; apply/Hmm'/mnmc_eq_seqP.
+  by rewrite -(Rseqmultinom_eq param_m param_mm); apply/eqP. }
+rewrite (refines_find_mpoly Hp param_mm).
+by have ->: (m == mm = false); [apply/eqP|rewrite GRing.mulr0 GRing.subr0].
+Qed.
+
 Arguments mpoly_mul {n R} p q.
-Global Instance param_mpoly_mul_eff :
+Global Instance param_mpoly_mul_eff n :
   param (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
   mpoly_mul mpoly_mul_eff.
 Proof.
@@ -675,6 +743,8 @@ rewrite [mpoly_mul q p]mpolyME -ssrcomplements.pair_bigA_seq_curry /=.
 rewrite /mpoly_mul_eff.
 pose f m c := \big[+%R/0]_(i2 <- msupp p) ((c * p@_i2) *: 'X_[(m + i2)]).
 pose f' m c := @mult_monomial_eff _ mul0 m c.
+Admitted.
+(*
 change (param Reffmpoly (\sum_(m <- msupp q) f m q@_m)
   (M.fold (fun m c => mpoly_add_eff (f' m c q')) M.empty q')).
 move: q param_q; apply MProps.fold_rec.
@@ -686,10 +756,11 @@ move: q param_q; apply MProps.fold_rec.
 }
 move=> m c a' m' m''.
 Admitted. (* Erik *)
+*)
 
-Definition mpoly_exp (p : {mpoly T[n]}) (n : nat) := (p ^+ n)%R.
+Definition mpoly_exp {n} (p : {mpoly T[n]}) (n : nat) := (p ^+ n)%R.
 
-Global Instance param_mpoly_exp_eff :
+Global Instance param_mpoly_exp_eff n :
   param (Reffmpoly ==> Logic.eq ==> Reffmpoly (T := T) (n := n))
   mpoly_exp (mpoly_exp_eff (n:=n)).
 Proof.
@@ -702,11 +773,11 @@ move=> _ <-; eapply param_apply; [|exact IHn].
 by eapply param_apply; [apply param_mpoly_mul_eff|].
 Qed.
 
-Definition seq_Reffmpoly k (lq : k.-tuple {mpoly T[n]}) (lq' : seq (effmpoly T)) :=
+Definition seq_Reffmpoly n k (lq : k.-tuple {mpoly T[n]}) (lq' : seq (effmpoly T)) :=
   size lq' = k /\ forall i, Reffmpoly lq`_i (nth mp0_eff lq' i).
 
-Lemma param_comp_monomial_eff k :
-  param (Rseqmultinom ==> Logic.eq ==> @seq_Reffmpoly k ==> Reffmpoly)
+Lemma param_comp_monomial_eff n k :
+  param (Rseqmultinom ==> Logic.eq ==> @seq_Reffmpoly n k ==> Reffmpoly)
   (fun m c lq => mpolyC c * mmap1 (tnth lq) m) (comp_monomial_eff (n:= n)).
 Proof.
 apply param_abstr => m m' param_m.
@@ -748,67 +819,26 @@ by apply ord_inj; rewrite inordK //; move: (ltn_ord i).
 Qed.
 
 Arguments comp_mpoly {n R k} lq p.
-Global Instance param_comp_mpoly_eff k :
-  param (@seq_Reffmpoly k ==> Reffmpoly ==> Reffmpoly)
+Global Instance param_comp_mpoly_eff n k :
+  param (@seq_Reffmpoly n k ==> Reffmpoly ==> Reffmpoly)
   comp_mpoly (comp_mpoly_eff (n:= n)).
 Proof.
 apply param_abstr => lq lq' param_lq.
 apply param_abstr => p p' param_p.
-rewrite paramE /comp_mpoly_eff.
-move: p param_p; rewrite paramE.
-apply MProps.fold_rec.
-{ move=> q' Eq' q Hq.
-  suff -> : q = 0.
-  { by rewrite comp_mpoly0; move: param_mp0_eff; rewrite paramE. }
-  apply /mpolyP => m.
-  rewrite (refines_find_mpoly Hq (refines_seqmultinom_of_multinom m)).
-  rewrite mcoeff0; case_eq (M.find (seqmultinom_of_multinom m) q') => // s.
-  rewrite -MFacts.find_mapsto_iff MFacts.elements_mapsto_iff.
-  by rewrite -in_InA_eq_key_elt_iff (proj1 (MProps.elements_Empty _ ) Eq'). }
-move=> m' c p'' q q' Hp'' Hq Hq' IH p Hp.
-pose m := multinom_of_seqmultinom_val k m'; pose cm := c *: 'X_[m].
-pose pmcm := p - cm; rewrite -(GRing.subrK cm p) -/pmcm comp_mpolyD.
-assert (param_m : Rseqmultinom m m').
-{ apply refines_multinom_of_seqmultinom_val.
-  move: (Hq' m'); rewrite MFacts.add_eq_o; [|by apply/mnmc_eq_seqP]; move=> Hm'.
-  apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)).
-  by exists c; apply M.find_2. }
-apply paramP; eapply param_apply.
-{ eapply param_apply; [by apply param_mpoly_add_eff|].
-  rewrite paramE; apply IH, refines_effmpolyP.
-  { move=> m'' [c' Hc']; move: (Hq' m''); rewrite MFacts.add_o.
-    case M.E.eq_dec.
-    { move/mnmc_eq_seqP/eqP <-; rewrite -MFacts.find_mapsto_iff => Hm.
-      by apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)); exists c. }
-    rewrite (proj1 (MFacts.find_mapsto_iff q m'' c')) // => _ H.
-    apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)).
-    by exists c'; move: H; rewrite -MFacts.find_mapsto_iff. }
-  move=> mm mm' param_mm; move: (Hq' mm'); rewrite MFacts.add_o.
-  rewrite mcoeffB mcoeffZ mcoeffX.
-  case M.E.eq_dec.
-  { move/mnmc_eq_seqP/eqP => Hmm'; rewrite -Hmm'.
-    assert (Hmm : m = mm).
-    { by apply/eqP; rewrite (Rseqmultinom_eq param_m param_mm); apply/eqP. }
-    rewrite (proj1 (MFacts.not_find_in_iff _ _) Hq) -Hmm eqxx GRing.mulr1.
-    by rewrite (refines_find_mpoly Hp param_m) => ->; rewrite GRing.subrr. }
-  move=> Hmm' <-.
-  assert (Hmm : ~ m = mm).
-  { move=> Hmmm; apply/Hmm'/mnmc_eq_seqP.
-    by rewrite -(Rseqmultinom_eq param_m param_mm); apply/eqP. }
-  rewrite (refines_find_mpoly Hp param_mm).
-  by have ->: (m == mm = false); [apply/eqP|rewrite GRing.mulr0 GRing.subr0]. }
-rewrite /cm /comp_mpoly mmapZ mmapX.
-change (_ * _) with ((fun lq => mpolyC c * mmap1 (tnth lq) m) lq).
-eapply param_apply; [|by apply param_lq].
-change (fun _ => _) with ((fun c lq => c%:MP_[n] * mmap1 (tnth lq) m) c).
-eapply param_apply; [|by apply param_eq_refl].
-change (fun _ => _)
-with ((fun m (c : T) lq => c%:MP_[n] * mmap1 (tnth lq) m) m).
-eapply param_apply; [by apply param_comp_monomial_eff|].
-rewrite /m paramE; apply refines_multinom_of_seqmultinom_val.
-apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)).
-move: Hq'; rewrite MFacts.in_find_iff /MProps.Add.
-move=> H; rewrite (H m') MFacts.add_eq_o //; apply M.E.eq_refl.
+rewrite /comp_mpoly /mmap /comp_mpoly_eff.
+pose f := fun m c => c%:MP_[n] * mmap1 (tnth lq) m.
+rewrite (eq_bigr (fun m => f m p@_m)) //.
+apply param_mpoly_sum_eff.
+{ by move=> m; rewrite /f mpolyC0 GRing.mul0r. }
+{ apply param_abstr => m m' param_m.
+  apply param_abstr => c c'; rewrite paramE /f => <-.
+  change (_ * _) with ((fun lq => c%:MP_[n] * mmap1 (tnth lq) m) lq).
+  eapply param_apply; [|by apply param_lq].
+  change (fun _ => _) with ((fun c lq => c%:MP_[n] * mmap1 (tnth lq) m) c).
+  eapply param_apply; [|by apply param_eq_refl].
+  change (fun _ => _) with ((fun m (c : T) lq => c%:MP_[n] * mmap1 (tnth lq) m) m).
+  eapply param_apply; [apply param_comp_monomial_eff|apply param_m]. }
+apply param_p.
 Qed.
 
 End seqmpoly_theory.
