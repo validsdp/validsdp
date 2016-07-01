@@ -126,11 +126,11 @@ Qed.
 
 End MultinomOrd.
 
-Module M := FMapList.Make MultinomOrd.
-Arguments M.empty {elt}.
-(*
+(*Module M := FMapList.Make MultinomOrd.*)
 Module M := FMapAVL.Make MultinomOrd.
-*)
+
+Arguments M.empty {elt}.
+
 Definition effmpoly := M.t.
 
 Module MFacts := Facts M.
@@ -403,13 +403,13 @@ Lemma in_fst_InA_eq_key_iff (T : Type) x s :
 Proof.
 split.
 { elim s => // h t Hind; rewrite inE; move/orP => [Hh|Ht].
-  { apply InA_cons_hd; rewrite /M.eq_key /M.Raw.PX.eqk.
+  { apply InA_cons_hd; change (M.eq_key _ _) with (M.E.eq x.1 h.1).
     move: Hh => /eqP ->; apply M.E.eq_refl. }
   by apply InA_cons_tl, Hind. }
 elim s => [|h t Hind]; [by rewrite InA_nil|].
 rewrite InA_cons; elim.
-{ rewrite /M.eq_key /M.Raw.PX.eqk; move/mnmc_eq_seqP/eqP =>->.
-  by rewrite inE eqxx. }
+{ change (M.eq_key _ _) with (M.E.eq x.1 h.1).
+  by move/mnmc_eq_seqP/eqP =>->; rewrite inE eqxx. }
 by rewrite inE orb_comm; move/Hind =>->.
 Qed.
 
