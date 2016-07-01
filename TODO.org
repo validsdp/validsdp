@@ -78,8 +78,12 @@
 ** STARTED Do some cleanup, setup naming conventions		       :Erik:
 ** STARTED Make some benchmarks for the Boolean positivity test (itv_Q) :Pierre:
 * SOS/SDP
-** STARTED Look-at libraries for multipolys			       :Erik:
+** STARTED Look-at libraries for multipolys                            :Erik:
+*** DONE refine multipoly by FMap
+*** TODO change FMapList to FMapAVL                                  :Pierre:
+*** TODO refine effmpoly from rat to bigQ
 ** TODO Look-at doc on OCaml tactics
+** TODO Look at how to parse goals
 ** DONE Look-at Victor's JFR paper				:Erik:Pierre:
    CLOSED: [2016-06-08 Wed 11:31]
 - Reuse the interface to ease future benchmarks?
