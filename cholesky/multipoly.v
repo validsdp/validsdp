@@ -21,7 +21,7 @@ Definition sumb (b : bool) : {b = true} + {b = false} :=
 
 (** Part I: Generic operations *)
 
-Section seqmpoly_generic.
+Section effmpoly_generic.
 
 (** Monomials *)
 
@@ -62,7 +62,7 @@ specialize (Hind s2); rewrite /mnmc_eq_seq /=; apply (iffP idP).
 by move/andP => [Ha Hs]; apply/eqP; f_equal; apply /eqP => //; apply/Hind.
 Qed.
 
-End seqmpoly_generic.
+End effmpoly_generic.
 
 (** Multivariate polynomials *)
 
@@ -142,7 +142,7 @@ Include Properties M.
 Definition singleton T key (val : T) := M.add key val M.empty.
 
 Lemma singleton_mapsto {T} k k' (e e' : T) :
-  M.MapsTo k e (MProps.singleton k' e') -> (k = k' /\ e = e').
+  M.MapsTo k e (singleton k' e') -> (k = k' /\ e = e').
 Proof.
 rewrite F.add_mapsto_iff; elim; move=> [Hk He]; [split; [|by[]]|].
 { by move: Hk; move /mnmc_eq_seqP/eqP. }
@@ -150,7 +150,7 @@ by move: He; rewrite F.empty_mapsto_iff.
 Qed.
 
 Lemma singleton_in_iff {T} y k (e : T) :
-  M.In y (MProps.singleton k e) <-> M.E.eq y k.
+  M.In y (singleton k e) <-> M.E.eq y k.
 Proof.
 split; [move/MFacts.add_in_iff|move=> H; apply/MFacts.add_in_iff].
 by intuition; move/MFacts.empty_in_iff in H.
@@ -159,7 +159,7 @@ Qed.
 
 End MProps.
 
-Section seqmpoly_generic_2.
+Section effmpoly_generic_2.
 
 Definition effmpoly_of_list : forall T, seq (seqmultinom * T) -> effmpoly T :=
   MProps.of_list.
@@ -218,10 +218,11 @@ Definition comp_monomial_eff (m : seqmultinom) (c : T) (lq : seq (effmpoly T)) :
 Definition comp_mpoly_eff (lq : seq (effmpoly T)) (p : effmpoly T) : effmpoly T :=
   M.fold (fun m c => mpoly_add_eff (comp_monomial_eff m c lq)) p mp0_eff.
 
-End seqmpoly_generic_2.
+End effmpoly_generic_2.
 
 (** ** Part II: Proofs for proof-oriented types and programs *)
-Section seqmpoly_theory.
+
+Section effmpoly_theory.
 
 (** *** Data refinement for seqmultinom *)
 
@@ -1090,4 +1091,65 @@ apply param_mpoly_sum_eff.
 apply param_p.
 Qed.
 
-End seqmpoly_theory.
+End effmpoly_theory.
+
+(** ** Part III: Parametricity *)
+
+Section effmpoly_parametricity.
+
+Context (A : ringType) (C : Type) (rAC : A -> C -> Prop).
+
+Definition M_hrel (m : M.t A) (m' : M.t C) : Prop :=
+  (forall k e, M.MapsTo k e m -> exists e', M.MapsTo k e' m' /\ rAC e e')
+  /\ (forall k e', M.MapsTo k e' m' -> exists e, M.MapsTo k e m /\ rAC e e').
+
+Definition ReffmpolyA {n} := (@Reffmpoly A n \o M_hrel)%rel.
+
+Context `{one C, opp C, add C, sub C, mul C}.
+
+Context `{!param rAC 1%R 1%C}.
+Context `{!param (rAC ==> rAC) -%R -%C}.
+Context `{!param (rAC ==> rAC ==> rAC) +%R +%C}.
+Context `{!param (rAC ==> rAC ==> rAC) (fun x y => x + -y) sub_op}.
+Context `{!param (rAC ==> rAC ==> rAC) *%R *%C}.
+
+Lemma param_M_hrel_empty : param M_hrel M.empty M.empty.
+Proof.
+Admitted.
+
+Lemma param_M_hrel_add :
+  param (Logic.eq ==> rAC ==> M_hrel ==> M_hrel) (@M.add A) (@M.add C).
+Proof.
+Admitted.
+
+Global Instance ReffmpolyA_mp0_eff (n : nat) :
+  param (@ReffmpolyA n) 0 (@mp0_eff C).
+Proof.
+eapply param_trans.
+{ apply composable_comp. }
+{ apply param_mp0_eff. }
+apply set_param, param_M_hrel_empty.
+Qed.
+
+Global Instance ReffmpolyA_mp1_eff (n : nat) :
+  param (@ReffmpolyA n) 1 (mp1_eff (n:=n)).
+Proof.
+eapply param_trans.
+{ apply composable_comp. }
+{ apply param_mp1_eff. }
+apply set_param.
+Admitted.
+
+(*
+param_mpvar_eff
+param_mpolyC_eff
+param_mpolyX_eff
+param_mpoly_scale_eff
+param_mpoly_add_eff
+param_mpoly_sub_eff
+param_mpoly_mul_eff
+param_mpoly_exp_eff
+param_comp_mpoly_eff
+*)
+
+End effmpoly_parametricity.
