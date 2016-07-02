@@ -972,7 +972,6 @@ apply param_Madd_mnm_add.
 { rewrite paramE; apply: Hind.
   apply (rem_mpoly_eff Hin Hadd param_p Hk). }
 rewrite mcoeff_msupp negbK.
-Search "" bigop.bigop mcoeff.
 set F' := fun i2 => (c *: 'X_[m]) * (pmpk@_i2 *: 'X_[i2]).
 rewrite (eq_bigr F').
 { rewrite -big_distrr /= -mpolyE.
