@@ -80,8 +80,8 @@
 * SOS/SDP
 ** STARTED Look-at libraries for multipolys                            :Erik:
 *** DONE refine multipoly by FMap
-*** TODO change FMapList to FMapAVL                                  :Pierre:
-*** TODO refine effmpoly from rat to bigQ
+*** DONE change FMapList to FMapAVL                                  :Pierre:
+*** STARTED refine effmpoly from rat to bigQ
 ** TODO Look-at doc on OCaml tactics
 ** TODO Look at how to parse goals
 ** DONE Look-at Victor's JFR paper				:Erik:Pierre:
