@@ -1,0 +1,6 @@
+Installation
+============
+
+coq_makefile -f Make -o Makefile
+make
+make install
