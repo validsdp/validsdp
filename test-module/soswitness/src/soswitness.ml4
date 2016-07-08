@@ -27,7 +27,7 @@ let rec mkNat n =
   if n <= 0 then Lazy.force coq_nat_O
   else mkApp (Lazy.force coq_nat_S, [| mkNat (n - 1) |])
 
-let ofNat c = match fst (decompose_app c) with
+let rec ofNat c = match snd (decompose_app c) with
   | [] -> 0
   | c :: _ -> ofNat c + 1
 
