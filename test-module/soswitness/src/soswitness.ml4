@@ -40,7 +40,7 @@ let int31_path = ["Coq"; "Numbers"; "Cyclic"; "Int31"; "Int31"]
 let coq_int31_0 = lazy (init_constant int31_path "D0")
 let coq_int31_1 = lazy (init_constant int31_path "D1")
 
-let ofint31 c =
+let ofInt31 c =
   let rec aux args cur = match args with
     | [] -> assert false
     | [d] when eq_cstr d coq_int31_0 -> Z.(shift_left (of_int cur) 1)
@@ -49,10 +49,10 @@ let ofint31 c =
     | d :: t (*when eq_cstr d coq_int31_1*) -> aux t (2 * cur + 1) in
   aux (snd (decompose_app c)) 0
 
-let ofzn2z hght c =
+let ofZn2z hght c =
   let rec pow n = if n <= 0 then 1 else 2 * pow (n - 1) in
   let rec aux hght c =
-    if hght <= 0 then ofint31 c else
+    if hght <= 0 then ofInt31 c else
       match snd (decompose_app c) with
       | [_] (* DoubleType.W0 *) -> Z.zero
       | [_; h; l] (* DoubleType.WW *) ->
@@ -73,41 +73,69 @@ let coq_bigN_N6 = lazy (init_constant bigN_path "N6")
 let coq_bigN_Nn = lazy (init_constant bigN_path "Nn")
 
 let ofBigN c = match decompose_app c with
-  | c, [i] when eq_cstr c coq_bigN_N0 ->
-     let i = ofint31 i in
-     let _ = Pp.(msg_info (str "i: " ++ int (Z.to_int i))) in
-     Pp.(msg_info (str "ofBigN, N0: " ++ Printer.pr_constr c))
-  | c, [d] when eq_cstr c coq_bigN_N1 ->
-     let i = ofzn2z 1 d in
-     let _ = Pp.(msg_info (str "i: " ++ str (Z.to_string i))) in
-     Pp.(msg_info (str "ofBigN, N1: " ++ Printer.pr_constr c))
-  | c, [d] when eq_cstr c coq_bigN_N2 ->
-     let i = ofzn2z 2 d in
-     let _ = Pp.(msg_info (str "i: " ++ str (Z.to_string i))) in
-     Pp.(msg_info (str "ofBigN, N2: " ++ Printer.pr_constr c))
-  | c, [d] when eq_cstr c coq_bigN_N3 ->
-     let i = ofzn2z 3 d in
-     let _ = Pp.(msg_info (str "i: " ++ str (Z.to_string i))) in
-     Pp.(msg_info (str "ofBigN, N3: " ++ Printer.pr_constr c))
-  | c, [d] when eq_cstr c coq_bigN_N4 ->
-     let i = ofzn2z 4 d in
-     let _ = Pp.(msg_info (str "i: " ++ str (Z.to_string i))) in
-     Pp.(msg_info (str "ofBigN, N4: " ++ Printer.pr_constr c))
-  | c, [d] when eq_cstr c coq_bigN_N5 ->
-     let i = ofzn2z 5 d in
-     let _ = Pp.(msg_info (str "i: " ++ str (Z.to_string i))) in
-     Pp.(msg_info (str "ofBigN, N5: " ++ Printer.pr_constr c))
-  | c, [d] when eq_cstr c coq_bigN_N6 ->
-     let i = ofzn2z 6 d in
-     let _ = Pp.(msg_info (str "i: " ++ str (Z.to_string i))) in
-     Pp.(msg_info (str "ofBigN, N6: " ++ Printer.pr_constr c))
-  | c, args when eq_cstr c coq_bigN_Nn ->
-     (* TODO *)
-     Pp.(msg_info (str "ofBigN, Nn: " ++ Printer.pr_constr c))
+  | c, [i] when eq_cstr c coq_bigN_N0 -> ofInt31 i
+  | c, [d] when eq_cstr c coq_bigN_N1 -> ofZn2z 1 d
+  | c, [d] when eq_cstr c coq_bigN_N2 -> ofZn2z 2 d
+  | c, [d] when eq_cstr c coq_bigN_N3 -> ofZn2z 3 d
+  | c, [d] when eq_cstr c coq_bigN_N4 -> ofZn2z 4 d
+  | c, [d] when eq_cstr c coq_bigN_N5 -> ofZn2z 5 d
+  | c, [d] when eq_cstr c coq_bigN_N6 -> ofZn2z 6 d
+  | c, [n; d] when eq_cstr c coq_bigN_Nn -> ofZn2z (ofNat n + 7) d
   | _ -> assert false
 
+let bigZ_path = ["Coq"; "Numbers"; "Integer"; "BigZ"; "BigZ"; "BigZ"]
+let coq_bigZ_Pos = lazy (init_constant bigZ_path "Pos")
+let coq_bigZ_Neg = lazy (init_constant bigZ_path "Neg")
+
+let ofBigZ c = match decompose_app c with
+  | c, [n] when eq_cstr c coq_bigZ_Pos -> ofBigN n
+  | c, [n] (*when eq_cstr c coq_bigZ_Neg*) -> Z.neg (ofBigN n)
+  | _ -> assert false
+
+(*
+let bigQ_path = ["Coq"; "Numbers"; "Rationals"; "BigQ"; "BigQ"; "BigQ"]
+let coq_bigQ_Qz = lazy (init_constant bigZ_path "Qz")
+let coq_bigZ_Qq = lazy (init_constant bigZ_path "Qq")
+ *)
+
+let ofBigQ c = match snd (decompose_app c) with
+  | [n] (*Qz*) -> Q.of_bigint (ofBigZ n)
+  | [n; d] (*Qq*) -> Q.make (ofBigZ n) (ofBigN d)
+  | _ -> assert false
+
+let rec ofList ofe c = match snd (decompose_app c) with
+  | [] | [_] (*nil*) -> []
+  | [_; h; t] (*cons*) -> ofe h :: ofList ofe t
+  | _ -> assert false
+
+let ofPair ofa ofb c = match snd (decompose_app c) with
+  | [_; _; a; b] -> ofa a, ofb b
+  | _ -> assert false
+
+let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofNat c)
+
+let ofSeqMultinomCoeff c =
+  Osdp.Sos.Q.Poly.of_list (ofList (ofPair ofSeqmultinom ofBigQ) c)
+
 let soswitness env c =
-  let _ = ofBigN c in
+  let p = ofSeqMultinomCoeff c in
+  let _ =
+    Pp.(msg_info (str (Format.asprintf "p = %a@." Osdp.Sos.Q.Poly.pp p))) in
+  let _, _, _, wl =
+    Osdp.Sos.Q.solve Osdp.Sos.Q.Purefeas [Osdp.Sos.Q.Const p] in
+  let _ =
+    match wl with
+    | [] -> (*fail*)
+       Format.printf "no witness@."
+    | [z, q] ->
+       Format.printf
+         "z, q = @[(@[%a@]),@ [@[%a@]]@]@."
+         (Osdp.Utils.pp_array ~sep:",@ " Osdp.Monomial.pp)
+         z
+         (Osdp.Utils.pp_matrix
+            ~begl:"@[" ~endl:"@]" ~sepl:";@ " ~sepc:",@ " Format.pp_print_float)
+         q
+    | _ -> assert false in
   mkNat 0, Lazy.force coq_nat_ind
 (*  mkNat (ofNat c / 2), Lazy.force coq_nat_ind*)
 
