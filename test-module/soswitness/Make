@@ -1,9 +1,0 @@
--Q theories soswitness
--I src
-
-COQDOC = "$(COQBIN)coqdoc -interpolate -utf8"
-CAMLP4OPTIONS = "-loc loc"
-src/soswitness.ml4
-src/soswitness.mllib
-theories/soswitness.v
-test-suite/soswitnesstac.v
