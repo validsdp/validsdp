@@ -1,5 +1,5 @@
 # all: $(patsubst %.v,%.vo,$(wildcard *.v))
-all: cholesky_infnan.vo cholesky_prog.vo ellipsoid_error_infnan.vo testsuite.vo flx64.vo coqinterval_infnan.vo
+all: cholesky_infnan.vo cholesky_prog.vo ellipsoid_error_infnan.vo testsuite.vo flx64.vo coqinterval_infnan.vo multipoly.vo
 # computation.vo
 
 doc: all html/deps.png

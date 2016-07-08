@@ -161,6 +161,7 @@ End MProps.
 
 Section effmpoly_generic_2.
 
+(* FIXME: ensure that [effmpoly_of_list] won't overwrite duplicate monomials *)
 Definition effmpoly_of_list : forall T, seq (seqmultinom * T) -> effmpoly T :=
   MProps.of_list.
 
@@ -369,6 +370,9 @@ Definition mpoly_of_effmpoly (T : ringType) n (p' : effmpoly T) : option (mpoly 
     Some [mpoly [freeg [seq (a.2, multinom_of_seqmultinom_val n a.1) |
                         a <- M.elements p']]]
   else None.
+
+Definition mpoly_of_effmpoly_val (T : ringType) n (p' : effmpoly T) : mpoly n T :=
+  odflt (0%R) (mpoly_of_effmpoly n p').
 
 Definition effmpoly_of_mpoly (T : ringType) n (p : mpoly n T) : effmpoly T :=
   MProps.of_list [seq (seqmultinom_of_multinom a.2, a.1) |

@@ -2015,6 +2015,7 @@ Definition test_posdef_check_itv (M : seq (seq F.type)) (r : bigQ) : bool :=
   posdef_check_itv_F4_coqinterval' M (snd (BigQ2F r)).
 
 (* Remark: ultimately, we'll have to check that mat does not contain NaNs *)
+
 (*
 Definition posdef_seqF (mat : seqmatrix F.type) : Prop :=
   let m := seq.size mat in
@@ -2090,6 +2091,23 @@ apply (posdef_check_itv_F_correct (fs := coqinterval_round_up_infnan) (F2FI := F
   apply: set_nth_default.
   by move/(_ [::] i Hi)/eqP: Hall =>->.
 Qed.
+
+Require Import QArith.
+Local Coercion RMicromega.IQR : Q >-> R.
+Local Coercion BigQ.to_Q : bigQ >-> Q.
+
+Definition posdef_itv_seqF_bigQ (mat : seqmatrix F.type) (r : bigQ) : Prop :=
+  let m := seq.size mat in
+  forall Xt : 'M_m, Xt^T = Xt ->
+  Mabs (Xt - matrix.map_mx toR (@mx_of_seqmx_val _ _ m m mat))
+    <=m: matrix.const_mx (r : R) ->
+  posdef Xt.
+
+Lemma test_posdef_check_itv_correct (A : seqmatrix F.type) (r : bigQ) :
+  let m := seq.size A in
+  test_posdef_check_itv A r ->
+  posdef_itv_seqF_bigQ A r.
+Admitted.
 
 End refinement_cholesky_3.
 
