@@ -2,10 +2,13 @@ Require Import soswitness.soswitness.
 
 Goal True.
 Proof.
-(*soswitness of ([::] : seq (seq nat * bigQ)) in y.*)  (* OSDP fails when we ask whether the 0 polynomial is SOS :( *)
-soswitness of [:: ([:: 0; 0; 0; 0], 3%bigQ)] in y'.
-soswitness of [:: ([:: 0; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ); ([:: 2; 1], (-12)%bigQ)] in y''.
-soswitness of [:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)] in y'''.
+Fail soswitness of ([::] : seq (seq nat * BigQ.t_)) in y.
+set (p := [:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]).
+Fail soswitness of p in y'.
+Fail soswitness of [:: ([:: 0; 0; 0; 0], 3%bigZ)] in y.
+Fail soswitness of [:: ([:: 0; 0; 0; 0], 3%bigQ)] in y.
+Fail soswitness of [:: ([:: 0; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ); ([:: 2; 1], (-12)%bigQ)] in y'.
+soswitness of [:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)] in y.
 Abort.
 
 (*
