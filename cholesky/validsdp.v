@@ -6,7 +6,8 @@ From CoqEAL_theory Require Import hrel.
 From CoqEAL_refinements Require Import refinements seqmatrix.
 From SsrMultinomials Require Import mpoly (* freeg *).
 Require Import Rstruct.
-Require Import float_infnan_spec real_matrix coqinterval_infnan.
+Require Import iteri_ord float_infnan_spec real_matrix coqinterval_infnan.
+Import Refinements.Op.
 Require Import cholesky_prog multipoly.
 Require Import Quote.
 
@@ -42,7 +43,110 @@ Goal forall x y : R, (1 + 6 * x * pow y 1) >= 0.
     | [ |- (?p >= IZR 0)%R ] =>
     quote eval_abstr_poly [O S xO xH xI Zplus Z0 Zpos Zneg IZR Zmult] in p using (fun x => idtac x)
   end.
+Abort.
 
+(** ** Part 0: Definition of operational type classes *)
+
+Class sempty_class set := sempty : forall {T: Type}, set T.
+Class sadd_class set := sadd : forall {T}, T -> set T -> set T.
+Class smem_class set := smem : forall {T}, T -> set T -> bool.
+
+Class mul_monom monom := mul_monom_op :
+  forall {n : nat}, monom n -> monom n -> monom n.
+
+Class list_of_poly_class monom poly := list_of_poly :
+  forall {T : Type} {n : nat}, poly n T -> seq (monom n * T).
+
+Class polyC_class poly := polyC :
+  forall {T : Type} {n : nat}, T -> poly n T.
+
+Class polyX_class monom poly := polyX :
+  forall {T : Type} {n : nat}, monom n -> poly n T.
+
+Class poly_sub poly := poly_sub_op :
+  forall {T : Type} {n : nat}, poly n T -> poly n T -> poly n T.
+
+(* TODO: regarder si pas déjà dans Coq_EAL *)
+Class max_class T := max : T -> T -> T.
+
+(** ** Part 1: Generic programs *)
+
+Section generic_soscheck.
+
+Context {monom : nat -> Type} {poly : nat -> Type -> Type}.
+Context `{!mul_monom monom, !list_of_poly_class monom poly}.
+Context `{!polyC_class poly, !polyX_class monom poly, !poly_sub poly}.
+
+Context {set : Type -> Type}.
+Context `{!sempty_class set, !sadd_class set, !smem_class set}.
+
+Context {n s : nat} {T : Type}.
+Context `{!zero T, !opp T, !max_class T}.
+Context {ord : nat -> Type} {mx : Type -> nat -> nat -> Type}.
+Context `{!fun_of (monom n) ord (mx (monom n))}.
+Context `{!fun_of (poly n T) ord (mx (poly n T))}.
+Context `{!I0_class ord s, !I0_class ord 1, !succ0_class ord s(*, !nat_of_class ord s*)}.
+
+Definition check_base (p : poly n T) (z : mx (monom n) s 1) : bool :=
+  let sm :=
+    iteri_ord s
+      (fun i =>
+         iteri_ord s
+           (fun j => sadd (mul_monom_op (fun_of_matrix z i I0)
+                                        (fun_of_matrix z j I0))))
+      sempty in
+  all (fun mc => smem mc.1 sm) (list_of_poly p).
+
+Context {F : Type}.  (* Floating-point values. *)
+Context {F2T : F -> T}.  (* exact conversion *)
+Context {T2F : T -> F}.  (* overapproximation *)
+
+Context `{!map_mx_class mx}.
+Context `{!transpose_class (mx (poly n T))}.
+(* Multiplication of matrices of polynomials. *)
+Context `{!hmul (mx (poly n T))}.
+
+Definition soscheck' (p : poly n T)
+                    (z : mx (monom n) s 1) (Q : mx F s s) : T :=
+  let r :=
+    let p' :=
+      let zp := map_mx polyX z in
+      let Q' := map_mx (polyC \o F2T) Q in
+      let p'm := (zp^T *m Q' *m zp)%HC : mx (poly n T) 1 1 in
+      fun_of_matrix p'm I0 I0 in
+    let pmp' := poly_sub_op p p' in
+    foldl (fun m mc => m) 0%C (list_of_poly pmp') in
+  r.
+
+(*Typeclasses eauto := debug.*)  (* @Érik: merci, c'est super utile ! *)
+
+(* Pour posdef_check_itv_F (un peu pénible ce type F en double). *)
+Variable F' : Type.
+Variables (feps feta : F') (is_finite : F' -> bool) (F2F' : F -> F').
+
+Context `{!zero F', !one F', !opp F', !div F', !sqrt F'}.
+Context `{!fun_of F' ord (mx F'), !row_class ord (mx F'), !store_class F' ord (mx F'), !dotmulB0_class F' ord (mx F')}.
+Context `{!heq (mx F'), !transpose_class (mx F'), !leq F', !lt F'}.
+Context `{!addup_class F', !mulup_class F', !divup_class F'}.
+Context `{!nat2Fup_class F', !subdn_class F'}.
+Context `{!fun_of T ord (mx T), !row_class ord (mx T), !store_class T ord (mx T), !dotmulB0_class T ord (mx T)}.
+Context `{!nat_of_class ord s}.
+
+Definition soscheck (p : poly n T)
+                    (z : mx (monom n) s 1) (Q : mx F s s) : bool :=
+  let r :=
+    let p' :=
+      let zp := map_mx polyX z in
+      let Q' := map_mx (polyC \o F2T) Q in
+      let p'm := (zp^T *m Q' *m zp)%HC : mx (poly n T) 1 1 in
+      fun_of_matrix p'm I0 I0 in
+    let pmp' := poly_sub_op p p' in
+    foldl (fun m mc => max m (max mc.2 (-mc.2)%C)) 0%C (list_of_poly pmp') in
+  posdef_check_itv_F feps feta is_finite F2F' Q (T2F r).
+
+End generic_soscheck.
+
+(*
 Module S := FSetAVL.Make MultinomOrd.
 
 Definition check_base (p : effmpoly bigQ) (z : seq seqmultinom) : bool :=
@@ -101,3 +205,4 @@ Lemma soscheck_correct p zQ :
   forall x,
   (0 <= (mpoly_of_effmpoly_val n (R_of_effmpoly p)).@[x])%R.
 Admitted.
+*)
