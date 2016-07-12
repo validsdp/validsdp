@@ -6,7 +6,7 @@ From CoqEAL_theory Require Import hrel.
 From CoqEAL_refinements Require Import refinements seqmatrix.
 From SsrMultinomials Require Import mpoly (* freeg *).
 Require Import Rstruct.
-Require Import iteri_ord float_infnan_spec real_matrix coqinterval_infnan.
+Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog multipoly.
 Require Import Quote.
@@ -47,24 +47,20 @@ Abort.
 
 (** ** Part 0: Definition of operational type classes *)
 
-Class sempty_class set := sempty : forall {T: Type}, set T.
-Class sadd_class set := sadd : forall {T}, T -> set T -> set T.
-Class smem_class set := smem : forall {T}, T -> set T -> bool.
+Class sempty_class setT := sempty : setT.
+Class sadd_class T setT := sadd : T -> setT -> setT.
+Class smem_class T setT := smem : T -> setT -> bool.
 
-Class mul_monom monom := mul_monom_op :
-  forall {n : nat}, monom n -> monom n -> monom n.
+Class mul_monom monom := mul_monom_op : monom -> monom -> monom.
 
-Class list_of_poly_class monom poly := list_of_poly :
-  forall {T : Type} {n : nat}, poly n T -> seq (monom n * T).
+Class list_of_poly_class T monom polyT := list_of_poly :
+  polyT -> seq (monom * T).
 
-Class polyC_class poly := polyC :
-  forall {T : Type} {n : nat}, T -> poly n T.
+Class polyC_class T polyT := polyC : T -> polyT.
 
-Class polyX_class monom poly := polyX :
-  forall {T : Type} {n : nat}, monom n -> poly n T.
+Class polyX_class monom polyT := polyX : monom -> polyT.
 
-Class poly_sub poly := poly_sub_op :
-  forall {T : Type} {n : nat}, poly n T -> poly n T -> poly n T.
+Class poly_sub polyT := poly_sub_op : polyT -> polyT -> polyT.
 
 (* TODO: regarder si pas déjà dans Coq_EAL *)
 Class max_class T := max : T -> T -> T.
@@ -73,21 +69,24 @@ Class max_class T := max : T -> T -> T.
 
 Section generic_soscheck.
 
-Context {monom : nat -> Type} {poly : nat -> Type -> Type}.
-Context `{!mul_monom monom, !list_of_poly_class monom poly}.
-Context `{!polyC_class poly, !polyX_class monom poly, !poly_sub poly}.
+Context {n : nat}.  (** number of variables of polynomials *)
+Context {T : Type}.  (** type of coefficients of polynomials *)
 
-Context {set : Type -> Type}.
-Context `{!sempty_class set, !sadd_class set, !smem_class set}.
+Context {monom : Type} {polyT : Type}.
+Context `{!mul_monom monom, !list_of_poly_class T monom polyT}.
+Context `{!polyC_class T polyT, !polyX_class monom polyT, !poly_sub polyT}.
 
-Context {n s : nat} {T : Type}.
+Context {set : Type}.
+Context `{!sempty_class set, !sadd_class monom set, !smem_class monom set}.
+
 Context `{!zero T, !opp T, !max_class T}.
 Context {ord : nat -> Type} {mx : Type -> nat -> nat -> Type}.
-Context `{!fun_of (monom n) ord (mx (monom n))}.
-Context `{!fun_of (poly n T) ord (mx (poly n T))}.
-Context `{!I0_class ord s, !I0_class ord 1, !succ0_class ord s(*, !nat_of_class ord s*)}.
+Context `{!fun_of monom ord (mx monom)}.
+Context `{!fun_of polyT ord (mx polyT)}.
+Context {s : nat}.
+Context `{!I0_class ord s, !I0_class ord 1, !succ0_class ord s}.
 
-Definition check_base (p : poly n T) (z : mx (monom n) s 1) : bool :=
+Definition check_base (p : polyT) (z : mx monom s 1) : bool :=
   let sm :=
     iteri_ord s
       (fun i =>
@@ -97,65 +96,216 @@ Definition check_base (p : poly n T) (z : mx (monom n) s 1) : bool :=
       sempty in
   all (fun mc => smem mc.1 sm) (list_of_poly p).
 
-Context {F : Type}.  (* Floating-point values. *)
+Context `{!map_mx_class mx}.
+Context `{!transpose_class (mx polyT)}.
+(* Multiplication of matrices of polynomials. *)
+Context `{!hmul (mx polyT)}.
+
+Context {fs : Float_round_up_infnan_spec}.
+Let F := FI fs.
 Context {F2T : F -> T}.  (* exact conversion *)
 Context {T2F : T -> F}.  (* overapproximation *)
 
-Context `{!map_mx_class mx}.
-Context `{!transpose_class (mx (poly n T))}.
-(* Multiplication of matrices of polynomials. *)
-Context `{!hmul (mx (poly n T))}.
-
-Definition soscheck' (p : poly n T)
-                    (z : mx (monom n) s 1) (Q : mx F s s) : T :=
-  let r :=
-    let p' :=
-      let zp := map_mx polyX z in
-      let Q' := map_mx (polyC \o F2T) Q in
-      let p'm := (zp^T *m Q' *m zp)%HC : mx (poly n T) 1 1 in
-      fun_of_matrix p'm I0 I0 in
-    let pmp' := poly_sub_op p p' in
-    foldl (fun m mc => m) 0%C (list_of_poly pmp') in
-  r.
-
-(*Typeclasses eauto := debug.*)  (* @Érik: merci, c'est super utile ! *)
-
-(* Pour posdef_check_itv_F (un peu pénible ce type F en double). *)
-Variable F' : Type.
-Variables (feps feta : F') (is_finite : F' -> bool) (F2F' : F -> F').
-
-Context `{!zero F', !one F', !opp F', !div F', !sqrt F'}.
-Context `{!fun_of F' ord (mx F'), !row_class ord (mx F'), !store_class F' ord (mx F'), !dotmulB0_class F' ord (mx F')}.
-Context `{!heq (mx F'), !transpose_class (mx F'), !leq F', !lt F'}.
-Context `{!addup_class F', !mulup_class F', !divup_class F'}.
-Context `{!nat2Fup_class F', !subdn_class F'}.
-Context `{!fun_of T ord (mx T), !row_class ord (mx T), !store_class T ord (mx T), !dotmulB0_class T ord (mx T)}.
+Context `{!fun_of F ord (mx F), !row_class ord (mx F), !store_class F ord (mx F), !dotmulB0_class F ord (mx F)}.
+Context `{!heq (mx F), !transpose_class (mx F)}.
 Context `{!nat_of_class ord s}.
 
-Definition soscheck (p : poly n T)
-                    (z : mx (monom n) s 1) (Q : mx F s s) : bool :=
+Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
   let r :=
     let p' :=
       let zp := map_mx polyX z in
       let Q' := map_mx (polyC \o F2T) Q in
-      let p'm := (zp^T *m Q' *m zp)%HC : mx (poly n T) 1 1 in
+      let p'm := (zp^T *m Q' *m zp)%HC in
       fun_of_matrix p'm I0 I0 in
     let pmp' := poly_sub_op p p' in
     foldl (fun m mc => max m (max mc.2 (-mc.2)%C)) 0%C (list_of_poly pmp') in
-  posdef_check_itv_F feps feta is_finite F2F' Q (T2F r).
+  posdef_check_itv (@fieps fs) (@fieta fs) (@is_finite fs) Q (T2F r).
 
 End generic_soscheck.
 
-(*
 Module S := FSetAVL.Make MultinomOrd.
 
-Definition check_base (p : effmpoly bigQ) (z : seq seqmultinom) : bool :=
-  let s :=
-      foldl
-        (fun acc i => foldl (fun acc j => S.add (mnm_add_seq i j) acc) acc z)
-        S.empty z in
-  MProps.for_all (fun m _ => S.mem m s) p.
+Section eff_soscheck.
 
+(** *** 1.2 Generic defs for seqmx and effmpoly *)
+
+Context {n : nat}.  (** number of variables of polynomials *)
+Context {T : Type}.  (** type of coefficients of polynomials *)
+
+Context `{!one T, !opp T, !add T, !sub T, !mul T}.
+
+Let monom := seqmultinom.
+
+Let polyT := effmpoly T.
+
+Global Instance mul_monom_eff : mul_monom monom := mnm_add_seq.
+
+Global Instance list_of_poly_eff : list_of_poly_class T monom polyT :=
+  @list_of_effmpoly T.
+
+Global Instance polyC_eff : polyC_class T polyT := @mpolyC_eff _ n.
+
+Global Instance polyX_eff : polyX_class monom polyT := mpolyX_eff.
+
+Global Instance poly_sub_eff : poly_sub polyT := mpoly_sub_eff.
+
+Let set := S.t.
+
+Global Instance sempty_eff : sempty_class set := S.empty.
+
+Global Instance sadd_eff : sadd_class monom set := S.add.
+
+Global Instance smem_eff : smem_class monom set := S.mem.
+
+Context `{!zero T, !max_class T}.
+
+Let ord := ord_instN.
+
+Let mx := seqmatrix'.
+
+Context {s : nat}.
+
+(* @Érik: global? *)
+Global Instance fun_of_seqmx_monom : fun_of monom ord (mx monom) :=
+  @fun_of_seqmx _ [::].
+
+Definition check_base_eff : polyT -> mx monom s.+1 1 -> bool :=
+  check_base (I0_class0:=I0_instN).  (* aucune idée de pourquoi celle ci n'est pas inférée *)
+
+Context {fs : Float_round_up_infnan_spec}.
+Let F := FI fs.
+Context {F2T : F -> T}.  (* exact conversion *)
+Context {T2F : T -> F}.  (* overapproximation *)
+
+(* @Érik: global? *)
+Global Instance fun_of_seqmx_polyT : fun_of polyT ord (mx polyT) :=
+  @fun_of_seqmx _ mp0_eff.
+
+(* @Érik: global? *)
+Global Instance mulseqmx_polyT : hmul (mx polyT) :=
+  @mulseqmx _ mp0_eff mpoly_add_eff mpoly_mul_eff.
+
+Definition soscheck_eff : polyT -> mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
+  soscheck (map_mx_class0:=map_mx_seqmx) (I0_class0:=@I0_instN s)
+    (F2T:=F2T) (T2F:=T2F).
+
+End eff_soscheck.
+
+About soscheck_eff.
+
+(** ** Part 2: Correctness proofs for proof-oriented types and programs *)
+
+Section theory_soscheck.
+
+(** *** Proof-oriented definitions, polymorphic w.r.t scalars *)
+
+(* Context {monom : nat -> Type} {poly : nat -> Type -> Type}. *)
+(* monom: multinom, polyT: fun n => mpoly n T *)
+
+Context {n : nat} {T : ringType}.
+
+Let monom := 'X_{1..n}.
+
+Let polyT := mpoly n T.
+
+Global Instance mul_monom_ssr : mul_monom monom := mnm_add.
+
+Global Instance list_of_poly_ssr : list_of_poly_class T monom polyT :=
+  fun p => [seq (m, p@_m) |m <- msupp p].
+
+Global Instance polyC_ssr : polyC_class T polyT := fun c => mpolyC n c.
+
+Global Instance polyX_ssr : polyX_class monom polyT := fun m => mpolyX T m.
+
+Global Instance poly_sub_ssr : poly_sub polyT := fun p q => p - q.
+
+Let set := seq monom.
+
+Global Instance sempty_ssr : sempty_class set := [::].
+
+Global Instance sadd_ssr : sadd_class monom set := fun e s => e :: s.
+
+Global Instance smem_ssr : smem_class monom set := fun e s => e \in s.
+
+(* @Érik: should these two be global?
+ * Should we even name them (current naming is bad)? *)
+Local Instance zero_ssr : zero T := 0.
+Local Instance opp_ssr : opp T := fun x => -x.
+
+Context `{!max_class T}.
+
+Let ord := ordinal.
+
+Let mx := matrix.
+
+Context {s : nat}.
+
+Definition check_base_ssr : polyT -> 'cV[monom]_s.+1 -> bool := check_base.
+
+Context {fs : Float_round_up_infnan_spec}.
+Let F := FI fs.
+Context {F2T : F -> T}.  (* exact conversion for finite values *)
+Context {T2F : T -> F}.  (* overapproximation *)
+
+Global Instance trmx_instPolyT_ssr : transpose_class (mx polyT) :=
+  @matrix.trmx polyT.
+
+Global Instance hmul_mxPolyT_ssr : hmul (mx polyT) := @mulmx _.
+
+Definition soscheck_ssr : polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
+  soscheck (F2T:=F2T) (T2F:=T2F).
+
+(** *** Proofs *)
+
+Variable (T2R : T -> R).
+Hypothesis max_l : forall x y, T2R x <= T2R (max x y).
+Hypothesis max_r : forall x y, T2R y <= T2R (max x y).
+(* probably more hypotheses needed, see during proof *)
+
+Lemma soscheck_correct p z Q :
+  soscheck_ssr p z Q ->
+  forall x,
+  (0 <= (map_mpoly T2R p).@[x])%R.
+Admitted.  (* TODO look deeper at this one *)
+
+End theory_soscheck.
+
+(** ** Part 3: Parametricity *)
+
+Section refinement_soscheck.
+
+Variables (A : ringType) (C : Type) (rAC : A -> C -> Prop).
+Context {n s : nat}.
+
+Lemma param_check_base :
+  param (ReffmpolyA rAC ==> RseqmxA (@Rseqmultinom n) ==> Logic.eq)
+    (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
+Admitted.
+
+Context `{!max_class A}.
+
+Context `{!zero C, !one C, !opp C, !add C, !sub C, !mul C}.
+Context `{!max_class C}.
+
+Context {fs : Float_round_up_infnan_spec}.
+Let F := FI fs.
+Context {F2A : F -> A}.  (* exact conversion for finite values *)
+Context {A2F : A -> F}.  (* overapproximation *)
+Context {F2C : F -> C}.  (* exact conversion for finite values *)
+Context {C2F : C -> F}.  (* overapproximation *)
+(* probably more hypotheses about these ones *)
+
+(* Typeclasses eauto := debug. *)
+
+Lemma param_soscheck :
+  param (ReffmpolyA rAC ==> RseqmxA (@Rseqmultinom n) ==> Rseqmx ==> Logic.eq)
+    (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
+    (soscheck_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
+Admitted.
+
+End refinement_soscheck.
+
+(* Future definition of F2C *)
 Definition ZZtoQ (m : bigZ) (e : bigZ) :=
   match m,e with
   | BigZ.Pos n, BigZ.Pos p => BigQ.Qz (BigZ.Pos (BigN.shiftl n p))
@@ -180,29 +330,6 @@ Definition F2BigQ (q : F.type) : bigQ :=
   | Interval_specific_ops.Fnan => 0%bigQ
   end.
 
-Definition soscheck (p : effmpoly bigQ) (zQ : seq seqmultinom * seq (seq F.type)) : bool :=
-  let z := zQ.1 in
-  let Q := zQ.2 in
-  let n := size z in
-  check_base p z &&
-  let r :=
-      let p' :=
-          effmpoly_of_list (flatten (zipwith (fun mi Qi => zipwith (fun mj Qij => (mnm_add_seq mi mj, F2BigQ Qij)) z Qi) z Q)) in
-      let pmp' := @mpoly_sub_eff _ BigQ.opp BigQ.sub p p' in
-      M.fold (fun _ e acc => BigQ.max acc (BigQ.max e (- e)%bigQ)) pmp' 0%bigQ in
-  test_posdef_check_itv zQ.2 r.
-
 (* TODO: Move to misc *)
 Local Coercion RMicromega.IQR : Q >-> R.
 Local Coercion BigQ.to_Q : bigQ >-> Q.
-
-Definition R_of_effmpoly (p : effmpoly bigQ) : effmpoly R :=
-  M.map (fun q : bigQ => q : R) p.
-
-Lemma soscheck_correct p zQ :
-  let n := size zQ.1 in
-  soscheck p zQ ->
-  forall x,
-  (0 <= (mpoly_of_effmpoly_val n (R_of_effmpoly p)).@[x])%R.
-Admitted.
-*)
