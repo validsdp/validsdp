@@ -258,14 +258,25 @@ Definition soscheck_ssr : polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
 (** *** Proofs *)
 
 Variable (T2R : T -> R).
+Hypothesis T2R0 : T2R 0 = 0.
+Hypothesis T2F_correct : forall x, is_finite (T2F x) -> T2R x <= FI2F (T2F x).
+Hypothesis T2R_F2T : forall x, T2R (F2T x) = FI2F x.
 Hypothesis max_l : forall x y, T2R x <= T2R (max x y).
 Hypothesis max_r : forall x y, T2R y <= T2R (max x y).
 (* probably more hypotheses needed, see during proof *)
 
-Lemma soscheck_correct p z Q :
-  soscheck_ssr p z Q ->
-  forall x,
-  (0 <= (map_mpoly T2R p).@[x])%R.
+(* seemingly missing in mpoly *)
+Lemma map_mpolyC (R S : ringType) (f : R -> S) (Hf0 : f 0 = 0) n' c :
+  map_mpoly f c%:MP_[n'] = (f c)%:MP_[n'].
+Proof.
+rewrite /map_mpoly /mmap msuppC.
+case_eq (c == 0); [by move/eqP ->; rewrite big_nil Hf0 mpolyC0|].
+move=> _; rewrite big_cons big_nil GRing.addr0 mmap1_id.
+by rewrite mpolyX0 mcoeffC eqxx !GRing.mulr1 /=.
+Qed.
+
+Lemma soscheck_correct p z Q : soscheck_ssr p z Q ->
+  forall x, (0 <= (map_mpoly T2R p).@[x])%R.
 Proof.
 rewrite /soscheck_ssr /soscheck /I0 /I0_ssr /fun_of_matrix /fun_of_ssr.
 rewrite /hmul_op /hmul_mxPolyT_ssr /transpose_op /trmx_instPolyT_ssr.
@@ -287,9 +298,17 @@ move=> [E [HE ->]] Hpcheck x.
 set M := _ *m _.
 replace (meval _ _)
 with ((matrix.map_mx (meval x) M) ord0 ord0); [|by rewrite mxE].
-rewrite /M.
-(* TODO: lemme sur meval *)
-(*rewrite mxE (big_morph _ (mevalD _) (meval0 _)).*)
+replace R0 with ((@matrix.const_mx _ 1 1 R0) ord0 ord0); [|by rewrite mxE].
+rewrite /M !map_mxM -map_trmx map_mxD; apply /Mle_scalar /posdef_semipos.
+replace (matrix.map_mx _ (map_mpolyC_R E)) with E;
+  [|by apply/matrixP => i j; rewrite !mxE /= mevalC].
+replace (matrix.map_mx _ _) with (matrix.map_mx (T2R \o F2T) Q);
+  [|by apply/matrixP => i j; rewrite !mxE /= (map_mpolyC _ _ _ T2R0) mevalC].
+apply (posdef_check_itv_correct Hpcheck).
+apply Mle_trans with (Mabs E).
+{ by right; rewrite !mxE /=; f_equal; rewrite T2R_F2T GRing.addrC GRing.addKr. }
+apply (Mle_trans HE) => i j; rewrite !mxE.
+by apply T2F_correct; move: Hpcheck; move/andP; elim.
 Admitted.
 
 End theory_soscheck.
