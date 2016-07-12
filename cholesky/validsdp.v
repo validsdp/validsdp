@@ -266,7 +266,31 @@ Lemma soscheck_correct p z Q :
   soscheck_ssr p z Q ->
   forall x,
   (0 <= (map_mpoly T2R p).@[x])%R.
-Admitted.  (* TODO look deeper at this one *)
+Proof.
+rewrite /soscheck_ssr /soscheck /I0 /I0_ssr /fun_of_matrix /fun_of_ssr.
+rewrite /hmul_op /hmul_mxPolyT_ssr /transpose_op /trmx_instPolyT_ssr.
+rewrite /polyX /polyX_ssr /polyC /polyC_ssr /map_mx /map_mx_ssr.
+set zp := matrix.map_mx _ z.
+set Q' := matrix.map_mx _ _.
+set p'm := _ (_ *m _) _ _.
+set pmp' := poly_sub_op _ _.
+set r := foldl _ _ _.
+pose zpr := matrix.map_mx [eta mpolyX real_ringType] z.
+pose Q'r := matrix.map_mx (map_mpoly T2R) Q'.
+pose map_mpolyC_R :=
+  fun m : 'M_s.+1 => matrix.map_mx [eta mpolyC n (R:=real_ringType)] m.
+have : exists E : 'M_s.+1,
+  Mabs E <=m: matrix.const_mx (T2R r)
+  /\ map_mpoly T2R p = (zpr^T *m (Q'r + map_mpolyC_R E) *m zpr) ord0 ord0.
+{ admit.  (* c'est ici que tout se passe *) }
+move=> [E [HE ->]] Hpcheck x.
+set M := _ *m _.
+replace (meval _ _)
+with ((matrix.map_mx (meval x) M) ord0 ord0); [|by rewrite mxE].
+rewrite /M.
+(* TODO: lemme sur meval *)
+(*rewrite mxE (big_morph _ (mevalD _) (meval0 _)).*)
+Admitted.
 
 End theory_soscheck.
 
