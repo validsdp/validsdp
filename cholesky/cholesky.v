@@ -772,12 +772,10 @@ rewrite -Mle_scalar; move: (Hr vconst_norm1); apply Mle_trans.
 Qed.
 
 (** Corollary 2.7. *)
-Lemma corollary_2_7 (Rt : 'M[F fs]_n.+1) :
-  cholesky_success At Rt ->
-  forall Xt : 'M[R]_n.+1,
-  Xt^T = Xt -> Mabs (Xt - MF2R A) <=m: MF2R Rad -> posdef Xt.
+Lemma corollary_2_7 (Rt : 'M[F fs]_n.+1) : cholesky_success At Rt ->
+  forall Xt : 'M[R]_n.+1, Mabs (Xt - MF2R A) <=m: MF2R Rad -> posdef Xt.
 Proof.
-move=> HAtRt Xt SymXt HXtAR; apply posdef_norm_eq_1 => x Hx.
+move=> HAtRt Xt HXtAR; apply posdef_norm_eq_1 => x Hx.
 have HAt'Rt := cholesky_success_At_At' HAtRt.
 have SymAt' := f_equal (@MF2R _ _) SymAt'.
 apply Mle_lt_trans with (c%:M + r%:M
@@ -1038,18 +1036,17 @@ Lemma corollary_2_7_with_c_r_upper_bounds n (H4n : 4 * INR n.+2 * eps fs < 1) :
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, (At i i <= A i i - c - INR n.+1 * r)%Re)) ->
   forall Rt : 'M[F fs]_n.+1, cholesky_success At Rt ->
-  forall Xt : 'M_n.+1, Xt^T = Xt ->
-  Mabs (Xt - MF2R A) <=m: MF2R Rad -> posdef Xt.
+  forall Xt : 'M_n.+1, Mabs (Xt - MF2R A) <=m: MF2R Rad -> posdef Xt.
 Proof.
 move=> A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At HAt
-         Rt HARt Xt SymXt HXtARad.
+         Rt HARt Xt HXtARad.
 have Pmaxdiag := Rle_trans _ _ _ (Pdiag ord0) (Hmaxdiag ord0).
 have Hc' : forall x : 'cV_n.+1, ||x||_2 = 1 ->
            (Mabs x)^T *m Delta A maxdiag *m Mabs x <=m: c%:M.
 { move=> x Hx; apply (Mle_trans (c_upper_bound H4n Pdiag Hmaxdiag Hx)).
   by rewrite Mle_scalar_mx. }
 apply (corollary_2_7 (H2n H4n) SymA Pdiag Hmaxdiag Hc' PRad
-                     (r_upper_bound PRad Hr) HAt HARt SymXt HXtARad).
+                     (r_upper_bound PRad Hr) HAt HARt HXtARad).
 Qed.
 
 End Cholesky.

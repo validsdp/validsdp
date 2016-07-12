@@ -1059,13 +1059,13 @@ by move /eqP in Hij' => H; apply Hij'; rewrite H.
 Qed.
 
 Lemma posdef_check_itv_correct A r : posdef_check_itv_ssr A r ->
-  forall Xt : 'M[R]_n.+1, Xt^T = Xt ->
+  forall Xt : 'M[R]_n.+1,
   Mabs (Xt - MF2R (MFI2F A)) <=m: MF2R (MFI2F (matrix.const_mx r)) ->
   posdef Xt.
 Proof.
 rewrite /posdef_check_itv_ssr /posdef_check_itv.
 set nr := mulup _ _; set A' := map_diag _ _.
-case/and3P => [Fr Pr HA' Xt SXt HXt].
+case/and3P => [Fr Pr HA' Xt HXt].
 have HA'' := posdef_check_correct HA'.
 have HF := posdef_check_f1 HA'.
 have HF' : forall i, finite (fiminus_down (A i i) nr).
@@ -1148,11 +1148,11 @@ Qed.
 
 Lemma posdef_check_itv_F_correct (A : 'M[F]_n.+1) (r : F) :
   posdef_check_itv_F_ssr A r ->
-  forall Xt : 'M_n.+1, Xt^T = Xt ->
+  forall Xt : 'M_n.+1,
   Mabs (Xt - matrix.map_mx toR A) <=m: matrix.const_mx (toR r) ->
   posdef Xt.
 Proof.
-move=> H Xt SXt HXt; apply (posdef_check_itv_correct H SXt).
+move=> H Xt HXt; apply (posdef_check_itv_correct H).
 move=> i j; move: (HXt i j); rewrite !mxE F2FI_correct.
 { by rewrite F2FI_correct //; move: H; case/and3P. }
 by move: (posdef_check_itv_f1 H i j); rewrite mxE.
@@ -2061,7 +2061,7 @@ Qed.
 
 Definition posdef_itv_seqF (mat : seqmatrix F.type) (r : F.type) : Prop :=
   let m := seq.size mat in
-  forall Xt : 'M_m, Xt^T = Xt ->
+  forall Xt : 'M_m,
   Mabs (Xt - matrix.map_mx toR (@mx_of_seqmx_val _ _ m m mat))
     <=m: matrix.const_mx (toR r) ->
   posdef Xt.
@@ -2072,7 +2072,7 @@ Lemma posdef_check_itv_F_correct_inst (A : seqmatrix F.type) (r : F.type) :
   posdef_itv_seqF A r.
 Proof.
 case: A => [|A0 A1].
-{ by move=> _ _ Xt _ _ x Hx; casetype False; apply /Hx /matrixP; case. }
+{ by move=> _ _ Xt _ x Hx; casetype False; apply /Hx /matrixP; case. }
 move=> m Hmain Xt.
 set mA := mx_of_seqmx_val _ _ _.
 change (proj_val (F.toX r)) with (toR r).
@@ -2098,7 +2098,7 @@ Local Coercion BigQ.to_Q : bigQ >-> Q.
 
 Definition posdef_itv_seqF_bigQ (mat : seqmatrix F.type) (r : bigQ) : Prop :=
   let m := seq.size mat in
-  forall Xt : 'M_m, Xt^T = Xt ->
+  forall Xt : 'M_m,
   Mabs (Xt - matrix.map_mx toR (@mx_of_seqmx_val _ _ m m mat))
     <=m: matrix.const_mx (r : R) ->
   posdef Xt.
