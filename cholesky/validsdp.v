@@ -96,6 +96,9 @@ Definition check_base (p : polyT) (z : mx monom s 1) : bool :=
       sempty in
   all (fun mc => smem mc.1 sm) (list_of_poly p).
 
+Definition max_coeff (p : polyT) : T :=
+  foldl (fun m mc => max m (max mc.2 (-mc.2)%C)) 0%C (list_of_poly p).
+
 Context `{!map_mx_class mx}.
 Context `{!transpose_class (mx polyT)}.
 (* Multiplication of matrices of polynomials. *)
@@ -118,7 +121,7 @@ Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
       let p'm := (zp^T *m Q' *m zp)%HC in
       fun_of_matrix p'm I0 I0 in
     let pmp' := poly_sub_op p p' in
-    foldl (fun m mc => max m (max mc.2 (-mc.2)%C)) 0%C (list_of_poly pmp') in
+    max_coeff pmp' in
   posdef_check_itv (@fieps fs) (@fieta fs) (@is_finite fs) Q (T2F r).
 
 End generic_soscheck.
@@ -171,6 +174,8 @@ Global Instance fun_of_seqmx_monom : fun_of monom ord (mx monom) :=
 
 Definition check_base_eff : polyT -> mx monom s.+1 1 -> bool :=
   check_base (I0_class0:=I0_instN).  (* aucune idée de pourquoi celle ci n'est pas inférée *)
+
+Definition max_coeff_eff : polyT -> T := max_coeff.
 
 Context {fs : Float_round_up_infnan_spec}.
 Let F := FI fs.
@@ -242,6 +247,8 @@ Context {s : nat}.
 
 Definition check_base_ssr : polyT -> 'cV[monom]_s.+1 -> bool := check_base.
 
+Definition max_coeff_ssr : polyT -> T := max_coeff.
+
 Context {fs : Float_round_up_infnan_spec}.
 Let F := FI fs.
 Context {F2T : F -> T}.  (* exact conversion for finite values *)
@@ -258,12 +265,44 @@ Definition soscheck_ssr : polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
 (** *** Proofs *)
 
 Variable (T2R : T -> R).
-Hypothesis T2R0 : T2R 0 = 0.
+Hypothesis T2R_additive : additive T2R.
+Canonical T2R_additive_struct := Additive T2R_additive.
 Hypothesis T2F_correct : forall x, is_finite (T2F x) -> T2R x <= FI2F (T2F x).
 Hypothesis T2R_F2T : forall x, T2R (F2T x) = FI2F x.
 Hypothesis max_l : forall x y, T2R x <= T2R (max x y).
 Hypothesis max_r : forall x y, T2R y <= T2R (max x y).
 (* probably more hypotheses needed, see during proof *)
+
+Lemma max_coeff_pos (p : polyT) : 0 <= T2R (max_coeff p).
+Proof.
+rewrite /max_coeff; set f := fun _ => _; set l := _ p; clearbody l.
+suff : forall x, 0 <= T2R x -> 0 <= T2R (foldl f x l).
+{ by apply; rewrite GRing.raddf0; right. }
+elim l => [//|h t IH x Hx /=]; apply IH; rewrite /f.
+apply (Rle_trans _ _ _ Hx), max_l.
+Qed.
+
+Lemma max_coeff_correct (p : polyT) (m : monom) :
+  Rabs (T2R p@_m) <= T2R (max_coeff p).
+Proof.
+case_eq (m \in msupp p);
+  [|rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 Rabs_R0;
+    by apply max_coeff_pos].
+rewrite /max_coeff /list_of_poly /list_of_poly_ssr.
+have Hmax : forall x y, Rabs (T2R x) <= T2R (max y (max x (- x)%C)).
+{ move=> x y; apply Rabs_le; split.
+  { rewrite -(Ropp_involutive (T2R x)); apply Ropp_le_contravar.
+    change (- (T2R x))%Re with (- (T2R x))%Ri.
+    rewrite -GRing.raddfN /=.
+    apply (Rle_trans _ _ _ (max_r _ _) (max_r _ _)). }
+  apply (Rle_trans _ _ _ (max_l _ _) (max_r _ _)). }
+generalize 0%C; elim (msupp _)=> [//|h t IH] z; move/orP; elim.
+{ move/eqP-> => /=; set f := fun _ => _; set l := map _ _.
+  move: (Hmax p@_h z); set z' := max z _; generalize z'.
+  elim l => /= [//|h' l' IH' z'' Hz'']; apply IH'.
+  apply (Rle_trans _ _ _ Hz''), max_l. }
+by move=> Ht; apply IH.
+Qed.
 
 (* seemingly missing in mpoly *)
 Lemma map_mpolyC (R S : ringType) (f : R -> S) (Hf0 : f 0 = 0) n' c :
@@ -281,11 +320,12 @@ Proof.
 rewrite /soscheck_ssr /soscheck /I0 /I0_ssr /fun_of_matrix /fun_of_ssr.
 rewrite /hmul_op /hmul_mxPolyT_ssr /transpose_op /trmx_instPolyT_ssr.
 rewrite /polyX /polyX_ssr /polyC /polyC_ssr /map_mx /map_mx_ssr.
+rewrite /list_of_poly /list_of_poly_ssr.
 set zp := matrix.map_mx _ z.
 set Q' := matrix.map_mx _ _.
 set p'm := _ (_ *m _) _ _.
 set pmp' := poly_sub_op _ _.
-set r := foldl _ _ _.
+set r := max_coeff _ .
 pose zpr := matrix.map_mx [eta mpolyX real_ringType] z.
 pose Q'r := matrix.map_mx (map_mpoly T2R) Q'.
 pose map_mpolyC_R :=
@@ -293,7 +333,57 @@ pose map_mpolyC_R :=
 have : exists E : 'M_s.+1,
   Mabs E <=m: matrix.const_mx (T2R r)
   /\ map_mpoly T2R p = (zpr^T *m (Q'r + map_mpolyC_R E) *m zpr) ord0 ord0.
-{ admit.  (* c'est ici que tout se passe *) }
+{ pose zij := fun i j => (z i ord0 + z j ord0)%MM.
+  pose szij := [seq zij i j | i <- ord_enum s.+1, j <- ord_enum s.+1].
+  pose nbij := fun i j => size [seq mij <- szij | mij == zij i j].
+  pose E := (\matrix_(i, j < s.+1) (T2R pmp'@_(zij i j) / INR (nbij i j))%Re).
+  exists E.
+  have Pnbij : forall i j, (0 < nbij i j)%N.
+  { move=> i j. rewrite /nbij size_filter -has_count.
+    apply/hasP; exists (zij i j) => //; apply/allpairsP; exists (i, j).
+    split=>//=; apply mem_ord_enum. }
+  have Pr := max_coeff_pos _ : 0 <= T2R r.
+  split.
+  { move=> i j; rewrite !mxE Rabs_mult.
+    have NZnbij : INR (nbij i j) <> 0.
+    { by change 0 with (INR 0); move/INR_eq; move: (Pnbij i j); case nbij. }
+    rewrite Rabs_Rinv // (Rabs_pos_eq _ (pos_INR _)).
+    apply (Rmult_le_reg_r (INR (nbij i j))).
+    { apply Rnot_ge_lt=> H; apply NZnbij.
+      by apply Rle_antisym; [apply Rge_le|apply pos_INR]. }
+    rewrite Rmult_assoc Rinv_l // Rmult_1_r.
+    have nbij_ge_1 : 1 <= INR (nbij i j).
+    { move: NZnbij; case nbij=>// nb _; rewrite S_INR -{1}(Rplus_0_l 1).
+      apply Rplus_le_compat_r, pos_INR. }
+    apply (Rle_trans _ (T2R r)); [by apply max_coeff_correct|].
+    rewrite -{1}(Rmult_1_r (T2R r)); apply Rmult_le_compat_l=>//. }
+  apply/mpolyP => m; rewrite mcoeff_map_mpoly /= mxE.
+  set M := Q'r + _.
+  pose F2 := fun i : 'I_s.+1 =>
+    \big[+%R/0]_(j < s.+1) (zpr j ord0 * M j i * zpr i ord0).
+  rewrite (eq_bigr F2);
+    [|by move=> i _; rewrite mxE /F2 big_distrl /=;
+      apply eq_bigr=> j _; rewrite mxE].
+  rewrite {F2} pair_bigA /=.
+  have -> : M = matrix.map_mx [eta mpolyC n (R:=real_ringType)]
+                  (matrix.map_mx (T2R \o F2T) Q + E).
+  { apply/matrixP=> i j.
+    by rewrite !mxE mpolyCD (map_mpolyC _ _ _ (GRing.raddf0 _)). }
+  move {M}; set M := matrix.map_mx _ _.
+  rewrite (bigID (fun ij => m == zij ij.1 ij.2)) /= mcoeffD /=.
+  rewrite GRing.addrC (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
+  rewrite big1; last first.
+  { move=> ij Hm; rewrite mcoeffM; apply big1 => k Hm'.
+    rewrite (GRing.mulrC (zpr _ _)) mxE mcoeffCM -GRing.mulrA GRing.mulrC.
+    rewrite 2!mxE !mcoeffX.
+    case_eq (z ij.2 ord0 == k.1); [|by move=>->; rewrite !GRing.mul0r].
+    move=> Hk1; rewrite Hk1 GRing.mul1r.
+    case_eq (z ij.1 ord0 == k.2); [|by move=>->; rewrite !GRing.mul0r].
+    move=> Hk2; rewrite Hk2 GRing.mul1r.
+    move: Hm'; move: Hk2; move/eqP<-; move: Hk1; move/eqP<-; rewrite addmC.
+    by move/eqP=>Hm'; move: Hm; rewrite Hm' eqxx. }
+  rewrite GRing.add0r.
+  admit.  (* c'est ici que tout se passe *) }
 move=> [E [HE ->]] Hpcheck x.
 set M := _ *m _.
 replace (meval _ _)
@@ -303,7 +393,8 @@ rewrite /M !map_mxM -map_trmx map_mxD; apply /Mle_scalar /posdef_semipos.
 replace (matrix.map_mx _ (map_mpolyC_R E)) with E;
   [|by apply/matrixP => i j; rewrite !mxE /= mevalC].
 replace (matrix.map_mx _ _) with (matrix.map_mx (T2R \o F2T) Q);
-  [|by apply/matrixP => i j; rewrite !mxE /= (map_mpolyC _ _ _ T2R0) mevalC].
+  [|by apply/matrixP => i j;
+    rewrite !mxE /= (map_mpolyC _ _ _ (GRing.raddf0 _)) mevalC].
 apply (posdef_check_itv_correct Hpcheck).
 apply Mle_trans with (Mabs E).
 { by right; rewrite !mxE /=; f_equal; rewrite T2R_F2T GRing.addrC GRing.addKr. }
@@ -367,7 +458,7 @@ Lemma ZZtoQ_correct :
 Proof.
 Admitted.
 
-Definition F2BigQ (q : F.type) : bigQ :=
+Definition F2BigQ (q : coqinterval_infnan.F.type) : bigQ :=
   match q with
   | Interval_specific_ops.Float m e => ZZtoQ m e
   | Interval_specific_ops.Fnan => 0%bigQ
