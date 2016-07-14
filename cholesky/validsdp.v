@@ -114,11 +114,15 @@ Context `{!heq (mx F), !transpose_class (mx F)}.
 Context `{!nat_of_class ord s}.
 
 Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
+  check_base p z &&
   let r :=
     let p' :=
       let zp := map_mx polyX z in
       let Q' := map_mx (polyC \o F2T) Q in
       let p'm := (zp^T *m Q' *m zp)%HC in
+      (* TODO: profiling pour voir si nécessaire d'améliorer la ligne
+       * ci dessus (facteur 40 en Caml, mais peut être du même ordre de
+       * grandeur que la décomposition de Cholesky) *)
       fun_of_matrix p'm I0 I0 in
     let pmp' := poly_sub_op p p' in
     max_coeff pmp' in
@@ -272,6 +276,26 @@ Hypothesis T2R_F2T : forall x, T2R (F2T x) = FI2F x.
 Hypothesis max_l : forall x y, T2R x <= T2R (max x y).
 Hypothesis max_r : forall x y, T2R y <= T2R (max x y).
 
+Lemma check_base_correct (p : polyT) (z : 'cV_s.+1) : check_base p z ->
+  forall m, m \in msupp p -> exists i j, (z i ord0 + z j ord0 == m)%MM.
+Proof.
+rewrite /check_base /list_of_poly /list_of_poly_ssr /sadd /sadd_ssr.
+rewrite /smem /smem_ssr /sempty /sempty_ssr; set sm := iteri_ord _ _ _.
+move/allP=> Hmem m Hsupp.
+have : m \in sm.
+{ apply (Hmem (m, p@_m)).
+  by change (m, p@_m) with ((fun m => (m, p@_m)) m); apply map_f. }
+pose P := fun (_ : nat) (sm : set) =>
+            m \in sm -> exists i j, (z i ord0 + z j ord0)%MM == m.
+rewrite {Hmem} -/(P 0%N sm) {}/sm; apply iteri_ord_ind => // i s0.
+rewrite {}/P /nat_of /nat_of_ssr => Hi Hs0; set sm := iteri_ord _ _ _.
+pose P := fun (_ : nat) (sm : set) =>
+            m \in sm -> exists i j, (z i ord0 + z j ord0)%MM == m.
+rewrite -/(P 0%N sm) {}/sm; apply iteri_ord_ind => // j s1.
+rewrite {}/P /nat_of /nat_of_ssr in_cons => Hj Hs1.
+by move/orP; elim; [move/eqP->; exists i, j|].
+Qed.
+
 Lemma max_coeff_pos (p : polyT) : 0 <= T2R (max_coeff p).
 Proof.
 rewrite /max_coeff; set f := fun _ => _; set l := _ p; clearbody l.
@@ -314,7 +338,7 @@ by rewrite mpolyX0 mcoeffC eqxx !GRing.mulr1 /=.
 Qed.
 
 Lemma soscheck_correct p z Q : soscheck_ssr p z Q ->
-  forall x, (0 <= (map_mpoly T2R p).@[x])%R.
+  forall x, 0 <= (map_mpoly T2R p).@[x].
 Proof.
 rewrite /soscheck_ssr /soscheck /fun_of_matrix /fun_of_ssr /map_mx /map_mx_ssr.
 set zp := matrix.map_mx _ z.
@@ -326,6 +350,7 @@ pose zpr := matrix.map_mx [eta mpolyX real_ringType] z.
 pose Q'r := matrix.map_mx (map_mpoly T2R) Q'.
 pose map_mpolyC_R :=
   fun m : 'M_s.+1 => matrix.map_mx [eta mpolyC n (R:=real_ringType)] m.
+move/andP=> [Hbase Hpcheck].
 have : exists E : 'M_s.+1,
   Mabs E <=m: matrix.const_mx (T2R r)
   /\ map_mpoly T2R p = (zpr^T *m (Q'r + map_mpolyC_R E) *m zpr) ord0 ord0.
@@ -391,10 +416,8 @@ have : exists E : 'M_s.+1,
   rewrite misc.big_sum_pred_const -/nbm GRing.mulrDl GRing.mulrDr -GRing.addrA.
   rewrite -{1}(GRing.addr0 (T2R _)); f_equal.
   { rewrite GRing.mulrC -GRing.mulrA; case_eq (m \in msupp p).
-    { move=> Hm.
-      have : exists i j, zij i j == m.
-      { admit.  (* check_base : m \in msupp p -> ... *) }
-      elim=> i; elim=> j {Hm} Hm; rewrite /GRing.mul /=; field.
+    { move=> Hm; move: (check_base_correct _ _ Hbase _ Hm).
+      move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
       apply Rgt_not_eq, Rlt_gt; change R0 with (INR 0); apply lt_INR.
       rewrite /nbm filter_index_enum; rewrite <-cardE.
       by apply/ltP/card_gt0P; exists (j, i); rewrite /in_mem /=. }
@@ -423,7 +446,7 @@ have : exists E : 'M_s.+1,
   { by rewrite Rmult_1_r GRing.addNr. }
   case size; [exact R1_neq_R0|].
   by move=> n'; apply Rgt_not_eq, Rlt_gt; rewrite -S_INR; apply/lt_0_INR/ltP. }
-move=> [E [HE ->]] Hpcheck x.
+move=> [E [HE ->]] x.
 set M := _ *m _.
 replace (meval _ _)
 with ((matrix.map_mx (meval x) M) ord0 ord0); [|by rewrite mxE].
@@ -439,7 +462,7 @@ apply Mle_trans with (Mabs E).
 { by right; rewrite !mxE /=; f_equal; rewrite T2R_F2T GRing.addrC GRing.addKr. }
 apply (Mle_trans HE) => i j; rewrite !mxE.
 by apply T2F_correct; move: Hpcheck; move/andP; elim.
-Admitted.
+Qed.
 
 End theory_soscheck.
 
@@ -447,7 +470,7 @@ End theory_soscheck.
 
 Section refinement_soscheck.
 
-Variables (A : ringType) (C : Type) (rAC : A -> C -> Prop).
+Variables (A : comRingType) (C : Type) (rAC : A -> C -> Prop).
 Context {n s : nat}.
 
 Lemma param_check_base :
@@ -455,10 +478,15 @@ Lemma param_check_base :
     (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
 Admitted.
 
-Context `{!max_class A}.
+Check max_coeff_ssr.
 
+Context `{!max_class A}.
 Context `{!zero C, !one C, !opp C, !add C, !sub C, !mul C}.
 Context `{!max_class C}.
+
+Lemma param_max_coeff :
+  param (ReffmpolyA (n:=n) rAC ==> rAC) max_coeff_ssr max_coeff_eff.
+Admitted.
 
 Context {fs : Float_round_up_infnan_spec}.
 Let F := FI fs.
