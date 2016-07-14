@@ -114,6 +114,14 @@ move: n x; elim=> [|n IHk] x.
 by rewrite big_ord_recl S_INR Rplus_comm Rmult_plus_distr_r Rmult_1_l IHk.
 Qed.          
 
+Lemma big_sum_pred_const (I : Type) (r : seq I) (P : pred I) (x : R) :
+  \big[+%R/0]_(i <- r | P i) x = INR (size [seq i <- r | P i]) * x.
+Proof.
+rewrite -big_filter; set l := [seq x <- r | P x]; elim l => [|h t IH].
+{ by rewrite big_nil /= GRing.mul0r. }
+simpl size; rewrite big_cons S_INR IH /GRing.add /GRing.mul /=; ring.
+Qed.
+
 Lemma big_sum_pred_pos_pos n (P : pred 'I_n) F :
   ((forall i : 'I_n, P i -> 0 <= F i) -> 0 <= \sum_(i | P i) F i)%Re.
 Proof.
