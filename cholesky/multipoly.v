@@ -4,9 +4,9 @@ From mathcomp Require Import choice finfun tuple fintype ssralg bigop.
 (* tests with multipolys from
    git clone https://github.com/math-comp/multinomials.git *)
 From SsrMultinomials Require Import mpoly freeg.
-From CoqEAL_theory Require Import hrel.
-From CoqEAL_refinements Require Import refinements.
-From CoqEAL_refinements Require Import seqmatrix (* for Rord, zipwith and eq_seq *).
+From CoqEAL Require Import hrel.
+From CoqEAL Require Import refinements.
+From CoqEAL Require Import param binord seqmx (* for zipwith and eq_seq *).
 Require Import misc.
 
 Set Implicit Arguments.
@@ -14,6 +14,8 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Import Refinements.Op.
+
+Arguments refines A%type B%type R%rel _ _.  (* TODO: il y a un preoblème de scope sur refine *)
 
 (** Tip to leverage a Boolean condition *)
 Definition sumb (b : bool) : {b = true} + {b = false} :=
@@ -168,11 +170,12 @@ Definition effmpoly_of_list : forall T, seq (seqmultinom * T) -> effmpoly T :=
 Definition list_of_effmpoly : forall T, effmpoly T -> seq (seqmultinom * T) :=
   M.elements.
 
-Context {T : Type} `{!one T, !add T, !opp T, !sub T, !mul T} {n : nat}.
+Context {T : Type} `{!one_of T, !add_of T, !opp_of T, !sub_of T, !mul_of T}.
+Context {n : nat}.
 
 Definition mp0_eff : effmpoly T := M.empty.
 
-Definition mp1_eff  := MProps.singleton (@mnm0_seq n) 1%C.
+Definition mp1_eff  := MProps.singleton (@mnm0_seq n) (1%C : T).
 
 Definition mpvar_eff (c : T) (d : nat) (i : nat) : effmpoly T :=
   MProps.singleton (@mnmd_seq n i d) c.
@@ -252,11 +255,11 @@ Definition Rseqmultinom {n} := ofun_hrel (@multinom_of_seqmultinom n).
 
 Lemma refines_size
   (n : nat) (m : 'X_{1..n}) (m' : seqmultinom)
-  `{ref_mm' : !param Rseqmultinom m m'} :
+  `{ref_mm' : !Rseqmultinom m m'} :
   size m' = n.
 Proof.
 move: ref_mm'.
-rewrite paramE /Rseqmultinom /multinom_of_seqmultinom /ofun_hrel.
+rewrite /Rseqmultinom /multinom_of_seqmultinom /ofun_hrel.
 case: sumb =>// prf _.
 exact/eqP.
 Qed.
@@ -264,10 +267,10 @@ Qed.
 Lemma refines_nth_def
   (n : nat) (m : 'X_{1..n}) (m' : seqmultinom)
   (i : 'I_n) x0 :
-  param Rseqmultinom m m' -> nth x0 m' i = m i.
+  Rseqmultinom m m' -> nth x0 m' i = m i.
 Proof.
 move=> rMN; move: (rMN).
-rewrite paramE /Rseqmultinom /multinom_of_seqmultinom /ofun_hrel.
+rewrite /Rseqmultinom /multinom_of_seqmultinom /ofun_hrel.
 case: sumb =>// prf [] <-.
 by rewrite multinomE /= (tnth_nth x0).
 Qed.
@@ -275,7 +278,7 @@ Qed.
 Lemma refines_nth
   (n : nat) (m : 'X_{1..n}) (m' : seqmultinom)
   (i : 'I_n) :
-  param Rseqmultinom m m' -> nth 0%N m' i = m i.
+  Rseqmultinom m m' -> nth 0%N m' i = m i.
 Proof. exact: refines_nth_def. Qed.
 
 Lemma refines_seqmultinomP
@@ -304,16 +307,16 @@ case_eq (multinom_of_seqmultinom n m) => //.
 by rewrite /multinom_of_seqmultinom; case sumb => //; rewrite Hsz.
 Qed.
 
-Lemma param_mnm0 n : param Rseqmultinom (@mnm0 n) (@mnm0_seq n).
+Lemma param_mnm0 n : refines Rseqmultinom (@mnm0 n) (@mnm0_seq n).
 Proof.
-rewrite paramE; apply refines_seqmultinomP.
+rewrite refinesE; apply refines_seqmultinomP.
   by rewrite size_nseq.
 move=> i; rewrite nth_nseq if_same multinomE (tnth_nth 0%N) nth_map //=.
 by rewrite size_enum_ord.
 Qed.
 
-Lemma param_mnmd n :
-  param (Rord ==> Logic.eq ==> Rseqmultinom) (@mnmd n) (@mnmd_seq n).
+Lemma param_mnmd {n1 n2} {rn : nat_R n1 n2} :
+  refines (Rord rn ==> eq ==> Rseqmultinom) (@mnmd n1) (@mnmd_seq n2).
 Proof.
 case: n => [|n].
   apply param_abstr => c c' param_c.

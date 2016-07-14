@@ -16,3 +16,21 @@ Documentation
 -------------
 
 Documentation is in html/toc.html (make doc to generate).
+
+CoqEAL branche paramcoq-dev
+---------------------------
+
+% git clone https://github.com/drouhling/paramcoq.git
+% cd paramcoq
+% make
+% make install
+% cd ..
+
+% git clone https://github.com/CoqEAL/CoqEAL.git
+% git checkout paramcoq-dev
+% cd theory
+% make
+% make install
+% cd ../refinements
+% make
+% make install
