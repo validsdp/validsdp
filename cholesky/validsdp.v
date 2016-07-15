@@ -1,15 +1,23 @@
-Require Import Reals Flocq.Core.Fcore_Raux QArith BigZ BigQ Psatz FSetAVL.
 From Flocq Require Import Fcore.
+From CoqEAL_theory Require Import hrel.
+From CoqEAL_refinements Require Import refinements seqmatrix binint rational.
+Require Import Reals Flocq.Core.Fcore_Raux QArith BigZ BigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
-From CoqEAL_theory Require Import hrel.
-From CoqEAL_refinements Require Import refinements seqmatrix.
+From mathcomp Require Import ssrnum ssrint rat.
 From SsrMultinomials Require Import mpoly (* freeg *).
 Require Import Rstruct.
 Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog multipoly.
-Require Import Quote.
+(* Require Import Quote. *)
+Require Import soswitness.soswitness.
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
+Local Open Scope R_scope.
 
 Ltac get_rational t :=
   let get_positive t :=
@@ -27,12 +35,12 @@ Ltac get_rational t :=
   let get_rational_aux s n d :=
     let nn := get_positive n in
     let dd := get_positive d in
-    eval vm_compute in (BigQ.of_Q (Qmake ((if s then Zneg else Zpos) nn) dd)) in
+    eval vm_compute in (BigQ.of_Q (Qmake ((if s then Z.neg else Z.pos) nn) dd)) in
   let get_integer s n :=
     let nn := get_positive n in
-    eval vm_compute in (BigQ.of_Q (inject_Z ((if s then Zneg else Zpos) nn))) in
+    eval vm_compute in (BigQ.of_Q (inject_Z ((if s then Z.neg else Z.pos) nn))) in
   match t with
-  | 0%R => constr:(0%bigQ)
+  | 0%Re => constr:(0%bigQ)
   | (-?n * /?d)%Re => get_rational_aux true n d
   | (?n * /?d)%Re => get_rational_aux false n d
   | (-?n / ?d)%Re => get_rational_aux true n d
@@ -42,14 +50,18 @@ Ltac get_rational t :=
   | _ => false
   end.
 
-Lemma test_get_rational : (-1234 / 5678)%Re >= 0.
+Lemma test_get_rational : (-1234 / 5678 >= 0)%Re.
 match goal with
-[ |- (?r >= 0)%R ] => let t := get_rational r in idtac t
+[ |- (?r >= 0)%Re ] => let t := get_rational r in idtac t
 end.
 Abort.
 
 (* TODO: Move to misc *)
-Local Coercion RMicromega.IQR : Q >-> R.
+
+(* We do not use [RMicromega.IQR], which relies on [IZR] instead of [Z2R]... *)
+Definition Q2R (x : Q) : R :=
+  (Z2R (Qnum x) / Z2R (Z.pos (Qden x)))%Re.
+Local Coercion Q2R : Q >-> R.
 Local Coercion BigQ.to_Q : bigQ >-> Q.
 
 Inductive abstr_poly :=
@@ -63,15 +75,35 @@ Inductive abstr_poly :=
   | Pow of abstr_poly & positive
   (* | Compose of abstr_poly * abstr_poly list *).
 
-Fixpoint eval_abstr_poly (vm : list R) (f : abstr_poly) {struct f} : R :=
-  match f with
-  | Const c => RMicromega.IQR (BigQ.to_Q c)
-  | Add p q => Rplus (eval_abstr_poly vm p) (eval_abstr_poly vm q)
-  | Sub p q => Rminus (eval_abstr_poly vm p) (eval_abstr_poly vm q)
-  | Mul p q => Rmult (eval_abstr_poly vm p) (eval_abstr_poly vm q)
-  | Pow p n => powerRZ (eval_abstr_poly vm p) (Z.pos n)
+Fixpoint interp_real (vm : seq R) (ap : abstr_poly) {struct ap} : R :=
+  match ap with
+  | Const c => Q2R (BigQ.to_Q c)
+  | Add p q => Rplus (interp_real vm p) (interp_real vm q)
+  | Sub p q => Rminus (interp_real vm p) (interp_real vm q)
+  | Mul p q => Rmult (interp_real vm p) (interp_real vm q)
+  | Pow p n => powerRZ (interp_real vm p) (Z.pos n)
   | Var i => seq.nth R0 vm i
   end.
+
+Global Instance zero_bigQ : zero bigQ := 0%bigQ.
+Global Instance one_bigQ : one bigQ := 1%bigQ.
+Global Instance opp_bigQ : opp bigQ := BigQ.opp.
+Global Instance add_bigQ : add bigQ := BigQ.add.
+Global Instance sub_bigQ : sub bigQ := BigQ.sub.
+Global Instance mul_bigQ : mul bigQ := BigQ.mul.
+
+Definition interp_poly (vm : seq R) (ap : abstr_poly) : effmpoly bigQ :=
+  let n := seq.size vm in
+  let fix aux ap :=
+      match ap with
+      | Const c => @mpolyC_eff bigQ n c
+      | Var i => @mpvar_eff bigQ n 1%bigQ 1 i
+      | Add p q => mpoly_add_eff (aux p) (aux q)
+      | Sub p q => mpoly_sub_eff (aux p) (aux q)
+      | Mul p q => mpoly_mul_eff (aux p) (aux q)
+      | Pow p m => mpoly_exp_eff (n := n) (aux p) (Pos.to_nat m)
+      end
+  in aux ap.
 
 (* [list_add] was taken from CoqInterval *)
 Ltac list_add a l :=
@@ -151,6 +183,8 @@ Class poly_sub polyT := poly_sub_op : polyT -> polyT -> polyT.
 
 (* TODO: regarder si pas déjà dans Coq_EAL *)
 Class max_class T := max : T -> T -> T.
+
+Global Instance max_bigQ : max_class bigQ := BigQ.max.
 
 (** ** Part 1: Generic programs *)
 
@@ -313,7 +347,7 @@ Global Instance polyC_ssr : polyC_class T polyT := fun c => mpolyC n c.
 
 Global Instance polyX_ssr : polyX_class monom polyT := fun m => mpolyX T m.
 
-Global Instance poly_sub_ssr : poly_sub polyT := fun p q => p - q.
+Global Instance poly_sub_ssr : poly_sub polyT := fun p q => (p - q)%R.
 
 Let set := seq monom.
 
@@ -325,8 +359,8 @@ Global Instance smem_ssr : smem_class monom set := fun e s => e \in s.
 
 (* @Érik: should these two be global?
  * Should we even name them (current naming is bad)? *)
-Local Instance zero_ssr : zero T := 0.
-Local Instance opp_ssr : opp T := fun x => -x.
+Local Instance zero_ssr : zero T := 0%R.
+Local Instance opp_ssr : opp T := fun x => (-x)%R.
 
 Context `{!max_class T}.
 
@@ -415,11 +449,11 @@ by move=> Ht; apply IH.
 Qed.
 
 (* seemingly missing in mpoly *)
-Lemma map_mpolyC (R S : ringType) (f : R -> S) (Hf0 : f 0 = 0) n' c :
+Lemma map_mpolyC (R S : ringType) (f : R -> S) (Hf0 : f 0%R = 0%R) n' c :
   map_mpoly f c%:MP_[n'] = (f c)%:MP_[n'].
 Proof.
 rewrite /map_mpoly /mmap msuppC.
-case_eq (c == 0); [by move/eqP ->; rewrite big_nil Hf0 mpolyC0|].
+case_eq (c == 0%R); [by move/eqP ->; rewrite big_nil Hf0 mpolyC0|].
 move=> _; rewrite big_cons big_nil GRing.addr0 mmap1_id.
 by rewrite mpolyX0 mcoeffC eqxx !GRing.mulr1 /=.
 Qed.
@@ -466,9 +500,9 @@ have : exists E : 'M_s.+1,
     apply (Rle_trans _ (T2R r)); [by apply max_coeff_correct|].
     rewrite -{1}(Rmult_1_r (T2R r)); apply Rmult_le_compat_l=>//. }
   apply/mpolyP => m; rewrite mcoeff_map_mpoly /= mxE.
-  set M := Q'r + _.
+  set M := (Q'r + _)%R.
   pose F2 := fun i : 'I_s.+1 =>
-    \big[+%R/0]_(j < s.+1) (zpr j ord0 * M j i * zpr i ord0).
+    \big[+%R/0%R]_(j < s.+1) (zpr j ord0 * M j i * zpr i ord0)%R.
   rewrite (eq_bigr F2);
     [|by move=> i _; rewrite mxE /F2 big_distrl /=;
       apply eq_bigr=> j _; rewrite mxE].
@@ -476,12 +510,12 @@ have : exists E : 'M_s.+1,
   have -> : M = matrix.map_mx [eta mpolyC n (R:=real_ringType)]
                   (matrix.map_mx (T2R \o F2T) Q + E).
   { apply/matrixP=> i j.
-    by rewrite !mxE mpolyCD (map_mpolyC _ _ _ (GRing.raddf0 _)). }
+    by rewrite !mxE mpolyCD (map_mpolyC (GRing.raddf0 _)). }
   move {M}; set M := matrix.map_mx _ _.
   rewrite (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
-  set F2 := fun ij : 'I_s.+1 * 'I_s.+1 =>
+  set F2 := ( fun ij : 'I_s.+1 * 'I_s.+1 =>
               ((z ij.2 ord0 + z ij.1 ord0)%MM == m)%:R *
-              (matrix.map_mx (T2R \o F2T) Q + E) ij.2 ij.1.
+              (matrix.map_mx (T2R \o F2T) Q + E) ij.2 ij.1 )%R.
   rewrite (eq_bigr F2); last first.
   { move=> ij _.
     rewrite (GRing.mulrC (zpr _ _)) -GRing.mulrA mxE mcoeffCM.
@@ -495,7 +529,7 @@ have : exists E : 'M_s.+1,
   { by move=> ij Hij; rewrite Hij GRing.mul1r 2!mxE. }
   rewrite big_split /= GRing.addrC.
   pose nbm := size [seq ij <- index_enum I_sp1_2 | zij ij.2 ij.1 == m].
-  set F2 := fun i : 'I_s.+1 * 'I_s.+1 => (T2R p@_m - T2R p'@_m) * / INR nbm.
+  set F2 := (fun i : 'I_s.+1 * 'I_s.+1 => (T2R p@_m - T2R p'@_m) * / INR nbm)%R.
   rewrite (eq_bigr F2); last first; [|rewrite {}/F2].
   { move=> ij Hij; rewrite mxE /Rdiv; apply f_equal2.
     { by move: Hij; move/eqP => <-; rewrite mcoeffB GRing.raddfB /=. }
@@ -503,7 +537,7 @@ have : exists E : 'M_s.+1,
   rewrite misc.big_sum_pred_const -/nbm GRing.mulrDl GRing.mulrDr -GRing.addrA.
   rewrite -{1}(GRing.addr0 (T2R _)); f_equal.
   { rewrite GRing.mulrC -GRing.mulrA; case_eq (m \in msupp p).
-    { move=> Hm; move: (check_base_correct _ _ Hbase _ Hm).
+    { move=> Hm; move: (check_base_correct Hbase Hm).
       move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
       apply Rgt_not_eq, Rlt_gt; change R0 with (INR 0); apply lt_INR.
       rewrite /nbm filter_index_enum; rewrite <-cardE.
@@ -511,13 +545,13 @@ have : exists E : 'M_s.+1,
     by rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 GRing.mul0r. }
   rewrite /p' mxE.
   pose F2 := fun i : 'I_s.+1 =>
-    \big[+%R/0]_(j < s.+1) (zp j ord0 * Q' j i * zp i ord0).
+    \big[+%R/0%R]_(j < s.+1) (zp j ord0 * Q' j i * zp i ord0)%R.
   rewrite (eq_bigr F2);
     [|by move=> i _; rewrite mxE /F2 big_distrl /=;
       apply eq_bigr=> j _; rewrite mxE].
   rewrite {F2} pair_bigA /= (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
-  set F2 := fun ij : 'I_s.+1 * 'I_s.+1 =>
-              ((z ij.2 ord0 + z ij.1 ord0)%MM == m)%:R * F2T (Q ij.2 ij.1).
+  set F2 := (fun ij : 'I_s.+1 * 'I_s.+1 =>
+              ((z ij.2 ord0 + z ij.1 ord0)%MM == m)%:R * F2T (Q ij.2 ij.1) )%R.
   rewrite (eq_bigr F2); last first; [|rewrite {}/F2].
   { move=> ij _.
     rewrite (GRing.mulrC (zp _ _)) -GRing.mulrA mxE mcoeffCM.
@@ -543,7 +577,7 @@ replace (matrix.map_mx _ (map_mpolyC_R E)) with E;
   [|by apply/matrixP => i j; rewrite !mxE /= mevalC].
 replace (matrix.map_mx _ _) with (matrix.map_mx (T2R \o F2T) Q);
   [|by apply/matrixP => i j;
-    rewrite !mxE /= (map_mpolyC _ _ _ (GRing.raddf0 _)) mevalC].
+    rewrite !mxE /= (map_mpolyC (GRing.raddf0 _)) mevalC].
 apply (posdef_check_itv_correct Hpcheck).
 apply Mle_trans with (Mabs E).
 { by right; rewrite !mxE /=; f_equal; rewrite T2R_F2T GRing.addrC GRing.addKr. }
@@ -552,6 +586,209 @@ by apply T2F_correct; move: Hpcheck; move/andP; elim.
 Qed.
 
 End theory_soscheck.
+
+Definition Z2int (z : BinNums.Z) :=
+  match z with
+  | Z0 => 0%:Z
+  | Z.pos p => (Pos.to_nat p)%:Z
+  | Z.neg n => (- (Pos.to_nat n)%:Z)%R
+  end.
+
+Program Definition BigQ2rat (bq : bigQ) :=
+  let q := Qred [bq]%bigQ in
+  @Rat (Z2int (Qnum q), Z2int (Z.pos (Qden q))) _.
+Next Obligation.
+Admitted.
+
+Definition r_ratBigQ := fun_hrel BigQ2rat.
+
+Definition rat2R (q : rat) : R := ratr q.
+
+Lemma rat2R_additive : additive rat2R.
+Proof.
+Admitted. (* Erik *)
+
+Canonical rat2R_additive_struct := Additive rat2R_additive.
+
+Lemma bigQ2R_same (c : bigQ) :
+  Q2R (BigQ.to_Q c) = rat2R (BigQ2rat c).
+Admitted. (* Erik *)
+
+Definition int2Z (n : int) : BinNums.Z :=
+  match n with
+  | Posz O => Z0
+  | Posz n => Z.pos (Pos.of_nat n)
+  | Negz n => Z.neg (Pos.of_nat n)
+  end.
+
+Definition rat2BigQ (q : rat) : bigQ :=
+  let n := BigZ.of_Z (int2Z (numq q)) in
+  let d := BigN.N_of_Z (int2Z (denq q)) in
+  (n # d)%bigQ.
+
+Global Instance param_ratBigQ_one : param r_ratBigQ 1%R 1%C.
+Admitted.
+
+Global Instance param_ratBigQ_opp : param (r_ratBigQ ==> r_ratBigQ) -%R -%C.
+Admitted.
+
+Global Instance param_ratBigQ_add :
+  param (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) +%R +%C.
+Admitted.
+
+Global Instance param_ratBigQ_sub :
+ param (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) (fun x y => x - y)%R sub_op.
+Admitted.
+
+Global Instance param_ratBigQ_mul :
+ param (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ)  *%R *%C.
+Admitted.
+
+(* TODO: move *)
+Lemma ReffmpolyA_congr (A : ringType) C n (rAC : A -> C -> Prop) (p q : @mpoly n A) p' :
+  (forall a a' c, rAC a c -> rAC a' c -> a = a') ->
+  ReffmpolyA rAC p p' -> ReffmpolyA rAC q p' -> p = q.
+Proof.
+move=> Hmain Hp Hq; apply/mpolyP => m.
+have [a [Ha1 Ha2]] := Hp.
+have [b [Hb1 Hb2]] := Hq.
+have Hm' := @refines_seqmultinom_of_multinom n m.
+set m' := seqmultinom_of_multinom m in Hm'.
+rewrite (refines_find_mpoly Ha1 Hm').
+rewrite (refines_find_mpoly Hb1 Hm').
+congr odflt.
+have H1 : ohrel rAC (M.find m' a) (M.find m' p').
+  eapply paramP; eapply param_apply.
+  eapply param_apply; last by apply param_eq_refl.
+  eapply param_M_hrel_find.
+  exact: trivial_param.
+have H2 : ohrel rAC (M.find m' b) (M.find m' p').
+  eapply paramP; eapply param_apply.
+  eapply param_apply; last by apply param_eq_refl.
+  eapply param_M_hrel_find.
+  exact: trivial_param.
+move: H1 H2; do 3![case: M.find] =>// a0 a1 a2 /= H H'.
+by congr Some; apply: Hmain H H'.
+Qed.
+
+(* TODO: can be generalited to [fun_hrel]-based predicates... *)
+Lemma r_ratBigQ_congr a a' c : r_ratBigQ a c -> r_ratBigQ a' c -> a = a'.
+Proof. by move <-=><-. Qed.
+
+Lemma interp_poly_correct (l : seq R) (ap : abstr_poly) :
+  let p' := interp_poly l ap in
+  let n := size l in
+  let p := mpoly_of_effmpoly_val n (M.map BigQ2rat p') in
+  interp_real l ap = (map_mpoly rat2R p).@[fun i : 'I_n => nth R0 l i].
+Proof.
+move=> p' n p.
+match goal with
+| [|- ?G ] => suff : MProps.for_all (fun k _ => size k == n)%N p' /\ G by case
+end.
+elim: ap @p' @p => [c|i|a b IHap|a b IHap|a b IHap|a m IHap] p' p.
+{ rewrite /p' /interp_poly.
+  match goal with
+  | [|- ?G /\ ?H] => have Hsize : G
+  end.
+  { apply MProps.for_all_iff;
+    first by move=> m1 m2 /mnmc_eq_seqP/eqP -> b1 b2 Hb.
+    (* TODO: move as a lemma in multipoly *)
+    move=> k e H.
+    by move: (MProps.singleton_mapsto H); case =>->; rewrite size_nseq eqxx.
+  }
+  split=>//=.
+  suff->: p = (BigQ2rat c)%:MP_[n].
+    rewrite /= map_mpolyC; first by rewrite mevalC bigQ2R_same.
+    exact: GRing.raddf0.
+  rewrite /p /p' /=.
+  have HA : ReffmpolyA r_ratBigQ (mpoly_of_effmpoly_val n (M.map BigQ2rat p')) p'.
+    eapply refines_mpoly_of_effmpoly_valA; by tc.
+  rewrite /p' /= in HA.
+  apply: ReffmpolyA_congr r_ratBigQ_congr HA _.
+  eapply paramP; eapply param_apply.
+  exact: ReffmpolyA_mpolyC_eff.
+  by rewrite paramE.
+}
+{
+  (* Var *)
+  admit.
+}
+{
+  (* Add *)
+  admit.
+}
+{
+  (* Sub *)
+  admit.
+}
+{
+  (* Mul *)
+  admit.
+}
+{
+  (* Pow *)
+  admit.
+}
+(* No more subgoals, but there are some goals you gave up: *)
+Admitted.
+
+(* Future definition of F2C *)
+Definition ZZtoQ (m : bigZ) (e : bigZ) :=
+  match m,e with
+  | BigZ.Pos n, BigZ.Pos p => BigQ.Qz (BigZ.Pos (BigN.shiftl n p))
+  | BigZ.Neg n, BigZ.Pos p => BigQ.Qz (BigZ.Neg (BigN.shiftl n p))
+  | _, BigZ.Neg p =>
+  (*
+  BigQ.mul (BigQ.Qz m) (BigQ.inv (BigQ.Qz (BigZ.Pos (BigN.shiftl p 1%bigN))))
+  *)
+  BigQ.Qq m (BigN.shiftl 1%bigN p)
+  end.
+
+(* TODO: move above *)
+Delimit Scope Q_scope with Qrat.
+
+Lemma ZZtoQ_correct :
+( forall m e,
+  BigQ.to_Q (ZZtoQ m e) =
+  (Qmake (BigZ.to_Z m) 1) * (Qpower (Qmake 2 1) (BigZ.to_Z e)) )%Qrat.
+Proof.
+Admitted.
+
+Definition F2BigQ (q : coqinterval_infnan.F.type) : bigQ :=
+  match q with
+  | Interval_specific_ops.Float m e => ZZtoQ m e
+  | Interval_specific_ops.Fnan => 0%bigQ
+  end.
+
+(* TODO LATER:
+   Generalize the formalization w.r.t
+   [Variable fs : Float_round_up_infnan_spec.]
+*)
+
+Let fs := coqinterval_infnan.coqinterval_round_up_infnan.
+
+Definition BigQ2FI := F2FI \o snd \o BigQ2F.
+Definition FI2BigQ := F2BigQ \o coqinterval_infnan.FI_val.
+
+Definition rat2F := BigQ2FI \o rat2BigQ.
+Definition F2rat := BigQ2rat \o FI2BigQ.
+
+Lemma rat2F_correct :
+  forall x0 : rat_comRing,
+  @is_finite fs (rat2F x0) ->
+  rat2R x0 <= @FI2F fs (rat2F x0).
+Proof.
+Admitted.
+
+Lemma rat2R_F2rat :
+ forall x0 : FI fs, rat2R (F2rat x0) = FI2F x0.
+Admitted.
+
+Lemma max_l : forall x0 y0 : rat_comRing, rat2R x0 <= rat2R (Num.max x0 y0).
+Admitted.
+
+Lemma max_r : forall x0 y0 : rat_comRing, rat2R y0 <= rat2R (Num.max x0 y0).
+Admitted.
 
 (** ** Part 3: Parametricity *)
 
@@ -593,27 +830,58 @@ Admitted.
 
 End refinement_soscheck.
 
-(* Future definition of F2C *)
-Definition ZZtoQ (m : bigZ) (e : bigZ) :=
-  match m,e with
-  | BigZ.Pos n, BigZ.Pos p => BigQ.Qz (BigZ.Pos (BigN.shiftl n p))
-  | BigZ.Neg n, BigZ.Pos p => BigQ.Qz (BigZ.Neg (BigN.shiftl n p))
-  | _, BigZ.Neg p =>
-  (*
-  BigQ.mul (BigQ.Qz m) (BigQ.inv (BigQ.Qz (BigZ.Pos (BigN.shiftl p 1%bigN))))
-  *)
-  BigQ.Qq m (BigN.shiftl 1%bigN p)
+(** ** Part 4: The final tactic *)
+
+Ltac do_sdp :=
+  match goal with
+  | [ |- (?r >= 0)%Re ] => apply: Rle_ge; do_sdp
+  | [ |- (0 <= ?r)%Re ] =>
+    match get_poly r (@Datatypes.nil R) with
+      (?ap, ?l) =>
+      rewrite !Interval_missing.pow_powerRZ ;
+      (*TODO: don't use change*)
+      change (0 <= interp_real l ap)%Re ;
+      rewrite interp_poly_correct
+    end
   end.
 
-Lemma ZZtoQ_correct :
-( forall m e,
-  BigQ.to_Q (ZZtoQ m e) =
-  (Qmake (BigZ.to_Z m) 1) * (Qpower (Qmake 2 1) (BigZ.to_Z e)) )%Q.
-Proof.
+Lemma test_do_sdp (x : R) : (2 * x >= 0)%Re.
+(* TODO/Erik: fix the parsing of integer constants *)
+Fail do_sdp.
+Abort.
+
+Lemma test_do_sdp (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
+do_sdp.
+match goal with
+| [ |- 0 <= (map_mpoly _ (mpoly_of_effmpoly_val _ (M.map _ ?bqp))).@[_] ] =>
+  set TMP := bqp;
+  let l := eval vm_compute in (@id (seq (seq nat * BigQ.t_)) (M.elements bqp)) in
+  let zQ := fresh "zQ" in soswitness of l in zQ
+end.
+pose Qf := map (map F2FI) zQ.2.
+compute in Qf.
+pose boo := @soscheck_eff 2 _ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ zero_bigQ max_bigQ 1 fs FI2BigQ BigQ2FI TMP (map (fun x => [:: x]) zQ.1) Qf.
+vm_compute in boo.
+(* TODO: refactor the pose/compute/... above and do *)
+eapply soscheck_correct with
+        (1 := rat2R_additive)
+        (2 := rat2F_correct)
+        (3 := rat2R_F2rat)
+        (4 := max_l)
+        (5 := max_r).
+pose n := size (head [::] zQ.1); pose s := (size zQ.1).-1.
+erewrite param_eq.
+compute in n. compute in s.
+2: eapply param_apply; first eapply param_apply; first eapply param_apply;
+first apply (param_soscheck r_ratBigQ (fs := fs) (F2C := FI2BigQ) (C2F := BigQ2FI) (n := n) (s := s)).
+instantiate (3 := TMP).
+instantiate (2 := (map (fun x => [:: x]) zQ.1)).
+instantiate (1 := Qf).
+by vm_compute.
+by rewrite paramE; eapply refines_mpoly_of_effmpoly_valA; by tc.
+2: pose Qa := @mx_of_seqmx_val _ (FI0 fs) s.+1 s.+1 Qf.
+2: admit.
+set z' := (map (fun x => [:: x]) zQ.1).
+pose za := @mx_of_seqmx_val _ (@mnm0 n) s.+1 1 (map (map (@multinom_of_seqmultinom_val n)) z').
+admit. (* Erik *)
 Admitted.
-
-Definition F2BigQ (q : coqinterval_infnan.F.type) : bigQ :=
-  match q with
-  | Interval_specific_ops.Float m e => ZZtoQ m e
-  | Interval_specific_ops.Fnan => 0%bigQ
-  end.

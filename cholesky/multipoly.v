@@ -381,6 +381,12 @@ Definition effmpoly_of_mpoly (T : ringType) n (p : mpoly n T) : effmpoly T :=
 Definition Reffmpoly `{T : ringType, n : nat} :=
   ofun_hrel (@mpoly_of_effmpoly T n).
 
+Lemma refines_mpoly_of_effmpoly_val (T : ringType) n (p' : effmpoly T) :
+  MProps.for_all (fun k _ => size k == n)%N p' ->
+  Reffmpoly (mpoly_of_effmpoly_val n p') p'.
+Proof.
+Admitted.
+
 Lemma eq_key_elt_eq T x y : (M.eq_key_elt (elt:=T)) x y <-> x = y.
 Proof.
 split.
@@ -1121,6 +1127,16 @@ Context `{!param (rAC ==> rAC) -%R -%C}.
 Context `{!param (rAC ==> rAC ==> rAC) +%R +%C}.
 Context `{!param (rAC ==> rAC ==> rAC) (fun x y => x + -y) sub_op}.
 Context `{!param (rAC ==> rAC ==> rAC) *%R *%C}.
+
+Context (C2A : C -> A).
+
+Hypothesis C2A_correct : forall c : C, rAC (C2A c) c.
+
+Lemma refines_mpoly_of_effmpoly_valA n (p' : effmpoly C) :
+  MProps.for_all (fun k _ => size k == n)%N p' ->
+  ReffmpolyA (mpoly_of_effmpoly_val n (M.map C2A p')) p'.
+Proof.
+Admitted.
 
 Lemma param_M_hrel_empty : param M_hrel M.empty M.empty.
 Proof.
