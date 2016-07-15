@@ -11,38 +11,125 @@ Import Refinements.Op.
 Require Import cholesky_prog multipoly.
 Require Import Quote.
 
+Ltac get_rational t :=
+  let get_positive t :=
+    let rec aux t :=
+      match t with
+      | 1%Re => xH
+      | 2%Re => constr:(xO xH)
+      | 3%Re => constr:(xI xH)
+      | (2 * ?v)%Re =>
+        let w := aux v in constr:(xO w)
+      | (1 + 2 * ?v)%Re =>
+        let w := aux v in constr:(xI w)
+      end in
+    aux t in
+  let get_rational_aux s n d :=
+    let nn := get_positive n in
+    let dd := get_positive d in
+    eval vm_compute in (BigQ.of_Q (Qmake ((if s then Zneg else Zpos) nn) dd)) in
+  let get_integer s n :=
+    let nn := get_positive n in
+    eval vm_compute in (BigQ.of_Q (inject_Z ((if s then Zneg else Zpos) nn))) in
+  match t with
+  | 0%R => constr:(0%bigQ)
+  | (-?n * /?d)%Re => get_rational_aux true n d
+  | (?n * /?d)%Re => get_rational_aux false n d
+  | (-?n / ?d)%Re => get_rational_aux true n d
+  | (?n / ?d)%Re => get_rational_aux false n d
+  | (-?n)%Re => get_integer true n
+  | ?n => get_integer false n
+  | _ => false
+  end.
+
+Lemma test_get_rational : (-1234 / 5678)%Re >= 0.
+match goal with
+[ |- (?r >= 0)%R ] => let t := get_rational r in idtac t
+end.
+Abort.
+
+(* TODO: Move to misc *)
+Local Coercion RMicromega.IQR : Q >-> R.
+Local Coercion BigQ.to_Q : bigQ >-> Q.
+
 Inductive abstr_poly :=
   (* | Const of Poly.t *)
   (* | Mult_scalar of Poly.Coeff.t * abstr_poly *)
-  | Const of R
-  | Var of index
+  | Const of bigQ
+  | Var of nat
   | Add of abstr_poly & abstr_poly
   | Sub of abstr_poly & abstr_poly
   | Mul of abstr_poly & abstr_poly
-  | Pow of abstr_poly & nat
+  | Pow of abstr_poly & positive
   (* | Compose of abstr_poly * abstr_poly list *).
 
-Fixpoint eval_abstr_poly (vm : varmap R) (f : abstr_poly) {struct f} : R :=
+Fixpoint eval_abstr_poly (vm : list R) (f : abstr_poly) {struct f} : R :=
   match f with
-  | Const r => r
+  | Const c => RMicromega.IQR (BigQ.to_Q c)
   | Add p q => Rplus (eval_abstr_poly vm p) (eval_abstr_poly vm q)
   | Sub p q => Rminus (eval_abstr_poly vm p) (eval_abstr_poly vm q)
   | Mul p q => Rmult (eval_abstr_poly vm p) (eval_abstr_poly vm q)
-  | Pow p n => pow (eval_abstr_poly vm p) n
-  | Var i => varmap_find R0 i vm
+  | Pow p n => powerRZ (eval_abstr_poly vm p) (Z.pos n)
+  | Var i => seq.nth R0 vm i
   end.
 
-Definition const (r : R) := r.
+(* [list_add] was taken from CoqInterval *)
+Ltac list_add a l :=
+  let rec aux a l n :=
+    match l with
+    | Datatypes.nil        => constr:(n, Datatypes.cons a l)
+    | Datatypes.cons a _   => constr:(n, l)
+    | Datatypes.cons ?x ?l =>
+      match aux a l (S n) with
+      | (?n, ?l) => constr:(n, Datatypes.cons x l)
+      end
+    end in
+  aux a l O.
 
-Goal forall x y : R, (1 + 6 * x * pow y 1) >= 0.
-  intros.
-  change 2 with (IZR 2); change R1 with (IZR 1); change R0 with (IZR 0);
-  repeat
-  rewrite <- plus_IZR || rewrite <- mult_IZR || rewrite <- Ropp_Ropp_IZR || rewrite Z_R_minus.
-  match goal with
-    | [ |- (?p >= IZR 0)%R ] =>
-    quote eval_abstr_poly [O S xO xH xI Zplus Z0 Zpos Zneg IZR Zmult] in p using (fun x => idtac x)
-  end.
+Ltac get_poly t l :=
+  let rec aux t l :=
+    match get_rational t with
+    | false =>
+      let aux_u o a :=
+        match aux a l with
+        | (?u, ?l) => constr:(o u, l)
+        end in
+      let aux_u' o a b :=
+        match aux a l with
+        | (?u, ?l) => constr:(o u b, l)
+        end in
+      let aux_b o a b :=
+        match aux b l with
+        | (?v, ?l) =>
+          match aux a l with
+          | (?u, ?l) => constr:(o u v, l)
+          end
+        end in
+      match t with
+      | Ropp ?a => aux_u (Sub (Const 0%bigQ)) a
+      | Rsqr ?a => aux (Rmult a a) l
+      | powerRZ ?a (Z.pos ?b) => aux_u' Pow a b
+   (* | powerRZ ?a 0%Z => constr:(R1) [unwise to simplify here!] *)
+      | pow ?a ?b =>
+        let bb := eval vm_compute in (Pos.of_nat b) in aux_u' Pow a bb
+      | Rplus ?a ?b => aux_b Add a b
+      | Rminus ?a ?b => aux_b Sub a b
+      | Rplus ?a (Ropp ?b) => aux_b Sub a b
+      | Rmult ?a ?b => aux_b Mul a b
+      | _ =>
+        match list_add t l with
+        | (?n, ?l) => constr:(Var n, l)
+        end
+      end
+    | ?c =>
+      constr:(Const c, l)
+    end in
+  aux t l.
+
+Lemma test_get_poly x y : (2/3 * x ^ 2 + x * y >= 0)%Re.
+match goal with
+| [ |- (?r >= 0)%Re ] => let p := get_poly r (@Datatypes.nil R) in idtac p
+end.
 Abort.
 
 (** ** Part 0: Definition of operational type classes *)
@@ -530,7 +617,3 @@ Definition F2BigQ (q : coqinterval_infnan.F.type) : bigQ :=
   | Interval_specific_ops.Float m e => ZZtoQ m e
   | Interval_specific_ops.Fnan => 0%bigQ
   end.
-
-(* TODO: Move to misc *)
-Local Coercion RMicromega.IQR : Q >-> R.
-Local Coercion BigQ.to_Q : bigQ >-> Q.
