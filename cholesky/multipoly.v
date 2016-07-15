@@ -418,11 +418,11 @@ rewrite InA_cons; elim.
 by rewrite inE orb_comm; move/Hind =>->.
 Qed.
 
-Lemma NoDupA_eq_key_uniq_fst elt s : 
+Lemma NoDupA_eq_key_uniq_fst elt s :
   NoDupA (M.eq_key (elt:=elt)) s -> uniq [seq i.1 | i <- s].
 Proof.
 elim s => // h t Hind Hnd /=.
-inversion Hnd as [x|h' t' H1 H2].  (* @Érik: equivalent ssreflect ? *)
+inversion Hnd as [x|h' t' H1 H2].
 apply/andP; split; [|by apply Hind].
 by apply/negP => Hin; apply H1, in_fst_InA_eq_key_iff.
 Qed.
@@ -1098,6 +1098,12 @@ End effmpoly_theory.
 
 (** ** Part III: Parametricity *)
 
+Derive Inversion inv_InA with
+  (forall (A : Type) (eqA : A -> A -> Prop) (x : A) (s : seq A), @InA A eqA x s) Sort Prop.
+
+Derive Inversion inv_HdRel with
+  (forall (A : Type) (eqA : A -> A -> Prop) (x : A) (s : seq A), @HdRel A eqA x s) Sort Prop.
+
 Section effmpoly_parametricity.
 
 Context (A : ringType) (C : Type) (rAC : A -> C -> Prop).
@@ -1225,9 +1231,10 @@ Lemma Sorted_InA_not_lt_hd B (ke h : M.key * B) t :
   ~ M.lt_key ke h.
 Proof.
 move: h; elim t => [|h' t' IH] h.
-{ move=> _ Hin; inversion Hin; move=> Hlt.
-  { by move: (proj1 H5); apply M.E.lt_not_eq. }
-  inversion H5. }
+{ move=> _ Hin.
+  eapply inv_InA; [move=> _ y l Hy Hlt| |exact: Hin].
+  by case: Hlt =><- _ => K; move: (proj1 Hy); apply M.E.lt_not_eq.
+  by move=> _ y l K [_ Hl]; rewrite Hl in K; inversion K. }
 move=> HS Hin Hlt.
 have Hh := proj2 (Sorted_inv HS); inversion Hh.
 inversion Hin; [by move: Hlt (proj1 H8); apply M.E.lt_not_eq|].
@@ -1242,10 +1249,14 @@ Lemma Sorted_InA_tl_lt B (ke h : M.key * B) t :
 Proof.
 move: h; elim t => [|h' t' IH] h; [by move=> _ Hin; inversion Hin|].
 move=> HS Hin.
-have Hh := proj2 (Sorted_inv HS); inversion Hh.
-inversion Hin; [|by apply (M.E.lt_trans H5), IH; [apply (Sorted_inv HS)|]].
-change (M.lt_key _ _) with (M.E.lt h.1 ke.1).
-by move: (proj1 H8); move/mnmc_eq_seqP/eqP => ->.
+have Hh := proj2 (Sorted_inv HS).
+eapply inv_HdRel; last exact: Hh; [done|move=> _ b l Hbl [Hb _]].
+rewrite Hb in Hbl.
+eapply inv_InA; last exact: Hin; move=> _ y l' Hy [Hy' Hl'].
+{ change (M.lt_key _ _) with (M.E.lt h.1 ke.1).
+  by rewrite Hy' in Hy; move: (proj1 Hy); move/mnmc_eq_seqP/eqP => ->. }
+apply (M.E.lt_trans Hbl), IH; first by apply (Sorted_inv HS).
+by rewrite -Hl'.
 Qed.
 
 Lemma param_M_hrel_elements :
@@ -1305,21 +1316,25 @@ split=> k; specialize (Hht1 k); specialize (Hht2 k).
     have Ht1 : exists e, InA (M.eq_key_elt (elt:=A)) (k, e) (h :: t).
     { by exists e; apply InA_cons_tl. }
     elim (proj1 Hht1 Ht1) => e' He'.
-    inversion He'; [|by exists e'].
+    eapply inv_InA; last exact: He'; move=> _ y l Hl0 [Hy Hl];
+      last by exists e'; rewrite -Hl.
     move: (Sorted_InA_tl_lt Sht He); move /M.E.lt_not_eq.
     move: Hhh'; move/mnmc_eq_seqP/eqP-> => Heq; exfalso; apply Heq.
-    move: (proj1 H5); move/mnmc_eq_seqP/eqP => /= ->; apply M.E.eq_refl. }
+    move: (proj1 Hl0); move/mnmc_eq_seqP/eqP => /= ->.
+    by rewrite Hy; apply M.E.eq_refl. }
   move=> [e' He'].
   have Ht1 : exists e', InA (M.eq_key_elt (elt:=C)) (k, e') (h' :: t').
   { by exists e'; apply InA_cons_tl. }
   elim (proj2 Hht1 Ht1) => e He.
-  inversion He; [|by exists e].
+  eapply inv_InA; last exact: He; move=> _ y l Hl0 [Hy Hl];
+    last by exists e; rewrite -Hl.
   move: (Sorted_InA_tl_lt Sht' He'); move /M.E.lt_not_eq.
   move: Hhh'; move/mnmc_eq_seqP/eqP<- => Heq; exfalso; apply Heq.
-  move: (proj1 H5); move/mnmc_eq_seqP/eqP => /= ->; apply M.E.eq_refl. }
+  move: (proj1 Hl0); move/mnmc_eq_seqP/eqP => /= ->.
+  by rewrite Hy; apply M.E.eq_refl. }
 by move=> e e' He He'; apply Hht2; apply InA_cons_tl.
 Qed.
-  
+
 Lemma param_M_hrel_fold :
   param
     ((Logic.eq ==> rAC ==> M_hrel ==> M_hrel) ==> M_hrel ==> M_hrel ==> M_hrel)
@@ -1484,7 +1499,7 @@ eapply param_apply; [eapply param_apply|].
   apply param_M_hrel_mpoly_exp_eff. }
 by apply IH; rewrite paramE.
 Qed.
-  
+
 Global Instance ReffmpolyA_comp_mpoly_eff (n k : nat) :
   param (seq_ReffmpolyA (k:=k) ==> ReffmpolyA ==> ReffmpolyA)
     (comp_mpoly (k:=n)) (comp_mpoly_eff (n:=n)).
