@@ -78,17 +78,32 @@
 ** STARTED Do some cleanup, setup naming conventions		       :Erik:
 ** STARTED Make some benchmarks for the Boolean positivity test (itv_Q) :Pierre:
 * SOS/SDP
-** STARTED Look-at libraries for multipolys                            :Erik:
+** DONE Look-at libraries for multipolys			       :Erik:
+   CLOSED: [2016-07-15 Fri 20:59]
 *** DONE refine multipoly by FMap
 *** DONE change FMapList to FMapAVL                                  :Pierre:
-*** STARTED refine effmpoly from rat to bigQ
-** TODO Look-at doc on OCaml tactics
-** TODO Look at how to parse goals
+** DONE Look-at doc on OCaml tactics
+   CLOSED: [2016-07-15 Fri 20:59]
+** DONE Look at how to parse goals
+   CLOSED: [2016-07-15 Fri 20:59]
 ** DONE Look-at Victor's JFR paper				:Erik:Pierre:
    CLOSED: [2016-06-08 Wed 11:31]
 - Reuse the interface to ease future benchmarks?
 ** DONE Reread Pierre's paper and OSDP doc			       :Erik:
    CLOSED: [2016-06-08 Wed 11:31]
+*** TODO Migration to CoqEAL/paramcoq-dev			:Pierre:Erik:
+**** TODO Migrate iteri_ord, cholesky_prog			     :Pierre:
+**** TODO Migrate multipoly					       :Erik:
+**** STARTED refine effmpoly from rat to bigQ			       :Erik:
+*** TODO Define fcts with "check_size" to discharge the last 2 goals   :Erik:
+*** TODO Fix Ltac parsing w.r.t integers/rationals		       :Erik:
+*** TODO Finish writing the tactic				       :Erik:
+*** TODO Prove ZZtoQ_correct					       :Erik:
+*** TODO Prove interp_poly_correct
+*** TODO param_soscheck, param_max_coeff, param_check_base
+**** TODO Think-of lists vs. finsets
+*** TODO [#C] Reportbug scope issue with refines/%rel
+*** TODO benchs							     :Pierre:
 * Optimizations
 ** TODO Specialize the algos with fine-tuned binary64 arith	       :Erik:
 - int31 (or int63)

@@ -752,7 +752,7 @@ Lemma ZZtoQ_correct :
   BigQ.to_Q (ZZtoQ m e) =
   (Qmake (BigZ.to_Z m) 1) * (Qpower (Qmake 2 1) (BigZ.to_Z e)) )%Qrat.
 Proof.
-Admitted.
+Admitted. (* Erik *)
 
 Definition F2BigQ (q : coqinterval_infnan.F.type) : bigQ :=
   match q with
@@ -785,10 +785,10 @@ Lemma rat2R_F2rat :
 Admitted.
 
 Lemma max_l : forall x0 y0 : rat_comRing, rat2R x0 <= rat2R (Num.max x0 y0).
-Admitted.
+Admitted. (* Erik *)
 
 Lemma max_r : forall x0 y0 : rat_comRing, rat2R y0 <= rat2R (Num.max x0 y0).
-Admitted.
+Admitted. (* Erik *)
 
 (** ** Part 3: Parametricity *)
 
