@@ -1206,6 +1206,7 @@ Context {C : Type}.
 Context `{!zero C, !one C, !add C, !opp C, !mul C, !div C, !sqrt C}.
 Local Notation mxC := (seqmatrix' C) (only parsing).
 
+(*
 Lemma foldl_iteri_ord T T' n' f x x' s :
   (seq.size s = n'.+1)%N ->
   @foldl T T' f x s =
@@ -1224,6 +1225,7 @@ f_equal.
 by rewrite Hsize.
 Qed. *)
 Arguments foldl_iteri_ord [_ _ _ _ _ x' _] _.
+*)
 
 Context `{!leq C}.
 

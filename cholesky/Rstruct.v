@@ -82,7 +82,7 @@ Definition real_ringMixin := RingMixin RmultA Rmult_1_l Rmult_1_r
   Rmult_plus_distr_r Rmult_plus_distr_l R1_neq_0.
 
 Canonical Structure real_ringType := Eval hnf in RingType R real_ringMixin.
-Canonical Structure real_comringType := Eval hnf in ComRingType R Rmult_comm.
+Canonical Structure real_comRingType := Eval hnf in ComRingType R Rmult_comm.
 
 Import Monoid.
 
@@ -94,3 +94,28 @@ Canonical Rmul_comoid := ComLaw Rmult_comm.
 
 Canonical Rmul_mul_law := MulLaw Rmult_0_l Rmult_0_r.
 Canonical Radd_add_law := AddLaw Rmult_plus_distr_r Rmult_plus_distr_l.
+
+Definition invr (x : R) := if x == 0 then 0 else / x.
+
+Fact mulVr (x : R) : x != 0 -> (invr x) * x = 1.
+Proof.
+move=> H; rewrite /invr ifF; first by move/eqP: H; exact: Rinv_l.
+exact: negbTE.
+Qed.
+
+Fact invr0 : invr 0 = 0.
+Proof. by rewrite /invr eqxx. Qed.
+
+Definition real_fieldUnitMixin := FieldUnitMixin mulVr invr0.
+
+Canonical real_unitRingType :=
+  Eval hnf in UnitRingType R real_fieldUnitMixin.
+Canonical real_comUnitRingType := Eval hnf in [comUnitRingType of R].
+
+Fact real_field_axiom : GRing.Field.mixin_of real_unitRingType.
+Proof. exact. Qed.
+
+Definition real_FieldIdomainMixin := (FieldIdomainMixin real_field_axiom).
+Canonical real_iDomainType :=
+  Eval hnf in IdomainType R (FieldIdomainMixin real_field_axiom).
+Canonical real_fieldType := FieldType R real_field_axiom.
