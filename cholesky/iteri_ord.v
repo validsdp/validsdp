@@ -1,14 +1,14 @@
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import choice finfun tuple fintype.
-From CoqEAL_theory Require Import hrel.
-From CoqEAL_refinements Require Import refinements.
-From CoqEAL_refinements Require Import seqmatrix (* for Rord *).
+From CoqEAL Require Import hrel param refinements.
 
 (** * A generic implementation of [iteri] *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+
+Arguments refines A%type B%type R%rel _ _.  (* TODO: il y a un preoblème de scope sur refine *)
 
 Implicit Types n : nat.
 
@@ -69,13 +69,23 @@ Global Instance nat_of_instN : nat_of_class ord_instN n.+1 := id.
 Global Instance nat_spec_instN : nat_spec (I := ord_instN) (n := n.+1).
 Proof. done. Qed.
 
-(** Extra refinement lemmas *)
-Lemma Rord_I0 : Rord I0_ssr I0_instN.
-Proof. done. Qed.
-Global Instance Rord_nat_of : param (Rord ==> Logic.eq) nat_of_ssr nat_of.
-Proof. by rewrite paramE. Qed.
-
 End theory_nat_of.
+
+Section theory_nat_of2.
+
+Definition Rord n1 n2 (rn : nat_R n1 n2) : 'I_n1 -> ord_instN n2 -> Type :=
+  fun x y => x = y :> nat.
+
+(** Extra refinement lemmas *)
+Lemma Rord_I0 n1 n2 (rn : nat_R n1 n2) :
+  Rord (nat_R_S_R rn) I0_ssr (@I0_instN n2).
+Proof. done. Qed.
+
+Global Instance Rord_nat_of n1 n2 (rn : nat_R n1 n2) :
+  refines (Rord (nat_R_S_R rn) ==> eq) nat_of_ssr (nat_of_instN (n:=n2)).
+Proof. by rewrite refinesE /Rord=> x y <-. Qed.
+
+End theory_nat_of2.
 
 (** ** Generic proofs *)
 Section theory_iteri.
