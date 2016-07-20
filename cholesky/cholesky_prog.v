@@ -23,10 +23,6 @@ Delimit Scope R_scope with Re.
 
 Import Refinements.Op.
 
-(*Notation seqmatrix' := ((fun (A : Type) (_ _ : nat) => seqmatrix A)) (only parsing).
-now hseqmx
-*)
-
 (** ** Part 0: Definition of operational type classes *)
 
 (** for cholesky *)
@@ -39,8 +35,6 @@ Class store_of A I B :=
   store_op : forall (m n : nat), B m n -> I m -> I n -> A -> B m n.
 Class trmx_of B := trmx_op : forall m n : nat, B m n -> B n m.
 Notation "A ^T" := (trmx_op A) : hetero_computable_scope.
-Class map_mx_of B := map_mx_op :
-  forall {T T'} {m n : nat}, (T -> T') -> B T m n -> B T' m n.
 Class dotmulB0_of A I B :=
   dotmulB0_op : forall n : nat, I n -> A -> B 1%nat n -> B 1%nat n -> A.
 
@@ -164,16 +158,6 @@ Definition posdef_check_itv (A : mx T n n) (r : T) : bool :=
   let nm := mulup (nat2Fup n) r in
   let A' := map_diag (fun x => subdn x nm) A in
   posdef_check A'].
-
-Variables (F : Type) (F2FI : F -> T).
-
-Context `{!map_mx_of mx}.
-
-Definition posdef_check_F (A : mx F n n) : bool :=
-  posdef_check (map_mx_op F2FI A).
-
-Definition posdef_check_itv_F (A : mx F n n) (r : F) : bool :=
-  posdef_check_itv (map_mx_op F2FI A) (F2FI r).
 
 End generic_cholesky.
 
@@ -341,17 +325,6 @@ Definition posdef_check_seqmx : @hseqmx T n.+1 n.+1 -> bool :=
 
 Definition posdef_check_itv_seqmx : @hseqmx T n.+1 n.+1 -> T -> bool :=
   posdef_check_itv feps feta is_finite.
-
-Global Instance map_mx_seqmx : map_mx_of (@hseqmx) :=
-  fun T T' m n f s => map (map f) s.
-
-Variables (F : Type) (F2FI : F -> T) (zeroF : F).
-
-Definition posdef_check_F_seqmx : @hseqmx F n.+1 n.+1 -> bool :=
-  posdef_check_F feps feta is_finite F2FI.
-
-Definition posdef_check_itv_F_seqmx : @hseqmx F n.+1 n.+1 -> F -> bool :=
-  posdef_check_itv_F feps feta is_finite F2FI.
 
 End seqmx_cholesky.
 
@@ -1129,48 +1102,6 @@ apply (Rle_trans _ (FI2F nr)).
 by move: (Hd' i i); rewrite !mxE eq_refl /GRing.natmul /GRing.mul /= Rmult_1_r.
 Qed.
 
-Variables (F : Type) (F2FI : F -> FI fs) (toR : F -> R).
-Hypothesis (F2FI_correct : forall f, finite (F2FI f) -> FI2F (F2FI f) = toR f :> R).
-
-Global Instance map_mx_ssr : map_mx_of matrix :=
-  fun T T' m n f A => map_mx f A.
-
-Definition posdef_check_F_ssr : 'M[F]_n.+1 -> bool :=
-  posdef_check_F (fieps fs) (fieta fs) (@is_finite fs) F2FI.
-
-Definition posdef_check_itv_F_ssr : 'M[F]_n.+1 -> F -> bool :=
-  posdef_check_itv_F (fieps fs) (fieta fs) (@is_finite fs) F2FI.
-
-Lemma posdef_check_F_f1 A : posdef_check_F_ssr A ->
-  forall i j, finite ((map_mx F2FI A) i j).
-Proof. apply posdef_check_f1. Qed.
-
-Lemma posdef_check_itv_F_f1 A r : posdef_check_itv_F_ssr A r ->
-  forall i j, finite ((map_mx F2FI A) i j).
-Proof. apply posdef_check_itv_f1. Qed.
-
-Lemma posdef_check_F_correct (A : 'M[F]_n.+1) :
-  posdef_check_F_ssr A -> posdef (matrix.map_mx toR A).
-Proof.
-move=> H; move: (posdef_check_correct H).
-set A' := MF2R _; set A'' := matrix.map_mx _ _.
-have->: A' = A''; [|by []].
-apply/matrixP=> i j; rewrite !mxE; apply F2FI_correct.
-by move: (posdef_check_f1 H i j); rewrite mxE.
-Qed.
-
-Lemma posdef_check_itv_F_correct (A : 'M[F]_n.+1) (r : F) :
-  posdef_check_itv_F_ssr A r ->
-  forall Xt : 'M_n.+1,
-  Mabs (Xt - matrix.map_mx toR A) <=m: matrix.const_mx (toR r) ->
-  posdef Xt.
-Proof.
-move=> H Xt HXt; apply (posdef_check_itv_correct H).
-move=> i j; move: (HXt i j); rewrite !mxE F2FI_correct.
-{ by rewrite F2FI_correct //; move: H; case/and3P. }
-by move: (posdef_check_itv_f1 H i j); rewrite mxE.
-Qed.
-
 End theory_cholesky_3.
 
 (** ** Part 3: Parametricity *)
@@ -1214,27 +1145,6 @@ Context {C : Type}.
 Context `{!zero_of C, !one_of C, !add_of C, !opp_of C, !mul_of C, !div_of C, !sqrt_of C}.
 Local Notation mxC := (@hseqmx C) (only parsing).
 
-(*
-Lemma foldl_iteri_ord T T' n' f x x' s :
-  (seq.size s = n'.+1)%N ->
-  @foldl T T' f x s =
-  iteri_ord (ord := ordinal) (n := n'.+1)
-    (seq.size s) (fun i x => f x (nth x' s i)) x.
-Proof.
-move=> Hsize.
-rewrite -[in LHS](take_size s).
-eapply iteri_ord_ind =>//; rewrite ?Hsize // ?take0 //.
-move=> i s' Hi Hs'.
-rewrite -{}Hs'.
-rewrite (take_nth x').
-Fail rewrite -[RHS]Rcomplements.foldl_rcons.
-Admitted. (*
-f_equal.
-by rewrite Hsize.
-Qed. *)
-Arguments foldl_iteri_ord [_ _ _ _ _ x' _] _.
-*)
-
 Context `{!leq_of C}.
 
 (* TODO: move in seqmx_complements *)
@@ -1246,32 +1156,6 @@ case=>// h t [Ht]; case j' => {j'}; case; case j => {j}; case=>//= j Hj j' Hj'.
 rewrite /eqtype.eq_op /= eqSS; rewrite !ltnS in Hj, Hj'.
 apply (IH (Ordinal Hj) (Ordinal Hj') _ Ht).
 Qed.
-
-(* TODO: remove
-Lemma param_store_aux n1 n2 (rn : nat_R n1 n2) :
-  refines (Rseqmx (nat_R_S_R nat_R_O_R) rn ==> Rord rn ==> eq ==>
-           Rseqmx (nat_R_S_R nat_R_O_R) rn)
-    (fun M j v => @store_ssr C 1%N n1 M ord0 j v)
-    (fun M j v =>
-       match M with
-       | [::] => [::]
-       | l :: _ => [:: @store_aux C l j v] end).
-Proof.
-rewrite refinesE=> _ _ [M sM h1 h2 h3] j _ <- v _ <-.
-constructor=>[||i j'].
-{ by move: h1; case sM. }
-{ case=>//_; move: h1 (h2 O erefl); case sM=>// l; case=>//= _ <-.
-  elim: l j => [//|h t IH]; case; case=>//= j Hj.
-  by rewrite -(IH (Ordinal (ltnW Hj))). }
-rewrite mxE h3 (ord_1_0 i) eqxx.
-move: h1 (h2 O erefl); case sM=>//= l _ _; rewrite -(nat_R_eq rn).
-elim: {rn M h3} n1 j j' l; [by case|]; move=> n IH j j'.
-case=>// h t [Ht]; case j' => {j'}; case; [by case (nat_of_ord j)|].
-case j => {j}; case => //= j Hj j' Hj'.
-rewrite eqSS; rewrite !ltnS in Hj, Hj'.
-apply (IH (Ordinal Hj) (Ordinal Hj') _ Ht).
-Qed.
-*)
 
 (* TODO: move in seqmx_complements *)
 Lemma param_store_seqmx0 m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
@@ -1637,53 +1521,6 @@ eapply refines_apply; [by tc|].
 by rewrite -(nat_R_eq rn') refinesE=> e _ <-.
 Qed.
 
-(* TODO: see whether we actually need this (seemingly not used in validsdp.v)
-(** Version of [Rseqmx_map_seqmx] not assuming identical input and return types for [f] *)
-Lemma param_map_mx m n'' T T' :
-  param (Logic.eq ==> Rseqmx ==> Rseqmx)
-    (@map_mx_ssr T T' m n'')
-    (@map_mx_seqmx T T' m n'').
-Proof.
-rewrite paramE => f _ <- x a rxa.
-apply /refines_seqmxP=> [|i lt_im|i j].
-{ by rewrite !sizeE. }
-{ by rewrite (nth_map [::]) !sizeE. }
-rewrite mxE (nth_map [::]) ?sizeE //.
-by rewrite (nth_map (x i j)) ?sizeE // refines_nth.
-Qed.
-
-Lemma param_posdef_check_F :
-  param (Rseqmx ==> Logic.eq)
-  (@posdef_check_F_ssr fs n _ F2FI)
-  (posdef_check_F_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) F2FI).
-Proof.
-apply param_abstr => A As param_A.
-rewrite /posdef_check_F_ssr /posdef_check_F_seqmx /posdef_check_F.
-eapply param_apply; [apply param_posdef_check|].
-eapply param_apply; [|apply param_A].
-eapply param_apply; [apply param_map_mx|apply param_eq_refl].
-Qed.
-
-(* FIXME: to rename *)
-
-Definition posdef_check_itv_F5 := @posdef_check_itv_F_ssr fs n _ F2FI.
-
-Lemma param_posdef_check_itv_F :
-  param (Rseqmx ==> Logic.eq ==> Logic.eq)
-  (@posdef_check_itv_F_ssr fs n _ F2FI)
-  (posdef_check_itv_F_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs) F2FI).
-Proof.
-apply param_abstr => A As param_A.
-apply param_abstr => r r' param_r.
-rewrite paramE in param_r; rewrite -param_r.
-rewrite /posdef_check_itv_F_ssr /posdef_check_itv_F_seqmx /posdef_check_itv_F.
-eapply param_apply; [|apply param_eq_refl].
-eapply param_apply; [apply param_posdef_check_itv|].
-eapply param_apply; [|apply param_A].
-eapply param_apply; [apply param_map_mx|apply param_eq_refl].
-Qed.
-*)
-
 End refinement_cholesky_2.
 
 (* FIXME: to move *)
@@ -1786,30 +1623,12 @@ Definition posdef_check4_coqinterval' (M : seq (seq FI)) : bool :=
     fieps fieta
     (@float_infnan_spec.is_finite _) M.
 
-(* TODO: useless ?
-Definition posdef_check_F4_coqinterval' (M : seq (seq F.type)) : bool :=
-  let m := seq.size M in
-  all (fun l => seq.size l == m)%B M &&
-  posdef_check_F_seqmx (T := FI) (n := m.-1)
-    fieps fieta
-    (@float_infnan_spec.is_finite _) F2FI M.
-*)
-
 Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
   let m := seq.size M in
   all (fun l => seq.size l == m)%B M &&
   posdef_check_itv_seqmx (T := FI) (n := m.-1)
     fieps fieta
     (@float_infnan_spec.is_finite _) M r.
-
-(* TODO: useless ?
-Definition posdef_check_itv_F4_coqinterval' (M : seq (seq F.type)) (r : F.type) : bool :=
-  let m := seq.size M in
-  all (fun l => seq.size l == m)%B M &&
-  posdef_check_itv_F_seqmx (T := FI) (n := m.-1)
-    fieps fieta
-    (@float_infnan_spec.is_finite _) F2FI M r.
-*)
 
 Definition prec := 53%bigZ.
 
@@ -1834,127 +1653,5 @@ move: H1; case: (s) => H1.
 by rewrite Pos2Z.opp_pos -H1.
 by rewrite -H1.
 Qed.
-
-(* TODO: useless ?
-Definition test_posdef_check_itv (M : seq (seq F.type)) (r : bigQ) : bool :=
-  posdef_check_itv_F4_coqinterval' M (snd (BigQ2F r)).
-*)
-
-(* Remark: ultimately, we'll have to check that mat does not contain NaNs *)
-
-(*
-Definition posdef_seqF (mat : seqmatrix F.type) : Prop :=
-  let m := seq.size mat in
-  posdef (@mx_of_seqmx_val _ R0 m m (map (map toR) mat)).
-*)
-
-(* TODO: useless ?
-Instance : zero F.type := F.zero.
-
-Definition posdef_seqF (mat : seqmatrix F.type) : Prop :=
-  let m := seq.size mat in
-  posdef (matrix.map_mx toR (mx_of_seqmx_val m m mat)).
-
-(* First attempt
-Context `{mx : Type -> nat -> nat -> Type, !map_mx_class mx}.
-Context `{!heq (mx FI)}.
-Context `{!transpose_class (mx FI)}.
-Context `{ordT : nat -> Type, !fun_of FI ordT (mx FI)}.
-Context `{!row_class ordT (mx FI)}.
-Typeclasses eauto := debug.
-*)
-
-Lemma posdef_check_F_correct_inst (A : seqmatrix F.type) :
-  posdef_check_F4_coqinterval' A ->
-  posdef_seqF A.
-Proof.
-case: A => [|A0 A1].
-{ by move=> _ x Hx; casetype False; apply /Hx /matrixP; case. }
-move=> Hmain.
-eapply (@posdef_check_F_correct coqinterval_round_up_infnan).
-{ by apply F2FI_correct. }
-rewrite /posdef_check_F4_coqinterval' in Hmain.
-have /andP[Hall Hmain'] := Hmain.
-rewrite /is_true -Hmain' /posdef_check_F4_coqinterval'.
-apply paramP.
-eapply param_apply; first exact: param_posdef_check_F.
-move/all_nthP in Hall.
-apply/trivial_param/refines_seqmxP; rewrite -/(seq.size _); first done.
-by move=> i Hi; move/(_ [::] i Hi)/eqP in Hall.
-move=> [i Hi] j /=; rewrite !mxE.
-apply: set_nth_default.
-by move/(_ [::] i Hi)/eqP: Hall =>->.
-Qed.
-
-Definition posdef_itv_seqF (mat : seqmatrix F.type) (r : F.type) : Prop :=
-  let m := seq.size mat in
-  forall Xt : 'M_m,
-  Mabs (Xt - matrix.map_mx toR (@mx_of_seqmx_val _ _ m m mat))
-    <=m: matrix.const_mx (toR r) ->
-  posdef Xt.
-
-Lemma posdef_check_itv_F_correct_inst (A : seqmatrix F.type) (r : F.type) :
-  let m := seq.size A in
-  posdef_check_itv_F4_coqinterval' A r ->
-  posdef_itv_seqF A r.
-Proof.
-case: A => [|A0 A1].
-{ by move=> _ _ Xt _ x Hx; casetype False; apply /Hx /matrixP; case. }
-move=> m Hmain Xt.
-set mA := mx_of_seqmx_val _ _ _.
-change (proj_val (F.toX r)) with (toR r).
-apply (posdef_check_itv_F_correct (fs := coqinterval_round_up_infnan) (F2FI := F2FI)).
-- exact: F2FI_correct.
-- rewrite /posdef_check_F4_coqinterval' in Hmain.
-  have /andP[Hall Hmain'] := Hmain.
-  rewrite /is_true -Hmain' /posdef_check_F4_coqinterval'.
-  apply paramP.
-  eapply param_apply; [eapply param_apply|exact: param_eq_refl].
-  { exact: param_posdef_check_itv_F. }
-  move/all_nthP in Hall.
-  apply/trivial_param/refines_seqmxP; rewrite -/(seq.size _); first done.
-  by move=> i Hi; move/(_ [::] i Hi)/eqP in Hall.
-  move=> [i Hi] j /=; rewrite !mxE.
-  apply: set_nth_default.
-  by move/(_ [::] i Hi)/eqP: Hall =>->.
-Qed.
-
-Require Import QArith.
-Local Coercion RMicromega.IQR : Q >-> R.
-Local Coercion BigQ.to_Q : bigQ >-> Q.
-
-Definition posdef_itv_seqF_bigQ (mat : seqmatrix F.type) (r : bigQ) : Prop :=
-  let m := seq.size mat in
-  forall Xt : 'M_m,
-  Mabs (Xt - matrix.map_mx toR (@mx_of_seqmx_val _ _ m m mat))
-    <=m: matrix.const_mx (r : R) ->
-  posdef Xt.
-
-Lemma test_posdef_check_itv_correct (A : seqmatrix F.type) (r : bigQ) :
-  let m := seq.size A in
-  test_posdef_check_itv A r ->
-  posdef_itv_seqF_bigQ A r.
-Admitted.
-
-End refinement_cholesky_3.
-
-Ltac prove_posdef :=
-  (by apply posdef_check_F_correct_inst; abstract (vm_cast_no_check (erefl true)))
-  || fail "Numerical evaluation failed to prove positive-definiteness".
-
-Ltac prove_posdef_itv :=
-  (by apply posdef_check_itv_F_correct_inst; abstract (vm_cast_no_check (erefl true)))
-  || fail "Numerical evaluation failed to prove positive-definiteness".
-
-Require Import testsuite.
-
-Lemma test_m12 : posdef_seqF m12.
-Time prove_posdef.
-Qed.
-
-Lemma test_m12_r : posdef_itv_seqF m12 (Float 1%bigZ (-10)%bigZ).
-Time prove_posdef_itv.
-Qed.
-*)
 
 End refinement_cholesky_3.
