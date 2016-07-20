@@ -288,12 +288,6 @@ Section seqmx.
 Variable R : Type.
 Context `{zero_of R, one_of R, opp_of R, add_of R, mul_of R, eq_of R}.
 
-(*Local Instance zeroR : zero_of R := 0%R.
-Local Instance oneR  : one_of R := 1%R.
-Local Instance oppR  : opp_of R := -%R.
-Local Instance addR  : add_of R := +%R.
-Local Instance mulR  : mul_of R := *%R.
-Local Instance eqR   : eq_of R   := eqtype.eq_op.*)
 Local Instance specR : spec_of R R := spec_id.
 
 Local Instance implem_ord : forall n, (implem_of 'I_n 'I_n) :=

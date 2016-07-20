@@ -1,6 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import choice finfun tuple fintype.
 From CoqEAL Require Import hrel param refinements.
+Require Import seqmx_complements.  (* for Rord *)
 
 (** * A generic implementation of [iteri] *)
 
@@ -11,8 +12,6 @@ Unset Printing Implicit Defensive.
 Arguments refines A%type B%type R%rel _ _.  (* TODO: il y a un preoblème de scope sur refine *)
 
 Implicit Types n : nat.
-
-Notation ord_instN := (fun _ : nat => nat) (only parsing).
 
 (** ** Definition of type classes *)
 Class I0_class I n := I0 : I n.
@@ -72,9 +71,6 @@ Proof. done. Qed.
 End theory_nat_of.
 
 Section theory_nat_of2.
-
-Definition Rord n1 n2 (rn : nat_R n1 n2) : 'I_n1 -> ord_instN n2 -> Type :=
-  fun x y => x = y :> nat.
 
 (** Extra refinement lemmas *)
 Lemma Rord_I0 n1 n2 (rn : nat_R n1 n2) :
