@@ -91,6 +91,7 @@ Global Instance opp_bigQ : opp bigQ := BigQ.opp.
 Global Instance add_bigQ : add bigQ := BigQ.add.
 Global Instance sub_bigQ : sub bigQ := BigQ.sub.
 Global Instance mul_bigQ : mul bigQ := BigQ.mul.
+Global Instance eq_bigQ : eq bigQ := BigQ.eq_bool.
 
 Definition interp_poly (vm : seq R) (ap : abstr_poly) : effmpoly bigQ :=
   let n := seq.size vm in
@@ -260,7 +261,7 @@ Section eff_soscheck.
 Context {n : nat}.  (** number of variables of polynomials *)
 Context {T : Type}.  (** type of coefficients of polynomials *)
 
-Context `{!one T, !opp T, !add T, !sub T, !mul T}.
+Context `{!zero T, !one T, !opp T, !add T, !sub T, !mul T, !eq T}.
 
 Let monom := seqmultinom.
 
@@ -269,7 +270,7 @@ Let polyT := effmpoly T.
 Global Instance mul_monom_eff : mul_monom monom := mnm_add_seq.
 
 Global Instance list_of_poly_eff : list_of_poly_class T monom polyT :=
-  @list_of_effmpoly T.
+  list_of_mpoly_eff (T:=T).
 
 Global Instance polyC_eff : polyC_class T polyT := @mpolyC_eff _ n.
 
@@ -285,7 +286,7 @@ Global Instance sadd_eff : sadd_class monom set := S.add.
 
 Global Instance smem_eff : smem_class monom set := S.mem.
 
-Context `{!zero T, !max_class T}.
+Context `{!max_class T}.
 
 Let ord := ord_instN.
 
@@ -341,7 +342,7 @@ Let polyT := mpoly n T.
 Global Instance mul_monom_ssr : mul_monom monom := mnm_add.
 
 Global Instance list_of_poly_ssr : list_of_poly_class T monom polyT :=
-  fun p => [seq (m, p@_m) |m <- msupp p].
+  list_of_mpoly.
 
 Global Instance polyC_ssr : polyC_class T polyT := fun c => mpolyC n c.
 
@@ -405,7 +406,7 @@ rewrite /smem /smem_ssr /sempty /sempty_ssr; set sm := iteri_ord _ _ _.
 move/allP=> Hmem m Hsupp.
 have : m \in sm.
 { apply (Hmem (m, p@_m)).
-  by change (m, p@_m) with ((fun m => (m, p@_m)) m); apply map_f. }
+  by rewrite -/((fun m => (m, p@_m)) m); apply map_f; rewrite path.mem_sort. }
 pose P := fun (_ : nat) (sm : set) =>
             m \in sm -> exists i j, (z i ord0 + z j ord0)%MM == m.
 rewrite {Hmem} -/(P 0%N sm) {}/sm; apply iteri_ord_ind => // i s0.
@@ -432,7 +433,7 @@ Proof.
 case_eq (m \in msupp p);
   [|rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 Rabs_R0;
     by apply max_coeff_pos].
-rewrite /max_coeff /list_of_poly /list_of_poly_ssr.
+rewrite /max_coeff /list_of_poly /list_of_poly_ssr /list_of_mpoly.
 have Hmax : forall x y, Rabs (T2R x) <= T2R (max y (max x (- x)%C)).
 { move=> x y; apply Rabs_le; split.
   { rewrite -(Ropp_involutive (T2R x)); apply Ropp_le_contravar.
@@ -440,7 +441,8 @@ have Hmax : forall x y, Rabs (T2R x) <= T2R (max y (max x (- x)%C)).
     rewrite -GRing.raddfN /=.
     apply (Rle_trans _ _ _ (max_r _ _) (max_r _ _)). }
   apply (Rle_trans _ _ _ (max_l _ _) (max_r _ _)). }
-generalize 0%C; elim (msupp _)=> [//|h t IH] z; move/orP; elim.
+rewrite -(path.mem_sort mnmc_le).
+generalize 0%C; elim (path.sort _)=> [//|h t IH] z; move/orP; elim.
 { move/eqP-> => /=; set f := fun _ => _; set l := map _ _.
   move: (Hmax p@_h z); set z' := max z _; generalize z'.
   elim l => /= [//|h' l' IH' z'' Hz'']; apply IH'.
@@ -795,6 +797,7 @@ Admitted. (* Erik *)
 Section refinement_soscheck.
 
 Variables (A : comRingType) (C : Type) (rAC : A -> C -> Prop).
+Context `{!zero C, !one C, !opp C, !add C, !sub C, !mul C, !eq C}.
 Context {n s : nat}.
 
 Lemma param_check_base :
@@ -802,10 +805,7 @@ Lemma param_check_base :
     (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
 Admitted.
 
-Check max_coeff_ssr.
-
 Context `{!max_class A}.
-Context `{!zero C, !one C, !opp C, !add C, !sub C, !mul C}.
 Context `{!max_class C}.
 
 Lemma param_max_coeff :
@@ -860,7 +860,7 @@ match goal with
 end.
 pose Qf := map (map F2FI) zQ.2.
 compute in Qf.
-pose boo := @soscheck_eff 2 _ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ zero_bigQ max_bigQ 1 fs FI2BigQ BigQ2FI TMP (map (fun x => [:: x]) zQ.1) Qf.
+pose boo := @soscheck_eff 2 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ 1 fs FI2BigQ BigQ2FI TMP (map (fun x => [:: x]) zQ.1) Qf.
 vm_compute in boo.
 (* TODO: refactor the pose/compute/... above and do *)
 eapply soscheck_correct with
