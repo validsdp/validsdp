@@ -99,7 +99,7 @@
 *** TODO Fix Ltac parsing w.r.t integers/rationals		       :Erik:
 *** TODO Finish writing the tactic				       :Erik:
 *** TODO Prove ZZtoQ_correct					       :Erik:
-*** TODO Prove interp_poly_correct
+*** DONE Prove interp_poly_correct
 *** TODO param_soscheck, param_max_coeff, param_check_base
 **** TODO Think-of lists vs. finsets
 *** TODO [#C] Reportbug scope issue with refines/%rel
