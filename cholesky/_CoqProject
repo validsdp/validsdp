@@ -30,16 +30,25 @@ validsdp.v
 
 COQDOCFLAGS = "-interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq"
 QUOT = "$(shell printf '\x22')"
--extra deps.dot $(VFILES) "(echo 'digraph validsdp_deps {';\
-	echo 'node [shape = ellipse, style=filled, URL=$(QUOT)ValidSDP.\N.html$(QUOT), color=black, fillcolor=cornflowerblue];';\
-	cat $(addsuffix .d,$(VFILES)) |\
-	  sed -n -e 's,./,,g;s,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' |\
-	  while read src dst; do\
-	    for d in $$dst; do\
-	      echo $$src' -> '$${d%.vo}' ;';\
-	    done;\
-	  done;\
-	echo '}') | tred > $@"
+
+# -extra deps.dot $(VFILES) "(echo 'digraph coq_dependencies {';\
+# 	echo 'node [shape = ellipse, style=filled, URL=$(QUOT)ValidSDP.\N.html$(QUOT), color=black, fillcolor=cornflowerblue];';\
+# 	cat $(addsuffix .d,$(VFILES)) |\
+# 	  sed -n -e 's,./,,g;s,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' |\
+# 	  while read src dst; do\
+# 	    for d in $$dst; do\
+# 	      echo $$src' -> '$${d%.vo}' ;';\
+# 	    done;\
+# 	  done;\
+# 	echo '}') | tred > $@"
+
+-extra coqgraph coqgraph.ml "ocamlc.opt -o $@ $<"
+
+-extra deps.dot "$(VFILES) coqgraph" "cat $(addsuffix .d,$(VFILES)) |\
+	sed -e 's,./,,g' |\
+	./coqgraph - |\
+	sed -e 's/color \?= \?grey95,/& URL=$(QUOT)ValidSDP.\\N.html$(QUOT),/' |\
+	tred > $@"
 
 -extra deps.png deps.dot "dot -Tpng $< -o $@"
 
@@ -48,6 +57,6 @@ QUOT = "$(shell printf '\x22')"
 -extra-phony doc "html deps.png deps.html" "cp deps.png html/ ;\
 	if ! grep -e 'deps[.]png' html/toc.html; then\
 	  sed -i html/toc.html \
-	  -e 's,id=.main.>,&<img src='\''deps.png'\'' border=0 usemap='\''#validsdp_deps'\'' />,' \
+	  -e 's,id=.main.>,&<img src='\''deps.png'\'' border=0 usemap='\''#coq_dependencies'\'' />,' \
 	  -e '/<img src='\''deps.png'\''/r deps.html';\
 	fi"
