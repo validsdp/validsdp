@@ -64,6 +64,13 @@ have Lx := Rle_0_sqr x; have L1 := Rle_0_sqr 1.
 apply sqrt_le_1_alt; rewrite Rsqr_plus; lra.
 Qed.
 
+(** About [pow]. *)
+Lemma pow_rexp r n : r ^ n = (r ^+ n)%Ri.
+Proof.
+elim: n => [//|n' IH].
+by rewrite /= IH /GRing.exp /=; case n'=> //; rewrite Rmult_1_r.
+Qed.
+
 (** If the sum of two non negative is zero, they are both zero. *)
 Lemma sum_pos_eq_0_l x y : (0 <= x -> 0 <= y -> x + y = 0 -> x = 0)%Re.
 Proof. move => *; lra. Qed.

@@ -44,13 +44,18 @@ Definition mnmd_seq {n} (i d : nat) :=
 (** Multiplication of multinomials *)
 Definition mnm_add_seq m1 m2 := map2 addn m1 m2.
 
-Fixpoint mnmc_lt_seq (s1 s2 : seq nat) {struct s1} : bool :=
+Definition mdeg_eff := foldl addn 0%N.
+
+Fixpoint mnmc_lt_seq_aux (s1 s2 : seq nat) {struct s1} : bool :=
   match s1, s2 with
     | [::], [::] => false
     | [::], _ => true
     | x1 :: s1', [::] => false
-    | x1 :: s1', x2 :: s2' => (x1 < x2)%N || (x1 == x2)%N && mnmc_lt_seq s1' s2'
+    | x1 :: s1', x2 :: s2' =>
+      (x1 < x2)%N || (x1 == x2)%N && mnmc_lt_seq_aux s1' s2'
   end.
+Definition mnmc_lt_seq (s1 s2 : seq nat) : bool :=
+  mnmc_lt_seq_aux (mdeg_eff s1 :: s1) (mdeg_eff s2 :: s2).
 
 Definition mnmc_eq_seq := eq_seq (fun n m : nat => n == m)%N.
 
@@ -76,9 +81,12 @@ Definition lt : t -> t -> Prop := mnmc_lt_seq.
 Lemma intro_eq x y :
   (mnmc_lt_seq x y = false) -> (mnmc_lt_seq y x = false) -> mnmc_eq_seq x y.
 Proof.
-move: x y; elim => [|hx tx Hind]; case=> // hy ty.
+rewrite /mnmc_lt_seq /=.
+case Hlt : (_ < _)=>//=; case Hlt' : (_ < _)=>//=; move: Hlt Hlt'.
+rewrite !ltnNge !negb_false_iff !eqn_leq =>->->/=.
+elim: x y => [|hx tx Hind]; case=> // hy ty.
 rewrite /lt /=; case (ltnP hx hy) => //= Hxy; case (ltnP hy hx) => //= Hyx.
-assert (Exy : hx == hy); [by apply/eqP /anti_leq; rewrite Hyx|].
+have Exy : hx == hy; [by apply/eqP /anti_leq; rewrite Hyx|].
 rewrite /mnmc_eq_seq /= Exy; rewrite eq_sym in Exy; rewrite Exy /=; apply Hind.
 Qed.
 
@@ -107,6 +115,9 @@ Proof. by move=> x y z /mnmc_eq_seqP/eqP =>->. Qed.
 
 Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
 Proof.
+move=> x y z; rewrite /lt /mnmc_lt_seq.
+set x' := _ :: x; set y' := _ :: y; set z' := _ :: z.
+clearbody x' y' z'; clear x y z; move: x' y' z'.
 elim => [|hx tx Hind] y z; [by case y => // hy ty; case z|].
 case y => // hy ty; case z => // hz tz.
 move/orP => [Hxy|Hxy].
@@ -121,7 +132,11 @@ Qed.
 
 Lemma lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
 Proof.
-move=> x y Hlt /mnmc_eq_seqP/eqP Heq; move: Hlt; rewrite Heq.
+move=> x y; rewrite /lt /mnmc_lt_seq /=; move/orP; elim.
+{ move=> Hlt Heq; move: Heq Hlt; move/mnmc_eq_seqP/eqP->.
+  by rewrite ltnn. }
+move/andP; case=>_.
+move=> Hlt /mnmc_eq_seqP/eqP Heq; move: Hlt; rewrite Heq.
 elim y => [//|h t Hind] /orP [H|H]; [by move: H; rewrite ltnn|].
 move/andP in H; apply Hind, H.
 Qed.
@@ -163,15 +178,18 @@ End MProps.
 
 Section effmpoly_generic_2.
 
-(* FIXME: ensure that [effmpoly_of_list] won't overwrite duplicate monomials *)
+Definition list_of_mpoly {T : ringType} {n} (p : {mpoly T[n]}) :
+  seq ('X_{1..n} * T) := [seq (m, p@_m) | m <- path.sort mnmc_le (msupp p)].
+
+(* TODO: remove, not used
 Definition effmpoly_of_list : forall T, seq (seqmultinom * T) -> effmpoly T :=
-  MProps.of_list.
+  MProps.of_list. *)
 
-Definition list_of_effmpoly : forall T, effmpoly T -> seq (seqmultinom * T) :=
-  M.elements.
-
-Context {T : Type} `{!one_of T, !add_of T, !opp_of T, !sub_of T, !mul_of T}.
+Context {T : Type} `{!zero T, !one T, !add T, !opp T, !sub T, !mul T, !eq T}.
 Context {n : nat}.
+
+Definition list_of_mpoly_eff (p : effmpoly T) : seq (seqmultinom * T) :=
+  [seq mc <- M.elements p | negb (mc.2 == 0)%C].
 
 Definition mp0_eff : effmpoly T := M.empty.
 
@@ -223,6 +241,9 @@ Definition comp_mpoly_eff (lq : seq (effmpoly T)) (p : effmpoly T) : effmpoly T 
   M.fold (fun m c => mpoly_add_eff (comp_monomial_eff m c lq)) p mp0_eff.
 
 End effmpoly_generic_2.
+
+Derive Inversion inv_InA with
+  (forall (A : Type) (eqA : A -> A -> Prop) (x : A) (s : seq A), @InA A eqA x s) Sort Prop.
 
 (** ** Part II: Proofs for proof-oriented types and programs *)
 
@@ -366,6 +387,12 @@ move=> i; rewrite /mnm_add_seq (nth_map2 _ (da := O) (db := O)) //; last first.
 by rewrite mnmDE !refines_nth.
 Qed.
 
+Global Instance param_mnmc_lt n :
+  param (Rseqmultinom ==> Rseqmultinom ==> Logic.eq)
+    (@mnmc_lt n) (mnmc_lt_seq).
+Proof.
+Admitted.  (* TODO: after migration *)
+
 (** Multivariate polynomials *)
 
 Definition mpoly_of_effmpoly (T : ringType) n (p' : effmpoly T) : option (mpoly n T) :=
@@ -374,21 +401,8 @@ Definition mpoly_of_effmpoly (T : ringType) n (p' : effmpoly T) : option (mpoly 
                         a <- M.elements p']]]
   else None.
 
-Definition mpoly_of_effmpoly_val (T : ringType) n (p' : effmpoly T) : mpoly n T :=
-  odflt (0%R) (mpoly_of_effmpoly n p').
-
-Definition effmpoly_of_mpoly (T : ringType) n (p : mpoly n T) : effmpoly T :=
-  MProps.of_list [seq (seqmultinom_of_multinom a.2, a.1) |
-                  a <- fgenum (val p)].
-
 Definition Reffmpoly `{T : ringType, n : nat} :=
   ofun_hrel (@mpoly_of_effmpoly T n).
-
-Lemma refines_mpoly_of_effmpoly_val (T : ringType) n (p' : effmpoly T) :
-  MProps.for_all (fun k _ => size k == n)%N p' ->
-  Reffmpoly (mpoly_of_effmpoly_val n p') p'.
-Proof.
-Admitted.
 
 Lemma eq_key_elt_eq T x y : (M.eq_key_elt (elt:=T)) x y <-> x = y.
 Proof.
@@ -571,11 +585,127 @@ Qed.
 (** *** Data refinement for effmpoly *)
 
 Context {T : ringType}.
+Instance : zero T := 0%R.
 Instance : one T := 1%R.
 Instance : add T := +%R.
 Instance : opp T := -%R.
-Instance : sub T := fun a b => (a - b)%R.
+Instance : sub T := fun x y => (x - y)%R.
 Instance mul_instR : mul T := *%R.
+Instance : eq T := fun x y => x == y.
+
+Lemma param_seq_multinom_coeff n (s : seq ('X_{1..n} * T)) s' :
+  all (fun mc => size mc.1 == n) s' ->
+  s = [seq (multinom_of_seqmultinom_val n mc.1, mc.2) |mc <- s'] ->
+  seq_hrel (fun x y => Rseqmultinom x.1 y.1 /\ x.2 = y.2) s s'.
+Proof.
+elim: s' s=> [|h' t' IH]; case=> [//|h t] //= /andP [] Hsh Hst [Hh Ht]; split.
+{ move: Hh; rewrite {1}(surjective_pairing h)=>[] [-> ->]; split=>//.
+  by apply refines_multinom_of_seqmultinom_val. }
+by apply IH.
+Qed.
+
+Lemma in_InA_iff mc l : mc \in l <-> InA (M.eq_key_elt (elt:=T)) mc l.
+Proof.
+elim l=> [|h t IH]; [by split=>// H; inversion H|].
+rewrite in_cons; split.
+{ move=>/orP []; [by move/eqP->; left; rewrite eq_key_elt_eq|].
+  by move=> Hmc; right; apply IH. }
+move=> H; inversion H as [mc' l' Hmc [Hmc' Hl']|mc' l' Hmc [Hmc' Hl']].
+{ by apply/orP; left; apply/eqP; apply eq_key_elt_eq. }
+by apply/orP; right; rewrite IH.
+Qed.
+
+Lemma uniq_map_filter (T' T'' : eqType) (s : seq T') C (E : T' -> T'') :
+  uniq [seq E i | i <- s] -> uniq [seq E i | i <- s & C i].
+Proof.
+elim s=> [//|h t IH] /= /andP [] Hh Ht.
+case (C h)=>/=; [|by apply IH]; apply/andP; split; [|by apply IH].
+apply/negP=>H; move/negP in Hh; apply Hh; apply/mapP.
+move: H; move/mapP=> [] x Hx Hx'; exists x=>//; move: Hx.
+by rewrite mem_filter=>/andP [].
+Qed.
+
+Global Instance param_list_of_mpoly_eff n :
+  param (Reffmpoly ==> seq_hrel (fun x y => Rseqmultinom x.1 y.1 /\ x.2 = y.2))
+    (@list_of_mpoly T n) list_of_mpoly_eff.
+Proof.
+rewrite paramE=> p p' rp; rewrite /list_of_mpoly_eff.
+have Hs : all (fun mc : seq nat * T => size mc.1 == n)
+            [seq mc <- M.elements p' | ~~ (mc.2 == 0)%C].
+{ apply/allP=> mc; rewrite mem_filter; move/andP=> [] _ Hmc.
+  apply (refines_size_mpoly (ref_pp':=trivial_param rp)).
+  rewrite MFacts.elements_in_iff; exists mc.2.
+  by rewrite -in_InA_iff -surjective_pairing. }
+apply param_seq_multinom_coeff=> //; rewrite /list_of_mpoly.
+suff : path.sort mnmc_le (msupp p)
+  = [seq multinom_of_seqmultinom_val n mc.1 |
+     mc <- M.elements p' & ~~ (mc.2 == 0)].
+{ set l := path.sort _ _; set l' := filter _ _.
+  move=> H; apply (eq_from_nth (x0:=(0%MM, 0))).
+  { by rewrite size_map H !size_map. }
+  move=> i; rewrite size_map=> Hi.
+  have Hi' : i < size l'; [by move: Hi; rewrite H size_map|].
+  rewrite (nth_map 0%MM) // H !(nth_map (@mnm0_seq n, 0)) //; f_equal.
+  set mc := nth _ _ _; rewrite (refines_find_mpoly rp (m':=mc.1)).
+  { rewrite (M.find_1 (e:=mc.2)) // MFacts.elements_mapsto_iff -in_InA_iff.
+    rewrite -surjective_pairing.
+    suff: mc \in l'; [by rewrite mem_filter=>/andP []|by apply mem_nth]. }
+  apply refines_multinom_of_seqmultinom_val; move: Hs; move/allP; apply.
+  rewrite -/l' /mc; apply (mem_nth (mnm0_seq, 0) Hi'). }
+apply (path.eq_sorted (leT:=mnmc_le)).
+{ apply lemc_trans. }
+{ apply lemc_antisym. }
+{ apply path.sort_sorted, lemc_total. }
+{ have Se := M.elements_3 p'.
+  pose lef := fun x y : _ * T => mnmc_lt_seq x.1 y.1.
+  pose l := [seq mc <- M.elements p' | mc.2 != 0]; rewrite -/l.
+  have : path.sorted lef l.
+  { apply path.sorted_filter; [by move=> x y z; apply M.E.lt_trans|].
+    clear l; move: Se; set l := _ p'; elim l=> [//|h t IH].
+    move=> H; inversion H as [|h' t' Ht Hht [Hh' Ht']]; move {H h' t' Hh' Ht'}.
+    rewrite /path.sorted; case_eq t=>[//|h' t'] Ht' /=; apply /andP; split.
+    { by rewrite Ht' in Hht; inversion Hht. }
+    by rewrite -/(path.sorted _ (h' :: t')) -Ht'; apply IH. }
+  case_eq l=> [//|h t Hl] /= /(path.pathP (@mnm0_seq n, 0)) H.
+  apply/(path.pathP 0%MM)=> i; rewrite size_map=> Hi.
+  rewrite /mnmc_le poset.lex_eqVlt -/(mnmc_lt _ _); apply/orP; right.
+  rewrite (nth_map (@mnm0_seq n, 0)) //; move/allP in Hs.
+  move: (H _ Hi); rewrite /lef/is_true=><-; apply paramP.
+  eapply param_apply; [eapply param_apply; [by apply param_mnmc_lt|]|].
+  { case: i Hi=> /= [|i'] Hi; [|apply ltnW in Hi].
+    { rewrite paramE; apply refines_multinom_of_seqmultinom_val, Hs.
+      by rewrite -/l Hl in_cons eqxx. }
+    rewrite (nth_map (@mnm0_seq n, 0)) //.
+    rewrite paramE; apply refines_multinom_of_seqmultinom_val, Hs.
+    by rewrite -/l Hl in_cons; apply/orP; right; rewrite mem_nth. }
+  rewrite paramE; apply refines_multinom_of_seqmultinom_val, Hs.
+  by rewrite -/l Hl in_cons; apply/orP; right; rewrite mem_nth. }
+apply uniq_perm_eq.
+{ rewrite path.sort_uniq; apply msupp_uniq. }
+{ change (fun _ => multinom_of_seqmultinom_val _ _)
+  with ((fun m => multinom_of_seqmultinom_val n m) \o (fst (B:=T))).
+  rewrite map_comp map_inj_in_uniq.
+  { apply (@uniq_map_filter _ _ (M.elements p')).
+    apply NoDupA_eq_key_uniq_fst, M.elements_3w. }
+  move=> m m' Hm Hm'; apply multinom_of_seqmultinom_val_inj.
+  { by move/allP in Hs; move: Hm=>/mapP [x Hx] ->; apply/eqP /Hs. }
+  by move/allP in Hs; move: Hm'=>/mapP [x Hx] ->; apply/eqP /Hs. }
+move=> m; rewrite path.mem_sort; apply/idP/idP.
+{ pose m' := seqmultinom_of_multinom m.
+  rewrite mcoeff_msupp=>Hin; apply/mapP; exists (m', p@_m).
+  { rewrite mem_filter /= Hin /= in_InA_iff; apply M.elements_1, M.find_2.
+    move: Hin; rewrite (@refines_find_mpoly _ _ _ _ rp _ m').
+    { by case (M.find _ _)=>//; rewrite eqxx. }
+    apply refines_seqmultinom_of_multinom. }
+  by rewrite /= /m' /multinom_of_seqmultinom_val seqmultinom_of_multinomK. }
+move/mapP=> [] mc; rewrite mem_filter=>/andP [] Hmc2; rewrite in_InA_iff.
+rewrite {1}(surjective_pairing mc) -MFacts.elements_mapsto_iff.
+rewrite MFacts.find_mapsto_iff mcoeff_msupp=> Hmc1 ->.
+rewrite (@refines_find_mpoly _ _ _ _ rp _ mc.1); [by rewrite Hmc1|].
+apply refines_multinom_of_seqmultinom_val; move/allP in Hs; apply Hs.
+rewrite mem_filter Hmc2 /= in_InA_iff (surjective_pairing mc).
+by rewrite -MFacts.elements_mapsto_iff; apply M.find_2.
+Qed.
 
 Global Instance param_mp0_eff n : param (@Reffmpoly T n) 0%R mp0_eff.
 Proof.
@@ -1107,9 +1237,6 @@ End effmpoly_theory.
 
 (** ** Part III: Parametricity *)
 
-Derive Inversion inv_InA with
-  (forall (A : Type) (eqA : A -> A -> Prop) (x : A) (s : seq A), @InA A eqA x s) Sort Prop.
-
 Derive Inversion inv_HdRel with
   (forall (A : Type) (eqA : A -> A -> Prop) (x : A) (s : seq A), @HdRel A eqA x s) Sort Prop.
 
@@ -1134,12 +1261,6 @@ Context `{!param (rAC ==> rAC ==> rAC) *%R *%C}.
 Context (C2A : C -> A).
 
 Hypothesis C2A_correct : forall c : C, rAC (C2A c) c.
-
-Lemma refines_mpoly_of_effmpoly_valA n (p' : effmpoly C) :
-  MProps.for_all (fun k _ => size k == n)%N p' ->
-  ReffmpolyA (mpoly_of_effmpoly_val n (M.map C2A p')) p'.
-Proof.
-Admitted.
 
 Lemma param_M_hrel_empty : param M_hrel M.empty M.empty.
 Proof.
