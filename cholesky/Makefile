@@ -1,31 +1,22 @@
-# all: $(patsubst %.v,%.vo,$(wildcard *.v))
-all: cholesky_infnan.vo cholesky_prog.vo ellipsoid_error_infnan.vo testsuite.vo flx64.vo coqinterval_infnan.vo multipoly.vo
-# computation.vo
+COQ_PROJ := _CoqProject
+COQ_MAKEFILE := Makefile.coq
+COQ_MAKE := +$(MAKE) -f $(COQ_MAKEFILE)
 
-doc: all html/deps.png
-	mkdir -p html
-	coqdoc --toc --toc-depth 1 --interpolate --no-lib-name -g -d html *.v
-	sed -i html/toc.html -e 's#id="main">#id="main"><img src="deps.png" />#'
+ifneq "$(COQBIN)" ""
+	COQBIN := $(COQBIN)/
+else
+	COQBIN := $(dir $(shell which coqc))
+endif
+export COQBIN
 
-html/deps.png: all coqgraph
-	mkdir -p html
-	coqdep -I . -as "" *.v | ./coqgraph - | tred | dot -Tpng > $@
-
-coqgraph: coqgraph.ml
-	ocamlc.opt -o coqgraph coqgraph.ml
-
-%.vo: %.v
-	coqc $<
-
-depend: .depend
-
-.depend: *.v
-	rm -f ./.depend
-	coqdep -I . -as "" *.v > ./.depend
-
--include .depend
+all install: $(COQ_MAKEFILE)
+	$(COQ_MAKE) $@
 
 clean:
-	rm -rf .depend *~ *.vo *.glob html coqgraph coqgraph.cmi coqgraph.cmo
+	-$(COQ_MAKE) clean
+	$(RM) $(COQ_MAKEFILE)
 
-.PHONY: all doc depend clean
+$(COQ_MAKEFILE): $(COQ_PROJ)
+	$(COQBIN)coq_makefile -f $< -o $@
+
+.PHONY: all install clean
