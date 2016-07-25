@@ -1,5 +1,4 @@
 -R . ValidSDP
-
 bigop_tactics.v
 binary64_infnan.v
 binary64.v
@@ -20,11 +19,35 @@ gamma.v
 iteri_ord.v
 misc.v
 multipoly.v
-profile.v
 real_matrix.v
 Rstruct.v
 seqmx_complements.v
 seqmx.v
 testsuite.v
 validsdp.v
-computation.v
+# profile.v
+# computation.v
+
+COQDOCFLAGS = "-interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq"
+QUOT = "$(shell printf '\x22')"
+-extra deps.dot $(VFILES) "(echo 'digraph validsdp_deps {';\
+	echo 'node [shape = ellipse, style=filled, URL=$(QUOT)ValidSDP.\N.html$(QUOT), color=black, fillcolor=cornflowerblue];';\
+	cat $(addsuffix .d,$(VFILES)) |\
+	  sed -n -e 's,./,,g;s,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' |\
+	  while read src dst; do\
+	    for d in $$dst; do\
+	      echo $$src' -> '$${d%.vo}' ;';\
+	    done;\
+	  done;\
+	echo '}') | tred > $@"
+
+-extra deps.png deps.dot "dot -Tpng $< -o $@"
+
+-extra deps.html deps.dot "dot -Tcmapx $< -o deps.html"
+
+-extra-phony doc "html deps.png deps.html" "cp deps.png html/ ;\
+	if ! grep -e 'deps[.]png' html/toc.html; then\
+	  sed -i html/toc.html \
+	  -e 's,id=.main.>,&<img src='\''deps.png'\'' border=0 usemap='\''#validsdp_deps'\'' />,' \
+	  -e '/<img src='\''deps.png'\''/r deps.html';\
+	fi"
