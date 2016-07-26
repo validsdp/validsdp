@@ -48,6 +48,10 @@ Section seqmx_op.
 
 Context {A : Type}.
 Context `{zero_of A}.
+
+Definition mx_of_seqmx_val m n (M : seqmx) : 'M[A]_(m,n) :=
+  \matrix_(i,j) nth 0%C (nth [::] M i) j.
+
 Global Instance fun_of_seqmx : fun_of_of A ord_instN hseqmx :=
   fun (_ _ : nat) M i j => nth 0%C (nth [::] M i) j.
 
@@ -91,6 +95,15 @@ Section seqmx_theory.
 
 Context {A : Type}.
 Context `{!zero_of A}.
+
+Lemma Rseqmx_mx_of_seqmx_val m n (M : @seqmx A) :
+  (size M == m) && all (fun r => size r == n) M ->
+  Rseqmx (nat_Rxx m) (nat_Rxx n) (mx_of_seqmx_val m n M) M.
+Proof.
+move/andP=>[] /eqP Hm /all_nthP Hn; split=>[//||].
+{ by move=> i Hi; apply/eqP /Hn; rewrite Hm. }
+by move=> i j; rewrite mxE.
+Qed.
 
 Global Instance Rseqmx_fun_of_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
   refines (Rseqmx rm rn ==> Rord rm ==> Rord rn ==> eq)
