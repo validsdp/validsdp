@@ -49,9 +49,6 @@ Section seqmx_op.
 Context {A : Type}.
 Context `{zero_of A}.
 
-Definition mx_of_seqmx_val m n (M : seqmx) : 'M[A]_(m,n) :=
-  \matrix_(i,j) nth 0%C (nth [::] M i) j.
-
 Global Instance fun_of_seqmx : fun_of_of A ord_instN hseqmx :=
   fun (_ _ : nat) M i j => nth 0%C (nth [::] M i) j.
 
@@ -96,13 +93,17 @@ Section seqmx_theory.
 Context {A : Type}.
 Context `{!zero_of A}.
 
-Lemma Rseqmx_mx_of_seqmx_val m n (M : @seqmx A) :
+Local Instance : spec_of A A := spec_id.
+
+Lemma Rseqmx_spec_seqmx m n (M : @seqmx A) :
   (size M == m) && all (fun r => size r == n) M ->
-  Rseqmx (nat_Rxx m) (nat_Rxx n) (mx_of_seqmx_val m n M) M.
+  Rseqmx (nat_Rxx m) (nat_Rxx n) (spec_seqmx m n M) M.
 Proof.
 move/andP=>[] /eqP Hm /all_nthP Hn; split=>[//||].
 { by move=> i Hi; apply/eqP /Hn; rewrite Hm. }
-by move=> i j; rewrite mxE.
+move=> i j; rewrite mxE.
+rewrite /map_seqmx /spec /spec_of_instance_0 /spec_id /=.
+by rewrite (nth_map [::]) ?Hm ?(ltn_ord i) // map_id.
 Qed.
 
 Global Instance Rseqmx_fun_of_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
@@ -215,5 +216,25 @@ Unshelve.
 exact ([::], [::]).
 exact (zero_of0, zero_of0).
 Qed.
+
+Section seqmx_param.
+
+Context (C : Type) (rAC : A -> C -> Type).
+Context `{!zero_of C, !spec_of C A}.
+
+Lemma RseqmxC_spec_seqmx m n (M : @seqmx C) :
+  (size M == m) && all (fun r => size r == n) M ->
+  (list_R (list_R rAC)) (map_seqmx spec M) M ->
+  RseqmxC rAC (nat_Rxx m) (nat_Rxx n) (spec_seqmx m n M) M.
+Proof.
+move=> /andP [] /eqP Hm /all_nthP Hn Hc; apply refinesP.
+eapply (refines_trans (b:=map_seqmx spec M)); [by tc| |by rewrite refinesE].
+rewrite refinesE; split; [by rewrite size_map| |].
+{ move=> i Hi; rewrite (nth_map 0%C) ?Hm // size_map.
+  by apply/eqP/Hn; rewrite Hm. }
+by move=> i j; rewrite mxE.
+Qed.
+
+End seqmx_param.
 
 End seqmx_theory.
