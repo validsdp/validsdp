@@ -489,6 +489,10 @@ rewrite /map_mpoly /mmap msuppX big_cons big_nil GRing.addr0 mmap1_id.
 by rewrite mul_mpolyC mcoeffX eqxx.
 Qed.
 
+Require Import bigop_tactics.
+
+Tactic Notation "underbigs" tactic1(tac) := underbig (BigOp.bigop _ _ _) tac.
+
 Lemma soscheck_correct p z Q : soscheck_ssr p z Q ->
   forall x, 0 <= (map_mpoly T2R p).@[x].
 Proof.
@@ -500,8 +504,8 @@ set pmp' := poly_sub_op _ _.
 set r := max_coeff _ .
 pose zpr := matrix.map_mx [eta mpolyX real_ringType] z.
 pose Q'r := matrix.map_mx (map_mpoly T2R) Q'.
-pose map_mpolyC_R :=
-  fun m : 'M_s.+1 => matrix.map_mx [eta mpolyC n (R:=real_ringType)] m.
+pose mpolyC_R := fun c : R => mpolyC n c.
+pose map_mpolyC_R := fun m : 'M_s.+1 => matrix.map_mx mpolyC_R m.
 move/andP=> [Hbase Hpcheck].
 have : exists E : 'M_s.+1,
   Mabs E <=m: matrix.const_mx (T2R r)
@@ -532,40 +536,27 @@ have : exists E : 'M_s.+1,
     rewrite -{1}(Rmult_1_r (T2R r)); apply Rmult_le_compat_l=>//. }
   apply/mpolyP => m; rewrite mcoeff_map_mpoly /= mxE.
   set M := (Q'r + _)%R.
-  pose F2 := fun i : 'I_s.+1 =>
-    \big[+%R/0%R]_(j < s.+1) (zpr j ord0 * M j i * zpr i ord0)%R.
-  rewrite (eq_bigr F2);
-    [|by move=> i _; rewrite mxE /F2 big_distrl /=;
-      apply eq_bigr=> j _; rewrite mxE].
-  rewrite {F2} pair_bigA /=.
-  have -> : M = matrix.map_mx [eta mpolyC n (R:=real_ringType)]
-                  (matrix.map_mx (T2R \o F2T) Q + E).
-  { apply/matrixP=> i j.
+  underbigs (rewrite mxE big_distrl /=; underbigs rewrite mxE).
+  rewrite pair_bigA /= (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
+  have -> : M = map_mpolyC_R (matrix.map_mx (T2R \o F2T) Q + E)%R.
+  { apply/matrixP=> i j; rewrite /map_mpolyC_R /mpolyC_R.
     by rewrite !mxE mpolyCD (map_mpolyC (GRing.raddf0 _)). }
-  move {M}; set M := matrix.map_mx _ _.
-  rewrite (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
-  set F2 := ( fun ij : 'I_s.+1 * 'I_s.+1 =>
-              ((z ij.2 ord0 + z ij.1 ord0)%MM == m)%:R *
-              (matrix.map_mx (T2R \o F2T) Q + E) ij.2 ij.1 )%R.
-  rewrite (eq_bigr F2); last first.
-  { move=> ij _.
-    rewrite (GRing.mulrC (zpr _ _)) -GRing.mulrA mxE mcoeffCM.
-    by rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX. }
-  rewrite {}/F2 (bigID (fun ij => zij ij.2 ij.1 == m)) /= GRing.addrC.
-  rewrite big1; last first.
-  { by move=> ij; move/negbTE => ->; rewrite GRing.mul0r. }
-  rewrite GRing.add0r.
-  set F2 := fun i : 'I_s.+1 * 'I_s.+1 => T2R (F2T (Q i.2 i.1)) + E i.2 i.1.
-  rewrite (eq_bigr F2); last first; [|rewrite {}/F2].
-  { by move=> ij Hij; rewrite Hij GRing.mul1r 2!mxE. }
+  move {M}; set M := map_mpolyC_R _.
+  underbigs rewrite (GRing.mulrC (zpr _ _)) -GRing.mulrA mxE mcoeffCM.
+  underbigs rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX.
+  rewrite (bigID (fun ij => zij ij.2 ij.1 == m)) /= GRing.addrC.
+  rewrite big1 ?GRing.add0r; last first.
+  { by move=> ij; move/negbTE=> ->; rewrite GRing.mul0r. }
+  underbigs rewrite Hi GRing.mul1r 2!mxE.
+  (* ici, on utilise le fait que l'hypothèse est nommée Hi,
+     pas forcément très robuste *)
   rewrite big_split /= GRing.addrC.
   pose nbm := size [seq ij <- index_enum I_sp1_2 | zij ij.2 ij.1 == m].
-  set F2 := (fun i : 'I_s.+1 * 'I_s.+1 => (T2R p@_m - T2R p'@_m) * / INR nbm)%R.
-  rewrite (eq_bigr F2); last first; [|rewrite {}/F2].
-  { move=> ij Hij; rewrite mxE /Rdiv; apply f_equal2.
-    { by move: Hij; move/eqP => <-; rewrite mcoeffB GRing.raddfB /=. }
-    by rewrite /nbij; move: Hij; move/eqP->. }
-  rewrite misc.big_sum_pred_const -/nbm GRing.mulrDl GRing.mulrDr -GRing.addrA.
+  underbigs
+    (move/eqP in Hi; rewrite mxE /nbij Hi -/nbm mcoeffB GRing.raddfB /=).
+  (* ici aussi *)
+  rewrite misc.big_sum_pred_const -/nbm -[_ / _]/(_ * / _)%R.
+  rewrite GRing.mulrDl GRing.mulrDr -GRing.addrA.
   rewrite -{1}(GRing.addr0 (T2R _)); f_equal.
   { rewrite GRing.mulrC -GRing.mulrA; case_eq (m \in msupp p).
     { move=> Hm; move: (check_base_correct Hbase Hm).
@@ -575,22 +566,13 @@ have : exists E : 'M_s.+1,
       by apply/ltP/card_gt0P; exists (j, i); rewrite /in_mem /=. }
     by rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 GRing.mul0r. }
   rewrite /p' mxE.
-  pose F2 := fun i : 'I_s.+1 =>
-    \big[+%R/0%R]_(j < s.+1) (zp j ord0 * Q' j i * zp i ord0)%R.
-  rewrite (eq_bigr F2);
-    [|by move=> i _; rewrite mxE /F2 big_distrl /=;
-      apply eq_bigr=> j _; rewrite mxE].
-  rewrite {F2} pair_bigA /= (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
-  set F2 := (fun ij : 'I_s.+1 * 'I_s.+1 =>
-              ((z ij.2 ord0 + z ij.1 ord0)%MM == m)%:R * F2T (Q ij.2 ij.1) )%R.
-  rewrite (eq_bigr F2); last first; [|rewrite {}/F2].
-  { move=> ij _.
-    rewrite (GRing.mulrC (zp _ _)) -GRing.mulrA mxE mcoeffCM.
-    by rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX. }
+  underbigs (rewrite mxE big_distrl /=; underbigs rewrite mxE).
+  rewrite pair_bigA /= (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
+  underbigs rewrite (GRing.mulrC (zp _ _)) -GRing.mulrA mxE mcoeffCM.
+  underbigs rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX.
   rewrite GRing.raddf_sum /= (bigID (fun ij => zij ij.2 ij.1 == m)) /=.
-  set F2 := fun ij : 'I_s.+1 * 'I_s.+1 => T2R (F2T (Q ij.2 ij.1)).
-  rewrite (eq_bigr F2); [rewrite {}/F2|by move=> ij ->; rewrite GRing.mul1r].
-  set F3 := bigop _ _ _; rewrite big1; last first; [|rewrite {}/F3 GRing.addr0].
+  underbigs rewrite Hi GRing.mul1r.  (* ici aussi *)
+  set b := bigop _ _ _; rewrite big1; last first; [|rewrite {}/b GRing.addr0].
   { by move=> ij; move/negbTE => ->; rewrite GRing.mul0r GRing.raddf0. }
   rewrite -big_filter /nbm /I_sp1_2; case [seq i <- _ | _].
   { by rewrite big_nil GRing.addr0 GRing.oppr0 GRing.mul0r. }
@@ -890,6 +872,6 @@ apply param_eq.
 eapply param_apply; first eapply param_apply; first eapply param_apply.
 { apply param_soscheck. }
 { by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
-admit.  (* Pierre (Rseqmx) *)
-admit.  (* Pierre (Rseqmx) *)
+admit.  (* Érik (utiliser RseqmxC_spec_seqmx) *)
+admit.  (* @Érik : Rseqmx_spec_seqmx devrait s'appliquer facilement. *)
 Admitted.
