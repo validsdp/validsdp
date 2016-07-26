@@ -21,9 +21,7 @@ Ltac under_big b tac :=
       match goal with
       | [|- ?G b] =>
         refine (@eq_rect_r _ _ G _ b (@eq_bigr R idx op I r P F1 _ _));
-        [|let i := fresh "i" in
-          let Hi := fresh "Hi" in
-          move=> i Hi; tac; move: i Hi;
+        [|tac;
           try reflexivity (* instead of "; first reflexivity" *) ];
         cbv beta
       end
@@ -50,7 +48,7 @@ end.
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "underbig" open_constr(pat) tactic1(tac) :=
+Tactic Notation "underbig" open_constr(pat) tactic(tac) :=
   tryif match goal with [|- context [pat]] => is_var pat end
   then under_big pat tac
   else find_pat pat ltac:(fun b => under_big b tac).
@@ -76,9 +74,7 @@ Ltac under_big_in b H tac :=
         suff new : e;
         [ try clear H ; try rename new into H
         | refine (@eq_rect _ _ G H _ (@eq_bigr R idx op I r P F1 _ _));
-          let i := fresh "i" in
-          let Hi := fresh "Hi" in
-          move=> i Hi; tac; move: i Hi;
+          tac;
           try reflexivity (* instead of "; first reflexivity" *)
         ]; try unfold e in * |- *; try clear e ; cbv beta
       end
@@ -96,7 +92,7 @@ end.
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "underbig" open_constr(pat) "in" hyp(H) tactic1(tac) :=
+Tactic Notation "underbig" open_constr(pat) "in" hyp(H) tactic(tac) :=
   tryif match type of H with context [pat] => is_var pat end
   then under_big_in pat H tac
   else find_pat_in pat H ltac:(fun b => under_big_in b H tac).
@@ -110,13 +106,13 @@ Lemma test1 (n : nat) (R : ringType) (f1 f2 g : nat -> R) :
   \big[+%R/0%R]_(i < n) ((f1 i + f2 i) * g i) +
   \big[+%R/0%R]_(i < n) (f1 i * g i) + \big[+%R/0%R]_(i < n) (f2 i * g i))%R.
 Proof.
-set b1 := {2}(\big[_/_]_(i < n) _).
-Fail underbig b1 rewrite GRing.mulrDr.
+set b1 := {2}(bigop _ _ _).
+Fail underbig b1 move=> *; rewrite GRing.mulrDr.
 
-underbig b1 rewrite GRing.mulrDl. (* only b1 is rewritten *)
+underbig b1 move=> *; rewrite GRing.mulrDl. (* only b1 is rewritten *)
 
 Undo 1. rewrite /b1.
-underbig b1 rewrite GRing.mulrDl. (* 3 occurrences are rewritten *)
+underbig b1 move=> *; rewrite GRing.mulrDl. (* 3 occurrences are rewritten *)
 
 rewrite big_split /=.
 by rewrite GRing.addrA.
@@ -128,7 +124,8 @@ Lemma test2 (n : nat) (R : fieldType) (f : nat -> R) :
   (\big[+%R/0%R]_(i < n) (f i / f i) = n%:R)%R.
 Proof.
 move=> Hneq0.
-underbig (\big[_/_]_i _) rewrite GRing.divff //.
+underbig (bigop _ _ _) move=> *; rewrite GRing.divff.
+2: done.
 
 rewrite big_const cardT /= size_enum_ord /GRing.natmul.
 case: {Hneq0} n =>// n.
@@ -142,13 +139,13 @@ Lemma test3 (n : nat) (R : fieldType) (f : nat -> R) :
   \big[+%R/0%R]_(i < n) (f i / f i) = n%:R + n%:R)%R -> True.
 Proof.
 move=> Hneq0 H.
-set b1 := {2}(\big[_/_]_(i < n) _) in H.
-underbig b1 in H rewrite GRing.divff. (* only b1 is rewritten *)
+set b1 := {2}(bigop _ _ _) in H.
+underbig b1 in H move=> i Hi; rewrite GRing.divff. (* only b1 is rewritten *)
 done.
 
 Undo 2.
 move: H.
-underbig b1 rewrite GRing.divff.
+underbig (bigop _ _ _) move=> *; rewrite GRing.divff.
 done.
 
 move=> *; exact: Hneq0.
