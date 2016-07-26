@@ -1,4 +1,4 @@
-Require Import FMaps FMapAVL.
+Require Import ZArith FMaps FMapAVL.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import choice finfun tuple fintype ssralg bigop.
 (* tests with multipolys from
@@ -16,6 +16,11 @@ Unset Printing Implicit Defensive.
 Import Refinements.Op.
 
 Arguments refines A%type B%type R%rel _ _.  (* TODO: il y a un preoblème de scope sur refine *)
+
+Definition iffT (A B : Type) : Type := ((A -> B) * (B -> A))%type.
+Infix "<=>" := iffT : type_scope.
+
+Hint Resolve list_R_nil_R.
 
 (** Tip to leverage a Boolean condition *)
 Definition sumb (b : bool) : {b = true} + {b = false} :=
@@ -38,7 +43,7 @@ Definition seqmultinom := seq nat.
 
 Definition mnm0_seq {n} := nseq n 0%N.
 
-Definition mnmd_seq {n} (i d : nat) :=
+Definition mnmd_seq {n} (i : nat) (d : nat) :=
   nseq i 0%N ++ [:: d] ++ nseq (n - i - 1) 0%N.
 
 (** Multiplication of multinomials *)
@@ -185,7 +190,8 @@ Definition list_of_mpoly {T : ringType} {n} (p : {mpoly T[n]}) :
 Definition effmpoly_of_list : forall T, seq (seqmultinom * T) -> effmpoly T :=
   MProps.of_list. *)
 
-Context {T : Type} `{!zero T, !one T, !add T, !opp T, !sub T, !mul T, !eq T}.
+Context {T : Type} `{!zero_of T, !one_of T}.
+Context `{!add_of T, !opp_of T, !sub_of T, !mul_of T, !eq_of T}.
 Context {n : nat}.
 
 Definition list_of_mpoly_eff (p : effmpoly T) : seq (seqmultinom * T) :=
@@ -276,11 +282,11 @@ Definition Rseqmultinom {n} := ofun_hrel (@multinom_of_seqmultinom n).
 
 Lemma refines_size
   (n : nat) (m : 'X_{1..n}) (m' : seqmultinom)
-  `{ref_mm' : !Rseqmultinom m m'} :
+  `{ref_mm' : !refines Rseqmultinom m m'} :
   size m' = n.
 Proof.
 move: ref_mm'.
-rewrite /Rseqmultinom /multinom_of_seqmultinom /ofun_hrel.
+rewrite refinesE /Rseqmultinom /multinom_of_seqmultinom /ofun_hrel.
 case: sumb =>// prf _.
 exact/eqP.
 Qed.
@@ -288,10 +294,10 @@ Qed.
 Lemma refines_nth_def
   (n : nat) (m : 'X_{1..n}) (m' : seqmultinom)
   (i : 'I_n) x0 :
-  Rseqmultinom m m' -> nth x0 m' i = m i.
+  refines Rseqmultinom m m' -> nth x0 m' i = m i.
 Proof.
 move=> rMN; move: (rMN).
-rewrite /Rseqmultinom /multinom_of_seqmultinom /ofun_hrel.
+rewrite refinesE /Rseqmultinom /multinom_of_seqmultinom /ofun_hrel.
 case: sumb =>// prf [] <-.
 by rewrite multinomE /= (tnth_nth x0).
 Qed.
@@ -299,17 +305,17 @@ Qed.
 Lemma refines_nth
   (n : nat) (m : 'X_{1..n}) (m' : seqmultinom)
   (i : 'I_n) :
-  Rseqmultinom m m' -> nth 0%N m' i = m i.
+  refines Rseqmultinom m m' -> nth 0%N m' i = m i.
 Proof. exact: refines_nth_def. Qed.
 
 Lemma refines_seqmultinomP
   (n : nat) (m : 'X_{1..n}) (m' : seqmultinom) :
   size m' = n ->
   (forall i : 'I_n, nth 0%N m' i = m i) ->
-  Rseqmultinom m m'.
+  refines Rseqmultinom m m'.
 Proof.
 move=> eq_sz eq_nth.
-rewrite /Rseqmultinom /multinom_of_seqmultinom /ofun_hrel.
+rewrite refinesE /Rseqmultinom /multinom_of_seqmultinom /ofun_hrel.
 case: sumb => [prf|].
   congr Some; apply: val_inj; simpl.
   by apply: eq_from_tnth => i; rewrite (tnth_nth 0%N) /= eq_nth.
@@ -317,78 +323,76 @@ by rewrite eq_sz eqxx.
 Qed.
 
 Lemma refines_seqmultinom_of_multinom (n : nat) (m : 'X_{1..n}) :
-  Rseqmultinom m (seqmultinom_of_multinom m).
-Proof. by rewrite /Rseqmultinom /ofun_hrel seqmultinom_of_multinomK. Qed.
+  refines Rseqmultinom m (seqmultinom_of_multinom m).
+Proof.
+by rewrite refinesE /Rseqmultinom /ofun_hrel seqmultinom_of_multinomK.
+Qed.
 
 Lemma refines_multinom_of_seqmultinom_val (n : nat) (m : seqmultinom) :
-  size m == n -> Rseqmultinom (multinom_of_seqmultinom_val n m) m.
+  size m == n ->
+  refines Rseqmultinom (multinom_of_seqmultinom_val n m) m.
 Proof.
-move=> Hsz; rewrite /Rseqmultinom /multinom_of_seqmultinom_val /ofun_hrel.
+move=> Hsz.
+rewrite refinesE /Rseqmultinom /multinom_of_seqmultinom_val /ofun_hrel.
 case_eq (multinom_of_seqmultinom n m) => //.
 by rewrite /multinom_of_seqmultinom; case sumb => //; rewrite Hsz.
 Qed.
 
-Lemma param_mnm0 n : refines Rseqmultinom (@mnm0 n) (@mnm0_seq n).
+Lemma refines_mnm0 n : refines Rseqmultinom (@mnm0 n) (@mnm0_seq n).
 Proof.
-rewrite refinesE; apply refines_seqmultinomP.
+apply refines_seqmultinomP.
   by rewrite size_nseq.
 move=> i; rewrite nth_nseq if_same multinomE (tnth_nth 0%N) nth_map //=.
 by rewrite size_enum_ord.
 Qed.
 
-Lemma param_mnmd {n1 n2} {rn : nat_R n1 n2} :
+Lemma refines_mnmd {n1 n2} {rn : nat_R n1 n2} :
   refines (Rord rn ==> eq ==> Rseqmultinom) (@mnmd n1) (@mnmd_seq n2).
 Proof.
-case: n => [|n].
-  apply param_abstr => c c' param_c.
-  apply param_abstr => d d' param_d.
-  rewrite -(param_eq param_d).
-  by case: (c).
-apply param_abstr => c c' param_c.
-apply param_abstr => d d' param_d.
-rewrite -(param_eq param_d).
-apply/trivial_param/refines_seqmultinomP.
+(* First, ensure that n1 > 0, else 'I_n1 would be empty *)
+case: rn => {n1 n2} [|n1 n2 rn]; first by rewrite refinesE => -[].
+eapply refines_abstr => i i' ref_i.
+eapply refines_abstr => j j' ref_j.
+rewrite -(refines_eq ref_j).
+rewrite refinesE in ref_i.
+have->: i' = i :> nat by apply: refinesP; tc.
+apply: refines_seqmultinomP.
   rewrite /mnmd_seq !(size_cat,size_nseq) /= -subnDA addnA addn1 subnKC //.
-  move: param_c; rewrite paramE => <-; apply ltn_ord.
-move=> i.
+    by congr S; symmetry; apply: nat_R_eq.
+  by rewrite -(nat_R_eq rn).
+move=> k.
 rewrite /mnmd_seq /mnmd multinomE (tnth_nth 0%N) /=.
 rewrite !(nth_cat,nth_nseq).
 rewrite (nth_map ord0); last by rewrite size_enum_ord.
-rewrite paramE /Rord in param_c; rewrite -{}param_c.
 case: ifP.
-  rewrite if_same size_nseq.
-  rewrite nth_enum_ord //.
-  move=> Hic.
-  rewrite ifF //.
+  rewrite if_same size_nseq nth_enum_ord //.
+  move=> Hic; rewrite ifF //.
   apply/negP; move/eqP => Keq.
-  by rewrite Keq ltnn in Hic.
+  by rewrite -Keq ltnn in Hic.
 move/negbT; rewrite size_nseq -ltnNge ltnS => Hi.
 rewrite nth_enum_ord //.
 case: ifP; first by move/eqP->; rewrite subnn.
 move/negbT/eqP => Hneq.
-case: (ltnP c i) => Hci.
-rewrite -(@prednK (i - c)) /=.
-  by rewrite nth_nseq if_same.
-by rewrite subn_gt0.
-exfalso; apply/Hneq/anti_leq.
-by rewrite Hi.
+case: (ltnP i k) => Hci.
+  by rewrite -(@prednK (k - i)) ?subn_gt0 //= nth_nseq if_same.
+by exfalso; apply/Hneq/anti_leq; rewrite Hi.
 Qed.
 
-Global Instance param_mnm_add n :
-  param (Rseqmultinom ==> Rseqmultinom ==> Rseqmultinom)
+Global Instance refines_mnm_add n :
+  refines (Rseqmultinom ==> Rseqmultinom ==> Rseqmultinom)
   (@mnm_add n) mnm_add_seq.
 Proof.
-apply param_abstr => mnm1 mnm1' param_mnm1.
-apply param_abstr => mnm2 mnm2' param_mnm2.
-apply/trivial_param/refines_seqmultinomP.
+apply refines_abstr => mnm1 mnm1' refines_mnm1.
+apply refines_abstr => mnm2 mnm2' refines_mnm2.
+apply/refines_seqmultinomP.
   by rewrite /mnm_add_seq size_map2 !refines_size minnn.
 move=> i; rewrite /mnm_add_seq (nth_map2 _ (da := O) (db := O)) //; last first.
   by rewrite !refines_size.
 by rewrite mnmDE !refines_nth.
 Qed.
 
-Global Instance param_mnmc_lt n :
-  param (Rseqmultinom ==> Rseqmultinom ==> Logic.eq)
+Global Instance refines_mnmc_lt n :
+  refines (Rseqmultinom ==> Rseqmultinom ==> Logic.eq)
     (@mnmc_lt n) (mnmc_lt_seq).
 Proof.
 Admitted.  (* TODO: after migration *)
@@ -471,34 +475,37 @@ by move=> H; injection H.
 Qed.
 
 Lemma Rseqmultinom_eq n (x : 'X_{1..n}) x' y y' :
-  Rseqmultinom x x' -> Rseqmultinom y y' -> (x == y) = (x' == y').
+  refines Rseqmultinom x x' ->
+  refines Rseqmultinom y y' ->
+  (x == y) = (x' == y').
 Proof.
 move=> Hx Hy; apply/idP/idP => H.
-{ have Sx' := @refines_size _ _ _ (trivial_param Hx).
-  have Sy' := @refines_size _ _ _ (trivial_param Hy).
+{ have Sx' := @refines_size _ _ _ Hx.
+  have Sy' := @refines_size _ _ _ Hy.
   apply/eqP.
-  move: H Hy Hx; rewrite /Rseqmultinom /ofun_hrel; move/eqP -> => <-.
+  move: H Hy Hx; rewrite refinesE /Rseqmultinom /ofun_hrel; move/eqP=>-><-.
   by apply multinom_of_seqmultinom_inj. }
-apply/eqP; move: H Hx Hy; rewrite /Rseqmultinom /ofun_hrel; move/eqP -> => ->.
+apply/eqP; move: H Hx Hy.
+rewrite refinesE /Rseqmultinom /ofun_hrel; move/eqP=>->->.
 by move=> H; inversion H.
 Qed.
 
 Lemma refines_size_mpoly (n : nat) T (p : mpoly n T) (p' : effmpoly T)
-  `{ref_pp' : !param Reffmpoly p p'} :
+  `{ref_pp' : !refines Reffmpoly p p'} :
   forall m, M.In m p' -> size m == n.
 Proof.
 move: ref_pp'.
-rewrite paramE /Reffmpoly /mpoly_of_effmpoly /ofun_hrel.
+rewrite refinesE /Reffmpoly /mpoly_of_effmpoly /ofun_hrel.
 set t := MProps.for_all _ _; case_eq t => //.
 rewrite /t (MProps.for_all_iff _); [|by move=> m _ /mnmc_eq_seqP /eqP <-].
 by move=> H _ m [e Hme]; apply (H m e).
 Qed.
 
 Lemma refines_find_mpoly (n : nat) T (p : mpoly n T) (p' : effmpoly T) :
-  Reffmpoly p p' ->
-  forall m m', Rseqmultinom m m' -> p@_m = odflt 0 (M.find m' p').
+  refines Reffmpoly p p' ->
+  forall m m', refines Rseqmultinom m m' -> p@_m = odflt 0 (M.find m' p').
 Proof.
-rewrite /Reffmpoly /mpoly_of_effmpoly /ofun_hrel.
+rewrite !refinesE /Reffmpoly /mpoly_of_effmpoly /ofun_hrel.
 set t := MProps.for_all _ _; case_eq t => //.
 rewrite /t (MProps.for_all_iff _); [|by move=> m _ /mnmc_eq_seqP /eqP <-].
 move=> H_sz H; injection H; move=> {H} H m m' Hm'.
@@ -539,18 +546,19 @@ Qed.
 
 Lemma refines_effmpolyP (n : nat) T (p : mpoly n T) (p' : effmpoly T) :
   (forall m, M.In m p' -> size m == n)%N ->
-  (forall m m', Rseqmultinom m m' -> p@_m = odflt 0 (M.find m' p')) ->
-  Reffmpoly p p'.
+  (forall m m', refines Rseqmultinom m m' -> p@_m = odflt 0 (M.find m' p')) ->
+  refines Reffmpoly p p'.
 Proof.
 move=> eq_sz eq_monom.
 assert (Hsz : MProps.for_all (fun (k : M.key) (_ : T) => size k == n) p').
 { rewrite /is_true (MProps.for_all_iff _) => k e Hke.
   { by apply eq_sz; exists e. }
   by move=> _ _ _; move: Hke; move/mnmc_eq_seqP/eqP ->. }
-rewrite /Reffmpoly /mpoly_of_effmpoly /ofun_hrel ifT //; f_equal.
+rewrite refinesE /Reffmpoly /mpoly_of_effmpoly /ofun_hrel ifT //; f_equal.
 apply mpolyP => m.
 pose m' := seqmultinom_of_multinom m.
-have Hm' : Rseqmultinom m m' by apply seqmultinom_of_multinomK.
+have Hm' : refines Rseqmultinom m m'.
+  by rewrite refinesE; apply seqmultinom_of_multinomK.
 rewrite (eq_monom _ _ Hm') mcoeff_MPoly coeff_Freeg.
 case_eq (M.find m' p') => [c|] Hc.
 { change c with ((c, m).1); change m with ((c, m).2).
@@ -585,20 +593,25 @@ Qed.
 (** *** Data refinement for effmpoly *)
 
 Context {T : ringType}.
-Instance : zero T := 0%R.
-Instance : one T := 1%R.
-Instance : add T := +%R.
-Instance : opp T := -%R.
-Instance : sub T := fun x y => (x - y)%R.
-Instance mul_instR : mul T := *%R.
-Instance : eq T := fun x y => x == y.
+Instance : zero_of T := 0%R.
+Instance : one_of T := 1%R.
+Instance : add_of T := +%R.
+Instance : opp_of T := -%R.
+Instance : sub_of T := fun x y => (x - y)%R.
+Instance mul_instR : mul_of T := *%R.
+Instance : eq_of T := fun x y => x == y.
 
-Lemma param_seq_multinom_coeff n (s : seq ('X_{1..n} * T)) s' :
+Lemma refines_seq_multinom_coeff n (s : seq ('X_{1..n} * T)) s' :
   all (fun mc => size mc.1 == n) s' ->
   s = [seq (multinom_of_seqmultinom_val n mc.1, mc.2) |mc <- s'] ->
-  seq_hrel (fun x y => Rseqmultinom x.1 y.1 /\ x.2 = y.2) s s'.
+  refines (list_R (fun x y => refines Rseqmultinom x.1 y.1 * (x.2 = y.2))%type) s s'.
 Proof.
-elim: s' s=> [|h' t' IH]; case=> [//|h t] //= /andP [] Hsh Hst [Hh Ht]; split.
+rewrite refinesE.
+elim: s' s=> [|h' t' IH]; case=> [//|h t] //=.
+(* by move=> *; apply: list_R_nil_R.
+   (* OK thanks to [Hint Resolve list_R_nil_R.] *)
+*)
+case/andP => Hsh Hst [Hh Ht]; constructor.
 { move: Hh; rewrite {1}(surjective_pairing h)=>[] [-> ->]; split=>//.
   by apply refines_multinom_of_seqmultinom_val. }
 by apply IH.
@@ -625,18 +638,20 @@ move: H; move/mapP=> [] x Hx Hx'; exists x=>//; move: Hx.
 by rewrite mem_filter=>/andP [].
 Qed.
 
-Global Instance param_list_of_mpoly_eff n :
-  param (Reffmpoly ==> seq_hrel (fun x y => Rseqmultinom x.1 y.1 /\ x.2 = y.2))
+Global Instance refines_list_of_mpoly_eff n :
+  refines (Reffmpoly ==>
+    list_R (fun x y => refines Rseqmultinom x.1 y.1 * (x.2 = y.2))%type)
     (@list_of_mpoly T n) list_of_mpoly_eff.
 Proof.
-rewrite paramE=> p p' rp; rewrite /list_of_mpoly_eff.
+apply refines_abstr => p p' rp.
+rewrite /list_of_mpoly_eff.
 have Hs : all (fun mc : seq nat * T => size mc.1 == n)
             [seq mc <- M.elements p' | ~~ (mc.2 == 0)%C].
 { apply/allP=> mc; rewrite mem_filter; move/andP=> [] _ Hmc.
-  apply (refines_size_mpoly (ref_pp':=trivial_param rp)).
+  apply (refines_size_mpoly (ref_pp' := rp)).
   rewrite MFacts.elements_in_iff; exists mc.2.
   by rewrite -in_InA_iff -surjective_pairing. }
-apply param_seq_multinom_coeff=> //; rewrite /list_of_mpoly.
+apply refines_seq_multinom_coeff=> //; rewrite /list_of_mpoly.
 suff : path.sort mnmc_le (msupp p)
   = [seq multinom_of_seqmultinom_val n mc.1 |
      mc <- M.elements p' & ~~ (mc.2 == 0)].
@@ -646,7 +661,8 @@ suff : path.sort mnmc_le (msupp p)
   move=> i; rewrite size_map=> Hi.
   have Hi' : i < size l'; [by move: Hi; rewrite H size_map|].
   rewrite (nth_map 0%MM) // H !(nth_map (@mnm0_seq n, 0)) //; f_equal.
-  set mc := nth _ _ _; rewrite (refines_find_mpoly rp (m':=mc.1)).
+  set mc := nth _ _ _.
+  erewrite (refines_find_mpoly (p' := p') (m':=mc.1) rp). (* erewrite?! *)
   { rewrite (M.find_1 (e:=mc.2)) // MFacts.elements_mapsto_iff -in_InA_iff.
     rewrite -surjective_pairing.
     suff: mc \in l'; [by rewrite mem_filter=>/andP []|by apply mem_nth]. }
@@ -670,15 +686,15 @@ apply (path.eq_sorted (leT:=mnmc_le)).
   apply/(path.pathP 0%MM)=> i; rewrite size_map=> Hi.
   rewrite /mnmc_le poset.lex_eqVlt -/(mnmc_lt _ _); apply/orP; right.
   rewrite (nth_map (@mnm0_seq n, 0)) //; move/allP in Hs.
-  move: (H _ Hi); rewrite /lef/is_true=><-; apply paramP.
-  eapply param_apply; [eapply param_apply; [by apply param_mnmc_lt|]|].
+  move: (H _ Hi); rewrite /lef/is_true=><-; apply refinesP.
+  eapply refines_apply; [eapply refines_apply; [by apply refines_mnmc_lt|]|].
   { case: i Hi=> /= [|i'] Hi; [|apply ltnW in Hi].
-    { rewrite paramE; apply refines_multinom_of_seqmultinom_val, Hs.
+    { apply refines_multinom_of_seqmultinom_val, Hs.
       by rewrite -/l Hl in_cons eqxx. }
     rewrite (nth_map (@mnm0_seq n, 0)) //.
-    rewrite paramE; apply refines_multinom_of_seqmultinom_val, Hs.
+    apply refines_multinom_of_seqmultinom_val, Hs.
     by rewrite -/l Hl in_cons; apply/orP; right; rewrite mem_nth. }
-  rewrite paramE; apply refines_multinom_of_seqmultinom_val, Hs.
+  apply refines_multinom_of_seqmultinom_val, Hs.
   by rewrite -/l Hl in_cons; apply/orP; right; rewrite mem_nth. }
 apply uniq_perm_eq.
 { rewrite path.sort_uniq; apply msupp_uniq. }
@@ -694,76 +710,80 @@ move=> m; rewrite path.mem_sort; apply/idP/idP.
 { pose m' := seqmultinom_of_multinom m.
   rewrite mcoeff_msupp=>Hin; apply/mapP; exists (m', p@_m).
   { rewrite mem_filter /= Hin /= in_InA_iff; apply M.elements_1, M.find_2.
-    move: Hin; rewrite (@refines_find_mpoly _ _ _ _ rp _ m').
+    move: Hin; erewrite (@refines_find_mpoly _ _ _ _ rp _ m').
     { by case (M.find _ _)=>//; rewrite eqxx. }
     apply refines_seqmultinom_of_multinom. }
   by rewrite /= /m' /multinom_of_seqmultinom_val seqmultinom_of_multinomK. }
 move/mapP=> [] mc; rewrite mem_filter=>/andP [] Hmc2; rewrite in_InA_iff.
 rewrite {1}(surjective_pairing mc) -MFacts.elements_mapsto_iff.
 rewrite MFacts.find_mapsto_iff mcoeff_msupp=> Hmc1 ->.
-rewrite (@refines_find_mpoly _ _ _ _ rp _ mc.1); [by rewrite Hmc1|].
+erewrite (@refines_find_mpoly _ _ _ _ rp _ mc.1); [by rewrite Hmc1|].
 apply refines_multinom_of_seqmultinom_val; move/allP in Hs; apply Hs.
 rewrite mem_filter Hmc2 /= in_InA_iff (surjective_pairing mc).
 by rewrite -MFacts.elements_mapsto_iff; apply M.find_2.
 Qed.
 
-Global Instance param_mp0_eff n : param (@Reffmpoly T n) 0%R mp0_eff.
+Global Instance refines_mp0_eff n : refines (@Reffmpoly T n) 0%R mp0_eff.
 Proof.
-rewrite paramE.
 apply: refines_effmpolyP.
 - by move=> m /MProps.F.empty_in_iff Hm.
-- by move=> m m' param_m; rewrite MFacts.empty_o mcoeff0.
+- by move=> m m' refines_m; rewrite MFacts.empty_o mcoeff0.
 Qed.
 
-Global Instance param_mp1_eff n : param (@Reffmpoly T n) 1%R (mp1_eff (n := n)).
+Global Instance refines_mp1_eff n : refines (@Reffmpoly T n) 1%R (mp1_eff (n := n)).
 Proof.
-apply trivial_param; apply refines_effmpolyP.
+apply refines_effmpolyP.
 - rewrite /mp1_eff => k /MProps.singleton_in_iff/mnmc_eq_seqP/eqP ->.
   by rewrite size_nseq.
 - move=> m m' Hm; rewrite mcoeff1 MProps.F.add_o.
-  have H0 := param_mnm0 n; rewrite paramE in H0.
+  have H0 := refines_mnm0 n.
   rewrite (Rseqmultinom_eq Hm H0).
   case: M.E.eq_dec => [EQ|nEQ].
   + by move/mnmc_eq_seqP/eqP: EQ <-; rewrite eqxx.
   + by rewrite eq_sym; move/mnmc_eq_seqP/negbTE: nEQ ->.
 Qed.
 
-Global Instance param_mpvar_eff n :
-  param (Logic.eq ==> Logic.eq ==> Rord ==> Reffmpoly (T := T) (n := n))
-  mpvar (mpvar_eff (n := n)).
+Global Instance refines_mpvar_eff {n1 n2} {rn : nat_R n1 n2} :
+  refines (Logic.eq ==> Logic.eq ==> Rord rn ==> Reffmpoly (T := T) (n := n1))
+  mpvar (mpvar_eff (n := n2)).
 Proof.
-apply param_abstr => c c' param_c; apply param_abstr => d d' param_d.
-rewrite !paramE in param_c, param_d; rewrite -{}param_c -{}param_d {c' d'}.
-apply param_abstr => i i' param_i.
-rewrite paramE in param_i; rewrite -{}param_i {i'}.
-assert (Hmnmd : Rseqmultinom (mnmd i d) (@mnmd_seq n i d)).
-{ apply paramP; eapply param_apply; [|by apply param_eq_refl].
-  by eapply param_apply; [apply param_mnmd|apply trivial_param]. }
-rewrite paramE; apply refines_effmpolyP.
+case: rn => {n1 n2} [|n1 n2 rn].
+  by rewrite refinesE; move=> p p' Hp q q' Hq [] i' Hi.
+apply refines_abstr => c c' refines_c; apply refines_abstr => d d' refines_d.
+rewrite !refinesE in refines_c, refines_d; rewrite -{}refines_c -{}refines_d {c' d'}.
+apply refines_abstr => i i' ref_i.
+rewrite refinesE in ref_i.
+have->: i' = i :> nat by apply refinesP; tc.
+assert (Hmnmd : refines Rseqmultinom (mnmd i d) (@mnmd_seq n2.+1 i d)).
+{ eapply refines_apply; [eapply refines_apply|].
+  Fail eapply refines_mnmd.
+  admit. admit. admit. }
+apply refines_effmpolyP.
 { move=> m [e Hme]; move: Hme; rewrite /mpvar_eff.
   move/(@MProps.singleton_mapsto T)=> [-> _].
-  by apply/eqP; apply (@refines_size _ (mnmd i d)); rewrite paramE. }
+  by apply/eqP; apply (@refines_size _ (mnmd i d)). }
 move=> m m' Hm; rewrite mcoeffZ mcoeffX.
 rewrite (Rseqmultinom_eq Hmnmd Hm) eq_sym.
-case_eq (m' == (@mnmd_seq n i d)).
+case_eq (m' == (@mnmd_seq n2.+1 i d)).
 { move/eqP => Hm'; rewrite Hm'.
-  by rewrite MProps.F.add_eq_o; [rewrite GRing.mulr1|apply M.E.eq_refl]. }
+  rewrite MProps.F.add_eq_o; last exact: M.E.eq_refl.
+  by rewrite GRing.mulr1. }
 move=> Hm'; rewrite MProps.F.add_neq_o /=; [by rewrite GRing.mulr0|].
 by apply/mnmc_eq_seqP; rewrite eq_sym Hm'.
-Qed.
+Admitted.
 
 Arguments mpolyC {n R} c.
-Global Instance param_mpolyC_eff n :
-  param (Logic.eq ==> Reffmpoly (T := T) (n := n))
+Global Instance refines_mpolyC_eff n :
+  refines (Logic.eq ==> Reffmpoly (T := T) (n := n))
   mpolyC (mpolyC_eff (n := n)).
 Proof.
-apply param_abstr => c c' param_c.
-rewrite !paramE in param_c; rewrite -{}param_c {c'}.
-rewrite paramE; apply refines_effmpolyP.
+apply refines_abstr => c c' refines_c.
+rewrite !refinesE in refines_c; rewrite -{}refines_c {c'}.
+apply refines_effmpolyP.
 { move=> m [e Hme]; move: Hme; rewrite /mpvar_eff.
   by move/(@MProps.singleton_mapsto T)=> [-> _]; rewrite size_nseq eqxx. }
 move=> m m' Hm; rewrite mcoeffC.
-have Hm0 := @param_mnm0 n; rewrite paramE in Hm0.
+have Hm0 := @refines_mnm0 n.
 rewrite (Rseqmultinom_eq Hm Hm0).
 case_eq (m' == @mnm0_seq n).
 { move/eqP => Hm'; rewrite Hm'.
@@ -773,17 +793,17 @@ by apply/mnmc_eq_seqP; move: Hm'; rewrite eq_sym =>->.
 Qed.
 
 Arguments mpolyX {n R} m.
-Global Instance param_mpolyX_eff n :
-  param (Rseqmultinom ==> Reffmpoly (T := T) (n := n))
+Global Instance refines_mpolyX_eff n :
+  refines (Rseqmultinom ==> Reffmpoly (T := T) (n := n))
   mpolyX mpolyX_eff.
 Proof.
-apply param_abstr => m m' param_m; rewrite paramE in param_m.
-rewrite paramE; apply refines_effmpolyP.
+apply refines_abstr => m m' refines_m.
+apply refines_effmpolyP.
 { move=> m'' [e Hme]; move: Hme; rewrite /mpolyX_eff.
   move/(@MProps.singleton_mapsto T)=> [-> _].
-  by apply/eqP; apply (@refines_size _ m); rewrite paramE. }
+  by apply/eqP; apply (@refines_size _ m). }
 move=> m'' m''' Hm; rewrite mcoeffX.
-rewrite (Rseqmultinom_eq param_m Hm) eq_sym.
+rewrite (Rseqmultinom_eq refines_m Hm) eq_sym.
 case_eq (m''' == m').
 { move/eqP => Hm'; rewrite Hm'.
   by rewrite MProps.F.add_eq_o /=; [|by apply M.E.eq_refl]. }
@@ -792,8 +812,8 @@ by apply/mnmc_eq_seqP; rewrite eq_sym Hm'.
 Qed.
 
 Lemma MapsTo_mcoeff {n} m m' p p' a :
-  (Reffmpoly (T := T) (n := n)) p p' ->
-  Rseqmultinom m m' ->
+  refines (Reffmpoly (T := T) (n := n)) p p' ->
+  refines Rseqmultinom m m' ->
   M.MapsTo m' a p' -> p@_m = a.
 (* the converse may be wrong if [a = 0] *)
 Proof.
@@ -803,8 +823,8 @@ by rewrite (refines_find_mpoly Hp Hm) /odflt /oapp HMT.
 Qed.
 
 Lemma not_In_mcoeff {n} m m' p p' :
-  (Reffmpoly (T := T) (n := n)) p p' ->
-  Rseqmultinom m m' ->
+  refines (Reffmpoly (T := T) (n := n)) p p' ->
+  refines Rseqmultinom m m' ->
   ~ M.In m' p' -> p@_m = 0.
 Proof.
 move=> Hp Hm Hin.
@@ -813,36 +833,35 @@ by move/MFacts.not_find_in_iff: Hin ->.
 Qed.
 
 Arguments mpoly_scale {n R} c p.
-Global Instance param_mpoly_scale_eff n :
-  param (Logic.eq ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
+Global Instance refines_mpoly_scale_eff n :
+  refines (Logic.eq ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
   mpoly_scale mpoly_scale_eff.
 Proof.
-apply param_abstr => c c' param_c.
-apply param_abstr => p p' param_p.
-rewrite /mpoly_scale_eff paramE; apply: refines_effmpolyP.
-{ move=> m /M.map_2 Hm; exact: refines_size_mpoly param_p _ _. }
-move=> m m' param_m; rewrite mcoeffZ.
+apply refines_abstr => c c' refines_c.
+apply refines_abstr => p p' refines_p.
+rewrite /mpoly_scale_eff; apply: refines_effmpolyP.
+{ move=> m /M.map_2 Hm; exact: refines_size_mpoly refines_p _ _. }
+move=> m m' refines_m; rewrite mcoeffZ.
 case Es: (M.find _ _) => [s|] /=.
 { have /MFacts.find_mapsto_iff/MFacts.map_mapsto_iff [a [-> Ha2 /=]] := Es.
-  rewrite (param_eq param_c).
+  rewrite (refines_eq refines_c).
   congr *%R.
-  rewrite paramE in param_p; apply: MapsTo_mcoeff param_p param_m Ha2. }
+  apply: MapsTo_mcoeff refines_p refines_m Ha2. }
 move/MFacts.not_find_in_iff in Es.
 suff->: p@_m = 0 by rewrite GRing.mulr0.
-rewrite paramE in param_p.
-apply: not_In_mcoeff param_p param_m _.
+apply: not_In_mcoeff refines_p refines_m _.
 move=> K; apply: Es.
 exact/MFacts.map_in_iff.
 Qed.
 
 Arguments mpoly_add {n R} p q.
-Global Instance param_mpoly_add_eff n :
-  param (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
+Global Instance refines_mpoly_add_eff n :
+  refines (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
   mpoly_add mpoly_add_eff.
 Proof.
-apply param_abstr => p p' param_p.
-apply param_abstr => q q' param_q.
-rewrite paramE /mpoly_add_eff.
+apply refines_abstr => p p' refines_p.
+apply refines_abstr => q q' refines_q.
+rewrite /mpoly_add_eff.
 apply: refines_effmpolyP.
 { move=> m /MFacts.in_find_iff Hm.
   have [Hip'|Hiq'] : M.In m p' \/ M.In m q'.
@@ -853,33 +872,32 @@ apply: refines_effmpolyP.
   exact: refines_size_mpoly Hiq'. }
 move=> m m' Hm.
 rewrite mcoeffD MFacts.map2_1bis //.
-rewrite paramE in param_p param_q.
 case Ep: M.find => [cp|]; case Eq: M.find => [cq|] /=.
 - move/MFacts.find_mapsto_iff in Ep;
   move/MFacts.find_mapsto_iff in Eq;
-  by rewrite (MapsTo_mcoeff param_p Hm Ep) (MapsTo_mcoeff param_q Hm Eq).
+  by rewrite (MapsTo_mcoeff refines_p Hm Ep) (MapsTo_mcoeff refines_q Hm Eq).
 - move/MFacts.find_mapsto_iff in Ep;
   move/MFacts.not_find_in_iff in Eq;
-  by rewrite (MapsTo_mcoeff param_p Hm Ep) (not_In_mcoeff param_q Hm Eq)
+  by rewrite (MapsTo_mcoeff refines_p Hm Ep) (not_In_mcoeff refines_q Hm Eq)
   GRing.addr0.
 - move/MFacts.not_find_in_iff in Ep;
   move/MFacts.find_mapsto_iff in Eq;
-  by rewrite (not_In_mcoeff param_p Hm Ep) (MapsTo_mcoeff param_q Hm Eq)
+  by rewrite (not_In_mcoeff refines_p Hm Ep) (MapsTo_mcoeff refines_q Hm Eq)
   GRing.add0r.
 - move/MFacts.not_find_in_iff in Ep;
   move/MFacts.not_find_in_iff in Eq;
-  by rewrite (not_In_mcoeff param_p Hm Ep) (not_In_mcoeff param_q Hm Eq)
+  by rewrite (not_In_mcoeff refines_p Hm Ep) (not_In_mcoeff refines_q Hm Eq)
   GRing.addr0.
 Qed.
 
 Definition mpoly_sub {n} (p : {mpoly T[n]}) q := mpoly_add p (mpoly_opp q).
 
-Global Instance param_mpoly_sub_eff n :
-  param (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
+Global Instance refines_mpoly_sub_eff n :
+  refines (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
   mpoly_sub mpoly_sub_eff.
-apply param_abstr => p p' param_p.
-apply param_abstr => q q' param_q.
-rewrite paramE /mpoly_add_eff.
+apply refines_abstr => p p' refines_p.
+apply refines_abstr => q q' refines_q.
+rewrite /mpoly_add_eff.
 apply: refines_effmpolyP.
 { move=> m /MFacts.in_find_iff Hm.
   have [Hip'|Hiq'] : M.In m p' \/ M.In m q'.
@@ -890,66 +908,65 @@ apply: refines_effmpolyP.
   exact: refines_size_mpoly Hiq'. }
 move=> m m' Hm.
 rewrite mcoeffB MFacts.map2_1bis //.
-rewrite paramE in param_p param_q.
 case Ep: M.find => [cp|]; case Eq: M.find => [cq|] /=.
 - move/MFacts.find_mapsto_iff in Ep;
   move/MFacts.find_mapsto_iff in Eq;
-  by rewrite (MapsTo_mcoeff param_p Hm Ep) (MapsTo_mcoeff param_q Hm Eq).
+  by rewrite (MapsTo_mcoeff refines_p Hm Ep) (MapsTo_mcoeff refines_q Hm Eq).
 - move/MFacts.find_mapsto_iff in Ep;
   move/MFacts.not_find_in_iff in Eq;
-  by rewrite (MapsTo_mcoeff param_p Hm Ep) (not_In_mcoeff param_q Hm Eq)
+  by rewrite (MapsTo_mcoeff refines_p Hm Ep) (not_In_mcoeff refines_q Hm Eq)
   GRing.subr0.
 - move/MFacts.not_find_in_iff in Ep;
   move/MFacts.find_mapsto_iff in Eq;
-  by rewrite (not_In_mcoeff param_p Hm Ep) (MapsTo_mcoeff param_q Hm Eq)
+  by rewrite (not_In_mcoeff refines_p Hm Ep) (MapsTo_mcoeff refines_q Hm Eq)
   GRing.sub0r.
 - move/MFacts.not_find_in_iff in Ep;
   move/MFacts.not_find_in_iff in Eq;
-  by rewrite (not_In_mcoeff param_p Hm Ep) (not_In_mcoeff param_q Hm Eq)
+  by rewrite (not_In_mcoeff refines_p Hm Ep) (not_In_mcoeff refines_q Hm Eq)
   GRing.subr0.
 Qed.
 
 Lemma rem_mpoly_eff n (q p' : effmpoly T) (k' : seqmultinom) (e : T)
   (p : mpoly n T) (k : 'X_{1..n}) :
-  ~ M.In k' q -> MProps.Add k' e q p' -> Reffmpoly p p' ->
-  Rseqmultinom k k' -> Reffmpoly (p - p@_k *: 'X_[k]) q.
+  ~ M.In k' q -> MProps.Add k' e q p' -> refines Reffmpoly p p' ->
+  refines Rseqmultinom k k' -> refines Reffmpoly (p - p@_k *: 'X_[k]) q.
 Proof.
 move=> Hin Hadd Hp Hk.
 apply refines_effmpolyP.
 { move=> m'' [c' Hc']; move: (Hadd m''); rewrite MFacts.add_o.
   case M.E.eq_dec.
   { move/mnmc_eq_seqP/eqP <-; rewrite -MFacts.find_mapsto_iff => Hm.
-    by apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)); exists e. }
+    by apply (@refines_size_mpoly _ _ _ _ (Hp)); exists e. }
   rewrite (proj1 (MFacts.find_mapsto_iff q m'' c')) // => _ H.
-  apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)).
+  apply (@refines_size_mpoly _ _ _ _ (Hp)).
   by exists c'; move: H; rewrite -MFacts.find_mapsto_iff. }
-move=> mm mm' param_mm; move: (Hadd mm'); rewrite MFacts.add_o.
+move=> mm mm' refines_mm; move: (Hadd mm'); rewrite MFacts.add_o.
 rewrite mcoeffB mcoeffZ mcoeffX.
 case M.E.eq_dec.
 { move/mnmc_eq_seqP/eqP => Hmm'; rewrite -Hmm'.
   have Hmm : k = mm.
-  { by apply/eqP; rewrite (Rseqmultinom_eq Hk param_mm); apply/eqP. }
+  { by apply/eqP; rewrite (Rseqmultinom_eq Hk refines_mm); apply/eqP. }
   rewrite (proj1 (MFacts.not_find_in_iff _ _) Hin) -Hmm eqxx GRing.mulr1.
   by rewrite (refines_find_mpoly Hp Hk) => ->; rewrite GRing.subrr. }
 move=> Hmm' <-.
 have Hmm : ~ k = mm.
 { move=> Hmmm; apply/Hmm'/mnmc_eq_seqP.
-  by rewrite -(Rseqmultinom_eq Hk param_mm); apply/eqP. }
-rewrite (refines_find_mpoly Hp param_mm).
+  by rewrite -(Rseqmultinom_eq Hk refines_mm); apply/eqP. }
+rewrite (refines_find_mpoly Hp refines_mm).
 by have ->: (k == mm = false); [apply/eqP|rewrite GRing.mulr0 GRing.subr0].
 Qed.
 
-Lemma param_mpoly_sum_eff n k f f' (p : mpoly k T) p' :
+Lemma refines_mpoly_sum_eff n k f f' (p : mpoly k T) p' :
   (forall m, f m 0 = 0) ->
-  param (Rseqmultinom ==> Logic.eq ==> Reffmpoly (T:=T) (n:=n)) f f' ->
-  param Reffmpoly p p' ->
-  param Reffmpoly (\sum_(m <- msupp p) f m p@_m)
+  refines (Rseqmultinom ==> Logic.eq ==> Reffmpoly (T:=T) (n:=n)) f f' ->
+  refines Reffmpoly p p' ->
+  refines Reffmpoly (\sum_(m <- msupp p) f m p@_m)
                   (M.fold (fun m c => mpoly_add_eff (f' m c)) p' mp0_eff).
 Proof.
-move=> Hf param_f; move: p; rewrite paramE.
+move=> Hf refines_f; move: p.
 apply MProps.fold_rec.
 { move=> q' Eq' q Hq.
-  suff -> : q = 0; [by rewrite msupp0 big_nil; apply param_mp0_eff|].
+  suff -> : q = 0; [by rewrite msupp0 big_nil; apply refines_mp0_eff|].
   apply /mpolyP => m.
   rewrite (refines_find_mpoly Hq (refines_seqmultinom_of_multinom m)).
   rewrite mcoeff0; case_eq (M.find (seqmultinom_of_multinom m) q') => [s|->]//.
@@ -957,13 +974,13 @@ apply MProps.fold_rec.
   by rewrite -in_InA_eq_key_elt_iff (proj1 (MProps.elements_Empty _ ) Eq'). }
 move=> m' c p'' q q' Hp'' Hq Hq' IH p Hp.
 pose m := multinom_of_seqmultinom_val k m'; pose cm := c *: 'X_[m].
-have param_m : Rseqmultinom m m'.
+have refines_m : refines Rseqmultinom m m'.
 { apply refines_multinom_of_seqmultinom_val.
   move: (Hq' m'); rewrite MFacts.add_eq_o; [|by apply/mnmc_eq_seqP]; move=> Hm'.
-  apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)).
+  apply (@refines_size_mpoly _ _ _ _ Hp).
   by exists c; apply M.find_2. }
 have Hc : p@_m = c.
-{ rewrite (refines_find_mpoly Hp param_m) (Hq' m') MFacts.add_eq_o //.
+{ rewrite (refines_find_mpoly Hp refines_m) (Hq' m') MFacts.add_eq_o //.
   apply M.E.eq_refl. }
 pose pmcm := p - cm.
 have Hpmcm : pmcm@_m = 0.
@@ -980,19 +997,19 @@ have -> : \sum_(m <- msupp p) f m p@_m
     by rewrite GRing.mulr0 GRing.subr0. }
   move: Hmsuppp; rewrite /pmcm /cm mcoeff_msupp Hc; move/eqP ->.
   by rewrite Hf GRing.add0r GRing.scale0r GRing.subr0. }
-eapply param_apply.
-{ eapply param_apply; [by apply param_mpoly_add_eff|].
-  eapply param_apply; [|by apply param_eq_refl].
-  eapply param_apply; [apply param_f|rewrite paramE; apply param_m]. }
+eapply refines_apply.
+{ eapply refines_apply; [by apply refines_mpoly_add_eff|].
+  eapply refines_apply; [|by apply trivial_refines; symmetry].
+  eapply refines_apply; [eapply refines_f|apply refines_m]. }
 apply IH.
 rewrite /pmcm /cm -Hc.
-apply (rem_mpoly_eff Hq Hq' Hp param_m).
+apply (rem_mpoly_eff Hq Hq' Hp refines_m).
 Qed.
 
-Lemma Rseqmultinom_iff {n} l l' :
-  (Rseqmultinom (n := n)) l l' <-> l = l' :> seq nat.
+Lemma Rseqmultinom_iff {n} :
+  (refines (Rseqmultinom (n := n)) <=> @eq (seq nat))%rel.
 Proof.
-split => Hmain.
+split => l l' Hmain.
 { apply eq_from_nth with (x0 := O).
   { by rewrite size_tuple refines_size. }
   move=> i Hi.
@@ -1006,67 +1023,65 @@ case: n l Hmain => [|n] l Hmain i; first by case: i.
 by rewrite (mnm_nth O) Hmain.
 Qed.
 
-Lemma param_Madd_mnm_add {n} (m : 'X_{1.. n}) m' (c : T) p p' :
-  param Rseqmultinom m m' ->
-  param Reffmpoly p p' ->
+Lemma refines_Madd_mnm_add {n} (m : 'X_{1.. n}) m' (c : T) p p' :
+  refines Rseqmultinom m m' ->
+  refines Reffmpoly p p' ->
   m \notin msupp p ->
-  param Reffmpoly (+%R (c *: 'X_[m]) p) (M.add m' c p').
+  refines Reffmpoly (+%R (c *: 'X_[m]) p) (M.add m' c p').
 Proof.
 move=> Hm Hp Hnotin.
-rewrite paramE.
-rewrite paramE in Hm.
 apply: refines_effmpolyP.
 { move=> k /MFacts.add_in_iff [Hk|Hk].
   - move/mnmc_eq_seqP/eqP: Hk <-.
-    move/Rseqmultinom_iff: Hm <-.
-    by rewrite size_tuple.
+    apply Rseqmultinom_iff in Hm.
+    by rewrite -Hm size_tuple.
   - exact: refines_size_mpoly. }
 move=> l l' Hl; rewrite mcoeffD mcoeffZ mcoeffX.
 case: (boolP (m == l)) => Heq /=.
 { rewrite GRing.mulr1.
   rewrite MFacts.add_eq_o /=; last first.
   { apply/mnmc_eq_seqP.
-    move/Rseqmultinom_iff: Hm <-.
+    apply Rseqmultinom_iff in Hm; rewrite -Hm.
     move/eqP: Heq ->.
-    by move/Rseqmultinom_iff: Hl ->. }
+    by apply Rseqmultinom_iff in Hl; rewrite Hl. }
   move/eqP in Heq; rewrite Heq in Hnotin.
   by rewrite memN_msupp_eq0 // GRing.addr0.
 }
 rewrite GRing.mulr0 GRing.add0r.
 rewrite MFacts.add_neq_o /=; last first.
 { apply/mnmc_eq_seqP.
-  move/Rseqmultinom_iff: Hm <-.
-  by move/Rseqmultinom_iff: Hl <-.
+  apply Rseqmultinom_iff in Hm; rewrite -Hm.
+  by apply Rseqmultinom_iff in Hl; rewrite -Hl.
 }
-rewrite paramE in Hp.
+rewrite refinesE in Hp.
 exact: refines_find_mpoly.
 Qed.
 
 Lemma refines_size_add n (k' : seqmultinom) (e : T)
   (p : mpoly n T) (p' : effmpoly T) (q : effmpoly T) :
-  MProps.Add k' e q p' -> Reffmpoly p p' ->
-  Rseqmultinom (multinom_of_seqmultinom_val n k') k'.
+  MProps.Add k' e q p' -> refines Reffmpoly p p' ->
+  refines Rseqmultinom (multinom_of_seqmultinom_val n k') k'.
 Proof.
 move=> Hadd Hp.
 apply refines_multinom_of_seqmultinom_val.
-apply (@refines_size_mpoly _ _ _ _ (trivial_param Hp)).
+apply (@refines_size_mpoly _ _ _ _ Hp).
 exists e; move: (Hadd k'); rewrite MFacts.add_eq_o; [|by apply M.E.eq_refl].
 apply M.find_2.
 Qed.
 
-Lemma param_Madd_mnm_add_sum n m m' c (p : mpoly n T) p' :
-   param Rseqmultinom m m' ->
-   param (Reffmpoly (T := T) (n := n)) p p' ->
-   param Reffmpoly (\sum_(i2 <- msupp p) (c * p@_i2) *: 'X_[m + i2])
+Lemma refines_Madd_mnm_add_sum n m m' c (p : mpoly n T) p' :
+   refines Rseqmultinom m m' ->
+   refines (Reffmpoly (T := T) (n := n)) p p' ->
+   refines Reffmpoly (\sum_(i2 <- msupp p) (c * p@_i2) *: 'X_[m + i2])
          (M.fold (fun (l' : M.key) (c' : T) => M.add (mnm_add_seq m' l') (c * c')%C) p' M.empty).
 Proof.
-move=> param_m; move: p; rewrite paramE.
+move=> refines_m; move: p.
 apply MProps.fold_rec.
 { move=> q' Eq' q Hq.
   match goal with
-  | [  |- Reffmpoly ?pol M.empty ] => suff ->: pol = 0
+  | [  |- refines Reffmpoly ?pol M.empty ] => suff ->: pol = 0
   end.
-  { by apply paramP, param_mp0_eff. }
+  { by apply refines_mp0_eff. }
   apply /mpolyP => l.
   rewrite big1 ?mcoeff0 //.
   move=> i _.
@@ -1076,11 +1091,11 @@ apply MProps.fold_rec.
     by rewrite -in_InA_eq_key_elt_iff (proj1 (MProps.elements_Empty _ ) Eq').
   - by move=> _; rewrite GRing.mulr0 GRing.scale0r.
 }
-move=> k' e q p'' p''' Hmap Hin Hadd Hind p param_p.
+move=> k' e q p'' p''' Hmap Hin Hadd Hind p refines_p.
 pose k := multinom_of_seqmultinom_val n k'.
-have Hk : Rseqmultinom k k'; [by apply (refines_size_add Hadd param_p)|].
+have Hk : refines Rseqmultinom k k'; [by apply (refines_size_add Hadd refines_p)|].
 have Hp : p@_k = e.
-{ rewrite (refines_find_mpoly param_p Hk) Hadd MFacts.add_eq_o //.
+{ rewrite (refines_find_mpoly refines_p Hk) Hadd MFacts.add_eq_o //.
   exact: M.E.eq_refl. }
 pose p0 := (c * e) *: 'X_[m + k].
 pose pmpk := p - p@_k *: 'X_[k].
@@ -1101,19 +1116,19 @@ have->: sum = p0 + \big[+%R/0]_(i2 <- msupp pmpk) ((c * pmpk@_i2) *: 'X_[(m + i2
     by rewrite GRing.mulr0 GRing.subr0. }
   move: Hmsuppp; rewrite mcoeff_msupp Hp; move/eqP ->.
   by rewrite GRing.mulr0 GRing.scale0r GRing.add0r GRing.scale0r GRing.subr0. }
-apply paramP; rewrite /p0.
-apply param_Madd_mnm_add.
-{ eapply param_apply; first by eapply param_apply; tc.
-  rewrite paramE /k.
+rewrite /p0.
+apply refines_Madd_mnm_add.
+{ eapply refines_apply; first by eapply refines_apply; tc.
+  rewrite /k.
   apply refines_multinom_of_seqmultinom_val.
-  apply (@refines_size_mpoly _ _ _ _ (trivial_param param_p)).
+  apply (@refines_size_mpoly _ _ _ _ refines_p).
   red in Hadd.
   apply/MFacts.in_find_iff.
   rewrite Hadd MFacts.add_eq_o //.
   exact/mnmc_eq_seqP.
 }
-{ rewrite paramE; apply: Hind.
-  apply (rem_mpoly_eff Hin Hadd param_p Hk). }
+{ eapply Hind.
+  apply (rem_mpoly_eff Hin Hadd refines_p Hk). }
 rewrite mcoeff_msupp negbK.
 set F' := fun i2 => (c *: 'X_[m]) * (pmpk@_i2 *: 'X_[i2]).
 rewrite (eq_bigr F').
@@ -1129,108 +1144,108 @@ by rewrite -[RHS]commr_mpolyX -GRing.scalerAl commr_mpolyX.
 Qed.
 
 Arguments mpoly_mul {n R} p q.
-Global Instance param_mpoly_mul_eff n :
-  param (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
+Global Instance refines_mpoly_mul_eff n :
+  refines (Reffmpoly ==> Reffmpoly ==> Reffmpoly (T := T) (n := n))
   mpoly_mul mpoly_mul_eff.
 Proof.
-apply param_abstr => q q' param_q.
-apply param_abstr => p p' param_p.
+apply refines_abstr => q q' refines_q.
+apply refines_abstr => p p' refines_p.
 rewrite [mpoly_mul q p]mpolyME -ssrcomplements.pair_bigA_seq_curry /=.
 rewrite /mpoly_mul_eff.
 pose f m c := \big[+%R/0]_(i2 <- msupp p) ((c * p@_i2) *: 'X_[(m + i2)]).
 pose f' m c := @mult_monomial_eff _ mul_instR m c p'.
-now_show (param Reffmpoly (\sum_(m <- msupp q) f m q@_m)
+now_show (refines Reffmpoly (\sum_(m <- msupp q) f m q@_m)
   (M.fold (fun m c => mpoly_add_eff (f' m c)) q' M.empty)).
-apply(*:*) param_mpoly_sum_eff =>//.
+apply(*:*) refines_mpoly_sum_eff =>//.
 - by move=> m; rewrite /f big1 // => m2 _; rewrite GRing.mul0r GRing.scale0r.
-- apply param_abstr => m m' param_m.
-  apply param_abstr => c c' param_c.
+- apply refines_abstr => m m' refines_m.
+  apply refines_abstr => c c' refines_c.
   rewrite /f /f' /mult_monomial_eff.
-  rewrite {param_c}(param_eq param_c).
-  by apply param_Madd_mnm_add_sum.
+  rewrite {refines_c}(refines_eq refines_c).
+  by apply refines_Madd_mnm_add_sum.
 Qed.
 
 Definition mpoly_exp {n} (p : {mpoly T[n]}) (n : nat) := (p ^+ n)%R.
 
-Global Instance param_mpoly_exp_eff n :
-  param (Reffmpoly ==> Logic.eq ==> Reffmpoly (T := T) (n := n))
+Global Instance refines_mpoly_exp_eff n :
+  refines (Reffmpoly ==> Logic.eq ==> Reffmpoly (T := T) (n := n))
   mpoly_exp (mpoly_exp_eff (n:=n)).
 Proof.
-apply param_abstr => p p' param_p.
-apply param_abstr => n' n''; rewrite paramE => <- {n''}.
+apply refines_abstr => p p' refines_p.
+apply refines_abstr => n' n''; rewrite refinesE => <- {n''}.
 rewrite /mpoly_exp /mpoly_exp_eff.
-elim: n' => [|n' IHn]; [by rewrite GRing.expr0; apply param_mp1_eff|].
+elim: n' => [|n' IHn]; [by rewrite GRing.expr0; apply refines_mp1_eff|].
 rewrite GRing.exprS /=; case_eq n'; [by rewrite GRing.expr0 GRing.mulr1|].
-move=> _ <-; eapply param_apply; [|exact IHn].
-by eapply param_apply; [apply param_mpoly_mul_eff|].
+move=> _ <-; eapply refines_apply; [|exact IHn].
+by eapply refines_apply; [apply refines_mpoly_mul_eff|].
 Qed.
 
 Definition seq_Reffmpoly n k (lq : k.-tuple {mpoly T[n]}) (lq' : seq (effmpoly T)) :=
-  size lq' = k /\ forall i, Reffmpoly lq`_i (nth mp0_eff lq' i).
+  ((size lq' = k) * forall i, Reffmpoly lq`_i (nth mp0_eff lq' i))%type.
 
-Lemma param_comp_monomial_eff n k :
-  param (Rseqmultinom ==> Logic.eq ==> @seq_Reffmpoly n k ==> Reffmpoly)
+Lemma refines_comp_monomial_eff n k :
+  refines (Rseqmultinom ==> Logic.eq ==> @seq_Reffmpoly n k ==> Reffmpoly)
   (fun m c lq => mpolyC c * mmap1 (tnth lq) m) (comp_monomial_eff (n:= n)).
 Proof.
-apply param_abstr => m m' param_m.
-apply param_abstr => c c' param_c.
-rewrite paramE in param_c; rewrite -{}param_c {c'}.
-apply param_abstr => lq lq' param_lq.
-rewrite mul_mpolyC /comp_monomial_eff; eapply param_apply.
-{ eapply param_apply; [apply param_mpoly_scale_eff|apply param_eq_refl]. }
-move: param_lq; rewrite paramE /seq_Reffmpoly; move => [sz_lq param_lq].
-move: m m' param_m lq lq' sz_lq param_lq.
-elim: k => [|k IHk] m m' param_m lq lq' sz_lq param_lq.
+apply refines_abstr => m m' refines_m.
+apply refines_abstr => c c' refines_c.
+rewrite refinesE in refines_c; rewrite -{}refines_c {c'}.
+apply refines_abstr => lq lq' refines_lq.
+rewrite mul_mpolyC /comp_monomial_eff; eapply refines_apply.
+{ eapply refines_apply; [apply refines_mpoly_scale_eff|by apply trivial_refines]. }
+move: refines_lq; rewrite refinesE /seq_Reffmpoly; move => [sz_lq refines_lq].
+move: m m' refines_m lq lq' sz_lq refines_lq.
+elim: k => [|k IHk] m m' refines_m lq lq' sz_lq refines_lq.
 { rewrite /mmap1 bigop.big_ord0.
-  move: (size0nil sz_lq) => ->; rewrite /zipwith /=; apply param_mp1_eff. }
+  move: (size0nil sz_lq) => ->; rewrite /zipwith /=; apply refines_mp1_eff. }
 move: sz_lq; case_eq lq' => //= q0 lqt' Hlq' sz_lq.
-move: (@refines_size _ _ _ param_m); case_eq m' => //= m0 mt' Hm' sz_m'.
+move: (@refines_size _ _ _ refines_m); case_eq m' => //= m0 mt' Hm' sz_m'.
 rewrite /foldr /= -/(foldr _ _) /mmap1 bigop.big_ord_recl.
-eapply param_apply; [eapply param_apply; [by apply param_mpoly_mul_eff|]|].
-{ move: (@refines_nth _ _ _ ord0 param_m); rewrite Hm' /= => <-.
-  eapply param_apply; [|by apply param_eq_refl].
-  eapply param_apply; [by apply param_mpoly_exp_eff|]; rewrite paramE.
+eapply refines_apply; [eapply refines_apply; [by apply refines_mpoly_mul_eff|]|].
+{ move: (@refines_nth _ _ _ ord0 refines_m); rewrite Hm' /= => <-.
+  eapply refines_apply; [|by apply trivial_refines; symmetry].
+  eapply refines_apply; [by apply refines_mpoly_exp_eff|]; rewrite refinesE.
   replace (tnth _ _) with (lq`_O); [|by case lq, tval].
-  change q0 with (nth mp0_eff (q0 :: lqt') O); rewrite -Hlq'; apply param_lq. }
+  change q0 with (nth mp0_eff (q0 :: lqt') O); rewrite -Hlq'; apply refines_lq. }
 injection sz_lq => {sz_lq} sz_lq; injection sz_m' => {sz_m'} sz_m'.
-assert (param_mt : param Rseqmultinom (multinom_of_seqmultinom_val k mt') mt').
-{ by rewrite paramE; apply /refines_multinom_of_seqmultinom_val /eqP. }
+assert (refines_mt : refines Rseqmultinom (multinom_of_seqmultinom_val k mt') mt').
+{ by apply /refines_multinom_of_seqmultinom_val /eqP. }
 assert (Hlq_lq' : forall i : nat,
                     Reffmpoly [tuple of behead lq]`_i (nth mp0_eff lqt' i)).
-{ by move=> i; move: (param_lq i.+1); rewrite Hlq' /=; case tval; elim i. }
-move: (IHk _ _ param_mt [tuple of behead lq] _ sz_lq Hlq_lq').
-rewrite paramE /Reffmpoly /ofun_hrel => ->; f_equal.
+{ by move=> i; move: (refines_lq i.+1); rewrite Hlq' /=; case tval; elim i. }
+move: (IHk _ _ refines_mt [tuple of behead lq] _ sz_lq Hlq_lq').
+rewrite refinesE /Reffmpoly /ofun_hrel => ->; f_equal.
 apply bigop.eq_big => // i _; f_equal.
 { rewrite tnth_behead; f_equal.
   by apply ord_inj; rewrite inordK //; move: (ltn_ord i). }
 move /eqP in sz_m'; move: (refines_multinom_of_seqmultinom_val sz_m') => Hmt'.
-apply trivial_param in Hmt'; move: (@refines_nth _ _ _ i Hmt') => <-.
-move: (@refines_nth _ _ _ (inord i.+1) param_m); rewrite Hm' /=.
+move: (@refines_nth _ _ _ i Hmt') => <-.
+move: (@refines_nth _ _ _ (inord i.+1) refines_m); rewrite Hm' /=.
 rewrite inordK /=; [|by rewrite ltnS]; move=> ->; apply f_equal.
 by apply ord_inj; rewrite inordK //; move: (ltn_ord i).
 Qed.
 
 Arguments comp_mpoly {n R k} lq p.
-Global Instance param_comp_mpoly_eff n k :
-  param (@seq_Reffmpoly n k ==> Reffmpoly ==> Reffmpoly)
+Global Instance refines_comp_mpoly_eff n k :
+  refines (@seq_Reffmpoly n k ==> Reffmpoly ==> Reffmpoly)
   comp_mpoly (comp_mpoly_eff (n:= n)).
 Proof.
-apply param_abstr => lq lq' param_lq.
-apply param_abstr => p p' param_p.
+apply refines_abstr => lq lq' refines_lq.
+apply refines_abstr => p p' refines_p.
 rewrite /comp_mpoly /mmap /comp_mpoly_eff.
 pose f := fun m c => c%:MP_[n] * mmap1 (tnth lq) m.
 rewrite (eq_bigr (fun m => f m p@_m)) //.
-apply param_mpoly_sum_eff.
+apply refines_mpoly_sum_eff.
 { by move=> m; rewrite /f mpolyC0 GRing.mul0r. }
-{ apply param_abstr => m m' param_m.
-  apply param_abstr => c c'; rewrite paramE /f => <-.
+{ apply refines_abstr => m m' refines_m.
+  apply refines_abstr => c c'; rewrite refinesE /f => <-.
   change (_ * _) with ((fun lq => c%:MP_[n] * mmap1 (tnth lq) m) lq).
-  eapply param_apply; [|by apply param_lq].
+  eapply refines_apply; [|by apply refines_lq].
   change (fun _ => _) with ((fun c lq => c%:MP_[n] * mmap1 (tnth lq) m) c).
-  eapply param_apply; [|by apply param_eq_refl].
+  eapply refines_apply; [|by apply trivial_refines; symmetry].
   change (fun _ => _) with ((fun m (c : T) lq => c%:MP_[n] * mmap1 (tnth lq) m) m).
-  eapply param_apply; [apply param_comp_monomial_eff|apply param_m]. }
-apply param_p.
+  eapply refines_apply; [apply refines_comp_monomial_eff|apply refines_m]. }
+apply refines_p.
 Qed.
 
 End effmpoly_theory.
@@ -1242,128 +1257,146 @@ Derive Inversion inv_HdRel with
 
 Section effmpoly_parametricity.
 
-Context (A : ringType) (C : Type) (rAC : A -> C -> Prop).
+Context (A : ringType) (C : Type) (rAC : A -> C -> Type).
 
-Definition M_hrel (m : M.t A) (m' : M.t C) : Prop :=
-  (forall k, M.In k m <-> M.In k m')
-  /\ forall k e e', M.MapsTo k e m -> M.MapsTo k e' m' -> rAC e e'.
+Definition M_hrel (m : M.t A) (m' : M.t C) : Type :=
+  ((forall k, M.In k m <-> M.In k m')
+  * forall k e e', M.MapsTo k e m -> M.MapsTo k e' m' -> rAC e e')%type.
 
 Definition ReffmpolyA {n} := (@Reffmpoly A n \o M_hrel)%rel.
 
-Context `{one C, opp C, add C, sub C, mul C}.
+Context `{one_of C, opp_of C, add_of C, sub_of C, mul_of C}.
 
-Context `{!param rAC 1%R 1%C}.
-Context `{!param (rAC ==> rAC) -%R -%C}.
-Context `{!param (rAC ==> rAC ==> rAC) +%R +%C}.
-Context `{!param (rAC ==> rAC ==> rAC) (fun x y => x + -y) sub_op}.
-Context `{!param (rAC ==> rAC ==> rAC) *%R *%C}.
+Context `{!refines rAC 1%R 1%C}.
+Context `{!refines (rAC ==> rAC) -%R -%C}.
+Context `{!refines (rAC ==> rAC ==> rAC) +%R +%C}.
+Context `{!refines (rAC ==> rAC ==> rAC) (fun x y => x + -y) sub_op}.
+Context `{!refines (rAC ==> rAC ==> rAC) *%R *%C}.
 
 Context (C2A : C -> A).
 
 Hypothesis C2A_correct : forall c : C, rAC (C2A c) c.
 
-Lemma param_M_hrel_empty : param M_hrel M.empty M.empty.
+Lemma refines_M_hrel_empty : refines M_hrel M.empty M.empty.
 Proof.
-rewrite paramE; split.
+rewrite refinesE; split.
 { by move=> k; rewrite !MFacts.empty_in_iff. }
-by move=> k e e'; rewrite MFacts.empty_mapsto_iff.
+by move=> k e e' K; exfalso; apply MFacts.empty_mapsto_iff in K.
 Qed.
 
-Lemma param_M_hrel_add :
-  param (Logic.eq ==> rAC ==> M_hrel ==> M_hrel) (@M.add A) (@M.add C).
+Lemma refines_M_hrel_add :
+  refines (Logic.eq ==> rAC ==> M_hrel ==> M_hrel) (@M.add A) (@M.add C).
 Proof.
-rewrite paramE; split.
-{ by move=> k; rewrite !MFacts.add_in_iff H4; split;
-  (elim; [by left|right]); [rewrite -(proj1 H6 k)|rewrite (proj1 H6 k)]. }
-move=> k e e'; rewrite !MFacts.add_mapsto_iff H4.
-elim=> [[Hy <-]|[Hy He]].
+rewrite refinesE; split.
+{ move=> k; rewrite !MFacts.add_in_iff H4 (* FIXME *); split;
+  (elim; [by left|right]); by [rewrite -(fst X0 k)|rewrite (fst X0 k)]. }
+move=> k e e'.
+rewrite H4; move/MFacts.add_mapsto_iff => HH /MFacts.add_mapsto_iff HHH.
+move: HH HHH.
+Fail elim=> [[Hy <-]|[Hy He]].
+Admitted. (*
 { move: Hy; move/mnmc_eq_seqP/eqP->.
   by elim=>[[_ <-]|] //; rewrite M.E.eq_refl; elim. }
-by elim; [elim=> H'; elim (Hy H')|elim=>_; apply (proj2 H6)].
+by elim; [elim=> H'; elim (Hy H')|elim=>_; apply (snd X)].
 Qed.
+*)
 
-Lemma param_M_hrel_singleton :
-  param (Logic.eq ==> rAC ==> M_hrel)
+Lemma refines_M_hrel_singleton :
+  refines (Logic.eq ==> rAC ==> M_hrel)
      (@MProps.singleton A) (@MProps.singleton C).
 Proof.
-apply param_abstr => k k'; rewrite paramE => <-.
-apply param_abstr => e e' param_e.
+apply refines_abstr => k k'; rewrite refinesE => <-.
+apply refines_abstr => e e' refines_e.
 rewrite /MProps.singleton.
-eapply param_apply; [|by apply param_M_hrel_empty].
-eapply param_apply; [|exact param_e].
-eapply param_apply; [apply param_M_hrel_add|apply param_eq_refl].
+eapply refines_apply; [|by apply refines_M_hrel_empty].
+eapply refines_apply; [|exact refines_e].
+eapply refines_apply; [apply refines_M_hrel_add|by rewrite refinesE].
 Qed.
 
-Lemma param_M_hrel_map :
-  param ((rAC ==> rAC) ==> M_hrel ==> M_hrel) (@M.map A A) (@M.map C C).
+Lemma refines_M_hrel_map :
+  refines ((rAC ==> rAC) ==> M_hrel ==> M_hrel) (@M.map A A) (@M.map C C).
 Proof.
-apply param_abstr => f f' param_f.
-apply param_abstr => m m' param_m.
-rewrite paramE; split.
+apply refines_abstr => f f' refines_f.
+apply refines_abstr => m m' refines_m.
+rewrite refinesE; split.
 { move=> k; rewrite !MProps.F.map_in_iff.
-  move: param_m; rewrite paramE => H'; apply H'. }
+  move: refines_m; rewrite refinesE => H'; apply H'. }
 move=> k e e'.
+Admitted. (*
 rewrite !MFacts.map_mapsto_iff => [[a Ha] [a' Ha']].
 rewrite (proj1 Ha) (proj1 Ha').
-apply paramP; eapply param_apply; [by apply param_f|].
-move: param_m (proj2 Ha) (proj2 Ha'); rewrite !paramE => param_m.
-apply (proj2 param_m).
+apply refinesP; eapply refines_apply; [by apply refines_f|].
+move: refines_m (proj2 Ha) (proj2 Ha'); rewrite !refinesE => refines_m.
+apply (snd refines_m).
 Qed.
+*)
 
-Lemma param_M_hrel_find :
-  param (Logic.eq ==> M_hrel ==> ohrel rAC) (@M.find A) (@M.find C).
+(* Missing in new CoqEAL *)
+Fixpoint ohrel {A B : Type} (rAB : A -> B -> Type) sa sb : Type :=
+  match sa, sb with
+    | None,   None   => True
+    | Some a, Some b => rAB a b
+    | _,      _      => False
+  end.
+
+Lemma refines_M_hrel_find :
+  refines (Logic.eq ==> M_hrel ==> ohrel rAC) (@M.find A) (@M.find C).
 Proof.
-apply param_abstr => k k'; rewrite paramE => <-.
-apply param_abstr => m m'; rewrite paramE => param_m.
-rewrite paramE; case_eq (M.find k m') => [e'|]; case_eq (M.find k m) => [e|].
-{ rewrite -!MFacts.find_mapsto_iff /=; apply (proj2 param_m). }
+apply refines_abstr => k k'; rewrite refinesE => <-.
+apply refines_abstr => m m'; rewrite refinesE => refines_m.
+rewrite refinesE; case_eq (M.find k m') => [e'|]; case_eq (M.find k m) => [e|] /=.
+Admitted. (*
+{ rewrite -!MFacts.find_mapsto_iff /=; apply (snd refines_m). }
 { rewrite -MFacts.not_find_in_iff /= => H' H''; apply H'.
-  by apply (proj1 param_m); rewrite MFacts.in_find_iff H''. }
+  by apply (fst refines_m); rewrite MFacts.in_find_iff H''. }
 { rewrite -MFacts.not_find_in_iff /= => H' H''; apply H''.
-  by apply (proj1 param_m); rewrite MFacts.in_find_iff H'. }
-by [].
+  by apply (fst refines_m); rewrite MFacts.in_find_iff H'. }
+done.
 Qed.
-  
-Lemma param_M_hrel_map2 :
-  param ((ohrel rAC ==> ohrel rAC ==> ohrel rAC) ==> M_hrel ==> M_hrel ==> M_hrel)
+*)
+
+Lemma refines_M_hrel_map2 :
+  refines ((ohrel rAC ==> ohrel rAC ==> ohrel rAC) ==> M_hrel ==> M_hrel ==> M_hrel)
     (@M.map2 A A A) (@M.map2 C C C).
 Proof.
-apply param_abstr => f f' param_f.
-apply param_abstr => m1 m1' param_m1.
-apply param_abstr => m2 m2' param_m2.
+apply refines_abstr => f f' refines_f.
+apply refines_abstr => m1 m1' refines_m1.
+apply refines_abstr => m2 m2' refines_m2.
 have Hf : forall k, ohrel rAC (f (M.find k m1) (M.find k m2))
                       (f' (M.find k m1') (M.find k m2')).
-{ move=> k; apply paramP; eapply param_apply; [eapply param_apply|].
-  { apply param_f. }
-  { eapply param_apply; [|by apply param_m1].
-    eapply param_apply; [apply param_M_hrel_find|apply param_eq_refl]. }
-  eapply param_apply; [|by apply param_m2].
-  eapply param_apply; [apply param_M_hrel_find|apply param_eq_refl]. }
-rewrite paramE; rewrite paramE in param_m1, param_m2; split.
+{ move=> k; apply refinesP; eapply refines_apply; [eapply refines_apply|].
+  { apply refines_f. }
+  { eapply refines_apply; [|by apply refines_m1].
+    eapply refines_apply; [apply refines_M_hrel_find|by apply trivial_refines]. }
+  eapply refines_apply; [|by apply refines_m2].
+  eapply refines_apply; [apply refines_M_hrel_find|by apply trivial_refines]. }
+rewrite refinesE; rewrite refinesE in refines_m1, refines_m2; split.
 { move=> k; split.
   { move=> Hk; have Hor := M.map2_2 Hk; move: Hk => [e He].
     apply M.find_1 in He; rewrite (M.map2_1 _ Hor) in He.
     move: (Hf k); rewrite He; case_eq (f' (M.find k m1') (M.find k m2')) => //.
     move=> e' He' _; exists e'; apply M.find_2; rewrite -He'; apply M.map2_1.
-    by destruct Hor as [Hk|Hk]; [left; apply param_m1|right; apply param_m2]. }
+    by destruct Hor as [Hk|Hk]; [left; apply refines_m1|right; apply refines_m2]. }
   move=> Hk; have Hor := M.map2_2 Hk; move: Hk => [e He].
   apply M.find_1 in He; rewrite (M.map2_1 _ Hor) in He.
   move: (Hf k); rewrite He; case_eq (f (M.find k m1) (M.find k m2)) => //.
   move=> e' He' _; exists e'; apply M.find_2; rewrite -He'; apply M.map2_1.
-  by destruct Hor as [Hk|Hk]; [left; apply param_m1|right; apply param_m2]. }
+  by destruct Hor as [Hk|Hk]; [left; apply refines_m1|right; apply refines_m2]. }
 move=> k e e' He He'; move: (M.find_1 He) (M.find_1 He') (Hf k).
 case_eq (M.find k m1) => [e1|] He1.
 { rewrite M.map2_1; [|by left; exists e1; apply M.find_2].
-  rewrite M.map2_1; [|by left; apply param_m1; exists e1; apply M.find_2].
+  rewrite M.map2_1; [|by left; apply refines_m1; exists e1; apply M.find_2].
   by rewrite He1 => -> ->. }
 case_eq (M.find k m2) => [e2|] He2.
 { rewrite M.map2_1; [|by right; exists e2; apply M.find_2].
-  rewrite M.map2_1; [|by right; apply param_m2; exists e2; apply M.find_2].
+  rewrite M.map2_1; [|by right; apply refines_m2; exists e2; apply M.find_2].
   by rewrite He1 He2 => -> ->. }
+Admitted. (*
 elim (@M.map2_2 _ _ _ m1 m2 k f); [| |by exists e].
 { by move=> [e'1 He'1]; apply M.find_1 in He'1; rewrite He'1 in He1. }
 by move=> [e'2 He'2]; apply M.find_1 in He'2; rewrite He'2 in He2.
 Qed.
+*)
 
 Lemma Sorted_InA_not_lt_hd B (ke h : M.key * B) t :
   Sorted (M.lt_key (elt:=B)) (h :: t) ->
@@ -1399,32 +1432,33 @@ apply (M.E.lt_trans Hbl), IH; first by apply (Sorted_inv HS).
 by rewrite -Hl'.
 Qed.
 
-Lemma param_M_hrel_elements :
-  param (M_hrel ==> seq_hrel (fun x y => M.E.eq x.1 y.1 /\ rAC x.2 y.2))
+Lemma refines_M_hrel_elements :
+  refines (M_hrel ==> list_R (fun x y => M.E.eq x.1 y.1 * rAC x.2 y.2)%type)
     (@M.elements A) (@M.elements C).
 Proof.
-apply param_abstr => m m'; rewrite !paramE => param_m.
+apply refines_abstr => m m'; rewrite !refinesE => refines_m.
 set em := M.elements m; set em' := M.elements m'.
-have: (forall k, (exists e, InA (M.eq_key_elt (elt:=A)) (k, e) em)
-                 <-> (exists e', InA (M.eq_key_elt (elt:=C)) (k, e') em'))
-  /\ (forall k e e', InA (M.eq_key_elt (elt:=A)) (k, e) em ->
-                     InA (M.eq_key_elt (elt:=C)) (k, e') em' -> rAC e e').
+have: ((forall k, (exists e, InA (M.eq_key_elt (elt:=A)) (k, e) em)
+                 <-> exists e', InA (M.eq_key_elt (elt:=C)) (k, e') em')
+  * (forall k e e', InA (M.eq_key_elt (elt:=A)) (k, e) em ->
+                     InA (M.eq_key_elt (elt:=C)) (k, e') em' -> rAC e e'))%type.
 { split.
   { move=> k; split.
     { move=> [e He].
       have Hkm : M.In k m; [by exists e; apply M.elements_2|].
-      elim (proj1 (proj1 param_m _) Hkm) => e' He'; exists e'.
+      elim (proj1 (fst refines_m _) Hkm) => e' He'; exists e' ;
       by apply M.elements_1. }
     move=> [e' He'].
     have Hkm' : M.In k m'; [by exists e'; apply M.elements_2|].
-    elim (proj2 (proj1 param_m _) Hkm') => e He; exists e.
+    elim (proj2 (fst refines_m _) Hkm') => e He; exists e.
     by apply M.elements_1. }
   move=> k e e' He He'.
-  move: (M.elements_2 He) (M.elements_2 He'); apply (proj2 param_m). }
+  move: (M.elements_2 He) (M.elements_2 He'); apply (snd refines_m). }
 move: (M.elements_3 m) (M.elements_3 m'); rewrite -/em -/em'.
-clearbody em em'; move: {m m' param_m} em em'.
-elim=> [|h t IH]; case=> [|h' t'] //.
-{ move=> _ _ [Heq _]; move: (proj2 (Heq h'.1)); elim.
+clearbody em em'; move: {m m' refines_m} em em'.
+elim=> [|h t IH]; case=> [|h' t'] //=.
+{ Fail move=> _ _ [Heq _]; move: (proj2 (Heq h'.1)); elim.
+Admitted. (*
   { by move=> h'2; rewrite InA_nil. }
   by exists h'.2; apply InA_cons_hd; split; [apply M.E.eq_refl|]. }
 { move=> _ _ [Heq _]; move: (proj1 (Heq h.1)); elim.
@@ -1474,192 +1508,218 @@ split=> k; specialize (Hht1 k); specialize (Hht2 k).
   by rewrite Hy; apply M.E.eq_refl. }
 by move=> e e' He He'; apply Hht2; apply InA_cons_tl.
 Qed.
+*)
 
-Lemma param_M_hrel_fold :
-  param
+Lemma refines_M_hrel_fold :
+  refines
     ((Logic.eq ==> rAC ==> M_hrel ==> M_hrel) ==> M_hrel ==> M_hrel ==> M_hrel)
     (@M.fold A _) (@M.fold C _).
 Proof.
-apply param_abstr => f f' param_f.
-apply param_abstr => m m' param_m.
-apply param_abstr => i i' param_i.
-move: (param_apply param_M_hrel_elements param_m); rewrite !M.fold_1 !paramE.
-move: i i' param_i; generalize (M.elements m), (M.elements m').
-elim=> [|h t IHt]; case=> //=; [by move=> i i'; rewrite paramE|].
-move=> h' t' i i' param_i; elim; elim=> Hh1 Hh2 Ht; move: Ht; apply IHt.
-eapply param_apply; [|by apply param_i].
-eapply param_apply; [|by rewrite paramE; apply Hh2].
-eapply param_apply; [by apply param_f|].
-move: Hh1; move/mnmc_eq_seqP/eqP<-; apply param_eq_refl.
+apply refines_abstr => f f' refines_f.
+apply refines_abstr => m m' refines_m.
+apply refines_abstr => i i' refines_i.
+move: (refines_apply refines_M_hrel_elements refines_m); rewrite !M.fold_1 !refinesE.
+move: i i' refines_i; generalize (M.elements m), (M.elements m').
+elim=> [|h t IHt]; case=> //=.
+- by move=> i i'; rewrite refinesE.
+- by move=> a l i i' _ K; inversion K.
+- by move=> i i' _ K; inversion K.
+move=> h' t' i i' refines_i; elim.
+Admitted. (*
+move=> *; apply IHt.
+eapply refines_apply; [|by apply refines_i].
+eapply refines_apply; [|by rewrite refinesE; apply Hh2].
+eapply refines_apply; [by apply refines_f|].
+move: Hh1; move/mnmc_eq_seqP/eqP<-; apply refines_eq_refl.
 Qed.
+*)
 
 Global Instance ReffmpolyA_mp0_eff (n : nat) :
-  param (@ReffmpolyA n) 0 (@mp0_eff C).
+  refines (@ReffmpolyA n) 0 (@mp0_eff C).
 Proof.
-eapply param_trans; [by apply composable_comp|by apply param_mp0_eff|].
-apply set_param, param_M_hrel_empty.
+eapply refines_trans; [by apply composable_comp|by apply refines_mp0_eff|].
+Admitted. (*
+apply set_refines, refines_M_hrel_empty.
 Qed.
+*)
 
 Global Instance ReffmpolyA_mp1_eff (n : nat) :
-  param (@ReffmpolyA n) 1 (mp1_eff (n:=n)).
+  refines (@ReffmpolyA n) 1 (mp1_eff (n:=n)).
 Proof.
-eapply param_trans; [by apply composable_comp|by apply param_mp1_eff|].
-apply set_param; rewrite /mp1_eff; eapply param_apply; [|by tc].
-by eapply param_apply; [apply param_M_hrel_singleton|apply param_eq_refl].
+eapply refines_trans; [by apply composable_comp|by apply refines_mp1_eff|].
+Admitted. (*
+apply set_refines; rewrite /mp1_eff; eapply refines_apply; [|by tc].
+by eapply refines_apply; [apply refines_M_hrel_singleton|apply refines_eq_refl].
 Qed.
+*)
 
-Global Instance ReffmpolyA_mpvar_eff (n : nat) :
-  param (rAC ==> Logic.eq ==> Rord ==> @ReffmpolyA n)
-    mpvar (mpvar_eff (n:=n)).
+Global Instance ReffmpolyA_mpvar_eff {n1 n2 : nat} (rn : nat_R n1 n2) :
+  refines (rAC ==> Logic.eq ==> Rord rn ==> @ReffmpolyA n1)
+    mpvar (mpvar_eff (n:=n2)).
 Proof.
-eapply param_trans; [|by apply param_mpvar_eff|].
+eapply refines_trans; [|by eapply refines_mpvar_eff|].
 { do 2 apply composable_imply_id1.
-  rewrite -{2}(comp_eqr Rord); apply composable_imply, composable_comp. }
-apply set_param; rewrite /mpvar_eff.
-apply param_abstr => c c' param_c.
-apply param_abstr => d d'; rewrite paramE => <-.
-apply param_abstr => i i'; rewrite paramE => <-.
-eapply param_apply; [|by apply param_c].
-eapply param_apply; [apply param_M_hrel_singleton|apply param_eq_refl].
+  Fail rewrite -{2}(comp_eqr (Rord rn)); apply composable_imply, composable_comp.
+  admit. }
+Admitted. (*
+apply set_refines; rewrite /mpvar_eff.
+apply refines_abstr => c c' refines_c.
+apply refines_abstr => d d'; rewrite refinesE => <-.
+apply refines_abstr => i i'; rewrite refinesE => <-.
+eapply refines_apply; [|by apply refines_c].
+eapply refines_apply; [apply refines_M_hrel_singleton|apply refines_eq_refl].
 Qed.
+*)
 
 Global Instance ReffmpolyA_mpolyC_eff (n : nat) :
-  param (rAC ==> ReffmpolyA) (@mpolyC n A) (mpolyC_eff (n:=n)).
+  refines (rAC ==> ReffmpolyA) (@mpolyC n A) (mpolyC_eff (n:=n)).
 Proof.
-eapply (param_trans (rAB:=(Logic.eq ==> Reffmpoly)%rel)
-                    (rBC:=(rAC ==> M_hrel)%rel)); [|by apply param_mpolyC_eff|].
-{ rewrite -{2}(comp_eql rAC); apply composable_imply, composable_comp. }
-apply set_param; rewrite /mpolyC_eff.
-apply param_abstr => c c' param_c.
-eapply param_apply; [|by apply param_c].
-eapply param_apply; [apply param_M_hrel_singleton|apply param_eq_refl].
+eapply (refines_trans (rAB:=(Logic.eq ==> Reffmpoly)%rel)
+                    (rBC:=(rAC ==> M_hrel)%rel)); [|by apply refines_mpolyC_eff|].
+{ admit; rewrite -{2}(@comp_eql _ _ rAC); apply composable_imply, composable_comp. }
+Admitted. (*
+apply set_refines; rewrite /mpolyC_eff.
+apply refines_abstr => c c' refines_c.
+eapply refines_apply; [|by apply refines_c].
+eapply refines_apply; [apply refines_M_hrel_singleton|apply refines_eq_refl].
 Qed.
+*)
 
 Global Instance ReffmpolyA_mpolyX_eff (n : nat) :
-  param (Rseqmultinom ==> ReffmpolyA) (@mpolyX n A) mpolyX_eff.
+  refines (Rseqmultinom ==> ReffmpolyA) (@mpolyX n A) mpolyX_eff.
 Proof.
-eapply param_trans; [|by apply param_mpolyX_eff|].
-{ rewrite -{2}(comp_eqr Rseqmultinom).
-  apply composable_imply, composable_comp. }
-apply set_param; rewrite /mpolyX_eff.
-apply param_abstr => m m' param_m.
-eapply param_apply; [|by tc].
-eapply param_apply; [apply param_M_hrel_singleton|apply param_m].
+eapply refines_trans; [|by apply refines_mpolyX_eff|].
+{ Fail rewrite -{2}(comp_eqr Rseqmultinom).
+  admit; apply composable_imply, composable_comp. }
+Admitted. (*
+apply set_refines; rewrite /mpolyX_eff.
+apply refines_abstr => m m' refines_m.
+eapply refines_apply; [|by tc].
+eapply refines_apply; [apply refines_M_hrel_singleton|apply refines_m].
 Qed.
+*)
 
-Lemma param_M_hrel_mpoly_scale_eff :
-  param (rAC ==> M_hrel ==> M_hrel)
+Lemma refines_M_hrel_mpoly_scale_eff :
+  refines (rAC ==> M_hrel ==> M_hrel)
     (@mpoly_scale_eff A *%R) mpoly_scale_eff.
 Proof.
 Admitted. (* Érik *)
 
 Global Instance ReffmpolyA_mpoly_scale_eff (n : nat) :
-  param (rAC ==> ReffmpolyA ==> ReffmpolyA)
+  refines (rAC ==> ReffmpolyA ==> ReffmpolyA)
     (@mpoly_scale n A) mpoly_scale_eff.
 Proof.
 Admitted. (* Érik *)
 
-Lemma param_M_hrel_mpoly_add_eff :
-  param (M_hrel ==> M_hrel ==> M_hrel)
+Lemma refines_M_hrel_mpoly_add_eff :
+  refines (M_hrel ==> M_hrel ==> M_hrel)
     (@mpoly_add_eff A +%R) mpoly_add_eff.
 Proof.
 Admitted. (* Érik *)
 
 Global Instance ReffmpolyA_mpoly_add_eff (n : nat) :
-  param (ReffmpolyA ==> ReffmpolyA ==> ReffmpolyA)
+  refines (ReffmpolyA ==> ReffmpolyA ==> ReffmpolyA)
     (@mpoly_add n A) mpoly_add_eff.
 Proof.
 Admitted. (* Érik *)
 
 Global Instance ReffmpolyA_mpoly_sub_eff (n : nat) :
-  param (ReffmpolyA ==> ReffmpolyA ==> ReffmpolyA)
+  refines (ReffmpolyA ==> ReffmpolyA ==> ReffmpolyA)
     (@mpoly_sub A n) mpoly_sub_eff.
 Proof.
 Admitted. (* Érik *)
 
-Lemma param_M_hrel_mpoly_mul_eff :
-  param (M_hrel ==> M_hrel ==> M_hrel)
+Lemma refines_M_hrel_mpoly_mul_eff :
+  refines (M_hrel ==> M_hrel ==> M_hrel)
     (@mpoly_mul_eff A +%R *%R) mpoly_mul_eff.
 Proof.
 Admitted. (* Érik *)
 
 Global Instance ReffmpolyA_mpoly_mul_eff (n : nat) :
-  param (ReffmpolyA ==> ReffmpolyA ==> ReffmpolyA)
+  refines (ReffmpolyA ==> ReffmpolyA ==> ReffmpolyA)
     (@mpoly_mul n A) mpoly_mul_eff.
 Proof.
 Admitted. (* Érik *)
 
-Lemma param_M_hrel_mpoly_exp_eff n :
-  param (M_hrel ==> Logic.eq ==> M_hrel)
+Lemma refines_M_hrel_mpoly_exp_eff n :
+  refines (M_hrel ==> Logic.eq ==> M_hrel)
     (@mpoly_exp_eff _ 1%R +%R *%R n) (mpoly_exp_eff (n:=n)).
 Proof.
 rewrite /mpoly_exp_eff.
-apply param_abstr => m m' param_m.
-apply param_abstr => k k'; rewrite paramE => <- {k'}.
+apply refines_abstr => m m' refines_m.
+apply refines_abstr => k k'; rewrite refinesE => <- {k'}.
 elim k => [|k' IHk] /=.
-{ rewrite /mp1_eff; eapply param_apply; [|by tc].
-  eapply param_apply; [apply param_M_hrel_singleton|apply param_eq_refl]. }
-case_eq k' => // _ <-; eapply param_apply; [|by apply IHk].
-eapply param_apply; [|by apply param_m].
-apply param_M_hrel_mpoly_mul_eff.
+{ rewrite /mp1_eff; eapply refines_apply; [|by tc].
+  eapply refines_apply; [apply refines_M_hrel_singleton|by apply trivial_refines]. }
+case_eq k' => // _ <-; eapply refines_apply; [|by apply IHk].
+eapply refines_apply; [|by apply refines_m].
+apply refines_M_hrel_mpoly_mul_eff.
 Qed.
 
 Global Instance ReffmpolyA_mpoly_exp_eff (n : nat) :
-  param (ReffmpolyA ==> Logic.eq ==> ReffmpolyA)
+  refines (ReffmpolyA ==> Logic.eq ==> ReffmpolyA)
     (@mpoly_exp A n) (mpoly_exp_eff (n:=n)).
 Proof.
-eapply param_trans; [|by apply param_mpoly_exp_eff|].
+eapply refines_trans; [|by apply refines_mpoly_exp_eff|].
 { apply composable_imply, composable_imply_id1, composable_comp. }
-apply set_param, param_M_hrel_mpoly_exp_eff.
+Admitted. (*
+apply set_refines, refines_M_hrel_mpoly_exp_eff.
 Qed.
+*)
 
-Definition seq_ReffmpolyA n k := (@seq_Reffmpoly A n k \o seq_hrel M_hrel)%rel.
+Definition seq_ReffmpolyA n k := (@seq_Reffmpoly A n k \o list_R M_hrel)%rel.
 
-Lemma param_M_hrel_comp_monomial_eff n :
-  param (Logic.eq ==> rAC ==> seq_hrel M_hrel ==> M_hrel)
+Lemma refines_M_hrel_comp_monomial_eff n :
+  refines (Logic.eq ==> rAC ==> list_R M_hrel ==> M_hrel)
     (@comp_monomial_eff A 1%R +%R *%R n) (comp_monomial_eff (n:=n)).
 Proof.
-apply param_abstr => m m'; rewrite paramE => <-.
-apply param_abstr => c c' param_c.
-apply param_abstr => lq lq' param_lq.
+apply refines_abstr => m m'; rewrite refinesE => <-.
+apply refines_abstr => c c' refines_c.
+apply refines_abstr => lq lq' refines_lq.
 rewrite /comp_monomial_eff.
-eapply param_apply.
-{ eapply param_apply; [apply param_M_hrel_mpoly_scale_eff|apply param_c]. }
-move: lq lq' param_lq m.
-elim=> [|hlq tlq IH]; case=> [|hlq' tlq']; rewrite paramE //.
-{ move=> _ m /=; rewrite /mp1_eff; eapply param_apply; [|by tc].
-  eapply param_apply; [apply param_M_hrel_singleton|apply param_eq_refl]. }
-move=> [Hhlq Htlq]; case=> [|hm tm] /=.
-{ rewrite /mp1_eff; eapply param_apply; [|by tc].
-  eapply param_apply; [apply param_M_hrel_singleton|apply param_eq_refl]. }
-eapply param_apply; [eapply param_apply|].
-{ by apply param_M_hrel_mpoly_mul_eff. }
-{ eapply param_apply; [|by apply param_eq_refl].
-  eapply param_apply; [|by apply (trivial_param Hhlq)].
-  apply param_M_hrel_mpoly_exp_eff. }
-by apply IH; rewrite paramE.
+eapply refines_apply.
+{ eapply refines_apply; [apply refines_M_hrel_mpoly_scale_eff|apply refines_c]. }
+move: lq lq' refines_lq m.
+elim=> [|hlq tlq IH]; case=> [|hlq' tlq']; rewrite refinesE //=.
+{ move=> _ m /=; rewrite /mp1_eff; eapply refines_apply; [|by tc].
+  eapply refines_apply; [apply refines_M_hrel_singleton|by apply trivial_refines]. }
+by move=> K; inversion K.
+by move=> K; inversion K.
+move=> K; inversion K. (* [|Hhlq Htlq] *)
+ case=> [|hm tm] /=.
+{ rewrite /mp1_eff; eapply refines_apply; [|by tc].
+  eapply refines_apply; [apply refines_M_hrel_singleton|by apply trivial_refines]. }
+eapply refines_apply; [eapply refines_apply|].
+{ by apply refines_M_hrel_mpoly_mul_eff. }
+{ eapply refines_apply; [|by apply trivial_refines; symmetry].
+  eapply refines_apply; first by apply refines_M_hrel_mpoly_exp_eff.
+  apply trivial_refines.
+  done. }
+by apply IH; rewrite refinesE.
 Qed.
 
 Global Instance ReffmpolyA_comp_mpoly_eff (n k : nat) :
-  param (seq_ReffmpolyA (k:=k) ==> ReffmpolyA ==> ReffmpolyA)
+  refines (seq_ReffmpolyA (k:=k) ==> ReffmpolyA ==> ReffmpolyA)
     (comp_mpoly (k:=n)) (comp_mpoly_eff (n:=n)).
 Proof.
-eapply (param_trans
+eapply (refines_trans
           (rAB:=(@seq_Reffmpoly _ n k ==> Reffmpoly ==> Reffmpoly)%rel));
-  [|by apply param_comp_mpoly_eff|].
+  [|by apply refines_comp_mpoly_eff|].
 { apply composable_imply, composable_imply, composable_comp. }
-apply set_param; rewrite /comp_mpoly_eff.
-apply param_abstr => lq lq' param_lq.
-apply param_abstr => p p' param_p.
-eapply param_apply; [|by apply param_M_hrel_empty].
-eapply param_apply; [|by apply param_p].
-eapply param_apply; [by apply param_M_hrel_fold|].
-apply param_abstr => m m' param_m.
-apply param_abstr => c c' param_c.
-eapply param_apply; [by apply param_M_hrel_mpoly_add_eff|].
-eapply param_apply; [|by apply param_lq].
-eapply param_apply; [|by apply param_c].
-eapply param_apply; [apply param_M_hrel_comp_monomial_eff|apply param_m].
+Admitted. (*
+apply set_refines; rewrite /comp_mpoly_eff.
+apply refines_abstr => lq lq' refines_lq.
+apply refines_abstr => p p' refines_p.
+eapply refines_apply; [|by apply refines_M_hrel_empty].
+eapply refines_apply; [|by apply refines_p].
+eapply refines_apply; [by apply refines_M_hrel_fold|].
+apply refines_abstr => m m' refines_m.
+apply refines_abstr => c c' refines_c.
+eapply refines_apply; [by apply refines_M_hrel_mpoly_add_eff|].
+eapply refines_apply; [|by apply refines_lq].
+eapply refines_apply; [|by apply refines_c].
+eapply refines_apply; [apply refines_M_hrel_comp_monomial_eff|apply refines_m].
 Qed.
+*)
 
 End effmpoly_parametricity.

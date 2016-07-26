@@ -31,8 +31,8 @@ Require Import BigZ.
 (* Print Module F. *)
 Local Open Scope bigZ_scope.
 Require Import mathcomp.algebra.matrix.
-Require Import CoqEAL_refinements.seqmatrix.
-Require Import CoqEAL_refinements.refinements.
+(*Require Import CoqEAL_refinements.seqmatrix.
+Require Import CoqEAL_refinements.refinements.*)
 
 Import Refinements.Op.
 
