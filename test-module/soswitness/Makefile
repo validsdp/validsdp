@@ -9,11 +9,11 @@ all: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
 Makefile.coq: Makefile $(MODULES)
-	coq_makefile -I src -I $(shell ocamlfind query zarith) -I $(shell ocamlfind query glpk) -I $(shell ocamlfind query osdp) \
+	coq_makefile -I src -I $(shell ocamlfind query zarith) -I $(shell ocamlfind query osdp) \
                      -Q theories $(NAME) \
 		     $(MODULES) \
-		     -o $@
-	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa glpk.cmxa osdp.cmxa $$</' -i $@
+		     -o $@  #  -I $(shell ocamlfind query glpk)
+	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa osdp.cmxa $$</' -i $@  # glpk.cmxa
 
 install: Makefile.coq
 	$(MAKE) -f Makefile.coq install
