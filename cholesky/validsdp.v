@@ -73,7 +73,7 @@ Inductive abstr_poly :=
   | Add of abstr_poly & abstr_poly
   | Sub of abstr_poly & abstr_poly
   | Mul of abstr_poly & abstr_poly
-  | Pow of abstr_poly & positive
+  | Pow of abstr_poly & binnat.N
   (* | Compose of abstr_poly * abstr_poly list *).
 
 Fixpoint interp_real (vm : seq R) (ap : abstr_poly) {struct ap} : R :=
@@ -82,7 +82,7 @@ Fixpoint interp_real (vm : seq R) (ap : abstr_poly) {struct ap} : R :=
   | Add p q => Rplus (interp_real vm p) (interp_real vm q)
   | Sub p q => Rminus (interp_real vm p) (interp_real vm q)
   | Mul p q => Rmult (interp_real vm p) (interp_real vm q)
-  | Pow p n => powerRZ (interp_real vm p) (Z.pos n)
+  | Pow p n => powerRZ (interp_real vm p) (Z.of_N n)
   | Var i => seq.nth R0 vm i
   end.
 
@@ -115,7 +115,7 @@ Definition interp_poly_ssr n (ap : abstr_poly) : {mpoly rat[n.+1]} :=
       | Add p q => (aux p + aux q)%R
       | Sub p q => (aux p - aux q)%R
       | Mul p q => (aux p * aux q)%R
-      | Pow p m => mpoly_exp (aux p) (Pos.to_nat m)
+      | Pow p m => mpoly_exp (aux p) m
       end
   in aux ap.
 
@@ -123,11 +123,11 @@ Definition interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
   let fix aux ap :=
       match ap with
       | Const c => @mpolyC_eff bigQ n.+1 c
-      | Var i => @mpvar_eff bigQ n.+1 1%bigQ 1 i
+      | Var i => @mpvar_eff bigQ n.+1 1%bigQ 1 (N.of_nat i) (* should be "i" *)
       | Add p q => mpoly_add_eff (aux p) (aux q)
       | Sub p q => mpoly_sub_eff (aux p) (aux q)
       | Mul p q => mpoly_mul_eff (aux p) (aux q)
-      | Pow p m => mpoly_exp_eff (n := n.+1) (aux p) (Pos.to_nat m)
+      | Pow p m => mpoly_exp_eff (n := n.+1) (aux p) m
       end
   in aux ap.
 
@@ -166,10 +166,11 @@ Ltac get_poly t l :=
       match t with
       | Ropp ?a => aux_u (Sub (Const 0%bigQ)) a
       | Rsqr ?a => aux (Rmult a a) l
-      | powerRZ ?a (Z.pos ?b) => aux_u' Pow a b
    (* | powerRZ ?a 0%Z => constr:(R1) [unwise to simplify here!] *)
+      | powerRZ ?a ?b =>
+        let bb := eval vm_compute in (Z.abs_N b) in aux_u' Pow a bb
       | pow ?a ?b =>
-        let bb := eval vm_compute in (Pos.of_nat b) in aux_u' Pow a bb
+        let bb := eval vm_compute in (N.of_nat b) in aux_u' Pow a bb
       | Rplus ?a ?b => aux_b Add a b
       | Rminus ?a ?b => aux_b Sub a b
       | Rplus ?a (Ropp ?b) => aux_b Sub a b
@@ -660,7 +661,8 @@ elim: ap Hvars.
 { move=> p Hp q Hq /= /andP [] Hlp Hlq; rewrite (Hp Hlp) (Hq Hlq).
   by rewrite -[_*_]/(_.@[env] * _)%R !GRing.rmorphM. }
 move=> p Hp m /= Hlp; rewrite (Hp Hlp).
-by rewrite misc.pow_rexp !GRing.rmorphX.
+rewrite -{1}[m]spec_NK /binnat.implem_N bin_of_natE nat_N_Z.
+by rewrite -Interval_missing.pow_powerRZ misc.pow_rexp !GRing.rmorphX.
 Qed.
 
 (* Future definition of F2C *)
@@ -863,14 +865,15 @@ match goal with
 end.
 compute in n.
 pose bqp := interp_poly_eff n ap.
-let l := eval vm_compute in (@id (seq (seq nat * BigQ.t_)) (M.elements bqp)) in
+Fail let l := eval vm_compute in (@id (seq (seq nat * BigQ.t_)) (M.elements bqp)) in
 let zQ := fresh "zQ" in soswitness of l in zQ.
+Admitted. (*
 pose s := (size zQ.1).-1.
 compute in s.
 pose z' := (map (fun x => [:: x]) zQ.1).
 pose Qf := map (map F2FI) zQ.2.
 compute in Qf.
-Admitted. (* mx_of_seqmx_val was not found in the current environment.
+(* mx_of_seqmx_val was not found in the current environment: *)
 pose za := @mx_of_seqmx_val _ (@mnm0 n.+1) s.+1 1 (map (map (@multinom_of_seqmultinom_val n.+1)) z').
 pose Qa := @mx_of_seqmx_val _ (FI0 fs) s.+1 s.+1 Qf.
 apply soscheck_correct with
