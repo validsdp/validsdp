@@ -7,8 +7,6 @@ cholesky_infnan.v
 cholesky_prog.v
 cholesky.v
 coqinterval_infnan.v
-ellipsoid_error_infnan.v
-ellipsoid_error.v
 fcmdotprod.v
 fdotprod.v
 float_infnan_spec.v
@@ -25,6 +23,8 @@ seqmx_complements.v
 seqmx.v
 testsuite.v
 validsdp.v
+# ellipsoid_error_infnan.v
+# ellipsoid_error.v
 # profile.v
 # computation.v
 
@@ -54,7 +54,7 @@ QUOT = "$(shell printf '\x22')"
 
 -extra deps.html deps.dot "dot -Tcmapx $< -o deps.html"
 
--extra-phony doc "html deps.png deps.html" "cp deps.png html/ ;\
+-extra-phony doc "gallinahtml deps.png deps.html" "cp deps.png html/ ;\
 	if ! grep -e 'deps[.]png' html/toc.html; then\
 	  sed -i html/toc.html \
 	  -e 's,id=.main.>,&<img src='\''deps.png'\'' border=0 usemap='\''#coq_dependencies'\'' />,' \
