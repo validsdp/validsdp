@@ -57,6 +57,38 @@ let ofPair ofa ofb c = match snd (Term.decompose_app c) with
   | [_; _; a; b] -> ofa a, ofb b
   | _ -> assert false
 
+let positive_path = ["Coq"; "Numbers"; "BinNums"]
+let coq_positive_ind = lazy (init_constant positive_path "positive")
+let coq_positive_I = lazy (init_constant positive_path "xI")
+let coq_positive_O = lazy (init_constant positive_path "xO")
+let coq_positive_H = lazy (init_constant positive_path "xH")
+
+let rec mkPositive n =
+  if n <= 1 then Lazy.force coq_positive_H
+  else if n mod 2 = 0 then
+    Term.mkApp (Lazy.force coq_positive_O, [|mkPositive (n / 2)|])
+  else
+    Term.mkApp (Lazy.force coq_positive_I, [|mkPositive (n / 2)|])
+
+let rec ofPositive c = match Term.decompose_app c with
+  | c, [] -> 1
+  | c, [n] when eq_cst c coq_positive_O -> 2 * ofPositive n
+  | c, [n] (*when eq_cst c coq_positive_I*) -> 2 * ofPositive n + 1
+  | _ -> assert false
+
+let nat_path = ["Coq"; "Numbers"; "BinNums"]
+let coq_N_ind = lazy (init_constant nat_path "N")
+let coq_N_0 = lazy (init_constant nat_path "N0")
+let coq_N_pos = lazy (init_constant nat_path "Npos")
+
+let rec mkN n =
+  if n <= 0 then Lazy.force coq_N_0
+  else Term.mkApp (Lazy.force coq_N_pos, [|mkPositive n|])
+
+let rec ofN c = match snd (Term.decompose_app c) with
+  | [] -> 0
+  | p :: _ -> ofPositive p
+
 let int31_path = ["Coq"; "Numbers"; "Cyclic"; "Int31"; "Int31"]
 let coq_int31_ind = lazy (init_constant int31_path "int31")
 let coq_int31_I31 = lazy (init_constant int31_path "I31")
@@ -203,8 +235,8 @@ let mkFloat f =
        
 let soswitness env c =
   (* First typecheck the input. *)
-  let ty_nat = Lazy.force coq_nat_ind in
-  let ty_seqmultinom = tyList ty_nat in
+  let ty_N = Lazy.force coq_N_ind in
+  let ty_seqmultinom = tyList ty_N in
   let ty_bigQ = Lazy.force coq_bigQ_ind in
   let () =
     let _, ty = Typing.type_of env (Evd.from_env env) c in
@@ -216,7 +248,7 @@ let soswitness env c =
             ++ str " (expected " ++ Printer.pr_constr ty_input ++ str ").") in
   (* Deconstruct the input (translate it from Coq to OCaml). *)
   let p =
-    let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofNat c) in
+    let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofN c) in
     Osdp.Sos.Q.Poly.of_list (ofList (ofPair ofSeqmultinom ofBigQ) c) in
   let () =
     if Osdp.Sos.Q.Poly.is_const p <> None then
@@ -246,7 +278,7 @@ let soswitness env c =
   let ty_float_matrix = tyList ty_float_list in
   mkPair
     ty_seqmultinom_list ty_float_matrix
-    (mkList ty_seqmultinom (mkList ty_nat mkNat))
+    (mkList ty_seqmultinom (mkList ty_N mkN))
     (mkList ty_float_list (mkList ty_float mkFloat))
     (z, q),
   tyPair ty_seqmultinom_list ty_float_matrix

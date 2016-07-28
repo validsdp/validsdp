@@ -1,8 +1,10 @@
 Require Import soswitness.soswitness.
 
+Open Scope N_scope.
+
 Goal True.
 Proof.
-Fail soswitness of ([::] : seq (seq nat * BigQ.t_)) in y.
+Fail soswitness of ([::] : seq (seq N * BigQ.t_)) in y.
 set (p := [:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]).
 Fail soswitness of p in y'.
 Fail soswitness of [:: ([:: 0; 0; 0; 0], 3%bigZ)] in y.
