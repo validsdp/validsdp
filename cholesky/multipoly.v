@@ -1527,7 +1527,7 @@ Definition M_hrel (m : M.t A) (m' : M.t C) : Type :=
 
 Definition ReffmpolyC {n} := (@Reffmpoly A n \o M_hrel)%rel.
 
-Context `{!one_of C, !opp_of C, !add_of C, !sub_of C, !mul_of C}.
+Context `{!zero_of C, !one_of C, !opp_of C, !add_of C, !sub_of C, !mul_of C, !eq_of C}.
 
 Context `{!refines rAC 1%R 1%C}.
 Context `{!refines (rAC ==> rAC) -%R -%C}.
@@ -1803,6 +1803,13 @@ eapply IHt.
   by rewrite refinesE -H1 -H3; apply: (snd Heq).
 - rewrite -H2 -H4; exact: Heqs.
 Qed.
+
+Global Instance refinesC_list_of_mpoly_eff n :
+  refines (@ReffmpolyC n ==>
+    list_R (fun x y => refines Rseqmultinom x.1 y.1 * rAC x.2 y.2)%type)
+    (@list_of_mpoly A n) list_of_mpoly_eff.
+Proof.
+Admitted.  (* Pierre *)
 
 Global Instance ReffmpolyC_mp0_eff (n : nat) :
   refines (@ReffmpolyC n) 0 (@mp0_eff C).

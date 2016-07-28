@@ -743,9 +743,16 @@ Admitted. (* Erik *)
 
 Section refinement_soscheck.
 
-Variables (A : comRingType) (C : Type) (rAC : A -> C -> Type).
+Variables (A : comRingType) (C : Type) (rAC : A -> C -> Type) (C2A : C -> A).
+Hypothesis C2A_correct : forall c, rAC (C2A c) c.
 Context `{!zero_of C, !one_of C, !opp_of C, !add_of C, !sub_of C, !mul_of C, !eq_of C}.
 Context {n s : nat}.
+
+Context `{!refines rAC 1%R 1%C}.
+Context `{!refines (rAC ==> rAC) -%R -%C}.
+Context `{!refines (rAC ==> rAC ==> rAC) +%R +%C}.
+Context `{!refines (rAC ==> rAC ==> rAC) (fun x y => x + -y)%R sub_op}.
+Context `{!refines (rAC ==> rAC ==> rAC) *%R *%C}.
 
 Instance zero_instMnm : zero_of 'X_{1..n} := mnm0.
 
@@ -753,6 +760,55 @@ Lemma param_check_base :
   refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_R_S_R nat_R_O_R) ==> eq)
     (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
 Proof.
+rewrite refinesE=> p p' rp z z' rz.
+rewrite /check_base_ssr /check_base_eff /check_base.
+set sm := iteri_ord _ _ _.
+set sm' := iteri_ord _ _ _.
+set l := _ p; set l' := _ p'.
+suff : forall (m : 'X_{1..n}) m', Rseqmultinom m m' ->
+  smem_ssr m sm = smem_eff m' sm'.
+{ move=> H; apply refinesP, refines_bool_eq; rewrite refinesE.
+  have : list_R
+        (fun (x : 'X_{1.. n} * A) (y : seqmultinom * C) =>
+         (refines Rseqmultinom x.1 y.1 * rAC x.2 y.2)%type) l l'.
+  { rewrite /l /l'; apply refinesP; eapply refines_apply.
+    { apply (refinesC_list_of_mpoly_eff (C2A:=C2A)), C2A_correct. }
+    by rewrite refinesE. }
+  apply all_R=> mc mc' rmc.
+  move: (H mc.1 mc'.1); rewrite /smem_ssr /smem_eff /smem=>H'.
+  rewrite H'; [by apply bool_Rxx|].
+  move: rmc; rewrite refinesE=> rmc'; exact rmc'.1. }
+move=> m m' rm.
+rewrite /sm /sm'.
+set f := fun _ => _; set f' := fun _ => iteri_ord _ _.
+set P := fun s s' => smem_ssr m s = smem_eff m' s'; rewrite -/(P _ _).
+apply iteri_ord_ind2 => [//|i i' se se' Hi Hi' Hse|//].
+rewrite /P in Hse; rewrite {}/P {}/f {}/f'.
+set f := fun _ => _; set f' := fun _ => _ _.
+set P := fun s s' => smem_ssr m s = smem_eff m' s'; rewrite -/(P _ _).
+apply iteri_ord_ind2=> [//|j j' se'' se''' Hj Hj' Hse''|//].
+rewrite /P in Hse''; rewrite {}/P {}/f {}/f'.
+rewrite /smem_ssr /smem /sadd /sadd_ssr in_cons.
+rewrite /smem_ssr /smem in Hse''; rewrite Hse''.
+rewrite /smem_eff /sadd_eff.
+apply/idP/idP.
+{ move/orP=> [].
+  { move=>/eqP H; apply S.mem_1, S.add_1.
+    apply/mnmc_eq_seqP/eqP/esym.
+    set mm' := mul_monom_op _ _.
+    apply/eqP;  move: H=>/eqP; set mm := mul_monom_op _ _.
+    suff: (m == mm) = (m' == mm'); [by move=>->|].
+    apply Rseqmultinom_eq; [by rewrite refinesE|].
+    rewrite /mm /mm' /mul_monom_op /mul_monom_ssr /mul_monom_eff.
+    refines_apply_tc.
+    admit.
+    admit. }
+  by move/S.mem_2=> H; apply S.mem_1, S.add_2. }
+move/S.mem_2.
+set mm := mul_monom_op _ _; case Em' : (m' == mm).
+{ admit. }
+move/S.add_3=>H; apply/orP; right; apply S.mem_1, H.
+by move/mnmc_eq_seqP; rewrite eq_sym Em'.
 Admitted.  (* Pierre *)
 
 Context `{!max_of A}.
