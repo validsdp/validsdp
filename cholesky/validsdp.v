@@ -750,7 +750,7 @@ Context {n s : nat}.
 Instance zero_instMnm : zero_of 'X_{1..n} := mnm0.
 
 Lemma param_check_base :
-  refines (ReffmpolyA rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_R_S_R nat_R_O_R) ==> eq)
+  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_R_S_R nat_R_O_R) ==> eq)
     (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
 Proof.
 Admitted.  (* Pierre *)
@@ -759,7 +759,7 @@ Context `{!max_of A}.
 Context `{!max_of C}.
 
 Lemma param_max_coeff :
-  refines (ReffmpolyA (n:=n) rAC ==> rAC) max_coeff_ssr max_coeff_eff.
+  refines (ReffmpolyC (n:=n) rAC ==> rAC) max_coeff_ssr max_coeff_eff.
 Proof.
 Admitted.  (* Pierre *)
 
@@ -774,7 +774,7 @@ Context {C2F : C -> F}.  (* overapproximation *)
 (* Typeclasses eauto := debug. *)
 
 Lemma param_soscheck :
-  refines (ReffmpolyA rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_R_S_R nat_R_O_R) ==> Rseqmx (nat_Rxx s.+1) (nat_Rxx s.+1) ==> eq)
+  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_R_S_R nat_R_O_R) ==> Rseqmx (nat_Rxx s.+1) (nat_Rxx s.+1) ==> eq)
     (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
     (soscheck_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
 Proof.
@@ -803,40 +803,40 @@ Global Instance param_ratBigQ_mul :
 Admitted.  (* Erik *)
 
 Lemma param_interp_poly n ap : vars_ltn n.+1 ap ->
-  refines (ReffmpolyA r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
+  refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
 Proof.
 elim: ap.
-{ move=> c /= _; eapply refines_apply; [eapply ReffmpolyA_mpolyC_eff; try by tc|].
+{ move=> c /= _; eapply refines_apply; [eapply ReffmpolyC_mpolyC_eff; try by tc|].
   by rewrite refinesE. }
 { move=> i /= Hn.
   rewrite -(GRing.scale1r (mpolyX _ _)) -/(mpvar 1 1 (inord i)).
   eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-  { by apply (ReffmpolyA_mpvar_eff (C2A:=BigQ2rat)). }
+  { by apply ReffmpolyC_mpvar_eff. }
   { tc. }
   { by rewrite refinesE. }
   admit.  (* Erik *) }
 { move=> p Hp q Hq /= /andP [] Hlp Hlq.
   rewrite /GRing.add /=.
   eapply refines_apply; first eapply refines_apply.
-  { by apply (ReffmpolyA_mpoly_add_eff (C2A:=BigQ2rat)). }
+  { by apply (ReffmpolyC_mpoly_add_eff (C2A:=BigQ2rat)). }
   { by apply Hp. }
   by apply Hq. }
 { move=> p Hp q Hq /= /andP [] Hlp Hlq.
   set p' := _ _ p; set q' := _ _ q.
   rewrite -[(_ - _)%R]/(mpoly_sub p' q').
   eapply refines_apply; first eapply refines_apply.
-  { by apply (ReffmpolyA_mpoly_sub_eff (C2A:=BigQ2rat)). }
+  { by apply (ReffmpolyC_mpoly_sub_eff (C2A:=BigQ2rat)). }
   { by apply Hp. }
   by apply Hq. }
 { move=> p Hp q Hq /= /andP [] Hlp Hlq.
   rewrite /GRing.mul /=.
   eapply refines_apply; first eapply refines_apply.
-  { by apply (ReffmpolyA_mpoly_mul_eff (C2A:=BigQ2rat)). }
+  { by apply (ReffmpolyC_mpoly_mul_eff (C2A:=BigQ2rat)). }
   { by apply Hp. }
   by apply Hq. }
 move=> p Hp m /= Hlp.
 eapply refines_apply; first eapply refines_apply.
-{ by apply (ReffmpolyA_mpoly_exp_eff (C2A:=BigQ2rat)). }
+{ by apply (ReffmpolyC_mpoly_exp_eff (C2A:=BigQ2rat)). }
 { by apply Hp. }
 by rewrite refinesE.
 Admitted.  (* Erik *)
