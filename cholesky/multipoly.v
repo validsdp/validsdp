@@ -620,7 +620,7 @@ Global Instance refines_mnmc_lt n :
   refines (Rseqmultinom ==> Rseqmultinom ==> Logic.eq)
     (@mnmc_lt n) (mnmc_lt_seq).
 Proof.
-Admitted.  (* TODO: after migration *)
+Admitted.  (* Pierre *)
 
 (** Multivariate polynomials *)
 
@@ -1824,16 +1824,14 @@ Global Instance ReffmpolyA_mp0_eff (n : nat) :
   refines (@ReffmpolyA n) 0 (@mp0_eff C).
 Proof.
 eapply refines_trans; [by apply composable_comp|by apply refines_mp0_eff|].
-Admitted. (*
-apply set_refines, refines_M_hrel_empty.
+apply refines_M_hrel_empty.
 Qed.
-*)
 
 Global Instance ReffmpolyA_mp1_eff (n : nat) :
   refines (@ReffmpolyA n) 1 (mp1_eff (n:=n)).
 Proof.
 eapply refines_trans; [by apply composable_comp|by apply refines_mp1_eff|].
-Admitted. (*
+Admitted. (* Erik
 apply set_refines; rewrite /mp1_eff; eapply refines_apply; [|by tc].
 by eapply refines_apply; [apply refines_M_hrel_singleton|apply refines_eq_refl].
 Qed.
@@ -1844,7 +1842,7 @@ Global Instance ReffmpolyA_mpvar_eff {n1 n2 : nat} (rn : nat_R n1 n2) :
     mpvar (mpvar_eff (n:=n2)).
 Proof.
 eapply refines_trans; [|by eapply refines_mpvar_eff|].
-Admitted. (*
+Admitted. (* Erik
 { do 2 apply composable_imply_id1.
   rewrite -{2}(comp_eqr (Rord rn)); apply composable_imply, composable_comp.
   }
@@ -1863,7 +1861,7 @@ Proof.
 eapply (refines_trans (rAB:=(Logic.eq ==> Reffmpoly)%rel)
                     (rBC:=(rAC ==> M_hrel)%rel)); [|by apply refines_mpolyC_eff|].
 { admit; rewrite -{2}(@comp_eql _ _ rAC); apply composable_imply, composable_comp. }
-Admitted. (*
+Admitted. (* Erik
 apply set_refines; rewrite /mpolyC_eff.
 apply refines_abstr => c c' refines_c.
 eapply refines_apply; [|by apply refines_c].
@@ -1877,7 +1875,7 @@ Proof.
 eapply refines_trans; [|by apply refines_mpolyX_eff|].
 { Fail rewrite -{2}(comp_eqr Rseqmultinom).
   admit; apply composable_imply, composable_comp. }
-Admitted. (*
+Admitted. (* Erik
 apply set_refines; rewrite /mpolyX_eff.
 apply refines_abstr => m m' refines_m.
 eapply refines_apply; [|by tc].
@@ -1934,7 +1932,7 @@ Proof.
 rewrite /mpoly_exp_eff.
 apply refines_abstr => m m' refines_m.
 apply refines_abstr => k k'; rewrite refinesE => <- {k'}.
-Admitted. (*
+Admitted. (* Erik
 elim: k => [|k' IHk] /=.
 { rewrite /mp1_eff; eapply refines_apply; [|by tc].
   eapply refines_apply; [apply refines_M_hrel_singleton|by apply trivial_refines]. }
@@ -1949,7 +1947,7 @@ Global Instance ReffmpolyA_mpoly_exp_eff (n : nat) :
     (@mpoly_exp A n) (mpoly_exp_eff (n:=n)).
 Proof.
 eapply refines_trans; [|by apply refines_mpoly_exp_eff|].
-Admitted. (*
+Admitted. (* Erik
 { apply composable_imply, composable_imply_id1, composable_comp. }
 apply set_refines, refines_M_hrel_mpoly_exp_eff.
 Qed.
@@ -1994,7 +1992,7 @@ eapply (refines_trans
           (rAB:=(@seq_Reffmpoly _ n k ==> Reffmpoly ==> Reffmpoly)%rel));
   [|by apply refines_comp_mpoly_eff|].
 { apply composable_imply, composable_imply, composable_comp. }
-Admitted. (*
+Admitted. (* Erik
 apply set_refines; rewrite /comp_mpoly_eff.
 apply refines_abstr => lq lq' refines_lq.
 apply refines_abstr => p p' refines_p.
