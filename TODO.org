@@ -84,6 +84,8 @@
 *** DONE change FMapList to FMapAVL                                  :Pierre:
 ** DONE Look-at doc on OCaml tactics
    CLOSED: [2016-07-15 Fri 20:59]
+** TODO change binord to nat in mpvar_eff                              :Erik:
+** TODO change nat to N in OCaml module soswitness                   :Pierre:
 ** DONE Look at how to parse goals
    CLOSED: [2016-07-15 Fri 20:59]
 ** DONE Look-at Victor's JFR paper				:Erik:Pierre:
@@ -95,12 +97,12 @@
 **** DONE Migrate iteri_ord, cholesky_prog                           :Pierre:
 **** TODO Migrate multipoly					       :Erik:
 **** STARTED refine effmpoly from rat to bigQ			       :Erik:
-*** TODO Define fcts with "check_size" to discharge the last 2 goals   :Erik:
+*** TODO Define fcts with "check_size" to discharge the last 2 goals :Pierre:
 *** TODO Fix Ltac parsing w.r.t integers/rationals		       :Erik:
 *** TODO Finish writing the tactic				       :Erik:
 *** TODO Prove ZZtoQ_correct					       :Erik:
 *** DONE Prove interp_poly_correct
-*** TODO param_soscheck, param_max_coeff, param_check_base
+*** TODO param_soscheck, param_max_coeff, param_check_base           :Pierre:
 **** TODO Think-of lists vs. finsets
 *** TODO [#C] Reportbug scope issue with refines/%rel
 *** TODO benchs							     :Pierre:
