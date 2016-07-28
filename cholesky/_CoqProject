@@ -29,18 +29,8 @@ validsdp.v
 # computation.v
 
 COQDOCFLAGS = "-interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq"
-QUOT = "$(shell printf '\x22')"
 
-# -extra deps.dot $(VFILES) "(echo 'digraph coq_dependencies {';\
-# 	echo 'node [shape = ellipse, style=filled, URL=$(QUOT)ValidSDP.\N.html$(QUOT), color=black, fillcolor=cornflowerblue];';\
-# 	cat $(addsuffix .d,$(VFILES)) |\
-# 	  sed -n -e 's,./,,g;s,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' |\
-# 	  while read src dst; do\
-# 	    for d in $$dst; do\
-# 	      echo $$src' -> '$${d%.vo}' ;';\
-# 	    done;\
-# 	  done;\
-# 	echo '}') | tred > $@"
+QUOT = "$(shell printf '\x22')"
 
 -extra coqgraph coqgraph.ml "ocamlc.opt -o $@ $<"
 
