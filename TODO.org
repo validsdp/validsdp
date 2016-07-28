@@ -85,7 +85,7 @@
 ** DONE Look-at doc on OCaml tactics
    CLOSED: [2016-07-15 Fri 20:59]
 ** TODO change binord to nat in mpvar_eff                              :Erik:
-** TODO change nat to N in OCaml module soswitness                   :Pierre:
+** DONE change nat to N in OCaml module soswitness                   :Pierre:
 ** DONE Look at how to parse goals
    CLOSED: [2016-07-15 Fri 20:59]
 ** DONE Look-at Victor's JFR paper				:Erik:Pierre:
