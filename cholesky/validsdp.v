@@ -872,16 +872,16 @@ match goal with
 end.
 compute in n.
 pose bqp := interp_poly_eff n ap.
-Fail let l := eval vm_compute in (@id (seq (seq nat * BigQ.t_)) (M.elements bqp)) in
+let l := eval vm_compute in (@id (seq (seq binnat.N * BigQ.t_)) (M.elements bqp)) in
 let zQ := fresh "zQ" in soswitness of l in zQ.
-Admitted. (*
 pose s := (size zQ.1).-1.
 compute in s.
 pose z' := (map (fun x => [:: x]) zQ.1).
 pose Qf := map (map F2FI) zQ.2.
 compute in Qf.
 (* mx_of_seqmx_val was not found in the current environment: *)
-pose za := @mx_of_seqmx_val _ (@mnm0 n.+1) s.+1 1 (map (map (@multinom_of_seqmultinom_val n.+1)) z').
+Fail pose za := @mx_of_seqmx_val _ (@mnm0 n.+1) s.+1 1 (map (map (@multinom_of_seqmultinom_val n.+1)) z').
+Admitted. (*
 pose Qa := @mx_of_seqmx_val _ (FI0 fs) s.+1 s.+1 Qf.
 apply soscheck_correct with
         (1 := rat2R_additive)
