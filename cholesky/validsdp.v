@@ -830,7 +830,7 @@ Context {C2F : C -> F}.  (* overapproximation *)
 (* Typeclasses eauto := debug. *)
 
 Lemma param_soscheck :
-  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_R_S_R nat_R_O_R) ==> Rseqmx (nat_Rxx s.+1) (nat_Rxx s.+1) ==> eq)
+  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (*(nat_R_S_R nat_R_O_R)*) (nat_Rxx 1) ==> Rseqmx (nat_Rxx s.+1) (nat_Rxx s.+1) ==> eq)
     (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
     (soscheck_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
 Proof.
@@ -935,10 +935,8 @@ compute in s.
 pose z' := (map (fun x => [:: x]) zQ.1).
 pose Qf := map (map F2FI) zQ.2.
 compute in Qf.
-(* mx_of_seqmx_val was not found in the current environment: *)
-Fail pose za := @mx_of_seqmx_val _ (@mnm0 n.+1) s.+1 1 (map (map (@multinom_of_seqmultinom_val n.+1)) z').
-Admitted. (*
-pose Qa := @mx_of_seqmx_val _ (FI0 fs) s.+1 s.+1 Qf.
+pose za := @spec_seqmx _ (@mnm0 n.+1) _ (@multinom_of_seqmultinom_val n.+1) s.+1 1 z'.
+pose Qa := @spec_seqmx _ (FI0 fs) _ (id) s.+1 s.+1 Qf.
 apply soscheck_correct with
         (1 := rat2R_additive)
         (2 := rat2F_correct)
@@ -947,13 +945,38 @@ apply soscheck_correct with
         (5 := max_r)
         (z := za)
         (Q := Qa).
-apply (etrans (y:=@soscheck_eff 2 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ 1 fs FI2BigQ BigQ2FI (interp_poly_eff n ap) (map (fun x => [:: x]) zQ.1) Qf)).
+apply (etrans (y:=@soscheck_eff 2 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ 1 fs FI2BigQ BigQ2FI (interp_poly_eff n ap) z' Qf)).
 2: by vm_compute.  (* TODO: on recalcule une deuxième fois interp_poly_eff, à éviter avec un remember ou quelque chose *)
-apply param_eq.
-eapply param_apply; first eapply param_apply; first eapply param_apply.
-{ apply param_soscheck. }
+apply refines_eq.
+eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
+{ apply (param_soscheck (rAC := r_ratBigQ) (C2A := BigQ2rat)); by tc. }
 { by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
-admit.  (* Érik (utiliser RseqmxC_spec_seqmx) *)
-admit.  (* @Érik : Rseqmx_spec_seqmx devrait s'appliquer facilement. *)
-Admitted.
-*)
+rewrite refinesE (*!*) /za /z'.
+eapply RseqmxC_spec_seqmx.
+{ done. (* size check *) }
+{ rewrite {2}[[seq [:: x0] | x0 <- zQ.1]](_: ?[x] = map_seqmx id ?x) //.
+  eapply (map_seqmx_R (A_R := fun m m' => m = m' /\ size m' = n.+1)); last first.
+  fold z'.
+  have : all (all (fun s => size s == n.+1)) z' by compute.
+  clear; elim: z'  =>[//|a l IHl] Hsz /=.
+  constructor 2 =>//.
+  elim: a Hsz =>[//|b r IHr] Hsz.
+  constructor 2 =>//.
+  split=>//.
+  move/(all_nthP [::])/(_ 0%N)/(_ erefl)/(all_nthP [::])/(_ 0%N)/(_ erefl): Hsz.
+  by move/eqP.
+  apply: IHr.
+  simpl in Hsz |- *.
+  have {Hsz}/andP[/andP [_ Hsz0 Hsz1] ] := Hsz.
+  by rewrite Hsz0 Hsz1.
+  apply: IHl.
+  simpl in Hsz.
+  by have {Hsz}/andP[_ ->] := Hsz.
+  (* ...we should move all this to a separate lemma... *)
+  move=> m m' Hm; rewrite /spec /spec_id (proj1 Hm).
+  apply refinesP.
+  eapply refines_multinom_of_seqmultinom_val (* to rename! *).
+  by rewrite (proj2 Hm).
+}
+by rewrite refinesE; eapply Rseqmx_spec_seqmx.
+Qed.

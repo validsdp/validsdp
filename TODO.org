@@ -100,7 +100,7 @@
 *** STARTED refine effmpoly from rat to bigQ			       :Erik:
 ** TODO Define fcts with "check_size" to discharge the last 2 goals  :Pierre:
 ** TODO Fix Ltac parsing w.r.t integers/rationals		       :Erik:
-** TODO Finish writing the tactic				       :Erik:
+** STARTED Finish writing the tactic				       :Erik:
 ** TODO Prove ZZtoQ_correct					       :Erik:
 ** DONE Prove interp_poly_correct
 ** TODO param_soscheck, param_max_coeff, param_check_base	     :Pierre:
