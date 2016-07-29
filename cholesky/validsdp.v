@@ -929,7 +929,7 @@ end.
 compute in n.
 pose bqp := interp_poly_eff n ap.
 let l := eval vm_compute in (@id (seq (seq binnat.N * BigQ.t_)) (M.elements bqp)) in
-let zQ := fresh "zQ" in soswitness of l in zQ.
+let zQ := fresh "zQ" in soswitness of l as zQ.
 pose s := (size zQ.1).-1.
 compute in s.
 pose z' := (map (fun x => [:: x]) zQ.1).

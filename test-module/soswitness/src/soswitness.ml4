@@ -293,8 +293,8 @@ let soswitness gl c id =
   let nowhere = Locus.({ onhyps = Some []; concl_occs = NoOccurrences }) in
   tac <*> Tactics.letin_tac None (Name id) v (Some t) nowhere
 
-TACTIC EXTEND soswitness_of_in
-| ["soswitness" "of" constr(c) "in" ident(id) ] -> 
+TACTIC EXTEND soswitness_of_as
+| ["soswitness" "of" constr(c) "as" ident(id) ] -> 
   [ Proofview.Goal.enter 
       (fun gl ->
        let gl = Proofview.Goal.assume gl in
