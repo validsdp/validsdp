@@ -2,6 +2,10 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.
 From mathcomp Require Import prime binomial ssralg.
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
 (* Erik Martin-Dorel, 2016 *)
 
 (** * Tactic for rewriting under bigops *)
@@ -85,7 +89,7 @@ Ltac find_pat_in H pat tac :=
   match type of H with context [?x] =>
     unify pat x with typeclass_instances;
     tryif tac x then idtac else fail 2
-end.
+  end.
 
 (** [underbig…in] allows one to apply a given tactic under some bigop:
     if [pat] is a local variable (let-in) that appears in H,
@@ -99,8 +103,10 @@ Tactic Notation "underbig" "in" hyp(H) open_constr(pat) simple_intropattern(x) s
 
 (** ** Tests *)
 
+Section Tests.
+
 (* A test lemma covering several testcases. *)
-Lemma test1 (n : nat) (R : ringType) (f1 f2 g : nat -> R) :
+Let test1 (n : nat) (R : ringType) (f1 f2 g : nat -> R) :
   (\big[+%R/0%R]_(i < n) ((f1 i + f2 i) * g i) +
   \big[+%R/0%R]_(i < n) ((f1 i + f2 i) * g i) =
   \big[+%R/0%R]_(i < n) ((f1 i + f2 i) * g i) +
@@ -119,7 +125,7 @@ by rewrite GRing.addrA.
 Qed.
 
 (* A test with a side-condition. *)
-Lemma test2 (n : nat) (R : fieldType) (f : nat -> R) :
+Let test2 (n : nat) (R : fieldType) (f : nat -> R) :
   (forall k : 'I_n, f k != 0%R) ->
   (\big[+%R/0%R]_(i < n) (f i / f i) = n%:R)%R.
 Proof.
@@ -133,7 +139,7 @@ by rewrite iteropS iterSr GRing.addr0.
 Qed.
 
 (* Another test lemma when the bigop appears in some hypothesis *)
-Lemma test3 (n : nat) (R : fieldType) (f : nat -> R) :
+Let test3 (n : nat) (R : fieldType) (f : nat -> R) :
   (forall k : 'I_n, f k != 0%R) ->
   (\big[+%R/0%R]_(i < n) (f i / f i) +
   \big[+%R/0%R]_(i < n) (f i / f i) = n%:R + n%:R)%R -> True.
@@ -150,3 +156,5 @@ done.
 
 move=> *; exact: Hneq0.
 Qed.
+
+End Tests.
