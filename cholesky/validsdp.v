@@ -1260,11 +1260,9 @@ Lemma p_ind (x0 x1 x2 : R) : ((p (1/4
                                                          + 2/5 * (x0)^2)))
        - (sigma x0 x1 x2)
          * (p x0 x1 x2)
-       - (sigma1 x0 x1 x2) * ((x0)^2 + (x1)^2 + (x2)^2 - 1) >= 0)%Re.
+       - (sigma1 x0 x1 x2) * ((x0)^2 + (x1)^2 + (x2)^2 - 1 / 1) >= 0)%Re.
 rewrite /p /sigma /sigma1.
-Fail do_sdp.  (* Error: No matching clauses for match. *)
-Abort.
-(*
+do_sdp.  (* 20.7 s *)
 match goal with
 | [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
   set n := qn;
@@ -1273,7 +1271,7 @@ end.
 compute in n.
 pose bqp := interp_poly_eff n ap.
 let l := eval vm_compute in (@id (seq (seq binnat.N * BigQ.t_)) (M.elements bqp)) in
-let zQ := fresh "zQ" in soswitness of l as zQ.  (* 0.873 s *)
+let zQ := fresh "zQ" in soswitness of l as zQ.  (* 2.35 s *)
 pose s := (size zQ.1).-1.
 compute in s.
 pose z' := (map (fun x => [:: x]) zQ.1).
@@ -1289,7 +1287,7 @@ apply soscheck_correct with
         (z := za)
         (Q := Qa).
 apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs FI2BigQ BigQ2FI (interp_poly_eff n ap) z' Qf)).
-2: by vm_compute.  (* 0.12 s, TODO: on recalcule une deuxième fois interp_poly_eff, à éviter avec un remember ou quelque chose *)
+2: by vm_compute.  (* 0.615 s, TODO: on recalcule une deuxième fois interp_poly_eff, à éviter avec un remember ou quelque chose *)
 apply refines_eq.
 eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
 { apply (param_soscheck (rAC := r_ratBigQ) (C2A := BigQ2rat)); by tc. }
@@ -1319,4 +1317,5 @@ eapply RseqmxC_spec_seqmx.
 }
 by rewrite refinesE; eapply Rseqmx_spec_seqmx.
 Qed.
-*)
+
+(* Time for the three lemmas above in OCaml : 0.045 s *)
