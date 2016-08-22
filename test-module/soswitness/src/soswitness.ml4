@@ -3,6 +3,12 @@
 
 DECLARE PLUGIN "soswitness"
 
+let options = { Osdp.Sos.Q.default with
+                Osdp.Sos.Q.verbose = 0(*3*);
+                Osdp.Sos.Q.sdp =
+                  { Osdp.Sdp.default with
+                    Osdp.Sdp.solver = Osdp.Sdp.Mosek } }
+
 exception Parse_error
 
 (* Various constructors and destructors needed. *)
@@ -257,7 +263,7 @@ let soswitness env c =
   (* Call OSDP to retrieve a witness for p >= 0. *)
   let z, q =
     let _, _, _, wl =
-      Osdp.Sos.Q.solve Osdp.Sos.Q.Purefeas [Osdp.Sos.Q.Const p] in
+      Osdp.Sos.Q.solve ~options Osdp.Sos.Q.Purefeas [Osdp.Sos.Q.Const p] in
     match wl with
     | [] -> Errors.error "soswitness: OSDP found no witness."
     | [z, q] ->
