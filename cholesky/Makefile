@@ -9,7 +9,10 @@ else
 endif
 export COQBIN
 
-all install html gallinahtml deps.dot deps.png doc %.vo: $(COQ_MAKEFILE)
+all install html gallinahtml deps.dot deps.png doc: $(COQ_MAKEFILE)
+	$(COQ_MAKE) $@
+
+%.vo: %.v
 	$(COQ_MAKE) $@
 
 clean:
