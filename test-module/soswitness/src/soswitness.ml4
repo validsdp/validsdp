@@ -3,6 +3,8 @@
 
 DECLARE PLUGIN "soswitness"
 
+exception Parse_error
+
 (* Various constructors and destructors needed. *)
        
 let find_constant contrib dir s =
@@ -43,7 +45,7 @@ let mkList tye mke l =
 let rec ofList ofe c = match snd (Term.decompose_app c) with
   | [] | [_] (*nil*) -> []
   | [_; h; t] (*cons*) -> ofe h :: ofList ofe t
-  | _ -> assert false
+  | _ -> raise Parse_error
 
 let coq_prod = lazy (init_constant datatypes_path "prod")
 let coq_pair = lazy (init_constant datatypes_path "pair")
@@ -55,7 +57,7 @@ let mkPair tya tyb mka mkb (a, b) =
                 
 let ofPair ofa ofb c = match snd (Term.decompose_app c) with
   | [_; _; a; b] -> ofa a, ofb b
-  | _ -> assert false
+  | _ -> raise Parse_error
 
 let positive_path = ["Coq"; "Numbers"; "BinNums"]
 let coq_positive_ind = lazy (init_constant positive_path "positive")
@@ -74,7 +76,7 @@ let rec ofPositive c = match Term.decompose_app c with
   | c, [] -> 1
   | c, [n] when eq_cst c coq_positive_O -> 2 * ofPositive n
   | c, [n] (*when eq_cst c coq_positive_I*) -> 2 * ofPositive n + 1
-  | _ -> assert false
+  | _ -> raise Parse_error
 
 let nat_path = ["Coq"; "Numbers"; "BinNums"]
 let coq_N_ind = lazy (init_constant nat_path "N")
@@ -107,7 +109,7 @@ let mkInt31 n =
   
 let ofInt31 c =
   let rec aux args acc = match args with
-    | [] -> assert false
+    | [] -> raise Parse_error
     | [d] when eq_cst d coq_int31_0 -> Z.(shift_left (of_int acc) 1)
     | [d] (*when eq_cst d coq_int31_1*) -> Z.(succ (shift_left (of_int acc) 1))
     | d :: t when eq_cst d coq_int31_0 -> aux t (2 * acc)
@@ -142,7 +144,7 @@ let ofZn2z hght c =
          let hght' = hght - 1 in
          let h, l = aux hght' h, aux hght' l in
          Z.add (Z.shift_left h (31 * (1 lsl hght'))) l
-      | _ -> assert false in
+      | _ -> raise Parse_error in
   aux hght c
 
 let bigN_path = ["Coq"; "Numbers"; "Natural"; "BigN"; "BigN"; "BigN"]
@@ -179,7 +181,7 @@ let ofBigN c = match Term.decompose_app c with
   | c, [d] when eq_cst c coq_bigN_N5 -> ofZn2z 5 d
   | c, [d] when eq_cst c coq_bigN_N6 -> ofZn2z 6 d
   | c, [n; d] when eq_cst c coq_bigN_Nn -> ofZn2z (ofNat n + 7) d
-  | _ -> assert false
+  | _ -> raise Parse_error
 
 let bigZ_path = ["Coq"; "Numbers"; "Integer"; "BigZ"; "BigZ"; "BigZ"]
 let coq_bigZ_ind = lazy (init_constant bigZ_path "t")
@@ -193,7 +195,7 @@ let mkBigZ n =
 let ofBigZ c = match Term.decompose_app c with
   | c, [n] when eq_cst c coq_bigZ_Pos -> ofBigN n
   | c, [n] (*when eq_cst c coq_bigZ_Neg*) -> Z.neg (ofBigN n)
-  | _ -> assert false
+  | _ -> raise Parse_error
 
 let bigQ_path = ["Coq"; "Numbers"; "Rational"; "BigQ"; "BigQ"; "BigQ"]
 let coq_bigQ_ind = lazy (init_constant bigQ_path "t_")
@@ -209,7 +211,7 @@ let mkBigQ q =
 let ofBigQ c = match snd (Term.decompose_app c) with
   | [n] (*Qz*) -> Q.of_bigint (ofBigZ n)
   | [n; d] (*Qq*) -> Q.make (ofBigZ n) (ofBigN d)
-  | _ -> assert false
+  | _ -> raise Parse_error
 
 let float_path = ["Interval"; "Interval_specific_ops"]
 let coq_float_ind = lazy (init_constant float_path "s_float")
@@ -234,22 +236,20 @@ let mkFloat f =
 (* The actual tactic. *)
        
 let soswitness env c =
-  (* First typecheck the input. *)
   let ty_N = Lazy.force coq_N_ind in
   let ty_seqmultinom = tyList ty_N in
-  let ty_bigQ = Lazy.force coq_bigQ_ind in
-  let () =
-    let _, ty = Typing.type_of env (Evd.from_env env) c in
-    let ty_input = tyList (tyPair ty_seqmultinom ty_bigQ) in
-    if not (Constr.equal ty ty_input) then
-      Errors.errorlabstrm
-        ""
-        Pp.(str "soswitness: wrong input type " ++ Printer.pr_constr ty
-            ++ str " (expected " ++ Printer.pr_constr ty_input ++ str ").") in
   (* Deconstruct the input (translate it from Coq to OCaml). *)
   let p =
-    let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofN c) in
-    Osdp.Sos.Q.Poly.of_list (ofList (ofPair ofSeqmultinom ofBigQ) c) in
+    try
+      let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofN c) in
+      Osdp.Sos.Q.Poly.of_list (ofList (ofPair ofSeqmultinom ofBigQ) c)
+    with Parse_error ->
+      let ty_bigQ = Lazy.force coq_bigQ_ind in
+      let ty_input = tyList (tyPair ty_seqmultinom ty_bigQ) in
+      Errors.errorlabstrm
+        ""
+        Pp.(str "soswitness: wrong input type (expected "
+            ++ Printer.pr_constr ty_input ++ str ").") in
   let () =
     if Osdp.Sos.Q.Poly.is_const p <> None then
       Errors.error "soswitness: expects a closed term representing \
@@ -284,14 +284,9 @@ let soswitness env c =
   tyPair ty_seqmultinom_list ty_float_matrix
 
 let soswitness gl c id = 
-  let open Proofview in
-  let open Notations in
-  let env = Goal.env gl in
-  let sigma = Goal.sigma gl in
-  let v, t = soswitness env c in
-  let tac = V82.tactic (Refiner.tclEVARS (fst (Typing.type_of env sigma v))) in
+  let v, t = soswitness (Proofview.Goal.env gl) c in
   let nowhere = Locus.({ onhyps = Some []; concl_occs = NoOccurrences }) in
-  tac <*> Tactics.letin_tac None (Name id) v (Some t) nowhere
+  Tactics.letin_tac None (Names.Name id) v (Some t) nowhere
 
 TACTIC EXTEND soswitness_of_as
 | ["soswitness" "of" constr(c) "as" ident(id) ] -> 

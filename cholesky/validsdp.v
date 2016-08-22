@@ -928,7 +928,7 @@ match goal with
 end.
 compute in n.
 pose bqp := interp_poly_eff n ap.
-let l := eval vm_compute in (@id (seq (seq binnat.N * BigQ.t_)) (M.elements bqp)) in
+let l := eval vm_compute in (M.elements bqp) in
 let zQ := fresh "zQ" in soswitness of l as zQ.
 pose s := (size zQ.1).-1.
 compute in s.
@@ -1143,7 +1143,7 @@ match goal with
 end.
 compute in n.
 pose bqp := interp_poly_eff n ap.
-let l := eval vm_compute in (@id (seq (seq binnat.N * BigQ.t_)) (M.elements bqp)) in
+let l := eval vm_compute in (M.elements bqp) in
 let zQ := fresh "zQ" in soswitness of l as zQ.  (* 0.42 s *)
 pose s := (size zQ.1).-1.
 compute in s.
@@ -1201,7 +1201,7 @@ match goal with
 end.
 compute in n.
 pose bqp := interp_poly_eff n ap.
-let l := eval vm_compute in (@id (seq (seq binnat.N * BigQ.t_)) (M.elements bqp)) in
+let l := eval vm_compute in (M.elements bqp) in
 let zQ := fresh "zQ" in soswitness of l as zQ.  (* 0.873 s *)
 pose s := (size zQ.1).-1.
 compute in s.
@@ -1270,7 +1270,7 @@ match goal with
 end.
 compute in n.
 pose bqp := interp_poly_eff n ap.
-let l := eval vm_compute in (@id (seq (seq binnat.N * BigQ.t_)) (M.elements bqp)) in
+let l := eval vm_compute in (M.elements bqp) in
 let zQ := fresh "zQ" in soswitness of l as zQ.  (* 2.35 s *)
 pose s := (size zQ.1).-1.
 compute in s.
