@@ -749,11 +749,13 @@ Hypothesis C2A_correct : forall c, rAC (C2A c) c.
 Context `{!zero_of C, !one_of C, !opp_of C, !add_of C, !sub_of C, !mul_of C, !eq_of C}.
 Context {n s : nat}.
 
+Context `{!refines rAC 0%R 0%C}.
 Context `{!refines rAC 1%R 1%C}.
 Context `{!refines (rAC ==> rAC) -%R -%C}.
 Context `{!refines (rAC ==> rAC ==> rAC) +%R +%C}.
 Context `{!refines (rAC ==> rAC ==> rAC) (fun x y => x + -y)%R sub_op}.
 Context `{!refines (rAC ==> rAC ==> rAC) *%R *%C}.
+Context `{!refines (rAC ==> rAC ==> eq) eqtype.eq_op eq_op}.
 
 Instance zero_instMnm : zero_of 'X_{1..n} := mnm0.
 
@@ -773,7 +775,7 @@ suff : forall (m : 'X_{1..n}) m', Rseqmultinom m m' ->
         (fun (x : 'X_{1.. n} * A) (y : seqmultinom * C) =>
          (refines Rseqmultinom x.1 y.1 * rAC x.2 y.2)%type) l l'.
   { rewrite /l /l'; apply refinesP; eapply refines_apply.
-    { apply (refinesC_list_of_mpoly_eff (C2A:=C2A)), C2A_correct. }
+    { by apply refinesC_list_of_mpoly_eff. }
     by rewrite refinesE. }
   apply all_R=> mc mc' rmc.
   move: (H mc.1 mc'.1); rewrite /smem_ssr /smem_eff /smem=>H'.
@@ -841,6 +843,9 @@ End refinement_soscheck.
 
 Section refinement_interp_poly.
 
+Global Instance param_ratBigQ_zero : refines r_ratBigQ 0%R 0%C.
+Admitted.  (* Erik *)
+
 Global Instance param_ratBigQ_one : refines r_ratBigQ 1%R 1%C.
 Admitted.  (* Erik *)
 
@@ -856,7 +861,11 @@ Global Instance param_ratBigQ_sub :
 Admitted.  (* Erik *)
 
 Global Instance param_ratBigQ_mul :
- refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ)  *%R *%C.
+ refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) *%R *%C.
+Admitted.  (* Erik *)
+
+Global Instance param_ratBigQ_eq :
+ refines (r_ratBigQ ==> r_ratBigQ ==> eq) eqtype.eq_op eq_op.
 Admitted.  (* Erik *)
 
 Lemma param_interp_poly n ap : vars_ltn n.+1 ap ->
