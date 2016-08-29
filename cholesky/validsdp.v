@@ -732,13 +732,21 @@ Lemma rat2R_F2rat :
 Proof.
 Admitted.  (* Erik *)
 
+Instance : refines (eq ==> r_ratBigQ) F2rat FI2BigQ.
+Proof.
+Admitted.  (* Erik *)
+
+Instance : refines (r_ratBigQ ==> eq) rat2F BigQ2FI.
+Proof.
+Admitted.  (* Erik *)
+
 Lemma max_l : forall x0 y0 : rat_comRing, rat2R x0 <= rat2R (Num.max x0 y0).
 Proof.
-Admitted. (* Erik *)
+Admitted.  (* Erik *)
 
 Lemma max_r : forall x0 y0 : rat_comRing, rat2R y0 <= rat2R (Num.max x0 y0).
 Proof.
-Admitted. (* Erik *)
+Admitted.  (* Erik *)
 
 (** ** Part 3: Parametricity *)
 
@@ -759,8 +767,10 @@ Context `{!refines (rAC ==> rAC ==> eq) eqtype.eq_op eq_op}.
 
 Instance zero_instMnm : zero_of 'X_{1..n} := mnm0.
 
-Lemma param_check_base :
-  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_R_S_R nat_R_O_R) ==> eq)
+Instance zero_mpoly : zero_of (mpoly n A) := 0%R.
+
+Instance refines_check_base :
+  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> eq)
     (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
 Proof.
 rewrite refinesE=> p p' rp z z' rz.
@@ -803,24 +813,45 @@ apply/idP/idP.
     suff: (m == mm) = (m' == mm'); [by move=>->|].
     apply Rseqmultinom_eq; [by rewrite refinesE|].
     rewrite /mm /mm' /mul_monom_op /mul_monom_ssr /mul_monom_eff.
-    refines_apply_tc.
-    admit.
-    admit. }
+    refines_apply_tc; refines_apply_tc. }
   by move/S.mem_2=> H; apply S.mem_1, S.add_2. }
 move/S.mem_2.
 set mm := mul_monom_op _ _; case Em' : (m' == mm).
-{ admit. }
+{ case eqP=>//= Hm HIn; apply S.mem_1.
+  move: HIn; apply S.add_3=>_; apply /Hm /eqP.
+  rewrite /is_true -Em'; apply Rseqmultinom_eq.
+  { by rewrite refinesE. }
+  refines_apply_tc; refines_apply_tc. }
 move/S.add_3=>H; apply/orP; right; apply S.mem_1, H.
 by move/mnmc_eq_seqP; rewrite eq_sym Em'.
-Admitted.  (* Pierre *)
+Qed.
 
 Context `{!max_of A}.
 Context `{!max_of C}.
+Context `{!refines (rAC ==> rAC ==> rAC) max_op max_op}.
 
-Lemma param_max_coeff :
+(* TODO: move in CoqEAL_complement? *)
+Global Instance refines_foldl
+  (T T' : Type) (rT : T -> T' -> Type) (R R' : Type) (rR : R -> R' -> Type) :
+  refines ((rR ==> rT ==> rR) ==> rR ==> list_R rT ==> rR)
+    (@foldl T R) (@foldl T' R').
+Proof.
+rewrite refinesE=> f f' rf z z' rz s' s'' rs'.
+elim: s' s'' rs' z z' rz=> [|h t IH] s'' rs' z z' rz.
+{ case: s'' rs'=> [//|h' t'] rs'; inversion rs'. }
+case: s'' rs'=> [|h' t'] rs' /=; [by inversion rs'|].
+apply IH; [by inversion rs'|].
+by apply refinesP; refines_apply_tc; rewrite refinesE; inversion rs'.
+Qed.
+
+Instance param_max_coeff :
   refines (ReffmpolyC (n:=n) rAC ==> rAC) max_coeff_ssr max_coeff_eff.
 Proof.
-Admitted.  (* Pierre *)
+rewrite refinesE=> p p' rp.
+rewrite /max_coeff_ssr /max_coeff_eff /max_coeff.
+apply refinesP; refines_apply_tc.
+apply refines_abstr2=> m m' rm mc mc' rmc; refines_apply_tc.
+Qed.
 
 Context {fs : Float_round_up_infnan_spec}.
 Let F := FI fs.
@@ -828,16 +859,44 @@ Context {F2A : F -> A}.  (* exact conversion for finite values *)
 Context {A2F : A -> F}.  (* overapproximation *)
 Context {F2C : F -> C}.  (* exact conversion for finite values *)
 Context {C2F : C -> F}.  (* overapproximation *)
-(* probably more hypotheses about these ones *)
+Context `{!refines (eq ==> rAC) F2A F2C}.
+Context `{!refines (rAC ==> eq) A2F C2F}.
 
-(* Typeclasses eauto := debug. *)
+(* TODO: move *)
+Lemma list_Rxx T (rT : T -> T -> Type) l : (forall x, rT x x) -> list_R rT l l.
+Proof.
+move=> Hr; elim l=> [|h t IH]; [by apply list_R_nil_R|].
+by apply list_R_cons_R.
+Qed.
 
 Lemma param_soscheck :
   refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (*(nat_R_S_R nat_R_O_R)*) (nat_Rxx 1) ==> Rseqmx (nat_Rxx s.+1) (nat_Rxx s.+1) ==> eq)
     (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
     (soscheck_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
 Proof.
-Admitted.  (* Pierre *)
+rewrite refinesE=> p p' rp z z' rz Q Q' rQ.
+rewrite /soscheck_ssr /soscheck_eff /soscheck.
+apply f_equal2; [by apply refinesP; refines_apply_tc|].
+apply refinesP; do 3 refines_apply_tc.
+eapply refines_apply; [eapply refines_apply|].  (* TODO: on pourra peut être simplifié un peu tout ça quand les preuves dans multipoly seront finies *)
+{ apply (ReffmpolyC_mpoly_sub_eff C2A_correct). }
+{ by rewrite refinesE. }
+refines_apply_tc.
+eapply refines_apply; [eapply refines_apply|].
+{ apply refine_mul_seqmx; [by tc| |].
+  { apply (ReffmpolyC_mpoly_add_eff C2A_correct). }
+  apply (ReffmpolyC_mpoly_mul_eff C2A_correct). }
+eapply refines_apply; [eapply refines_apply|].
+{ apply refine_mul_seqmx; [by tc| |].
+  { apply (ReffmpolyC_mpoly_add_eff C2A_correct). }
+  apply (ReffmpolyC_mpoly_mul_eff C2A_correct). }
+{ refines_apply_tc. }
+{ refines_apply_tc.
+  { apply refines_abstr=> c c' rc /=; refines_apply_tc. }
+  rewrite refinesE; exists Q'; split=>//.
+  by apply list_Rxx=> x; apply list_Rxx. }
+refines_apply_tc.
+Qed.
 
 End refinement_soscheck.
 
@@ -857,15 +916,19 @@ Global Instance param_ratBigQ_add :
 Admitted.  (* Erik *)
 
 Global Instance param_ratBigQ_sub :
- refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) (fun x y => x - y)%R sub_op.
+  refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) (fun x y => x - y)%R sub_op.
 Admitted.  (* Erik *)
 
 Global Instance param_ratBigQ_mul :
- refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) *%R *%C.
+  refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) *%R *%C.
 Admitted.  (* Erik *)
 
 Global Instance param_ratBigQ_eq :
- refines (r_ratBigQ ==> r_ratBigQ ==> eq) eqtype.eq_op eq_op.
+  refines (r_ratBigQ ==> r_ratBigQ ==> eq) eqtype.eq_op eq_op.
+Admitted.  (* Erik *)
+
+Global Instance param_ratBigQ_max :
+  refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) Num.max max_op.
 Admitted.  (* Erik *)
 
 Lemma param_interp_poly n ap : vars_ltn n.+1 ap ->

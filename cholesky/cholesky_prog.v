@@ -1112,15 +1112,17 @@ Section refinement_cholesky_2.
 
 Context {fs : Float_round_up_infnan_spec}.
 
-Context {n1 n2 : nat} {rn : nat_R n1 n2}.
-
-Let rn' := nat_R_S_R rn.
-
 (* FIXME: D.R.Y *)
 Variables (F : Type) (F2FI : F -> FI fs) (toR : F -> R).
 Hypothesis (F2FI_correct : forall f, finite (F2FI f) -> FI2F (F2FI f) = toR f :> R).
 
 (* FIXME: remove @, _, etc. *)
+
+Section rn.
+
+Context {n1 n2 : nat} {rn : nat_R n1 n2}.
+
+Let rn' := nat_R_S_R rn.
 
 Global Instance param_is_sym :
   refines (Rseqmx rn' rn' ==> eq)
@@ -1248,7 +1250,7 @@ suff rr : refines (Rseqmx (H:=FI0 fs) rn' rn') r r'.
 by do 2 refines_apply_tc; rewrite refinesE=> f _ <-.
 Qed.
 
-Global Instance param_posdef_check_itv :
+Lemma param_posdef_check_itv_aux :
   refines (Rseqmx rn' rn' ==> eq ==> eq)
     (@posdef_check_itv_ssr fs n1)
     (posdef_check_itv_seqmx (n:=n2) (fieps fs) (fieta fs) (@is_finite fs)).
@@ -1272,6 +1274,20 @@ suff rb : refines (Rseqmx (H:=FI0 fs) rn' rn') b b'.
   { f_equal; rewrite/pos_diag; apply refinesP; refines_apply_tc. }
   by do 2 refines_apply_tc; rewrite refinesE=> f _ <-. }
 by refines_apply_tc; rewrite -(nat_R_eq rn') refinesE=> e _ <-.
+Qed.
+
+End rn.
+
+Global Instance refines_posdef_check_itv n :
+  refines (Rseqmx (nat_Rxx n.+1) (nat_Rxx n.+1) ==> eq ==> eq)
+    (@posdef_check_itv_ssr fs n)
+    (posdef_check_itv_seqmx (n:=n) (fieps fs) (fieta fs) (@is_finite fs)).
+Proof.
+rewrite refinesE=> _ _ [Q Q' h1 h2 h3] r r' rr.
+apply refinesP; eapply refines_apply; [eapply refines_apply|].
+{ apply (param_posdef_check_itv_aux (rn:=nat_Rxx n)). }
+{ by rewrite refinesE; split. }
+by rewrite refinesE.
 Qed.
 
 End refinement_cholesky_2.

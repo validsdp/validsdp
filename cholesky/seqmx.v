@@ -1344,9 +1344,8 @@ Section seqmx2.
 
 Local Open Scope rel_scope.
 
-Variable R R' : ringType.
-Local Instance : zero_of R := 0%R.
-Local Instance : zero_of R' := 0%R.
+Variable R R' : Type.
+Context `{!zero_of R, !zero_of R'}.
 
 Instance Rseqmx_map_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
   refines (eq ==> Rseqmx (R:=R) rm rn ==> Rseqmx (R:=R') rm rn)
@@ -1357,7 +1356,7 @@ Proof.
     by rewrite (nth_map [::]) ?h1 // size_map h2.
   rewrite mxE (nth_map [::]) ?h1 -?(nat_R_eq rm) ?ltn_ord //.
   rewrite (nth_map (M i j)) ?h2 -?(nat_R_eq rm) -?(nat_R_eq rn) ?ltn_ord //.
-  apply: congr1; rewrite h3 -[X in (nth (_`_ _) X _)](mkseq_nth 0) nth_mkseq //.
+  apply: congr1; rewrite {1}h3; apply set_nth_default.
   by rewrite h2 -?(nat_R_eq rm) -?(nat_R_eq rn) ltn_ord.
 Qed.
 

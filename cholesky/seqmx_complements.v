@@ -235,6 +235,34 @@ rewrite refinesE; split; [by rewrite size_map| |].
 by move=> i j; rewrite mxE.
 Qed.
 
+Lemma nth_R_lt (T1 T2 : Type) (T_R : T1 -> T2 -> Type) x01 x02 s1 s2 :
+  list_R T_R s1 s2 ->
+  forall n, (n < size s1)%N -> T_R (nth x01 s1 n) (nth x02 s2 n).
+Proof.
+move=> Hs n; elim: n s1 s2 Hs=> [|n IH] s1 s2 Hs Hn /=.
+{ by move: Hs Hn; case s1=> [//|h1 t1] Hs _; inversion Hs. }
+move: Hs Hn IH; case s1=> [//|h1 t1] Hs Hn IH.
+by inversion Hs; apply IH.
+Qed.
+
+Lemma RseqmxC_fun_of_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+  refines (RseqmxC rAC rm rn ==> Rord rm ==> Rord rn ==> rAC)
+    ((@fun_of_matrix A m1 n1) : matrix A m1 n1 -> ordinal m1 -> ordinal n1 -> A)
+    (@fun_of_seqmx C _ m2 n2).
+Proof.
+rewrite refinesE => _ a' [_ [[a a'' h1 h2 h3] ra'']] i i' ri j j' rj.
+rewrite h3 /fun_of_seqmx -ri -rj.
+apply nth_R_lt.
+{ apply nth_R_lt=>//; rewrite h1 -(nat_R_eq rm); apply ltn_ord. }
+rewrite h2 -?(nat_R_eq rm) -?(nat_R_eq rn); apply ltn_ord.
+Qed.
+
+Global Instance refine_fun_of_seqmx m n :
+  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n) ==> Rord (nat_Rxx m) ==> Rord (nat_Rxx n) ==> rAC)
+    ((@fun_of_matrix A m n) : matrix A m n -> ordinal m -> ordinal n -> A)
+    (@fun_of_seqmx C _ m n).
+Proof. exact: RseqmxC_fun_of_seqmx. Qed.
+
 End seqmx_param.
 
 End seqmx_theory.
