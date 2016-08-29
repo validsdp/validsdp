@@ -98,13 +98,13 @@
 *** DONE Migrate iteri_ord, cholesky_prog			     :Pierre:
 *** STARTED Migrate multipoly					       :Erik:
 *** STARTED refine effmpoly from rat to bigQ			       :Erik:
-** TODO Define fcts with "check_size" to discharge the last 2 goals  :Pierre:
+** DONE Define fcts with "check_size" to discharge the last 2 goals  :Pierre:
 ** TODO Fix Ltac parsing w.r.t integers/rationals		       :Erik:
 ** STARTED Finish writing the tactic				       :Erik:
 ** TODO Prove ZZtoQ_correct					       :Erik:
 ** DONE Prove interp_poly_correct
-** TODO param_soscheck, param_max_coeff, param_check_base	     :Pierre:
-*** TODO Think-of lists vs. finsets
+** DONE param_soscheck, param_max_coeff, param_check_base            :Pierre:
+*** DONE Think-of lists vs. finsets (lists were enough apparently)
 ** TODO [#C] Reportbug scope issue with refines/%rel
 ** TODO benchs							     :Pierre:
 * Optimizations
