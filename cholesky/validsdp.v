@@ -1046,6 +1046,7 @@ eapply RseqmxC_spec_seqmx.
 by rewrite refinesE; eapply Rseqmx_spec_seqmx.
 Qed.
 
+(*
 Let sigma x0 x1 x2 := 6444365281246187/9007199254740992
          + 6312265263179769/576460752303423488 * x0
          + 6621776382116655/144115188075855872 * x1
@@ -2046,3 +2047,4 @@ by rewrite refinesE; eapply Rseqmx_spec_seqmx.
 Qed.
 
 (* Time for the three lemmas above in OCaml : 0.86 s *)
+*)
