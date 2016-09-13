@@ -28,6 +28,8 @@ validsdp.v
 # profile.v
 # computation.v
 
+#COQFLAGS = "-debug"
+
 COQDOCFLAGS = "-interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq"
 
 QUOT = "$(shell printf '\x22')"
