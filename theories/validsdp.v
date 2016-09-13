@@ -14,6 +14,7 @@ Require Import cholesky_prog multipoly.
 (* Require Import Quote. *)
 Require Import soswitness.soswitness.
 Require Import seqmx_complements.
+From Interval Require Import Interval_missing.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -66,34 +67,219 @@ Definition Q2R (x : Q) : R :=
 Local Coercion Q2R : Q >-> R.
 Local Coercion BigQ.to_Q : bigQ >-> Q.
 
-Inductive abstr_poly :=
+Inductive p_real_cst :=
+| PConstR0
+| PConstR1
+| PConstP2R of positive
+| PConstRsub of p_real_cst & p_real_cst
+| PConstRdiv of p_real_cst & p_real_cst
+| PConstRopp of p_real_cst
+| PConstRinv of p_real_cst
+| PConstRadd of p_real_cst & p_real_cst
+| PConstRmul of p_real_cst & p_real_cst.
+
+Ltac get_positive t :=
+  let rec aux t :=
+      match t with
+      | 1%Re => xH
+      | 2%Re => constr:(xO xH)
+      | 3%Re => constr:(xI xH)
+      | (2 * ?v)%Re =>
+        let w := aux v in constr:(xO w)
+      | (1 + 2 * ?v)%Re =>
+        let w := aux v in constr:(xI w)
+      end in
+    aux t.
+
+Fixpoint interp_p_real_cst (p : p_real_cst) : R :=
+  match p with
+  | PConstR0 => R0
+  | PConstR1 => R1
+  | PConstP2R p => P2R p
+  | PConstRsub x y => Rminus (interp_p_real_cst x) (interp_p_real_cst y)
+  | PConstRdiv x y => Rdiv (interp_p_real_cst x) (interp_p_real_cst y)
+  | PConstRopp x => Ropp (interp_p_real_cst x)
+  | PConstRinv x => Rinv (interp_p_real_cst x)
+  | PConstRadd x y => Rplus (interp_p_real_cst x) (interp_p_real_cst y)
+  | PConstRmul x y => Rmult (interp_p_real_cst x) (interp_p_real_cst y)
+  end.
+
+Ltac get_real_cst t :=
+  let rec aux t :=
+      match t with
+      | R0 => PConstR0
+      | R1 => PConstR1
+      | ?n => let p := get_positive n in constr:(PConstP2R p)
+      | Rminus ?x ?y => let x := aux x in
+                       let y := aux y in
+                       constr:(PConstRsub x y)
+      | Rdiv ?x ?y => let x := aux x in
+                     let y := aux y in
+                     constr:(PConstRdiv x y)
+      | Ropp ?x => let x := aux x in
+                  constr:(PConstRopp x)
+      | Rinv ?x => let x := aux x in
+                  constr:(PConstRinv x)
+      | Rplus ?x ?y => let x := aux x in
+                      let y := aux y in
+                      constr:(PConstRadd x y)
+      | Rmult ?x ?y => let x := aux x in
+                      let y := aux y in
+                      constr:(PConstRmul x y)
+      | _ => false
+      end
+  in aux t.
+
+(* Testcase
+
+Axiom correct : forall x : p_real_cst,
+    (if x isn't PConstR0 then true else false) ->
+    interp_p_real_cst x <> R0.
+
+
+Goal (-1/8 + 1/-8 +14/8 - 3 <> 0)%Re.
+match goal with
+| |- ?a <> R0 => let p := get_real_cst a in apply  (@correct p); reflexivity
+end.
+ *)
+
+Inductive p_abstr_poly :=
   (* | Const of Poly.t *)
   (* | Mult_scalar of Poly.Coeff.t * abstr_poly *)
+  | PConst of p_real_cst
+  | PVar of nat
+  | POpp of p_abstr_poly
+  | PAdd of p_abstr_poly & p_abstr_poly
+  | PSub of p_abstr_poly & p_abstr_poly
+  | PMul of p_abstr_poly & p_abstr_poly
+  | PPowN of p_abstr_poly & binnat.N
+  | PPown of p_abstr_poly & nat
+  (* | Compose of abstr_poly * abstr_poly list *).
+
+Fixpoint interp_p_abstr_poly (vm : seq R) (ap : p_abstr_poly) {struct ap} : R :=
+  match ap with
+  | PConst c => interp_p_real_cst c
+  | POpp p => Ropp (interp_p_abstr_poly vm p)
+  | PAdd p q => Rplus (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  | PSub p q => Rminus (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  | PMul p q => Rmult (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  | PPowN p n => powerRZ (interp_p_abstr_poly vm p) (Z.of_N n)
+  | PPown p n => pow (interp_p_abstr_poly vm p) n
+  | PVar i => seq.nth R0 vm i
+  end.
+
+(* [list_add] was taken from CoqInterval *)
+Ltac list_add a l :=
+  let rec aux a l n :=
+    match l with
+    | Datatypes.nil        => constr:(n, Datatypes.cons a l)
+    | Datatypes.cons a _   => constr:(n, l)
+    | Datatypes.cons ?x ?l =>
+      match aux a l (S n) with
+      | (?n, ?l) => constr:(n, Datatypes.cons x l)
+      end
+    end in
+  aux a l O.
+
+Ltac get_poly t l :=
+  let rec aux t l :=
+      match get_real_cst t with
+    | false =>
+      let aux_u o a :=
+        match aux a l with
+        | (?u, ?l) => constr:(o u, l)
+        end in
+      let aux_u' o a b :=
+        match aux a l with
+        | (?u, ?l) => constr:(o u b, l)
+        end in
+      let aux_b o a b :=
+        match aux b l with
+        | (?v, ?l) =>
+          match aux a l with
+          | (?u, ?l) => constr:(o u v, l)
+          end
+        end in
+      match t with
+      | Ropp ?a => aux_u (PSub (PConst PConstR0)) a
+   (* | Rsqr ?a => aux (Rmult a a) l  *)
+   (* | powerRZ ?a 0%Z => constr:(R1) [unwise to simplify here!] *)
+      | powerRZ ?a ?b =>
+        match b with
+        | Z.pos ?p => aux_u' PPowN a (N.pos p)
+        | _ => fail 100 "Only constant, positive exponents are allowed."
+        end
+      | pow ?a ?n => aux_u' PPown a n
+      | Rminus ?a ?b => aux_b PSub a b
+      | Ropp ?a => aux_u POpp a
+      | Rplus ?a ?b => aux_b PAdd a b
+      | Rmult ?a ?b => aux_b PMul a b
+      | _ =>
+        match list_add t l with
+        | (?n, ?l) => constr:(PVar n, l)
+        end
+      end
+    | ?c =>
+      constr:(PConst c, l)
+    end in
+  aux t l.
+
+(* Testcase
+
+Axiom poly_correct : forall (x : p_abstr_poly) vm,
+    (if x isn't PConst (PConstR0) then true else false) = true ->
+    interp_p_abstr_poly vm x >= R0.
+
+Lemma test_get_poly x y : (2/3 * x ^ 2 + x * y >= 0)%Re.
+match goal with
+| [ |- (?r >= 0)%Re ] => let p := get_poly r (@Datatypes.nil R) in
+                      match p with
+                      | (?p, ?vm) => apply (@poly_correct p vm)
+                      end
+end.
+Abort.
+*)
+
+Inductive abstr_poly :=
   | Const of bigQ
   | Var of nat
   | Add of abstr_poly & abstr_poly
   | Sub of abstr_poly & abstr_poly
   | Mul of abstr_poly & abstr_poly
-  | Pow of abstr_poly & binnat.N
-  (* | Compose of abstr_poly * abstr_poly list *).
+  | PowN of abstr_poly & binnat.N.
 
-Fixpoint interp_real (vm : seq R) (ap : abstr_poly) {struct ap} : R :=
-  match ap with
-  | Const c => Q2R (BigQ.to_Q c)
-  | Add p q => Rplus (interp_real vm p) (interp_real vm q)
-  | Sub p q => Rminus (interp_real vm p) (interp_real vm q)
-  | Mul p q => Rmult (interp_real vm p) (interp_real vm q)
-  | Pow p n => powerRZ (interp_real vm p) (Z.of_N n)
-  | Var i => seq.nth R0 vm i
+Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
+  let aux := bigQ_of_p_real_cst in
+  match c with
+  | PConstR0 => 0%bigQ
+  | PConstR1 => 1%bigQ
+  | PConstP2R p => BigQ.of_Q (inject_Z (Z.pos p))
+  | PConstRsub x y => (aux x - aux y)%bigQ
+  | PConstRdiv x y => (aux x / aux y)%bigQ
+  | PConstRopp x => (- aux x)%bigQ
+  | PConstRinv x => (1 / aux x)%bigQ
+  | PConstRadd x y => (aux x + aux y)%bigQ
+  | PConstRmul x y => (aux x * aux y)%bigQ
   end.
 
-Global Instance zero_bigQ : zero_of bigQ := 0%bigQ.
-Global Instance one_bigQ : one_of bigQ := 1%bigQ.
-Global Instance opp_bigQ : opp_of bigQ := BigQ.opp.
-Global Instance add_bigQ : add_of bigQ := BigQ.add.
-Global Instance sub_bigQ : sub_of bigQ := BigQ.sub.
-Global Instance mul_bigQ : mul_of bigQ := BigQ.mul.
-Global Instance eq_bigQ : eq_of bigQ := BigQ.eq_bool.
+Lemma bigQ_of_p_real_cst_correct c :
+  Q2R [bigQ_of_p_real_cst c]%bigQ = interp_p_real_cst c.
+Proof.
+Admitted. (* Pierre *)
+
+Fixpoint abstr_poly_of_p_abstr_poly (p : p_abstr_poly) : abstr_poly :=
+  let aux := abstr_poly_of_p_abstr_poly in
+  match p with
+  | PConst c => Const (bigQ_of_p_real_cst c)
+  | PVar n => Var n
+  | POpp x => Sub (Const 0%bigQ) (aux x)
+  | PAdd x y => Add (aux x) (aux y)
+  | PSub x y => Sub (aux x) (aux y)
+  | PMul x y => Mul (aux x) (aux y)
+  | PPowN x n => PowN (aux x) n
+  | PPown x n => PowN (aux x) (bin_of_nat n)
+  end.
+
 
 Definition Z2int (z : BinNums.Z) :=
   match z with
@@ -116,9 +302,17 @@ Definition interp_poly_ssr n (ap : abstr_poly) : {mpoly rat[n.+1]} :=
       | Add p q => (aux p + aux q)%R
       | Sub p q => (aux p - aux q)%R
       | Mul p q => (aux p * aux q)%R
-      | Pow p m => mpoly_exp (aux p) m
+      | PowN p m => mpoly_exp (aux p) m
       end
   in aux ap.
+
+Global Instance zero_bigQ : zero_of bigQ := 0%bigQ.
+Global Instance one_bigQ : one_of bigQ := 1%bigQ.
+Global Instance opp_bigQ : opp_of bigQ := BigQ.opp.
+Global Instance add_bigQ : add_of bigQ := BigQ.add.
+Global Instance sub_bigQ : sub_of bigQ := BigQ.sub.
+Global Instance mul_bigQ : mul_of bigQ := BigQ.mul.
+Global Instance eq_bigQ : eq_of bigQ := BigQ.eq_bool.
 
 Definition interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
   let fix aux ap :=
@@ -128,69 +322,105 @@ Definition interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
       | Add p q => mpoly_add_eff (aux p) (aux q)
       | Sub p q => mpoly_sub_eff (aux p) (aux q)
       | Mul p q => mpoly_mul_eff (aux p) (aux q)
-      | Pow p m => mpoly_exp_eff (n := n.+1) (aux p) m
+      | PowN p m => mpoly_exp_eff (n := n.+1) (aux p) m
       end
   in aux ap.
 
-(* [list_add] was taken from CoqInterval *)
-Ltac list_add a l :=
-  let rec aux a l n :=
-    match l with
-    | Datatypes.nil        => constr:(n, Datatypes.cons a l)
-    | Datatypes.cons a _   => constr:(n, l)
-    | Datatypes.cons ?x ?l =>
-      match aux a l (S n) with
-      | (?n, ?l) => constr:(n, Datatypes.cons x l)
-      end
-    end in
-  aux a l O.
+Definition r_ratBigQ := fun_hrel BigQ2rat.
 
-Ltac get_poly t l :=
-  let rec aux t l :=
-    match get_rational t with
-    | false =>
-      let aux_u o a :=
-        match aux a l with
-        | (?u, ?l) => constr:(o u, l)
-        end in
-      let aux_u' o a b :=
-        match aux a l with
-        | (?u, ?l) => constr:(o u b, l)
-        end in
-      let aux_b o a b :=
-        match aux b l with
-        | (?v, ?l) =>
-          match aux a l with
-          | (?u, ?l) => constr:(o u v, l)
-          end
-        end in
-      match t with
-      | Ropp ?a => aux_u (Sub (Const 0%bigQ)) a
-      | Rsqr ?a => aux (Rmult a a) l
-   (* | powerRZ ?a 0%Z => constr:(R1) [unwise to simplify here!] *)
-      | powerRZ ?a ?b =>
-        let bb := eval vm_compute in (Z.abs_N b) in aux_u' Pow a bb
-      | pow ?a ?b =>
-        let bb := eval vm_compute in (N.of_nat b) in aux_u' Pow a bb
-      | Rplus ?a ?b => aux_b Add a b
-      | Rminus ?a ?b => aux_b Sub a b
-      | Rplus ?a (Ropp ?b) => aux_b Sub a b
-      | Rmult ?a ?b => aux_b Mul a b
-      | _ =>
-        match list_add t l with
-        | (?n, ?l) => constr:(Var n, l)
-        end
-      end
-    | ?c =>
-      constr:(Const c, l)
-    end in
-  aux t l.
+Definition rat2R (q : rat) : R := ratr q.
 
-Lemma test_get_poly x y : (2/3 * x ^ 2 + x * y >= 0)%Re.
-match goal with
-| [ |- (?r >= 0)%Re ] => let p := get_poly r (@Datatypes.nil R) in idtac p
-end.
-Abort.
+Lemma rat2R_additive : additive rat2R.
+Proof.
+Admitted. (* Erik *)
+
+Canonical rat2R_additive_struct := Additive rat2R_additive.
+
+Lemma rat2R_multiplicative : multiplicative rat2R.
+Proof.
+Admitted. (* Erik *)
+
+Canonical rat2R_rmorphism_struct := AddRMorphism rat2R_multiplicative.
+
+Lemma bigQ2R_same (c : bigQ) :
+  Q2R [c]%bigQ = rat2R (BigQ2rat c).
+Proof.
+Admitted. (* Erik *)
+
+Fixpoint interp_abstr_poly (vm : seq R) (p : abstr_poly) {struct p} : R :=
+  let aux := interp_abstr_poly in
+  match p with
+  | Const c => Q2R [c]%bigQ
+  | Add p q => Rplus (aux vm p) (aux vm q)
+  | Sub p q => Rminus (aux vm p) (aux vm q)
+  | Mul p q => Rmult (aux vm p) (aux vm q)
+  | PowN p n => powerRZ (aux vm p) (Z.of_N n)
+  | Var i => seq.nth R0 vm i
+  end.
+
+Lemma abstr_poly_of_p_abstr_poly_correct (vm : seq R) (p : p_abstr_poly) :
+  interp_abstr_poly vm (abstr_poly_of_p_abstr_poly p) =
+  interp_p_abstr_poly vm p.
+Proof.
+Admitted. (* Pierre *)
+
+(*  let p' := abstr_poly_of_p_abstr_poly p in
+  let n := size vm in (0 < n)%N -> vars_ltn n p' ->
+  let n' := n.-1 in
+  (map_mpoly rat2R (interp_poly_ssr n' p')).@[fun i : 'I_n'.+1 => nth R0 vm i]
+  = interp_p_abstr_poly vm p.
+*)
+
+Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
+  match ap with
+  | Const _ => true
+  | Var i => (i < n)%N
+  | Add p q | Sub p q | Mul p q => vars_ltn n p && vars_ltn n q
+  | PowN p _ => vars_ltn n p
+  end.
+
+
+(* seemingly missing in mpoly *)
+Lemma map_mpolyC (R S : ringType) (f : R -> S) (Hf0 : f 0%R = 0%R) n' c :
+  map_mpoly f c%:MP_[n'] = (f c)%:MP_[n'].
+Proof.
+rewrite /map_mpoly /mmap msuppC.
+case_eq (c == 0%R); [by move/eqP ->; rewrite big_nil Hf0 mpolyC0|].
+move=> _; rewrite big_cons big_nil GRing.addr0 mmap1_id.
+by rewrite mpolyX0 mcoeffC eqxx !GRing.mulr1 /=.
+Qed.
+
+(* seemingly missing in mpoly *)
+Lemma map_mpolyX (R S : ringType) (f : R -> S) n' (m : 'X_{1..n'}) :
+  map_mpoly f 'X_[m] = (f 1 *: 'X_[m])%R.
+Proof.
+rewrite /map_mpoly /mmap msuppX big_cons big_nil GRing.addr0 mmap1_id.
+by rewrite mul_mpolyC mcoeffX eqxx.
+Qed.
+
+Lemma interp_abstr_poly_correct (l : seq R) (ap : abstr_poly) :
+  let n := size l in (0 < n)%N -> vars_ltn n ap ->
+  let n' := n.-1 in
+  let p := interp_poly_ssr n' ap in
+  interp_abstr_poly l ap = (map_mpoly rat2R p).@[fun i : 'I_n'.+1 => nth R0 l i].
+Proof.
+move=> n Pn Hvars n'; set env := fun _ => _.
+have Hn : n = n'.+1; [by move: Pn => /ltP; apply S_pred|].
+elim: ap Hvars.
+{ by move=> c _ /=; rewrite map_mpolyC ?GRing.raddf0 // mevalC bigQ2R_same. }
+{ move=> i /= Hi; rewrite map_mpolyX mevalZ mevalX.
+  rewrite GRing.rmorph1 GRing.mul1r /env; f_equal.
+  by rewrite inordK -?Hn. }
+{ move=> p Hp q Hq /= /andP [] Hlp Hlq; rewrite (Hp Hlp) (Hq Hlq).
+  by rewrite -[_+_]/(_.@[env] + _)%R !GRing.rmorphD. }
+{ move=> p Hp q Hq /= /andP [] Hlp Hlq; rewrite (Hp Hlp) (Hq Hlq).
+  by rewrite -[_-_]/(_.@[env] - _)%R !GRing.rmorphB. }
+{ move=> p Hp q Hq /= /andP [] Hlp Hlq; rewrite (Hp Hlp) (Hq Hlq).
+  by rewrite -[_*_]/(_.@[env] * _)%R !GRing.rmorphM. }
+move=> p Hp m /= Hlp; rewrite (Hp Hlp).
+rewrite -{1}[m]spec_NK /binnat.implem_N bin_of_natE nat_N_Z.
+by rewrite -Interval_missing.pow_powerRZ misc.pow_rexp !GRing.rmorphX.
+Qed.
 
 (** ** Part 0: Definition of operational type classes *)
 
@@ -487,24 +717,6 @@ elim: (path.sort _) 0%C=> [//|h t IH] z; move/orP; elim.
 by move=> Ht; apply IH.
 Qed.
 
-(* seemingly missing in mpoly *)
-Lemma map_mpolyC (R S : ringType) (f : R -> S) (Hf0 : f 0%R = 0%R) n' c :
-  map_mpoly f c%:MP_[n'] = (f c)%:MP_[n'].
-Proof.
-rewrite /map_mpoly /mmap msuppC.
-case_eq (c == 0%R); [by move/eqP ->; rewrite big_nil Hf0 mpolyC0|].
-move=> _; rewrite big_cons big_nil GRing.addr0 mmap1_id.
-by rewrite mpolyX0 mcoeffC eqxx !GRing.mulr1 /=.
-Qed.
-
-(* seemingly missing in mpoly *)
-Lemma map_mpolyX (R S : ringType) (f : R -> S) n' (m : 'X_{1..n'}) :
-  map_mpoly f 'X_[m] = (f 1 *: 'X_[m])%R.
-Proof.
-rewrite /map_mpoly /mmap msuppX big_cons big_nil GRing.addr0 mmap1_id.
-by rewrite mul_mpolyC mcoeffX eqxx.
-Qed.
-
 Require Import bigop_tactics.
 
 Lemma soscheck_correct p z Q : soscheck_ssr p z Q ->
@@ -610,59 +822,6 @@ by apply T2F_correct; move: Hpcheck; move/andP; elim.
 Qed.
 
 End theory_soscheck.
-
-Definition r_ratBigQ := fun_hrel BigQ2rat.
-
-Definition rat2R (q : rat) : R := ratr q.
-
-Lemma rat2R_additive : additive rat2R.
-Proof.
-Admitted. (* Erik *)
-
-Canonical rat2R_additive_struct := Additive rat2R_additive.
-
-Lemma rat2R_multiplicative : multiplicative rat2R.
-Proof.
-Admitted. (* Erik *)
-
-Canonical rat2R_rmorphism_struct := AddRMorphism rat2R_multiplicative.
-
-Lemma bigQ2R_same (c : bigQ) :
-  Q2R (BigQ.to_Q c) = rat2R (BigQ2rat c).
-Proof.
-Admitted. (* Erik *)
-
-Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
-  match ap with
-  | Const _ => true
-  | Var i => (i < n)%N
-  | Add p q | Sub p q | Mul p q => vars_ltn n p && vars_ltn n q
-  | Pow p _ => vars_ltn n p
-  end.
-
-Lemma interp_poly_correct (l : seq R) (ap : abstr_poly) :
-  let n := size l in (0 < n)%N -> vars_ltn n ap ->
-  let n' := n.-1 in
-  let p := interp_poly_ssr n' ap in
-  interp_real l ap = (map_mpoly rat2R p).@[fun i : 'I_n'.+1 => nth R0 l i].
-Proof.
-move=> n Pn Hvars n'; set env := fun _ => _.
-have Hn : n = n'.+1; [by move: Pn => /ltP; apply S_pred|].
-elim: ap Hvars.
-{ by move=> c _ /=; rewrite map_mpolyC ?GRing.raddf0 // mevalC bigQ2R_same. }
-{ move=> i /= Hi; rewrite map_mpolyX mevalZ mevalX.
-  rewrite GRing.rmorph1 GRing.mul1r /env; f_equal.
-  by rewrite inordK -?Hn. }
-{ move=> p Hp q Hq /= /andP [] Hlp Hlq; rewrite (Hp Hlp) (Hq Hlq).
-  by rewrite -[_+_]/(_.@[env] + _)%R !GRing.rmorphD. }
-{ move=> p Hp q Hq /= /andP [] Hlp Hlq; rewrite (Hp Hlp) (Hq Hlq).
-  by rewrite -[_-_]/(_.@[env] - _)%R !GRing.rmorphB. }
-{ move=> p Hp q Hq /= /andP [] Hlp Hlq; rewrite (Hp Hlp) (Hq Hlq).
-  by rewrite -[_*_]/(_.@[env] * _)%R !GRing.rmorphM. }
-move=> p Hp m /= Hlp; rewrite (Hp Hlp).
-rewrite -{1}[m]spec_NK /binnat.implem_N bin_of_natE nat_N_Z.
-by rewrite -Interval_missing.pow_powerRZ misc.pow_rexp !GRing.rmorphX.
-Qed.
 
 (* Future definition of F2C *)
 Definition ZZtoQ (m : bigZ) (e : bigZ) :=
