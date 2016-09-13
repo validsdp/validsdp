@@ -96,7 +96,7 @@
    CLOSED: [2016-06-08 Wed 11:31]
 ** TODO Migration to CoqEAL/paramcoq-dev			:Pierre:Erik:
 *** DONE Migrate iteri_ord, cholesky_prog			     :Pierre:
-*** STARTED Migrate multipoly					       :Erik:
+*** DONE Migrate multipoly					       :Erik:
 *** STARTED refine effmpoly from rat to bigQ			       :Erik:
 ** DONE Define fcts with "check_size" to discharge the last 2 goals  :Pierre:
 ** TODO Fix Ltac parsing w.r.t integers/rationals		       :Erik:
