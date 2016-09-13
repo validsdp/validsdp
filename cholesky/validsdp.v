@@ -866,6 +866,44 @@ move=> Hr; elim l=> [|h t IH]; [by apply list_R_nil_R|].
 by apply list_R_cons_R.
 Qed.
 
+(* !! Fail Ltac fixme tac := tac || idtac. *)
+
+(*****************************************************************************)
+(** [head]: a tiny tactic suggested by JGross on Coq-Club *)
+Ltac head x :=
+  match x with
+  | ?f _ => head f
+  | _ => constr:x
+  end.
+
+(** Helper tactic that will fail if both functions [A] and [C]
+    end with the same term *)
+Ltac fail_heuristic :=
+  match goal with
+  | [ |- refines ?R (?A ?B) (?C ?D) ] =>
+    match B with
+    | D => fail 2
+    | _ => idtac
+    end
+  | _ => idtac
+  end.
+
+(** Variant of [repeat] that only deals with the first subgoals *)
+Ltac repeat1 tac :=
+  tac; first try repeat1 tac.
+
+(** Helper tactic that applies [refines_apply] several times and tries
+to trigger [tc] at a relevant time (based on [fail_heuristic]) *)
+Ltac refines_apply_tc0 :=
+  (repeat1 ltac:(eapply refines_apply; fail_heuristic));
+  first (try by tc).
+  (* (try by rewrite refinesE); (try by tc). *)
+
+(** Shortcut when the goal does not start with [refines] *)
+Ltac refinesP_apply_tc0 :=
+  eapply refinesP; refines_apply_tc0.
+(*****************************************************************************)
+
 Lemma param_soscheck :
   refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (*(nat_R_S_R nat_R_O_R)*) (nat_Rxx 1) ==> Rseqmx (nat_Rxx s.+1) (nat_Rxx s.+1) ==> eq)
     (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
@@ -874,25 +912,33 @@ Proof.
 rewrite refinesE=> p p' rp z z' rz Q Q' rQ.
 rewrite /soscheck_ssr /soscheck_eff /soscheck.
 apply f_equal2; [by apply refinesP; refines_apply_tc|].
-apply refinesP; do 3 refines_apply_tc.
-eapply refines_apply; [eapply refines_apply|].  (* TODO: on pourra peut être simplifié un peu tout ça quand les preuves dans multipoly seront finies *)
-{ apply (ReffmpolyC_mpoly_sub_eff C2A_correct). }
-{ by rewrite refinesE. }
-refines_apply_tc.
+eapply refinesP.
+(* refines_apply_tc. *)
+refines_apply_tc0.
+(* refines_apply_tc. *)
+refines_apply_tc0.
+(* refines_apply_tc. *)
+(* refines_apply_tc0. *)
+eapply refines_apply. by tc.
+eapply refines_apply. eapply refines_apply. by tc.
+by tc.
+eapply refines_apply. eapply refines_apply. eapply refines_apply. by tc.
 eapply refines_apply; [eapply refines_apply|].
 { apply refine_mul_seqmx; [by tc| |].
-  { apply (ReffmpolyC_mpoly_add_eff C2A_correct). }
-  apply (ReffmpolyC_mpoly_mul_eff C2A_correct). }
+  { apply (ReffmpolyC_mpoly_add_eff (* C2A_correct *)). by tc. }
+  apply (ReffmpolyC_mpoly_mul_eff (* C2A_correct *)); by tc. }
 eapply refines_apply; [eapply refines_apply|].
 { apply refine_mul_seqmx; [by tc| |].
-  { apply (ReffmpolyC_mpoly_add_eff C2A_correct). }
-  apply (ReffmpolyC_mpoly_mul_eff C2A_correct). }
+  { apply (ReffmpolyC_mpoly_add_eff (* C2A_correct *)); by tc. }
+  apply (ReffmpolyC_mpoly_mul_eff (* C2A_correct *)); by tc. }
 { refines_apply_tc. }
 { refines_apply_tc.
   { apply refines_abstr=> c c' rc /=; refines_apply_tc. }
   rewrite refinesE; exists Q'; split=>//.
   by apply list_Rxx=> x; apply list_Rxx. }
 refines_apply_tc.
+by rewrite refinesE.
+by rewrite refinesE.
 Qed.
 
 End refinement_soscheck.
@@ -940,32 +986,32 @@ elim: ap.
   { by apply ReffmpolyC_mpvar_eff. }
   { tc. }
   { by rewrite refinesE. }
-  admit.  (* Erik *) }
+  by rewrite refinesE /Rord0 -bin_of_natE bin_of_natK inordK. }
 { move=> p Hp q Hq /= /andP [] Hlp Hlq.
   rewrite /GRing.add /=.
   eapply refines_apply; first eapply refines_apply.
-  { by apply (ReffmpolyC_mpoly_add_eff (C2A:=BigQ2rat)). }
+  { apply (ReffmpolyC_mpoly_add_eff (* (C2A:=BigQ2rat) *)). by tc. }
   { by apply Hp. }
   by apply Hq. }
 { move=> p Hp q Hq /= /andP [] Hlp Hlq.
   set p' := _ _ p; set q' := _ _ q.
   rewrite -[(_ - _)%R]/(mpoly_sub p' q').
   eapply refines_apply; first eapply refines_apply.
-  { by apply (ReffmpolyC_mpoly_sub_eff (C2A:=BigQ2rat)). }
+  { apply (ReffmpolyC_mpoly_sub_eff (* (C2A:=BigQ2rat) *)); by tc. }
   { by apply Hp. }
   by apply Hq. }
 { move=> p Hp q Hq /= /andP [] Hlp Hlq.
   rewrite /GRing.mul /=.
   eapply refines_apply; first eapply refines_apply.
-  { by apply (ReffmpolyC_mpoly_mul_eff (C2A:=BigQ2rat)). }
+  { apply (ReffmpolyC_mpoly_mul_eff (* (C2A:=BigQ2rat) *)); by tc. }
   { by apply Hp. }
   by apply Hq. }
 move=> p Hp m /= Hlp.
 eapply refines_apply; first eapply refines_apply.
-{ by apply (ReffmpolyC_mpoly_exp_eff (C2A:=BigQ2rat)). }
+{ apply (ReffmpolyC_mpoly_exp_eff (* (C2A:=BigQ2rat) *)); by tc. }
 { by apply Hp. }
 by rewrite refinesE.
-Admitted.  (* Erik *)
+Qed.
 
 End refinement_interp_poly.
 
@@ -1018,7 +1064,7 @@ apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_
 2: by vm_compute.  (* TODO: on recalcule une deuxième fois interp_poly_eff, à éviter avec un remember ou quelque chose *)
 apply refines_eq.
 eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-{ apply (param_soscheck (rAC := r_ratBigQ) (C2A := BigQ2rat)); by tc. }
+{ apply (param_soscheck (rAC := r_ratBigQ) (* (C2A := BigQ2rat) *)); by tc. }
 { by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
 rewrite refinesE (*!*) /za /z'.
 eapply RseqmxC_spec_seqmx.
@@ -1046,6 +1092,7 @@ eapply RseqmxC_spec_seqmx.
 by rewrite refinesE; eapply Rseqmx_spec_seqmx.
 Qed.
 
+(*
 Let sigma x0 x1 x2 := 6444365281246187/9007199254740992
          + 6312265263179769/576460752303423488 * x0
          + 6621776382116655/144115188075855872 * x1
@@ -2046,3 +2093,4 @@ by rewrite refinesE; eapply Rseqmx_spec_seqmx.
 Qed.
 
 (* Time for the three lemmas above in OCaml : 0.86 s *)
+*)
