@@ -22,6 +22,7 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope R_scope.
 
+(*
 Ltac get_rational t :=
   let get_positive t :=
     let rec aux t :=
@@ -58,6 +59,7 @@ match goal with
 [ |- (?r >= 0)%Re ] => let t := get_rational r in idtac t
 end.
 Abort.
+ *)
 
 (* TODO: Move to misc *)
 
@@ -364,13 +366,6 @@ Lemma abstr_poly_of_p_abstr_poly_correct (vm : seq R) (p : p_abstr_poly) :
 Proof.
 Admitted. (* Pierre *)
 
-(*  let p' := abstr_poly_of_p_abstr_poly p in
-  let n := size vm in (0 < n)%N -> vars_ltn n p' ->
-  let n' := n.-1 in
-  (map_mpoly rat2R (interp_poly_ssr n' p')).@[fun i : 'I_n'.+1 => nth R0 vm i]
-  = interp_p_abstr_poly vm p.
-*)
-
 Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
   match ap with
   | Const _ => true
@@ -420,6 +415,20 @@ elim: ap Hvars.
 move=> p Hp m /= Hlp; rewrite (Hp Hlp).
 rewrite -{1}[m]spec_NK /binnat.implem_N bin_of_natE nat_N_Z.
 by rewrite -Interval_missing.pow_powerRZ misc.pow_rexp !GRing.rmorphX.
+Qed.
+
+Lemma interp_correct vm p :
+  let n := size vm in
+  let n' := n.-1 in
+  let p' := abstr_poly_of_p_abstr_poly p in
+  let p'' := interp_poly_ssr n' p' in
+  (0 < n)%N ->
+  vars_ltn n p' ->
+  (map_mpoly rat2R p'').@[fun i : 'I_n'.+1 => nth R0 vm i]
+  = interp_p_abstr_poly vm p.
+Proof.
+move=> *; rewrite -interp_abstr_poly_correct //.
+by rewrite abstr_poly_of_p_abstr_poly_correct.
 Qed.
 
 (** ** Part 0: Definition of operational type classes *)
@@ -1176,22 +1185,47 @@ End refinement_interp_poly.
 
 (** ** Part 4: The final tactic *)
 
+(*
+Lemma interp_eff_correct vm p :
+  let n := size vm in
+  let n' := n.-1 in
+  let p' := abstr_poly_of_p_abstr_poly p in
+  let p'' := interp_poly_eff n' p' in
+  forall
+ *)
+(*
+  (0 < n)%N ->
+  vars_ltn n p' ->
+  (map_mpoly rat2R p'').@[fun i : 'I_n'.+1 => nth R0 vm i]
+  = interp_p_abstr_poly vm p.
+ *)
+
 Ltac do_sdp :=
   match goal with
   | [ |- (?r >= 0)%Re ] => apply: Rle_ge; do_sdp
   | [ |- (0 <= ?r)%Re ] =>
     match get_poly r (@Datatypes.nil R) with
       (?ap, ?l) =>
-      rewrite !Interval_missing.pow_powerRZ ;
-      (*TODO: don't use change*)
-      change (0 <= interp_real l ap)%Re ;
-      rewrite interp_poly_correct; [|by vm_compute|by vm_compute]
+      change (0 <= interp_p_abstr_poly l ap)%Re;
+      rewrite -interp_correct ; [|by vm_compute|by vm_compute]
     end
   end.
 
+Ltac do_sdp0 :=
+  match goal with
+  | [ |- (?r >= 0)%Re ] => apply: Rle_ge; do_sdp0
+  | [ |- (0 <= ?r)%Re ] =>
+    match get_poly r (@Datatypes.nil R) with
+      (?ap, ?l) =>
+      idtac l (*change (0 <= interp_p_abstr_poly l ap)%Re;
+      rewrite -interp_correct (*; [|by vm_compute|by vm_compute] *)*)
+    end
+  end.
+
+
 Lemma test_do_sdp (x : R) : (2 * x >= 0)%Re.
 (* TODO/Erik: fix the parsing of integer constants *)
-Fail do_sdp.
+do_sdp.
 Abort.
 
 Lemma test_do_sdp (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
@@ -1251,7 +1285,6 @@ eapply RseqmxC_spec_seqmx.
 by rewrite refinesE; eapply Rseqmx_spec_seqmx.
 Qed.
 
-(*
 Let sigma x0 x1 x2 := 6444365281246187/9007199254740992
          + 6312265263179769/576460752303423488 * x0
          + 6621776382116655/144115188075855872 * x1
@@ -1409,6 +1442,7 @@ Let p x0 x1 x2 := 376932522065681012931/295147905179352825856
     + 3135835432654057/576460752303423488 * x1 * x2^3
     + -569947876840979/288230376151711744 * x2^4.
 
+(*
 Lemma sigma_pos (x0 x1 x2 : R) : (sigma x0 x1 x2 >= 0)%Re.
 rewrite /sigma.
 Time do_sdp.  (* 1.9 s on Pierre's desktop *)
@@ -1524,6 +1558,7 @@ eapply RseqmxC_spec_seqmx.
 }
 by rewrite refinesE; eapply Rseqmx_spec_seqmx.
 Qed.
+ *)
 
 Lemma p_ind (x0 x1 x2 : R) : ((p (1/4
                                                       * (4/5 * x0
@@ -1539,6 +1574,7 @@ Lemma p_ind (x0 x1 x2 : R) : ((p (1/4
        - (sigma1 x0 x1 x2) * ((x0)^2 + (x1)^2 + (x2)^2 - 1 / 1) >= 0)%Re.
 rewrite /p /sigma /sigma1.
 Time do_sdp.  (* 28.3 s *)
+
 match goal with
 | [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
   set n := qn;
@@ -1566,7 +1602,7 @@ apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_
 Time by vm_compute.  (* 1.04 s *)
 apply refines_eq.
 eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-{ apply (param_soscheck (rAC := r_ratBigQ) (C2A := BigQ2rat)); by tc. }
+{ apply (param_soscheck (rAC := r_ratBigQ) (* (C2A := BigQ2rat) *)); by tc. }
 { by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
 rewrite refinesE (*!*) /za /z'.
 eapply RseqmxC_spec_seqmx.
@@ -1596,6 +1632,7 @@ Qed.
 
 (* Time for the three lemmas above in OCaml : 0.17 s *)
 
+(*
 Let sigma' x0 x1 := 6964204482325329/36028797018963968
     + 1918630498963825/144115188075855872 * x0
     + 1161234483464059/18014398509481984 * x1
@@ -2103,7 +2140,7 @@ apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_
 Time by vm_compute.  (* 1.4 s *)
 apply refines_eq.
 eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-{ apply (param_soscheck (rAC := r_ratBigQ) (C2A := BigQ2rat)); by tc. }
+{ apply (param_soscheck (rAC := r_ratBigQ) (* (C2A := BigQ2rat) *)); by tc. }
 { by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
 rewrite refinesE (*!*) /za /z'.
 eapply RseqmxC_spec_seqmx.
@@ -2250,6 +2287,6 @@ eapply RseqmxC_spec_seqmx.
 }
 by rewrite refinesE; eapply Rseqmx_spec_seqmx.
 Qed.
+ *)
 
 (* Time for the three lemmas above in OCaml : 0.86 s *)
-*)
