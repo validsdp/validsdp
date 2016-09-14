@@ -33,12 +33,9 @@ Inductive p_real_cst :=
 (* | PConstQz of bigZ *)
 | PConstQq of bigZ & bigN
 | PConstP2R of positive
-| PConstRsub of p_real_cst & p_real_cst
 | PConstRdiv of p_real_cst & positive
 | PConstRopp of p_real_cst
-| PConstRinv of positive
-| PConstRadd of p_real_cst & p_real_cst
-| PConstRmul of p_real_cst & p_real_cst.
+| PConstRinv of positive.
 
 Ltac get_positive t :=
   let rec aux t :=
@@ -58,10 +55,6 @@ Ltac get_real_cst t :=
     | bigQ2R (?z # ?n)%bigQ => constr:(PConstQq z n)
     | R0 => PConstR0
     | R1 => PConstR1
-    | ?n => let p := get_positive n in constr:(PConstP2R p)
-    | Rminus ?x ?y => let x := aux x in
-                      let y := aux y in
-                      constr:(PConstRsub x y)
     | Rdiv ?x ?y => let x := aux x in
                     let y := get_positive y in
                     constr:(PConstRdiv x y)
@@ -69,12 +62,7 @@ Ltac get_real_cst t :=
                  constr:(PConstRopp x)
     | Rinv ?x => let x := get_positive x in
                  constr:(PConstRinv x)
-    | Rplus ?x ?y => let x := aux x in
-                     let y := aux y in
-                     constr:(PConstRadd x y)
-    | Rmult ?x ?y => let x := aux x in
-                     let y := aux y in
-                     constr:(PConstRmul x y)
+    | ?n => let p := get_positive n in constr:(PConstP2R p)
     | _ => false
     end in
   aux t.
@@ -86,25 +74,10 @@ Fixpoint interp_p_real_cst (p : p_real_cst) : R :=
 (* | PConstQz z => Z2R [z]%bigZ *)
   | PConstQq z n => bigQ2R (z # n)%bigQ
   | PConstP2R p => P2R p
-  | PConstRsub x y => Rminus (interp_p_real_cst x) (interp_p_real_cst y)
   | PConstRdiv x y => Rdiv (interp_p_real_cst x) (P2R y)
   | PConstRopp x => Ropp (interp_p_real_cst x)
   | PConstRinv x => Rinv (P2R x)
-  | PConstRadd x y => Rplus (interp_p_real_cst x) (interp_p_real_cst y)
-  | PConstRmul x y => Rmult (interp_p_real_cst x) (interp_p_real_cst y)
   end.
-
-(* (* Testcase *)
-
-Axiom correct : forall x : p_real_cst,
-    (if x isn't PConstR0 then true else false) ->
-    interp_p_real_cst x <> R0.
-
-Goal ((-1)/8 + -(1/8) +14/8 - 3 <> 0)%Re.
-match goal with
-| |- ?a <> R0 => let p := get_real_cst a in apply  (@correct p); reflexivity
-end.
-*)
 
 Inductive p_abstr_poly :=
   (* | Const of Poly.t *)
@@ -146,16 +119,14 @@ Ltac list_add a l :=
 
 Ltac get_poly t l :=
   let rec aux t l :=
-    match get_real_cst t with
-    | false =>
-      let aux_u o a :=
-        match aux a l with
-        | (?u, ?l) => constr:(o u, l)
-        end in
-      let aux_u' o a b :=
-        match aux a l with
-        | (?u, ?l) => constr:(o u b, l)
-        end in
+    let aux_u o a :=
+      match aux a l with
+      | (?u, ?l) => constr:(o u, l)
+      end in
+    let aux_u' o a b :=
+      match aux a l with
+      | (?u, ?l) => constr:(o u b, l)
+    end in
       let aux_b o a b :=
         match aux b l with
         | (?v, ?l) =>
@@ -163,25 +134,26 @@ Ltac get_poly t l :=
           | (?u, ?l) => constr:(o u v, l)
           end
         end in
-      match t with
-      | Ropp ?a => aux_u (PSub (PConst PConstR0)) a
-   (* | Rsqr ?a => aux (Rmult a a) l  *)
-      | powerRZ ?a ?b =>
-        match b with
-        | Z.pos ?p => aux_u' PPowN a (N.pos p)
-        | _ => fail 100 "Only constant, positive exponents are allowed."
-        end
-      | pow ?a ?n => aux_u' PPown a n
-      | Rminus ?a ?b => aux_b PSub a b
-      | Ropp ?a => aux_u POpp a
-      | Rplus ?a ?b => aux_b PAdd a b
-      | Rmult ?a ?b => aux_b PMul a b
-      | _ =>
+    match t with
+    | Rplus ?a ?b => aux_b PAdd a b
+    | Rminus ?a ?b => aux_b PSub a b
+    | Ropp ?a => aux_u POpp a
+    | Rmult ?a ?b => aux_b PMul a b
+ (* | Rsqr ?a => aux (Rmult a a) l  *)
+    | powerRZ ?a ?b =>
+      match b with
+      | Z.pos ?p => aux_u' PPowN a (N.pos p)
+      | _ => fail 100 "Only constant, positive exponents are allowed."
+      end
+    | pow ?a ?n => aux_u' PPown a n
+    | _ =>
+      match get_real_cst t with
+      | false =>
         match list_add t l with
         | (?n, ?l) => constr:(PVar n, l)
         end
+      | ?c => constr:(PConst c, l)
       end
-    | ?c => constr:(PConst c, l)
     end in
   aux t l.
 
@@ -216,12 +188,9 @@ Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
   | PConstR1 => 1%bigQ
   | PConstQq z n => (z # n)%bigQ
   | PConstP2R p => BigQ.of_Q (inject_Z (Z.pos p))
-  | PConstRsub x y => (aux x - aux y)%bigQ
   | PConstRdiv x y => (aux x / BigQ.of_Q (inject_Z (Z.pos y)))%bigQ
   | PConstRopp x => (- aux x)%bigQ
   | PConstRinv x => (1 / BigQ.of_Q (inject_Z (Z.pos x)))%bigQ
-  | PConstRadd x y => (aux x + aux y)%bigQ
-  | PConstRmul x y => (aux x * aux y)%bigQ
   end.
 
 Lemma bigQ_of_p_real_cst_correct c :
@@ -235,8 +204,6 @@ elim c.
 { rewrite /bigQ2R /RMicromega.IQR /= Rinv_r //; apply R1_neq_R0. }
 { done. }
 { apply IQRp. }
-{ move=> c' Hc' c'' Hc''; rewrite /= -Hc' -Hc'' /bigQ2R -RMicromega.IQR_minus.
-  apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_sub. }
 { move=> c' Hc' p; rewrite /= -Hc' /bigQ2R /Rdiv -IQRp -RMicromega.IQR_inv_lt.
   { rewrite -RMicromega.IQR_mult.
     apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_div. }
@@ -248,10 +215,6 @@ elim c.
     rewrite -(Qmult_1_l (Qinv _)) -/([1]%bigQ).
     by rewrite -BigQ.spec_inv -BigQ.spec_mul. }
   by rewrite /= BigN.spec_of_pos. }
-{ move=> c' Hc' c'' Hc''; rewrite /= -Hc' -Hc'' /bigQ2R -RMicromega.IQR_plus.
-  apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_add. }
-move=> c' Hc' c'' Hc''; rewrite /= -Hc' -Hc'' /bigQ2R -RMicromega.IQR_mult.
-apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_mul.
 Qed.
 
 Fixpoint abstr_poly_of_p_abstr_poly (p : p_abstr_poly) : abstr_poly :=
@@ -1567,7 +1530,7 @@ Lemma p_ind (x0 x1 x2 : R) : ((p (1/4
          * (p x0 x1 x2)
        - (sigma1 x0 x1 x2) * ((x0)^2 + (x1)^2 + (x2)^2 - 1) >= 0)%Re.
 rewrite /p /sigma /sigma1.
-Time do_sdp. (* Erik/bigQ: 1.5s; Erik/R: 12s *) (* 28.3 s *)
+Time do_sdp. (* Erik/bigQ: 1.5s; Erik/R: 12s *) (* 1.6 s *)
 match goal with
 | [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
   set n := qn;
@@ -2105,7 +2068,7 @@ Let p' x1 x2 := (161665552462085691#72057594037927936)
 
 Lemma sigma_pos' (x0 x1 : R) : (sigma' x0 x1 >= 0)%Re.
 rewrite /sigma'.
-Time do_sdp.  (* 5.2 s *)
+Time do_sdp.  (* 1.2 s *)
 match goal with
 | [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
   set n := qn;
@@ -2163,7 +2126,7 @@ Qed.
 
 Lemma sigma1_pos' (x0 x1 : R) : (sigma1' x0 x1 >= 0)%Re.
 rewrite /sigma1'.
-Time do_sdp.  (* 15.5 s *)
+Time do_sdp.  (* 2.2 s *)
 match goal with
 | [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
   set n := qn;
@@ -2223,9 +2186,9 @@ Lemma p_ind' (x0 x1 : R) : ((p' (1/2 * (x0)^3 + 2/5 * (x1)^2)
                                 (-3/5 * (x0)^2 + 3/10 * (x1)^2))
        - (sigma' x0 x1)
          * (p' x0 x1)
-       - (sigma1' x0 x1) * ((x0)^2 + (x1)^2 - 1 / 1) >= 0)%Re.
+       - (sigma1' x0 x1) * ((x0)^2 + (x1)^2 - 1) >= 0)%Re.
 rewrite /p' /sigma' /sigma1'.
-Time do_sdp.  (* 23 s on Pierre's Desktop *)
+Time do_sdp.  (* 4.2 s on Pierre's Desktop *)
 match goal with
 | [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
   set n := qn;
