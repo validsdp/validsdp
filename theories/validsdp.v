@@ -29,7 +29,6 @@ Coercion bigQ2R (x : BigQ.t_ (* the type of (_ # _) *)) : R :=
 
 Inductive p_real_cst :=
 | PConstR0
-| PConstR1
 (* | PConstQz of bigZ *)
 | PConstQq of bigZ & bigN
 | PConstP2R of positive
@@ -54,7 +53,6 @@ Ltac get_real_cst t :=
     (* | Z2R [?z]%bigZ *)
     | bigQ2R (?z # ?n)%bigQ => constr:(PConstQq z n)
     | R0 => PConstR0
-    | R1 => PConstR1
     | Rdiv ?x ?y => let x := aux x in
                     let y := get_positive y in
                     constr:(PConstRdiv x y)
@@ -70,7 +68,6 @@ Ltac get_real_cst t :=
 Fixpoint interp_p_real_cst (p : p_real_cst) : R :=
   match p with
   | PConstR0 => R0
-  | PConstR1 => R1
 (* | PConstQz z => Z2R [z]%bigZ *)
   | PConstQq z n => bigQ2R (z # n)%bigQ
   | PConstP2R p => P2R p
@@ -185,7 +182,6 @@ Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
   let aux := bigQ_of_p_real_cst in
   match c with
   | PConstR0 => 0%bigQ
-  | PConstR1 => 1%bigQ
   | PConstQq z n => (z # n)%bigQ
   | PConstP2R p => BigQ.of_Q (inject_Z (Z.pos p))
   | PConstRdiv x y => (aux x / BigQ.of_Q (inject_Z (Z.pos y)))%bigQ
@@ -201,7 +197,6 @@ have IQRp : forall p,
 { move=> p; rewrite /RMicromega.IQR /= BigN.spec_of_pos /= -P2R_INR; lra. }
 elim c.
 { by rewrite /bigQ2R /RMicromega.IQR /= Rmult_0_l. }
-{ rewrite /bigQ2R /RMicromega.IQR /= Rinv_r //; apply R1_neq_R0. }
 { done. }
 { apply IQRp. }
 { move=> c' Hc' p; rewrite /= -Hc' /bigQ2R /Rdiv -IQRp -RMicromega.IQR_inv_lt.
@@ -1531,6 +1526,7 @@ Lemma p_ind (x0 x1 x2 : R) : ((p (1/4
        - (sigma1 x0 x1 x2) * ((x0)^2 + (x1)^2 + (x2)^2 - 1) >= 0)%Re.
 rewrite /p /sigma /sigma1.
 Time do_sdp. (* Erik/bigQ: 1.5s; Erik/R: 12s *) (* 1.6 s *)
+
 match goal with
 | [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
   set n := qn;
