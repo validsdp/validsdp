@@ -64,14 +64,15 @@ Abort.
 (* TODO: Move to misc *)
 
 (* We do not use [RMicromega.IQR], which relies on [IZR] instead of [Z2R]... *)
-Definition Q2R (x : Q) : R :=
-  (Z2R (Qnum x) / Z2R (Z.pos (Qden x)))%Re.
+(*Definition Q2R (x : Q) : R :=
+  (Z2R (Qnum x) / Z2R (Z.pos (Qden x)))%Re.*)
 (* Local Coercion Q2R : Q >-> R. *)
 (* Local Coercion BigQ.to_Q : BigQ.t_ >-> Q. *)
 (* Print Coercions. Print Coercion Paths bigQ R.  *)
 
 Definition bigQ2R (x : BigQ.t_ (* the type of (_ # _) *)) : R :=
-  Q2R [x]%bigQ.
+  RMicromega.IQR [x]%bigQ.
+(*  Q2R [x]%bigQ.*)
 
 Coercion bigQ2R : BigQ.t_ >-> R.
 
@@ -82,9 +83,9 @@ Inductive p_real_cst :=
 | PConstQq of bigZ & bigN
 | PConstP2R of positive
 | PConstRsub of p_real_cst & p_real_cst
-| PConstRdiv of p_real_cst & p_real_cst
+| PConstRdiv of p_real_cst & positive
 | PConstRopp of p_real_cst
-| PConstRinv of p_real_cst
+| PConstRinv of positive
 | PConstRadd of p_real_cst & p_real_cst
 | PConstRmul of p_real_cst & p_real_cst.
 
@@ -109,9 +110,9 @@ Fixpoint interp_p_real_cst (p : p_real_cst) : R :=
   | PConstQq z n => bigQ2R (z # n)%bigQ
   | PConstP2R p => P2R p
   | PConstRsub x y => Rminus (interp_p_real_cst x) (interp_p_real_cst y)
-  | PConstRdiv x y => Rdiv (interp_p_real_cst x) (interp_p_real_cst y)
+  | PConstRdiv x y => Rdiv (interp_p_real_cst x) (P2R y)
   | PConstRopp x => Ropp (interp_p_real_cst x)
-  | PConstRinv x => Rinv (interp_p_real_cst x)
+  | PConstRinv x => Rinv (P2R x)
   | PConstRadd x y => Rplus (interp_p_real_cst x) (interp_p_real_cst y)
   | PConstRmul x y => Rmult (interp_p_real_cst x) (interp_p_real_cst y)
   end.
@@ -129,11 +130,11 @@ Ltac get_real_cst t :=
                        let y := aux y in
                        constr:(PConstRsub x y)
       | Rdiv ?x ?y => let x := aux x in
-                     let y := aux y in
+                     let y := get_positive y in
                      constr:(PConstRdiv x y)
       | Ropp ?x => let x := aux x in
                   constr:(PConstRopp x)
-      | Rinv ?x => let x := aux x in
+      | Rinv ?x => let x := get_positive x in
                   constr:(PConstRinv x)
       | Rplus ?x ?y => let x := aux x in
                       let y := aux y in
@@ -152,7 +153,7 @@ Axiom correct : forall x : p_real_cst,
     interp_p_real_cst x <> R0.
 
 
-Goal (-1/8 + 1/-8 +14/8 - 3 <> 0)%Re.
+Goal ((-1)/8 + -(1/8) +14/8 - 3 <> 0)%Re.
 match goal with
 | |- ?a <> R0 => let p := get_real_cst a in apply  (@correct p); reflexivity
 end.
@@ -271,9 +272,9 @@ Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
   | PConstQq z n => (z # n)%bigQ
   | PConstP2R p => BigQ.of_Q (inject_Z (Z.pos p))
   | PConstRsub x y => (aux x - aux y)%bigQ
-  | PConstRdiv x y => (aux x / aux y)%bigQ
+  | PConstRdiv x y => (aux x / BigQ.of_Q (inject_Z (Z.pos y)))%bigQ
   | PConstRopp x => (- aux x)%bigQ
-  | PConstRinv x => (1 / aux x)%bigQ
+  | PConstRinv x => (1 / BigQ.of_Q (inject_Z (Z.pos x)))%bigQ
   | PConstRadd x y => (aux x + aux y)%bigQ
   | PConstRmul x y => (aux x * aux y)%bigQ
   end.
@@ -281,7 +282,32 @@ Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
 Lemma bigQ_of_p_real_cst_correct c :
   bigQ2R (bigQ_of_p_real_cst c) = interp_p_real_cst c.
 Proof.
-Admitted. (* Pierre *)
+have IQRp : forall p,
+  RMicromega.IQR [BigQ.Qz (BigZ.Pos (BigN.of_pos p))]%bigQ = P2R p.
+{ move=> p; rewrite /RMicromega.IQR /= BigN.spec_of_pos /= -P2R_INR; lra. }
+elim c.
+{ by rewrite /bigQ2R /RMicromega.IQR /= Rmult_0_l. }
+{ rewrite /bigQ2R /RMicromega.IQR /= Rinv_r //; apply R1_neq_R0. }
+{ done. }
+{ apply IQRp. }
+{ move=> c' Hc' c'' Hc''; rewrite /= -Hc' -Hc'' /bigQ2R -RMicromega.IQR_minus.
+  apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_sub. }
+{ move=> c' Hc' p; rewrite /= -Hc' /bigQ2R /Rdiv -IQRp -RMicromega.IQR_inv_lt.
+  { rewrite -RMicromega.IQR_mult.
+    apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_div. }
+  by rewrite /= BigN.spec_of_pos. }
+{ move=> p Hp; rewrite /= -Hp /bigQ2R -RMicromega.IQR_opp.
+  apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_opp. }
+{ move=> p; rewrite /bigQ2R /interp_p_real_cst -IQRp -RMicromega.IQR_inv_lt.
+  { apply RMicromega.Qeq_true, Qeq_eq_bool.
+    rewrite -(Qmult_1_l (Qinv _)) -/([1]%bigQ).
+    by rewrite -BigQ.spec_inv -BigQ.spec_mul. }
+  by rewrite /= BigN.spec_of_pos. }
+{ move=> c' Hc' c'' Hc''; rewrite /= -Hc' -Hc'' /bigQ2R -RMicromega.IQR_plus.
+  apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_add. }
+move=> c' Hc' c'' Hc''; rewrite /= -Hc' -Hc'' /bigQ2R -RMicromega.IQR_mult.
+apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_mul.
+Qed.
 
 Fixpoint abstr_poly_of_p_abstr_poly (p : p_abstr_poly) : abstr_poly :=
   let aux := abstr_poly_of_p_abstr_poly in
@@ -293,9 +319,8 @@ Fixpoint abstr_poly_of_p_abstr_poly (p : p_abstr_poly) : abstr_poly :=
   | PSub x y => Sub (aux x) (aux y)
   | PMul x y => Mul (aux x) (aux y)
   | PPowN x n => PowN (aux x) n
-  | PPown x n => PowN (aux x) (bin_of_nat n)
+  | PPown x n => PowN (aux x) (N.of_nat n)
   end.
-
 
 Definition Z2int (z : BinNums.Z) :=
   match z with
@@ -358,15 +383,14 @@ Admitted. (* Erik *)
 
 Canonical rat2R_rmorphism_struct := AddRMorphism rat2R_multiplicative.
 
-Lemma bigQ2R_same (c : bigQ) :
-  Q2R [c]%bigQ = rat2R (BigQ2rat c).
+Lemma bigQ2R_same (c : bigQ) : bigQ2R c = rat2R (BigQ2rat c).
 Proof.
 Admitted. (* Erik *)
 
 Fixpoint interp_abstr_poly (vm : seq R) (p : abstr_poly) {struct p} : R :=
   let aux := interp_abstr_poly in
   match p with
-  | Const c => Q2R [c]%bigQ
+  | Const c => bigQ2R c
   | Add p q => Rplus (aux vm p) (aux vm q)
   | Sub p q => Rminus (aux vm p) (aux vm q)
   | Mul p q => Rmult (aux vm p) (aux vm q)
@@ -378,7 +402,17 @@ Lemma abstr_poly_of_p_abstr_poly_correct (vm : seq R) (p : p_abstr_poly) :
   interp_abstr_poly vm (abstr_poly_of_p_abstr_poly p) =
   interp_p_abstr_poly vm p.
 Proof.
-Admitted. (* Pierre *)
+elim p.
+{ apply bigQ_of_p_real_cst_correct. }
+{ done. }
+{ move=> p' /= ->.
+  by rewrite /bigQ2R /RMicromega.IQR Rmult_0_l /Rminus Rplus_0_l. }
+{ by move=> ? /= -> ? /= ->. }
+{ by move=> ? /= -> ? /= ->. }
+{ by move=> ? /= -> ? /= ->. }
+{ by move=> ? /= ->. }
+by move=> ? /= -> ?; rewrite pow_powerRZ nat_N_Z.
+Qed.
 
 Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
   match ap with
@@ -387,7 +421,6 @@ Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
   | Add p q | Sub p q | Mul p q => vars_ltn n p && vars_ltn n q
   | PowN p _ => vars_ltn n p
   end.
-
 
 (* seemingly missing in mpoly *)
 Lemma map_mpolyC (R S : ringType) (f : R -> S) (Hf0 : f 0%R = 0%R) n' c :
