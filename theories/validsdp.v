@@ -897,16 +897,14 @@ set l := _ p; set l' := _ p'.
 suff : forall (m : 'X_{1..n}) m', Rseqmultinom m m' ->
   smem_ssr m sm = smem_eff m' sm'.
 { move=> H; apply refinesP, refines_bool_eq; rewrite refinesE.
-  have : list_R
-        (fun (x : 'X_{1.. n} * A) (y : seqmultinom * C) =>
-         (refines Rseqmultinom x.1 y.1 * rAC x.2 y.2)%type) l l'.
+  have : list_R (prod_R Rseqmultinom rAC) l l'.
   { rewrite /l /l'; apply refinesP; eapply refines_apply.
     { by apply refinesC_list_of_mpoly_eff. }
     by rewrite refinesE. }
   apply all_R=> mc mc' rmc.
   move: (H mc.1 mc'.1); rewrite /smem_ssr /smem_eff /smem=>H'.
   rewrite H'; [by apply bool_Rxx|].
-  move: rmc; rewrite refinesE=> rmc'; exact rmc'.1. }
+  by apply refinesP; refines_apply1. }
 move=> m m' rm.
 rewrite /sm /sm'.
 set f := fun _ => _; set f' := fun _ => iteri_ord _ _.
@@ -965,8 +963,11 @@ Instance param_max_coeff :
 Proof.
 rewrite refinesE=> p p' rp.
 rewrite /max_coeff_ssr /max_coeff_eff /max_coeff.
-apply refinesP; refines_apply_tc.
-apply refines_abstr2=> m m' rm mc mc' rmc; refines_apply_tc.
+apply refinesP; refines_apply1.
+refines_apply1.
+refines_apply1.
+apply refines_abstr2 => m m' rm mc mc' rmc.
+refines_apply1.
 Qed.
 
 Context {fs : Float_round_up_infnan_spec}.
