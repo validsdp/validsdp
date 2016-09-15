@@ -36,15 +36,15 @@ QUOT = "$(shell printf '\x22')"
 
 -extra coqgraph coqgraph.ml "ocamlc.opt -o $@ $<"
 
--extra deps.dot "$(VFILES) coqgraph" "cat $(addsuffix .d,$(VFILES)) |\
+-extra-phony deps.dot "$(VFILES) coqgraph" "cat $(addsuffix .d,$(VFILES)) |\
 	sed -e 's,./,,g' |\
 	./coqgraph - |\
 	sed -e 's/color \?= \?grey95,/& URL=$(QUOT)ValidSDP.\\N.html$(QUOT),/' |\
 	tred > $@"
 
--extra deps.png deps.dot "dot -Tpng $< -o $@"
+-extra-phony deps.png deps.dot "dot -Tpng $< -o $@"
 
--extra deps.html deps.dot "dot -Tcmapx $< -o deps.html"
+-extra-phony deps.html deps.dot "dot -Tcmapx $< -o deps.html"
 
 -extra-phony doc "gallinahtml deps.png deps.html" "cp deps.png html/ ;\
 	if ! grep -e 'deps[.]png' html/toc.html; then\
