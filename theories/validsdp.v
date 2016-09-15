@@ -1,6 +1,5 @@
 From Flocq Require Import Fcore.
-From CoqEAL.theory Require Import hrel.
-From CoqEAL.refinements Require Import refinements param (*seqmx*) binint rational.
+From CoqEAL.refinements Require Import hrel refinements param (*seqmx*) binint rational.
 Require Import seqmx.
 Require Import Reals Flocq.Core.Fcore_Raux QArith BigZ BigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
@@ -23,7 +22,10 @@ Unset Printing Implicit Defensive.
 Local Open Scope R_scope.
 
 (* TODO: Move to misc *)
-
+(*
+Definition Q2R (x : Q) : R :=
+  (Z2R (Qnum x) / Z2R (Z.pos (Qden x)))%Re.
+ *)
 Coercion bigQ2R (x : BigQ.t_ (* the type of (_ # _) *)) : R :=
   RMicromega.IQR [x]%bigQ.
 
