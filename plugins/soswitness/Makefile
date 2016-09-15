@@ -1,4 +1,4 @@
-NAME = soswitness
+NAME = ValidSDP
 MODULES = \
 src/soswitness.ml4 \
 src/soswitness.mllib \

@@ -11,7 +11,7 @@ Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog multipoly.
 (* Require Import Quote. *)
-Require Import soswitness.soswitness.
+From ValidSDP Require Import soswitness.
 Require Import seqmx_complements.
 From Interval Require Import Interval_missing.
 
