@@ -1,5 +1,3 @@
-# Created by https://www.gitignore.io/api/emacs,coq,ocaml
-
 ### Emacs ###
 # -*- mode: gitignore; -*-
 *~
@@ -68,8 +66,8 @@ setup.data
 setup.log
 
 # Misc
-/cholesky/coqgraph
-/cholesky/html/
-/cholesky/Makefile.coq
+/theories/coqgraph
+/theories/html/
+/theories/Makefile.coq
 /dependencies/CoqEAL_refinements/Makefile.coq
 /dependencies/CoqEAL_theory/Makefile.coq
