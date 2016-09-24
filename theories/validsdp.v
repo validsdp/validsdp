@@ -1138,6 +1138,42 @@ End refinement_interp_poly.
 (** ** Part 4: The final tactic *)
 
 (*
+Definition notnil (vm : seq R) :=
+  if vm is [::] then false else true.
+ *)
+
+Theorem soscheck_correct_wrapup
+  (pap : p_abstr_poly) (vm : seq R)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
+  let n := size vm in
+  let n' := n.-1 in
+  let ap := abstr_poly_of_p_abstr_poly pap in
+  let bp := interp_poly_eff n' ap in
+  let z := map (fun x => [:: x]) zQ.1 in
+  let s := (size z).-1 in
+  let Q := map (map F2FI) zQ.2 in
+  (n != 0%N) &&
+  vars_ltn n ap  &&
+  (soscheck_eff
+     (n := n) (s := s) (* Erik@Pierre : n.+1 = s ? *)
+     (fs := coqinterval_infnan.coqinterval_round_up_infnan)
+     (F2T := FI2BigQ)
+     (T2F := BigQ2FI)
+     bp z Q) ->
+  (0 <= interp_p_abstr_poly vm pap)%Re.
+Proof.
+Admitted.
+
+(* apply soscheck_correct with
+        (1 := rat2R_additive)
+        (2 := rat2F_correct)
+        (3 := rat2R_F2rat)
+        (4 := max_l)
+        (5 := max_r)
+        (z := za)
+        (Q := Qa). *)
+
+(*
 Lemma interp_eff_correct vm p :
   let n := size vm in
   let n' := n.-1 in
@@ -1152,89 +1188,43 @@ Lemma interp_eff_correct vm p :
   = interp_p_abstr_poly vm p.
  *)
 
+Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.
+Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
+
 Ltac do_sdp :=
   match goal with
-  | [ |- (?r >= 0)%Re ] => apply: Rle_ge; do_sdp
   | [ |- (0 <= ?r)%Re ] =>
     match get_poly r (@Datatypes.nil R) with
-      (?ap, ?l) =>
-      change (0 <= interp_p_abstr_poly l ap)%Re;
-      rewrite interp_correct ; [|by vm_compute|by vm_compute]
+      (?pap, ?vm) =>
+      abstract (
+        let n' := constr:((size vm).-1) in
+        let ap := constr:(abstr_poly_of_p_abstr_poly pap) in
+        let bp := constr:(interp_poly_eff n' ap) in
+        let l := eval vm_compute in (M.elements bp) in
+        let zQ := fresh "zQ" in
+        soswitness of l as zQ;
+        apply (@soscheck_correct_wrapup pap vm zQ);
+        (vm_cast_no_check (erefl true))
+      )
     end
-  end.
-
-Ltac do_sdp0 :=
-  match goal with
-  | [ |- (?r >= 0)%Re ] => apply: Rle_ge; do_sdp0
-  | [ |- (0 <= ?r)%Re ] =>
-    match get_poly r (@Datatypes.nil R) with
-      (?ap, ?l) =>
-      idtac l (*change (0 <= interp_p_abstr_poly l ap)%Re;
-      rewrite -interp_correct (*; [|by vm_compute|by vm_compute] *)*)
+  | [ |- (?a <= ?b)%Re ] =>
+    match a with
+    | R0 => fail 100 "do_sdp fails to conclude."
+    | _ => apply Rle_minus_le; do_sdp
     end
+  | [ |- (?a >= ?b)%Re ] =>
+    apply Rle_ge; do_sdp
   end.
 
 Lemma test_do_sdp (x : R) : (2 * x >= 0)%Re.
-(* TODO/Erik: fix the parsing of integer constants *)
-do_sdp.
+(* Fail do_sdp.
+" ** On entry to DGEMM parameter number  8 had an illegal value"
+*)
 Abort.
 
 Lemma test_do_sdp (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
-do_sdp.
-match goal with
-| [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
-  set n := qn;
-  set ap := qap
-end.
-compute in n.
-pose bqp := interp_poly_eff n ap.
-let l := eval vm_compute in (M.elements bqp) in
-let zQ := fresh "zQ" in soswitness of l as zQ.
-pose s := (size zQ.1).-1.
-compute in s.
-pose z' := (map (fun x => [:: x]) zQ.1).
-pose Qf := map (map F2FI) zQ.2.
-pose za := @spec_seqmx _ (@mnm0 n.+1) _ (@multinom_of_seqmultinom_val n.+1) s.+1 1 z'.
-pose Qa := @spec_seqmx _ (FI0 fs) _ (id) s.+1 s.+1 Qf.
-apply soscheck_correct with
-        (1 := rat2R_additive)
-        (2 := rat2F_correct)
-        (3 := rat2R_F2rat)
-        (4 := max_l)
-        (5 := max_r)
-        (z := za)
-        (Q := Qa).
-apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs FI2BigQ BigQ2FI (interp_poly_eff n ap) z' Qf)).
-2: by vm_compute.  (* TODO: on recalcule une deuxième fois interp_poly_eff, à éviter avec un remember ou quelque chose *)
-apply refines_eq.
-eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-{ by apply param_soscheck; tc. }
-{ by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
-rewrite refinesE (*!*) /za /z'.
-eapply RseqmxC_spec_seqmx.
-{ done. (* size check *) }
-{ rewrite {2}[[seq [:: x0] | x0 <- zQ.1]](_: ?[x] = map_seqmx id ?x) //.
-  eapply (map_seqmx_R (A_R := fun m m' => m = m' /\ size m' = n.+1)); last first.
-  fold z'.
-  have : all (all (fun s => size s == n.+1)) z' by compute.
-  clear; elim: z'  =>[//|a l IHl] Hsz /=.
-  constructor 2 =>//.
-  elim: a Hsz =>[//|b r IHr] /= Hsz.
-  constructor 2 =>//.
-  split=>//.
-  by move: Hsz=>/andP[]/andP[]/eqP.
-  apply: IHr.
-  by move: Hsz=>/andP[]/andP[]/= _ -> ->.
-  apply: IHl.
-  by move: Hsz=>/=/andP[].
-  (* ...we should move all this to a separate lemma... *)
-  move=> m m' Hm; rewrite /spec /spec_id (proj1 Hm).
-  apply refinesP.
-  eapply refines_multinom_of_seqmultinom_val (* to rename! *).
-  by rewrite (proj2 Hm).
-}
-by rewrite refinesE; eapply Rseqmx_spec_seqmx.
-Qed.
+Time do_sdp.
+Time Qed.
 
 Let sigma x0 x1 x2 : R := 6444365281246187/9007199254740992
          + 6312265263179769/576460752303423488 * x0
@@ -1394,10 +1384,14 @@ Let p x0 x1 x2 : R :=
     + 3135835432654057/576460752303423488 * x1 * x2^3
     + -569947876840979/288230376151711744 * x2^4.
 
-(*
 Lemma sigma_pos (x0 x1 x2 : R) : (sigma x0 x1 x2 >= 0)%Re.
+(* Fail do_sdp. *)
 rewrite /sigma.
-Time do_sdp.  (* 1.9 s on Pierre's desktop *)
+Time do_sdp. (* now: 0.9 s on Erik's laptop *)
+Time Qed.
+(* 1.9 s on Pierre's desktop *)
+
+(*
 match goal with
 | [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
   set n := qn;
@@ -1451,66 +1445,12 @@ eapply RseqmxC_spec_seqmx.
   by rewrite (proj2 Hm).
 }
 by rewrite refinesE; eapply Rseqmx_spec_seqmx.
-Qed.
+*)
 
 Lemma sigma1_pos (x0 x1 x2 : R) : (sigma1 x0 x1 x2 >= 0)%Re.
 rewrite /sigma1.
-Time do_sdp.  (* 7.0 s *)
-match goal with
-| [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
-  set n := qn;
-  set ap := qap
-end.
-compute in n.
-pose bqp := interp_poly_eff n ap.
-Time let l := eval vm_compute in (M.elements bqp) in
-let zQ := fresh "zQ" in soswitness of l as zQ.  (* 0.40 s *)
-pose s := (size zQ.1).-1.
-compute in s.
-pose z' := (map (fun x => [:: x]) zQ.1).
-pose Qf := map (map F2FI) zQ.2.
-pose za := @spec_seqmx _ (@mnm0 n.+1) _ (@multinom_of_seqmultinom_val n.+1) s.+1 1 z'.
-pose Qa := @spec_seqmx _ (FI0 fs) _ (id) s.+1 s.+1 Qf.
-apply soscheck_correct with
-        (1 := rat2R_additive)
-        (2 := rat2F_correct)
-        (3 := rat2R_F2rat)
-        (4 := max_l)
-        (5 := max_r)
-        (z := za)
-        (Q := Qa).
-apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs FI2BigQ BigQ2FI (interp_poly_eff n ap) z' Qf)); last first.
-Time by vm_compute.  (* 0.24 s *)
-apply refines_eq.
-eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-{ by apply param_soscheck; tc. }
-{ by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
-rewrite refinesE (*!*) /za /z'.
-eapply RseqmxC_spec_seqmx.
-{ done. (* size check *) }
-{ rewrite {2}[[seq [:: x0] | x0 <- zQ.1]](_: ?[x] = map_seqmx id ?x) //.
-  eapply (map_seqmx_R (A_R := fun m m' => m = m' /\ size m' = n.+1)); last first.
-  fold z'.
-  have : all (all (fun s => size s == n.+1)%B) z' by compute.
-  clear; elim: z'  =>[//|a l IHl] Hsz /=.
-  constructor 2 =>//.
-  elim: a Hsz =>[//|b r IHr] /= Hsz.
-  constructor 2 =>//.
-  split=>//.
-  by move: Hsz=>/andP[]/andP[]/eqP.
-  apply: IHr.
-  by move: Hsz=>/andP[]/andP[]/= _ -> ->.
-  apply: IHl.
-  by move: Hsz=>/=/andP[].
-  (* ...we should move all this to a separate lemma... *)
-  move=> m m' Hm; rewrite /spec /spec_id (proj1 Hm).
-  apply refinesP.
-  eapply refines_multinom_of_seqmultinom_val (* to rename! *).
-  by rewrite (proj2 Hm).
-}
-by rewrite refinesE; eapply Rseqmx_spec_seqmx.
-Qed.
- *)
+Time do_sdp. (* now: 1.6 s on Erik's laptop *)
+Time Qed.
 
 Lemma p_ind (x0 x1 x2 : R) : ((p (1/4
                                                       * (4/5 * x0
@@ -1525,65 +1465,12 @@ Lemma p_ind (x0 x1 x2 : R) : ((p (1/4
          * (p x0 x1 x2)
        - (sigma1 x0 x1 x2) * ((x0)^2 + (x1)^2 + (x2)^2 - 1) >= 0)%Re.
 rewrite /p /sigma /sigma1.
-Time do_sdp. (* Erik/bigQ: 1.5s; Erik/R: 12s *) (* 1.6 s *)
-match goal with
-| [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
-  set n := qn;
-  set ap := qap
-end.
-compute in n.
-pose bqp := interp_poly_eff n ap.
-Time let l := eval vm_compute in (M.elements bqp) in
-let zQ := fresh "zQ" in soswitness of l as zQ.  (* 0.7 s *)
-pose s := (size zQ.1).-1.
-compute in s.
-pose z' := (map (fun x => [:: x]) zQ.1).
-pose Qf := map (map F2FI) zQ.2.
-pose za := @spec_seqmx _ (@mnm0 n.+1) _ (@multinom_of_seqmultinom_val n.+1) s.+1 1 z'.
-pose Qa := @spec_seqmx _ (FI0 fs) _ (id) s.+1 s.+1 Qf.
-apply soscheck_correct with
-        (1 := rat2R_additive)
-        (2 := rat2F_correct)
-        (3 := rat2R_F2rat)
-        (4 := max_l)
-        (5 := max_r)
-        (z := za)
-        (Q := Qa).
-apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs FI2BigQ BigQ2FI (interp_poly_eff n ap) z' Qf)); last first.
-Time by vm_compute.  (* 1.04 s *)
-apply refines_eq.
-eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-{ by apply param_soscheck; tc. }
-{ by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
-rewrite refinesE (*!*) /za /z'.
-eapply RseqmxC_spec_seqmx.
-{ done. (* size check *) }
-{ rewrite {2}[[seq [:: x0] | x0 <- zQ.1]](_: ?[x] = map_seqmx id ?x) //.
-  eapply (map_seqmx_R (A_R := fun m m' => m = m' /\ size m' = n.+1)); last first.
-  fold z'.
-  have : all (all (fun s => size s == n.+1)%B) z' by compute.
-  clear; elim: z'  =>[//|a l IHl] Hsz /=.
-  constructor 2 =>//.
-  elim: a Hsz =>[//|b r IHr] /= Hsz.
-  constructor 2 =>//.
-  split=>//.
-  by move: Hsz=>/andP[]/andP[]/eqP.
-  apply: IHr.
-  by move: Hsz=>/andP[]/andP[]/= _ -> ->.
-  apply: IHl.
-  by move: Hsz=>/=/andP[].
-  (* ...we should move all this to a separate lemma... *)
-  move=> m m' Hm; rewrite /spec /spec_id (proj1 Hm).
-  apply refinesP.
-  eapply refines_multinom_of_seqmultinom_val (* to rename! *).
-  by rewrite (proj2 Hm).
-}
-by rewrite refinesE; eapply Rseqmx_spec_seqmx.
-Qed.
+Time do_sdp. (* now: 4.44 s on Erik's laptop *)
+(* Erik/bigQ: 1.5s; Erik/R: 12s *) (* 1.6 s *)
+Time Qed.
 
 (* Time for the three lemmas above in OCaml : 0.17 s *)
 
-(*
 Let sigma' x0 x1 := 6964204482325329/36028797018963968
     + 1918630498963825/144115188075855872 * x0
     + 1161234483464059/18014398509481984 * x1
@@ -2063,119 +1950,15 @@ Let p' x1 x2 := 161665552462085691/72057594037927936
 
 Lemma sigma_pos' (x0 x1 : R) : (sigma' x0 x1 >= 0)%Re.
 rewrite /sigma'.
-Time do_sdp.  (* 1.2 s *)
-match goal with
-| [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
-  set n := qn;
-  set ap := qap
-end.
-compute in n.
-pose bqp := interp_poly_eff n ap.
-Time let l := eval vm_compute in (M.elements bqp) in
-let zQ := fresh "zQ" in soswitness of l as zQ.  (* 0.4 s *)
-pose s := (size zQ.1).-1.
-compute in s.
-pose z' := (map (fun x => [:: x]) zQ.1).
-pose Qf := map (map F2FI) zQ.2.
-pose za := @spec_seqmx _ (@mnm0 n.+1) _ (@multinom_of_seqmultinom_val n.+1) s.+1 1 z'.
-pose Qa := @spec_seqmx _ (FI0 fs) _ (id) s.+1 s.+1 Qf.
-apply soscheck_correct with
-        (1 := rat2R_additive)
-        (2 := rat2F_correct)
-        (3 := rat2R_F2rat)
-        (4 := max_l)
-        (5 := max_r)
-        (z := za)
-        (Q := Qa).
-apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs FI2BigQ BigQ2FI (interp_poly_eff n ap) z' Qf)); last first.
-Time by vm_compute.  (* 1.5 s *)
-apply refines_eq.
-eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-{ apply (param_soscheck (rAC := r_ratBigQ) (* (C2A := BigQ2rat) *)); by tc. }
-{ by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
-rewrite refinesE (*!*) /za /z'.
-eapply RseqmxC_spec_seqmx.
-{ done. (* size check *) }
-{ rewrite {2}[[seq [:: x0] | x0 <- zQ.1]](_: ?[x] = map_seqmx id ?x) //.
-  eapply (map_seqmx_R (A_R := fun m m' => m = m' /\ size m' = n.+1)); last first.
-  fold z'.
-  have : all (all (fun s => size s == n.+1)%B) z' by compute.
-  clear; elim: z'  =>[//|a l IHl] Hsz /=.
-  constructor 2 =>//.
-  elim: a Hsz =>[//|b r IHr] /= Hsz.
-  constructor 2 =>//.
-  split=>//.
-  by move: Hsz=>/andP[]/andP[]/eqP.
-  apply: IHr.
-  by move: Hsz=>/andP[]/andP[]/= _ -> ->.
-  apply: IHl.
-  by move: Hsz=>/=/andP[].
-  (* ...we should move all this to a separate lemma... *)
-  move=> m m' Hm; rewrite /spec /spec_id (proj1 Hm).
-  apply refinesP.
-  eapply refines_multinom_of_seqmultinom_val (* to rename! *).
-  by rewrite (proj2 Hm).
-}
-by rewrite refinesE; eapply Rseqmx_spec_seqmx.
-Qed.
+Time do_sdp. (* now: 5.3 s on Erik's laptop *)
+(* 1.2 s *)
+Time Qed.
 
 Lemma sigma1_pos' (x0 x1 : R) : (sigma1' x0 x1 >= 0)%Re.
 rewrite /sigma1'.
-Time do_sdp.  (* 2.2 s *)
-match goal with
-| [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
-  set n := qn;
-  set ap := qap
-end.
-compute in n.
-pose bqp := interp_poly_eff n ap.
-Time let l := eval vm_compute in (M.elements bqp) in
-let zQ := fresh "zQ" in soswitness of l as zQ.  (* 0.8 s *)
-pose s := (size zQ.1).-1.
-compute in s.
-pose z' := (map (fun x => [:: x]) zQ.1).
-pose Qf := map (map F2FI) zQ.2.
-pose za := @spec_seqmx _ (@mnm0 n.+1) _ (@multinom_of_seqmultinom_val n.+1) s.+1 1 z'.
-pose Qa := @spec_seqmx _ (FI0 fs) _ (id) s.+1 s.+1 Qf.
-apply soscheck_correct with
-        (1 := rat2R_additive)
-        (2 := rat2F_correct)
-        (3 := rat2R_F2rat)
-        (4 := max_l)
-        (5 := max_r)
-        (z := za)
-        (Q := Qa).
-apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs FI2BigQ BigQ2FI (interp_poly_eff n ap) z' Qf)); last first.
-Time by vm_compute.  (* 6.0 s *)
-apply refines_eq.
-eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-{ by apply param_soscheck; tc. }
-{ by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
-rewrite refinesE (*!*) /za /z'.
-eapply RseqmxC_spec_seqmx.
-{ done. (* size check *) }
-{ rewrite {2}[[seq [:: x0] | x0 <- zQ.1]](_: ?[x] = map_seqmx id ?x) //.
-  eapply (map_seqmx_R (A_R := fun m m' => m = m' /\ size m' = n.+1)); last first.
-  fold z'.
-  have : all (all (fun s => size s == n.+1)%B) z' by compute.
-  clear; elim: z'  =>[//|a l IHl] Hsz /=.
-  constructor 2 =>//.
-  elim: a Hsz =>[//|b r IHr] /= Hsz.
-  constructor 2 =>//.
-  split=>//.
-  by move: Hsz=>/andP[]/andP[]/eqP.
-  apply: IHr.
-  by move: Hsz=>/andP[]/andP[]/= _ -> ->.
-  apply: IHl.
-  by move: Hsz=>/=/andP[].
-  (* ...we should move all this to a separate lemma... *)
-  move=> m m' Hm; rewrite /spec /spec_id (proj1 Hm).
-  apply refinesP.
-  eapply refines_multinom_of_seqmultinom_val (* to rename! *).
-  by rewrite (proj2 Hm).
-}
-by rewrite refinesE; eapply Rseqmx_spec_seqmx.
-Qed.
+Time do_sdp. (* now: 14.2 s on Erik's laptop *)
+(* 2.2 s *)
+Time Qed.
 
 Lemma p_ind' (x0 x1 : R) : ((p' (1/2 * (x0)^3 + 2/5 * (x1)^2)
                                 (-3/5 * (x0)^2 + 3/10 * (x1)^2))
@@ -2183,61 +1966,8 @@ Lemma p_ind' (x0 x1 : R) : ((p' (1/2 * (x0)^3 + 2/5 * (x1)^2)
          * (p' x0 x1)
        - (sigma1' x0 x1) * ((x0)^2 + (x1)^2 - 1) >= 0)%Re.
 rewrite /p' /sigma' /sigma1'.
-Time do_sdp.  (* 4.2 s on Pierre's Desktop *)
-match goal with
-| [ |- 0 <= (map_mpoly _ (interp_poly_ssr ?qn ?qap)).@[_] ] =>
-  set n := qn;
-  set ap := qap
-end.
-compute in n.
-pose bqp := interp_poly_eff n ap.
-Time let l := eval vm_compute in (M.elements bqp) in
-let zQ := fresh "zQ" in soswitness of l as zQ.  (* 0.9 s *)
-pose s := (size zQ.1).-1.
-compute in s.
-pose z' := (map (fun x => [:: x]) zQ.1).
-pose Qf := map (map F2FI) zQ.2.
-pose za := @spec_seqmx _ (@mnm0 n.+1) _ (@multinom_of_seqmultinom_val n.+1) s.+1 1 z'.
-pose Qa := @spec_seqmx _ (FI0 fs) _ (id) s.+1 s.+1 Qf.
-apply soscheck_correct with
-        (1 := rat2R_additive)
-        (2 := rat2F_correct)
-        (3 := rat2R_F2rat)
-        (4 := max_l)
-        (5 := max_r)
-        (z := za)
-        (Q := Qa).
-apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs FI2BigQ BigQ2FI (interp_poly_eff n ap) z' Qf)); last first.
-Time by vm_compute.  (* 10.7 s *)
-apply refines_eq.
-eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-{ by apply param_soscheck; tc. }
-{ by apply param_interp_poly; vm_compute.  (* ça aussi, c'est calculé deux fois *) }
-rewrite refinesE (*!*) /za /z'.
-eapply RseqmxC_spec_seqmx.
-{ done. (* size check *) }
-{ rewrite {2}[[seq [:: x0] | x0 <- zQ.1]](_: ?[x] = map_seqmx id ?x) //.
-  eapply (map_seqmx_R (A_R := fun m m' => m = m' /\ size m' = n.+1)); last first.
-  fold z'.
-  have : all (all (fun s => size s == n.+1)%B) z' by compute.
-  clear; elim: z'  =>[//|a l IHl] Hsz /=.
-  constructor 2 =>//.
-  elim: a Hsz =>[//|b r IHr] /= Hsz.
-  constructor 2 =>//.
-  split=>//.
-  by move: Hsz=>/andP[]/andP[]/eqP.
-  apply: IHr.
-  by move: Hsz=>/andP[]/andP[]/= _ -> ->.
-  apply: IHl.
-  by move: Hsz=>/=/andP[].
-  (* ...we should move all this to a separate lemma... *)
-  move=> m m' Hm; rewrite /spec /spec_id (proj1 Hm).
-  apply refinesP.
-  eapply refines_multinom_of_seqmultinom_val (* to rename! *).
-  by rewrite (proj2 Hm).
-}
-by rewrite refinesE; eapply Rseqmx_spec_seqmx.
-Qed.
- *)
+Time do_sdp. (* now: 24s on Erik's laptop *)
+(* 4.2 s on Pierre's Desktop *)
+Time Qed.
 
 (* Time for the three lemmas above in OCaml : 0.86 s *)
