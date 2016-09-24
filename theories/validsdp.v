@@ -1142,9 +1142,8 @@ Definition notnil (vm : seq R) :=
   if vm is [::] then false else true.
  *)
 
-Theorem soscheck_correct_wrapup
-  (pap : p_abstr_poly) (vm : seq R)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
+Definition soscheck_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
   let n := size vm in
   let n' := n.-1 in
   let ap := abstr_poly_of_p_abstr_poly pap in
@@ -1159,7 +1158,12 @@ Theorem soscheck_correct_wrapup
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
      (F2T := FI2BigQ)
      (T2F := BigQ2FI)
-     bp z Q) ->
+     bp z Q).
+
+Theorem soscheck_correct_wrapup
+  (vm : seq R) (pap : p_abstr_poly)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
+  soscheck_eff_wrapup vm pap zQ ->
   (0 <= interp_p_abstr_poly vm pap)%Re.
 Proof.
 Admitted.
@@ -1203,7 +1207,7 @@ Ltac do_sdp :=
         let l := eval vm_compute in (M.elements bp) in
         let zQ := fresh "zQ" in
         soswitness of l as zQ;
-        apply (@soscheck_correct_wrapup pap vm zQ);
+        apply (@soscheck_correct_wrapup vm pap zQ);
         (vm_cast_no_check (erefl true))
       )
     end
@@ -1387,9 +1391,8 @@ Let p x0 x1 x2 : R :=
 Lemma sigma_pos (x0 x1 x2 : R) : (sigma x0 x1 x2 >= 0)%Re.
 (* Fail do_sdp. *)
 rewrite /sigma.
-Time do_sdp. (* now: 0.9 s on Erik's laptop *)
-Time Qed.
-(* 1.9 s on Pierre's desktop *)
+Time do_sdp. (* 0.9 s on Erik's laptop *)
+Time Qed. (* 0.25 s *)
 
 (*
 match goal with
@@ -1449,8 +1452,8 @@ by rewrite refinesE; eapply Rseqmx_spec_seqmx.
 
 Lemma sigma1_pos (x0 x1 x2 : R) : (sigma1 x0 x1 x2 >= 0)%Re.
 rewrite /sigma1.
-Time do_sdp. (* now: 1.6 s on Erik's laptop *)
-Time Qed.
+Time do_sdp. (* now: 1.78 s on Erik's laptop *)
+Time Qed. (* 0.5 s *)
 
 Lemma p_ind (x0 x1 x2 : R) : ((p (1/4
                                                       * (4/5 * x0
@@ -1465,9 +1468,8 @@ Lemma p_ind (x0 x1 x2 : R) : ((p (1/4
          * (p x0 x1 x2)
        - (sigma1 x0 x1 x2) * ((x0)^2 + (x1)^2 + (x2)^2 - 1) >= 0)%Re.
 rewrite /p /sigma /sigma1.
-Time do_sdp. (* now: 4.44 s on Erik's laptop *)
-(* Erik/bigQ: 1.5s; Erik/R: 12s *) (* 1.6 s *)
-Time Qed.
+Time do_sdp. (* 4.2 s *)
+Time Qed. (* 1.33 s *)
 
 (* Time for the three lemmas above in OCaml : 0.17 s *)
 
@@ -1950,15 +1952,13 @@ Let p' x1 x2 := 161665552462085691/72057594037927936
 
 Lemma sigma_pos' (x0 x1 : R) : (sigma' x0 x1 >= 0)%Re.
 rewrite /sigma'.
-Time do_sdp. (* now: 5.3 s on Erik's laptop *)
-(* 1.2 s *)
-Time Qed.
+Time do_sdp. (* 5 s on Erik's laptop *)
+Time Qed. (* 1.5 s *)
 
 Lemma sigma1_pos' (x0 x1 : R) : (sigma1' x0 x1 >= 0)%Re.
 rewrite /sigma1'.
-Time do_sdp. (* now: 14.2 s on Erik's laptop *)
-(* 2.2 s *)
-Time Qed.
+Time do_sdp. (* 14.2 s on Erik's laptop *)
+Time Qed. (* 3.5 s *)
 
 Lemma p_ind' (x0 x1 : R) : ((p' (1/2 * (x0)^3 + 2/5 * (x1)^2)
                                 (-3/5 * (x0)^2 + 3/10 * (x1)^2))
@@ -1966,8 +1966,5 @@ Lemma p_ind' (x0 x1 : R) : ((p' (1/2 * (x0)^3 + 2/5 * (x1)^2)
          * (p' x0 x1)
        - (sigma1' x0 x1) * ((x0)^2 + (x1)^2 - 1) >= 0)%Re.
 rewrite /p' /sigma' /sigma1'.
-Time do_sdp. (* now: 24s on Erik's laptop *)
-(* 4.2 s on Pierre's Desktop *)
-Time Qed.
-
-(* Time for the three lemmas above in OCaml : 0.86 s *)
+Time do_sdp. (* 24 s on Erik's laptop *)
+Time Qed. (* 5.5 s *)
