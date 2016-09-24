@@ -1,4 +1,4 @@
-Require Import soswitness.soswitness.
+Require Import ValidSDP.soswitness.
 
 Open Scope N_scope.
 
