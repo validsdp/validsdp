@@ -1,6 +1,6 @@
-Installation
-============
+Installation of the soswitness plugin
+=====================================
 
-coq_makefile -f Make -o Makefile
-make
-make install
+Ideally, you should just have to type:
+
+    make && make install
