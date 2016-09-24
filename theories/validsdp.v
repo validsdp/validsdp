@@ -12,22 +12,19 @@ Import Refinements.Op.
 Require Import cholesky_prog multipoly.
 (* Require Import Quote. *)
 From ValidSDP Require Import soswitness.
-Require Import seqmx_complements.
+Require Import seqmx_complements misc.
 From Interval Require Import Interval_missing.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Local Open Scope R_scope.
+Delimit Scope Q_scope with Qrat.
 
-(* TODO: Move to misc *)
-(*
-Definition Q2R (x : Q) : R :=
-  (Z2R (Qnum x) / Z2R (Z.pos (Qden x)))%Re.
- *)
-Coercion bigQ2R (x : BigQ.t_ (* the type of (_ # _) *)) : R :=
-  RMicromega.IQR [x]%bigQ.
+Local Open Scope R_scope.
+(* Local Open Scope bigQ_scope. *)
+
+Coercion bigQ2R : BigQ.t_ >-> R.
 
 Inductive p_real_cst :=
 | PConstR0
@@ -195,23 +192,20 @@ Lemma bigQ_of_p_real_cst_correct c :
   bigQ2R (bigQ_of_p_real_cst c) = interp_p_real_cst c.
 Proof.
 have IQRp : forall p,
-  RMicromega.IQR [BigQ.Qz (BigZ.Pos (BigN.of_pos p))]%bigQ = P2R p.
-{ move=> p; rewrite /RMicromega.IQR /= BigN.spec_of_pos /= -P2R_INR; lra. }
+  Q2R [BigQ.Qz (BigZ.Pos (BigN.of_pos p))]%bigQ = P2R p.
+{ by move=> p; rewrite /Q2R /= BigN.spec_of_pos /= Rsimpl. }
 elim c.
-{ by rewrite /bigQ2R /RMicromega.IQR /= Rmult_0_l. }
+{ by rewrite /bigQ2R /Q2R /= /Rdiv Rmult_0_l. }
 { done. }
-{ apply IQRp. }
-{ move=> c' Hc' p; rewrite /= -Hc' /bigQ2R /Rdiv -IQRp -RMicromega.IQR_inv_lt.
-  { rewrite -RMicromega.IQR_mult.
-    apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_div. }
-  by rewrite /= BigN.spec_of_pos. }
-{ move=> p Hp; rewrite /= -Hp /bigQ2R -RMicromega.IQR_opp.
-  apply RMicromega.Qeq_true, Qeq_eq_bool, BigQ.spec_opp. }
-{ move=> p; rewrite /bigQ2R /interp_p_real_cst -IQRp -RMicromega.IQR_inv_lt.
-  { apply RMicromega.Qeq_true, Qeq_eq_bool.
-    rewrite -(Qmult_1_l (Qinv _)) -/([1]%bigQ).
+{ exact: IQRp. }
+{ move=> c' Hc' p; rewrite /= -Hc' /bigQ2R /Rdiv -IQRp -Q2R_inv.
+  { by rewrite -Q2R_mult; apply Q2R_Qeq; rewrite BigQ.spec_div. }
+  by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl; pos_P2R. }
+{ move=> p Hp; rewrite /= -Hp /bigQ2R -Q2R_opp; apply Q2R_Qeq, BigQ.spec_opp. }
+{ move=> p; rewrite /bigQ2R /interp_p_real_cst -IQRp -Q2R_inv.
+  { apply Q2R_Qeq; rewrite -(Qmult_1_l (Qinv _)) -/([1]%bigQ).
     by rewrite -BigQ.spec_inv -BigQ.spec_mul. }
-  by rewrite /= BigN.spec_of_pos. }
+  by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl; pos_P2R. }
 Qed.
 
 Fixpoint abstr_poly_of_p_abstr_poly (p : p_abstr_poly) : abstr_poly :=
@@ -246,7 +240,7 @@ elim p.
 { apply bigQ_of_p_real_cst_correct. }
 { done. }
 { move=> p' /= ->.
-  by rewrite /bigQ2R /RMicromega.IQR Rmult_0_l /Rminus Rplus_0_l. }
+  by rewrite /bigQ2R /Q2R Rsimpl /Rminus Rplus_0_l. }
 { by move=> ? /= -> ? /= ->. }
 { by move=> ? /= -> ? /= ->. }
 { by move=> ? /= -> ? /= ->. }
@@ -261,7 +255,7 @@ Definition Z2int (z : BinNums.Z) :=
   | Z.neg n => (- (Pos.to_nat n)%:Z)%R
   end.
 
-Program Definition BigQ2rat (bq : bigQ) :=
+Program Definition bigQ2rat (bq : bigQ) :=
   let q := Qred [bq]%bigQ in
   @Rat (Z2int (Qnum q), Z2int (Z.pos (Qden q))) _.
 Next Obligation.
@@ -270,7 +264,7 @@ Admitted. (* Erik *)
 Definition interp_poly_ssr n (ap : abstr_poly) : {mpoly rat[n.+1]} :=
   let fix aux ap :=
     match ap with
-    | Const c => (BigQ2rat c)%:MP_[n.+1]
+    | Const c => (bigQ2rat c)%:MP_[n.+1]
     | Var i => 'X_(inord i)
     | Add p q => (aux p + aux q)%R
     | Sub p q => (aux p - aux q)%R
@@ -299,7 +293,7 @@ Definition interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
     end in
   aux ap.
 
-Definition r_ratBigQ := fun_hrel BigQ2rat.
+Definition r_ratBigQ := fun_hrel bigQ2rat.
 
 Definition rat2R (q : rat) : R := ratr q.
 
@@ -315,7 +309,7 @@ Admitted. (* Erik *)
 
 Canonical rat2R_rmorphism_struct := AddRMorphism rat2R_multiplicative.
 
-Lemma bigQ2R_same (c : bigQ) : bigQ2R c = rat2R (BigQ2rat c).
+Lemma bigQ2R_same (c : bigQ) : bigQ2R c = rat2R (bigQ2rat c).
 Proof.
 Admitted. (* Erik *)
 
@@ -332,7 +326,7 @@ Lemma map_mpolyC (R S : ringType) (f : R -> S) (Hf0 : f 0%R = 0%R) n' c :
   map_mpoly f c%:MP_[n'] = (f c)%:MP_[n'].
 Proof.
 rewrite /map_mpoly /mmap msuppC.
-case_eq (c == 0%R); [by move/eqP ->; rewrite big_nil Hf0 mpolyC0|].
+case_eq (c == 0%R)%B; [by move/eqP ->; rewrite big_nil Hf0 mpolyC0|].
 move=> _; rewrite big_cons big_nil GRing.addr0 mmap1_id.
 by rewrite mpolyX0 mcoeffC eqxx !GRing.mulr1 /=.
 Qed.
@@ -796,7 +790,6 @@ Definition ZZtoQ (m : bigZ) (e : bigZ) :=
   end.
 
 (* TODO: move above *)
-Delimit Scope Q_scope with Qrat.
 
 Lemma ZZtoQ_correct :
 ( forall m e,
@@ -805,7 +798,7 @@ Lemma ZZtoQ_correct :
 Proof.
 Admitted. (* Erik *)
 
-Definition F2BigQ (q : coqinterval_infnan.F.type) : bigQ :=
+Definition F2bigQ (q : coqinterval_infnan.F.type) : bigQ :=
   match q with
   | Interval_specific_ops.Float m e => ZZtoQ m e
   | Interval_specific_ops.Fnan => 0%bigQ
@@ -818,8 +811,8 @@ Definition F2BigQ (q : coqinterval_infnan.F.type) : bigQ :=
 
 Let fs := coqinterval_infnan.coqinterval_round_up_infnan.
 
-Definition BigQ2FI := F2FI \o snd \o BigQ2F.
-Definition FI2BigQ := F2BigQ \o coqinterval_infnan.FI_val.
+Definition bigQ2FI := F2FI \o snd \o bigQ2F.
+Definition FI2bigQ := F2bigQ \o coqinterval_infnan.FI_val.
 
 Definition int2Z (n : int) : BinNums.Z :=
   match n with
@@ -828,13 +821,13 @@ Definition int2Z (n : int) : BinNums.Z :=
   | Negz n => Z.neg (Pos.of_nat n)
   end.
 
-Definition rat2BigQ (q : rat) : bigQ :=
+Definition rat2bigQ (q : rat) : bigQ :=
   let n := BigZ.of_Z (int2Z (numq q)) in
   let d := BigN.N_of_Z (int2Z (denq q)) in
   (n # d)%bigQ.
 
-Definition rat2F := BigQ2FI \o rat2BigQ.
-Definition F2rat := BigQ2rat \o FI2BigQ.
+Definition rat2F := bigQ2FI \o rat2bigQ.
+Definition F2rat := bigQ2rat \o FI2bigQ.
 
 Lemma rat2F_correct :
   forall x0 : rat_comRing,
@@ -848,11 +841,11 @@ Lemma rat2R_F2rat :
 Proof.
 Admitted.  (* Erik *)
 
-Instance : refines (eq ==> r_ratBigQ) F2rat FI2BigQ.
+Instance : refines (eq ==> r_ratBigQ) F2rat FI2bigQ.
 Proof.
 Admitted.  (* Erik *)
 
-Instance : refines (r_ratBigQ ==> eq) rat2F BigQ2FI.
+Instance : refines (r_ratBigQ ==> eq) rat2F bigQ2FI.
 Proof.
 Admitted.  (* Erik *)
 
@@ -1156,8 +1149,8 @@ Definition soscheck_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
   (soscheck_eff
      (n := n) (s := s) (* Erik@Pierre : n.+1 = s ? *)
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
-     (F2T := FI2BigQ)
-     (T2F := BigQ2FI)
+     (F2T := FI2bigQ)
+     (T2F := bigQ2FI)
      bp z Q).
 
 Theorem soscheck_correct_wrapup
@@ -1418,7 +1411,7 @@ apply soscheck_correct with
         (5 := max_r)
         (z := za)
         (Q := Qa).
-apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs FI2BigQ BigQ2FI (interp_poly_eff n ap) z' Qf)); last first.
+apply (etrans (y:=@soscheck_eff n.+1 _ zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs FI2bigQ bigQ2FI (interp_poly_eff n ap) z' Qf)); last first.
 Time by vm_compute.  (* 0.06 s *)
 apply refines_eq.
 eapply refines_apply; first eapply refines_apply; first eapply refines_apply.

@@ -1,7 +1,7 @@
 (** * Miscellaneous lemmas. *)
 
-Require Import Reals Flocq.Core.Fcore_Raux.
-
+Require Import Reals QArith BigQ.
+Require Import Flocq.Core.Fcore_Raux.
 Require Import Psatz.
 
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
@@ -274,3 +274,46 @@ case: k IH1 =>[//|k]; exact.
 Qed.
 
 End Map2.
+
+(** About [BigQ] *)
+Definition Q2R (x : Q) : R :=
+  (Z2R (Qnum x) / Z2R (Z.pos (Qden x)))%Re.
+
+Definition bigQ2R (x : BigQ.t_ (* the type of (_ # _)%bigQ *)) : R :=
+  Q2R [x]%bigQ.
+
+
+Ltac pos_P2R :=
+  by rewrite P2R_INR; apply not_0_INR, not_eq_sym, lt_0_neq, Pos2Nat.is_pos.
+
+Lemma Q2R_inv x : Q2R x <> 0%Re -> Q2R (/ x) = / (Q2R x).
+Proof.
+move: x => [[|a|a] b] Hx; rewrite /Q2R /Qinv /=.
+{ by rewrite /Q2R /= /Rdiv Rmult_0_l in Hx. }
+{ clear Hx; rewrite Rinv_Rdiv //; pos_P2R. }
+{ clear Hx; rewrite /Rdiv !Ropp_mult_distr_l_reverse -Ropp_inv_permute.
+  rewrite Rinv_Rdiv //; pos_P2R.
+  apply Rmult_integral_contrapositive_currified; [|apply Rinv_neq_0_compat];
+    pos_P2R. }
+Qed.
+
+Lemma Q2R_mult x y : Q2R (x * y) = (Q2R x * Q2R y)%Re.
+Proof.
+rewrite /Q2R /= !(Z2R_mult, P2R_INR, Pos2Nat.inj_mul, mult_INR) -!P2R_INR.
+rewrite /Rdiv Rinv_mult_distr; first ring; pos_P2R.
+Qed.
+
+Lemma Q2R_opp x : Q2R (- x) = (- Q2R x)%Re.
+Proof. by rewrite /Q2R /= Z2R_opp -Ropp_mult_distr_l_reverse. Qed.
+
+Lemma Q2R_Qeq x y :
+  Qeq x y -> Q2R x = Q2R y.
+Proof.
+move=> Hxy; rewrite /Q2R.
+rewrite /Qeq in Hxy.
+move/(congr1 Z2R) in Hxy.
+rewrite !Z2R_mult in Hxy.
+apply (Rmult_eq_reg_r (Z2R (' Qden y))); last by simpl; pos_P2R.
+rewrite /Rdiv Rmult_assoc [(/ _ * _)%Re]Rmult_comm -Rmult_assoc Hxy.
+field; split; simpl; pos_P2R.
+Qed.

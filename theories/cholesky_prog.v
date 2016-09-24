@@ -1401,7 +1401,7 @@ Definition posdef_check_itv4_coqinterval' (M : seq (seq FI)) (r : FI) : bool :=
 
 Definition prec := 53%bigZ.
 
-Definition BigQ2F (q : bigQ) : F.type * F.type :=
+Definition bigQ2F (q : bigQ) : F.type * F.type :=
   match q with
   | BigQ.Qz m => let m0 := Interval_specific_ops.Float m Bir .exponent_zero in (m0, m0)
   | BigQ.Qq m n => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in
