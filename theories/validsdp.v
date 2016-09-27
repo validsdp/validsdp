@@ -1,10 +1,11 @@
+Require Import ZArith.
 From Flocq Require Import Fcore.
 From CoqEAL.refinements Require Import hrel refinements param (*seqmx*) binint rational.
 Require Import seqmx.
 Require Import Reals Flocq.Core.Fcore_Raux QArith BigZ BigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
-From mathcomp Require Import ssrnum ssrint rat.
+From mathcomp Require Import ssrnum ssrint rat div.
 From SsrMultinomials Require Import mpoly (* freeg *).
 Require Import Rstruct.
 Require Import iteri_ord float_infnan_spec real_matrix.
@@ -251,15 +252,63 @@ Qed.
 Definition Z2int (z : BinNums.Z) :=
   match z with
   | Z0 => 0%:Z
-  | Z.pos p => (Pos.to_nat p)%:Z
-  | Z.neg n => (- (Pos.to_nat n)%:Z)%R
+  | Z.pos p => (nat_of_pos p)%:Z
+  | Z.neg n => (- (nat_of_pos n)%:Z)%R
   end.
+
+Lemma nat_of_pos_gt0 p : (0 < nat_of_pos p)%N.
+Proof. by elim: p =>//= p IHp; rewrite NatTrec.doubleE double_gt0. Qed.
+
+Lemma Zabs_natE n : Z.abs_nat n = `|Z2int n|%N.
+Proof.
+case: n => //= p; first by rewrite binnat.to_natE.
+by rewrite abszN absz_nat binnat.to_natE.
+Qed.
+
+Local Open Scope Z_scope.
+
+Lemma dvdnP m n : reflect (Z.divide (Z.of_nat m) (Z.of_nat n)) (m %| n).
+Proof.
+apply: (iffP idP) => H.
+{ rewrite dvdn_eq in H; rewrite -(eqP H) /Z.divide; exists (Z.of_nat (n %/ m)).
+  by rewrite Nat2Z.inj_mul. }
+{ have [q Hq] := H; apply/dvdnP; exists `|Z2int q|%N; apply/Nat2Z.inj.
+  have [Zq|NZq] := Z_zerop q.
+  { by rewrite Zq /= in Hq *. }
+  case: m Hq H => [|m] Hq H.
+  { by rewrite Zmult_comm /= in Hq; rewrite mulnC /=. }
+  rewrite Nat2Z.inj_mul -Zabs_natE Zabs2Nat.id_abs Z.abs_eq //.
+  have H0 : (0 <= q * Z.of_nat m.+1) by rewrite -Hq; apply Zle_0_nat.
+  by apply: Zmult_le_0_reg_r H0. }
+Qed.
+
+Lemma ZgcdE n d : Z.gcd n (' d) = Z.of_nat (div.gcdn `|Z2int n| (nat_of_pos d)).
+Proof.
+apply: Z.gcd_unique.
+{ exact: Zle_0_nat. }
+{ apply/Z.divide_abs_r; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
+  by rewrite Zabs_natE dvdn_gcdl. }
+{ apply/Z.divide_abs_r; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
+  by rewrite Zabs_natE /= dvdn_gcdr. }
+move=> q Hn Hd; apply/Z.divide_abs_l; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
+rewrite Zabs_natE dvdn_gcd.
+apply/andP; split; apply/dvdnP; rewrite -!Zabs_natE !Zabs2Nat.id_abs.
+{ by apply/Z.divide_abs_l/Z.divide_abs_r. }
+{ by apply/Z.divide_abs_l; rewrite -binnat.to_natE positive_nat_Z. }
+Qed.
 
 Program Definition bigQ2rat (bq : bigQ) :=
   let q := Qred [bq]%bigQ in
   @Rat (Z2int (Qnum q), Z2int (Z.pos (Qden q))) _.
 Next Obligation.
-Admitted. (* Erik *)
+rewrite ltz_nat nat_of_pos_gt0 /=.
+set q := [bq]%bigQ.
+have /Qcanon.Qred_iff HQ := Qcanon.Qred_involutive q.
+set n := Qnum (Qred q) in HQ *.
+set d := Qden (Qred q) in HQ *.
+rewrite ZgcdE in HQ.
+by rewrite /div.coprime; apply/eqP/Nat2Z.inj; rewrite HQ.
+Qed.
 
 Definition interp_poly_ssr n (ap : abstr_poly) : {mpoly rat[n.+1]} :=
   let fix aux ap :=
@@ -338,6 +387,8 @@ Proof.
 rewrite /map_mpoly /mmap msuppX big_cons big_nil GRing.addr0 mmap1_id.
 by rewrite mul_mpolyC mcoeffX eqxx.
 Qed.
+
+Local Open Scope R_scope.
 
 Lemma interp_abstr_poly_correct (l : seq R) (ap : abstr_poly) :
   let n := size l in (0 < n)%N -> vars_ltn n ap ->
