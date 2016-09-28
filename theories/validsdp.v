@@ -321,7 +321,7 @@ Lemma interp_abstr_poly_correct (l : seq R) (ap : abstr_poly) :
   interp_abstr_poly l ap = p.@[fun i : 'I_n'.+1 => nth R0 l i].
 Proof.
 move=> n Pn Hvars n'; set env := fun _ => _.
-have Hn : n = n'.+1; [by move: Pn => /ltP; apply S_pred|].
+have Hn : n = n'.+1 by rewrite prednK.
 elim: ap Hvars.
 { by move=> c _ /=; rewrite map_mpolyC ?GRing.raddf0 // mevalC bigQ2R_rat. }
 { move=> i /= Hi; rewrite map_mpolyX mevalZ mevalX.
@@ -1120,16 +1120,49 @@ Definition soscheck_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
   let ap := abstr_poly_of_p_abstr_poly pap in
   let bp := interp_poly_eff n' ap in
   let z := map (fun x => [:: x]) zQ.1 in
-  let s := (size z).-1 in
+  let s := size zQ.1 in
   let Q := map (map F2FI) zQ.2 in
-  (n != 0%N) &&
-  vars_ltn n ap  &&
-  (soscheck_eff
-     (n := n) (s := s) (* Erik@Pierre : n.+1 = s ? *)
+  [&& (n != 0%N),
+   (s != 0%N),
+   (size Q == s),
+   (all (fun e => size e == s) Q),
+   vars_ltn n ap &
+   soscheck_eff
+     (n := n) (s := s.-1) (* Erik@Pierre : link between n and s ? *)
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
      (F2T := FI2bigQ)
      (T2F := bigQ2FI)
-     bp z Q).
+     bp z Q].
+
+Lemma listR_seqmultinom_map (n : nat)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
+  let za := [seq [:: x] | x <- zQ.1] in
+  list_R (list_R (Rseqmultinom (n := n)))
+  (map_seqmx (spec (spec_of := multinom_of_seqmultinom_val n)) za) za.
+Admitted.
+(*
+  rewrite /za {2}[[seq [:: x0] | x0 <- zQ.1]](_: ?[x] = map_seqmx id ?x) //.
+  eapply (map_seqmx_R (A_R := fun m m' => m = m' /\ size m' = n.+1)); last first.
+  have : all (all (fun s => size s == n.+1)%B) za by admit.
+  clear; elim: za  =>[//|a l IHl] Hsz /=.
+  admit.
+  Set Printing All.
+  constructor 2 =>//.
+  elim: a Hsz =>[//|b r IHr] /= Hsz.
+  constructor 2 =>//.
+  split=>//.
+  by move: Hsz=>/andP[]/andP[]/eqP.
+  apply: IHr.
+  by move: Hsz=>/andP[]/andP[]/= _ -> ->.
+  apply: IHl.
+  by move: Hsz=>/=/andP[].
+  (* ...we should move all this to a separate lemma... *)
+  move=> m m' Hm; rewrite /spec /spec_id (proj1 Hm).
+  apply refinesP.
+  eapply refines_multinom_of_seqmultinom_val (* to rename! *).
+  by rewrite (proj2 Hm).
+}
+*)
 
 Theorem soscheck_correct_wrapup
   (vm : seq R) (pap : p_abstr_poly)
@@ -1137,16 +1170,44 @@ Theorem soscheck_correct_wrapup
   soscheck_eff_wrapup vm pap zQ ->
   (0 <= interp_p_abstr_poly vm pap)%Re.
 Proof.
-Admitted.
-
-(* apply soscheck_correct with
-        (1 := rat2R_additive)
+rewrite /soscheck_eff_wrapup.
+case/and5P => Hn Hs HzQ HzQ' /andP [Hltn Hsos].
+pose n := size vm.
+pose n' := n.-1.
+set ap := abstr_poly_of_p_abstr_poly pap in Hsos *.
+rewrite (_: size vm = n'.+1) in Hsos; last by rewrite prednK // lt0n Hn.
+set bp := interp_poly_eff n' ap in Hsos *.
+set za := (map (fun x => [:: x]) zQ.1) in Hsos *.
+set Qa := map (map F2FI) zQ.2 in Hsos *.
+pose s := (size zQ.1).-1.
+pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s.+1 1 za.
+pose Qb := @spec_seqmx _ (FI0 fs) _ (id) s.+1 s.+1 Qa.
+rewrite interp_correct ; last by rewrite ?lt0n.
+apply soscheck_correct with
+        (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
         (2 := rat2F_correct)
         (3 := rat2R_F2rat)
         (4 := max_l)
         (5 := max_r)
-        (z := za)
-        (Q := Qa). *)
+        (z := zb)
+        (Q := Qb).
+apply: (etrans (y := @soscheck_eff n'.+1 _
+  zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs
+  FI2bigQ bigQ2FI bp za Qa)); last first.
+{ by rewrite -/n' /n in Hsos; apply Hsos. }
+apply refines_eq.
+refines_apply1; first refines_apply1; first refines_apply1.
+{ by apply param_soscheck; tc. }
+{ by apply param_interp_poly; rewrite prednK ?lt0n. }
+{ rewrite refinesE; eapply RseqmxC_spec_seqmx.
+  { rewrite prednK ?lt0n // size_map eqxx /= /za.
+    by apply/allP => x /mapP [y Hy] ->. }
+  exact: listR_seqmultinom_map. }
+rewrite refinesE; eapply Rseqmx_spec_seqmx.
+{ rewrite !size_map in HzQ.
+  by rewrite prednK ?lt0n // !size_map HzQ. }
+by rewrite lt0n.
+Qed.
 
 (*
 Lemma interp_eff_correct vm p :
