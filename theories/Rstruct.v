@@ -22,6 +22,7 @@ Require Import Rdefinitions Raxioms RIneq Rbasic_fun.
 Require Import Epsilon FunctionalExtensionality.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat.
 Require Import mathcomp.ssreflect.choice mathcomp.ssreflect.bigop mathcomp.algebra.ssralg.
+Require Import mathcomp.algebra.ssrnum.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -119,3 +120,84 @@ Definition real_FieldIdomainMixin := (FieldIdomainMixin real_field_axiom).
 Canonical real_iDomainType :=
   Eval hnf in IdomainType R (FieldIdomainMixin real_field_axiom).
 Canonical real_fieldType := FieldType R real_field_axiom.
+
+Definition ler (x y : R) := match total_order_T x y with
+                            | inleft _ => true
+                            | inright _ => false
+                            end.
+
+Definition ltr (x y : R) := match total_order_T x y with
+                            | inleft (left _) => true
+                            | _ => false
+                            end.
+
+Lemma lerP (x y : R) : reflect (Rle x y) (ler x y).
+Proof.
+apply: (iffP idP); rewrite /ler; case: total_order_T =>//; first by intuition.
+by move/Rgt_not_le.
+Qed.
+
+Lemma ltrP (x y : R) : reflect (Rlt x y) (ltr x y).
+Proof.
+apply: (iffP idP); rewrite /ltr; case: total_order_T =>//.
+{ by case. }
+{ by case =>// ->; move/Rlt_irrefl. }
+by move/Rgt_lt=> Hyx Hxy; exfalso; apply: (Rlt_irrefl x); apply: Rlt_trans Hxy _.
+Qed.
+
+Fact ler0D x y : ler 0 x -> ler 0 y -> ler 0 (x + y).
+Proof.
+move/lerP => Hx /lerP Hy; apply/lerP.
+exact: Rplus_le_le_0_compat.
+Qed.
+
+Fact ler0M x y : ler 0 x -> ler 0 y -> ler 0 (x * y).
+Proof.
+move/lerP => Hx /lerP Hy; apply/lerP.
+exact: Rmult_le_pos.
+Qed.
+
+Fact ler0_anti x : ler 0 x -> ler x 0 -> x = 0.
+Proof. move/lerP => _x /lerP x_; exact: Rle_antisym. Qed.
+
+Fact subq_ge0 x y : ler 0 (y - x) = ler x y.
+Proof.
+apply/lerP/lerP.
+{ move=> H0; apply: Rminus_le.
+  move/Ropp_0_le_ge_contravar/Rge_le in H0.
+  by rewrite Ropp_minus_distr in H0. }
+{ move=> Hxy.
+  have->: y - x = - (x - y) by rewrite Ropp_minus_distr.
+  exact/Ropp_0_ge_le_contravar/Rle_ge/Rle_minus. }
+Qed.
+
+Fact ler_total : total ler.
+Proof.
+move=> x y; rewrite /ler; case: (total_order_T x y) =>//.
+case: (total_order_T y x) =>// Hyx Hxy; exfalso; apply: (Rlt_irrefl x).
+by apply: (@Rlt_trans _ y); apply Rlt_gt.
+Qed.
+
+Notation normr := Rabs (only parsing).
+
+Fact normrN x : normr (- x) = normr x.
+Proof. by rewrite Rabs_Ropp. Qed.
+
+Fact ger0_norm x : ler 0 x -> normr x = x.
+Proof. move/lerP => Hx; exact: Rabs_pos_eq. Qed.
+
+Fact ltr_def x y : (ltr x y) = (y != x) && (ler x y).
+Proof.
+rewrite /ltr /ler; case: total_order_T.
+{ case =>//=; first by move/Rgt_not_eq/eqP =>->.
+  by move->; rewrite eqxx. }
+by rewrite andbF.
+Qed.
+
+Definition real_LeMixin := RealLeMixin ler0D ler0M ler0_anti
+  subq_ge0 (@ler_total 0) normrN ger0_norm ltr_def.
+
+Canonical real_numDomainType := NumDomainType R real_LeMixin.
+Canonical real_numFieldType := [numFieldType of R].
+Canonical real_realDomainType := RealDomainType R (@ler_total 0).
+Canonical real_realFieldType := [realFieldType of R].

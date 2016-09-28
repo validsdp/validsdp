@@ -344,19 +344,7 @@ Definition interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
 
 Definition r_ratBigQ := fun_hrel bigQ2rat.
 
-Definition rat2R (q : rat) : R := ratr q.
-
-Lemma rat2R_additive : additive rat2R.
-Proof.
-Admitted. (* Erik *)
-
-Canonical rat2R_additive_struct := Additive rat2R_additive.
-
-Lemma rat2R_multiplicative : multiplicative rat2R.
-Proof.
-Admitted. (* Erik *)
-
-Canonical rat2R_rmorphism_struct := AddRMorphism rat2R_multiplicative.
+Notation rat2R := (@ratr real_unitRingType) (only parsing).
 
 Lemma bigQ2R_same (c : bigQ) : bigQ2R c = rat2R (bigQ2rat c).
 Proof.
