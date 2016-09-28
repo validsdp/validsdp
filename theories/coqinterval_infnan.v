@@ -704,8 +704,6 @@ rewrite !round_generic //; try now apply generic_format_FLX.
 now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_UP].
 Qed.
 
-Set Printing All.
-
 Definition coqinterval_round_up_infnan : Float_round_up_infnan_spec :=
   Build_Float_round_up_infnan_spec
     fieps_spec
