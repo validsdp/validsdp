@@ -18,11 +18,13 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Rdefinitions Raxioms RIneq Rbasic_fun.
+Require Import Rdefinitions Raxioms RIneq Rbasic_fun Rpow_def.
 Require Import Epsilon FunctionalExtensionality.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat.
 Require Import mathcomp.ssreflect.choice mathcomp.ssreflect.bigop mathcomp.algebra.ssralg.
 Require Import mathcomp.algebra.ssrnum.
+
+Import GRing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -121,48 +123,48 @@ Canonical real_iDomainType :=
   Eval hnf in IdomainType R (FieldIdomainMixin real_field_axiom).
 Canonical real_fieldType := FieldType R real_field_axiom.
 
-Definition ler (x y : R) := match total_order_T x y with
+Definition Rleb (x y : R) := match total_order_T x y with
                             | inleft _ => true
                             | inright _ => false
                             end.
 
-Definition ltr (x y : R) := match total_order_T x y with
+Definition Rltb (x y : R) := match total_order_T x y with
                             | inleft (left _) => true
                             | _ => false
                             end.
 
-Lemma lerP (x y : R) : reflect (Rle x y) (ler x y).
+Lemma RleP (x y : R) : reflect (Rle x y) (Rleb x y).
 Proof.
-apply: (iffP idP); rewrite /ler; case: total_order_T =>//; first by intuition.
+apply: (iffP idP); rewrite /Rleb; case: total_order_T =>//; first by intuition.
 by move/Rgt_not_le.
 Qed.
 
-Lemma ltrP (x y : R) : reflect (Rlt x y) (ltr x y).
+Lemma RltP (x y : R) : reflect (Rlt x y) (Rltb x y).
 Proof.
-apply: (iffP idP); rewrite /ltr; case: total_order_T =>//.
+apply: (iffP idP); rewrite /Rltb; case: total_order_T =>//.
 { by case. }
 { by case =>// ->; move/Rlt_irrefl. }
 by move/Rgt_lt=> Hyx Hxy; exfalso; apply: (Rlt_irrefl x); apply: Rlt_trans Hxy _.
 Qed.
 
-Fact ler0D x y : ler 0 x -> ler 0 y -> ler 0 (x + y).
+Fact Rleb0D x y : Rleb 0 x -> Rleb 0 y -> Rleb 0 (x + y).
 Proof.
-move/lerP => Hx /lerP Hy; apply/lerP.
+move/RleP => Hx /RleP Hy; apply/RleP.
 exact: Rplus_le_le_0_compat.
 Qed.
 
-Fact ler0M x y : ler 0 x -> ler 0 y -> ler 0 (x * y).
+Fact Rleb0M x y : Rleb 0 x -> Rleb 0 y -> Rleb 0 (x * y).
 Proof.
-move/lerP => Hx /lerP Hy; apply/lerP.
+move/RleP => Hx /RleP Hy; apply/RleP.
 exact: Rmult_le_pos.
 Qed.
 
-Fact ler0_anti x : ler 0 x -> ler x 0 -> x = 0.
-Proof. move/lerP => _x /lerP x_; exact: Rle_antisym. Qed.
+Fact Rleb0_anti x : Rleb 0 x -> Rleb x 0 -> x = 0.
+Proof. move/RleP => _x /RleP x_; exact: Rle_antisym. Qed.
 
-Fact subq_ge0 x y : ler 0 (y - x) = ler x y.
+Fact subq_ge0 x y : Rleb 0 (y - x) = Rleb x y.
 Proof.
-apply/lerP/lerP.
+apply/RleP/RleP.
 { move=> H0; apply: Rminus_le.
   move/Ropp_0_le_ge_contravar/Rge_le in H0.
   by rewrite Ropp_minus_distr in H0. }
@@ -171,33 +173,84 @@ apply/lerP/lerP.
   exact/Ropp_0_ge_le_contravar/Rle_ge/Rle_minus. }
 Qed.
 
-Fact ler_total : total ler.
+Fact Rleb_total : total Rleb.
 Proof.
-move=> x y; rewrite /ler; case: (total_order_T x y) =>//.
+move=> x y; rewrite /Rleb; case: (total_order_T x y) =>//.
 case: (total_order_T y x) =>// Hyx Hxy; exfalso; apply: (Rlt_irrefl x).
 by apply: (@Rlt_trans _ y); apply Rlt_gt.
 Qed.
 
 Notation normr := Rabs (only parsing).
 
-Fact normrN x : normr (- x) = normr x.
-Proof. by rewrite Rabs_Ropp. Qed.
+Fact ger0_norm x : Rleb 0 x -> normr x = x.
+Proof. move/RleP => Hx; exact: Rabs_pos_eq. Qed.
 
-Fact ger0_norm x : ler 0 x -> normr x = x.
-Proof. move/lerP => Hx; exact: Rabs_pos_eq. Qed.
-
-Fact ltr_def x y : (ltr x y) = (y != x) && (ler x y).
+Fact Rltb_def x y : (Rltb x y) = (y != x) && (Rleb x y).
 Proof.
-rewrite /ltr /ler; case: total_order_T.
+rewrite /Rltb /Rleb; case: total_order_T.
 { case =>//=; first by move/Rgt_not_eq/eqP =>->.
   by move->; rewrite eqxx. }
 by rewrite andbF.
 Qed.
 
-Definition real_LeMixin := RealLeMixin ler0D ler0M ler0_anti
-  subq_ge0 (@ler_total 0) normrN ger0_norm ltr_def.
+Definition real_LeMixin := RealLeMixin Rleb0D Rleb0M Rleb0_anti
+  subq_ge0 (@Rleb_total 0) Rabs_Ropp ger0_norm Rltb_def.
 
 Canonical real_numDomainType := NumDomainType R real_LeMixin.
 Canonical real_numFieldType := [numFieldType of R].
-Canonical real_realDomainType := RealDomainType R (@ler_total 0).
+Canonical real_realDomainType := RealDomainType R (@Rleb_total 0).
 Canonical real_realFieldType := [realFieldType of R].
+
+Section UnfoldR.
+
+Let RaddE a b : Rplus a b = GRing.add a b.
+Proof. by []. Qed.
+
+Let RoppE a : Ropp a = (- a)%R.
+Proof. by []. Qed.
+
+Let RminusE a b : Rminus a b = (a - b)%R.
+Proof. by []. Qed.
+
+Let RmultE a b : Rmult a b = GRing.mul a b.
+Proof. by []. Qed.
+
+Let powE a n : pow a n = (a ^+ n)%R.
+Proof. by elim: n => [//|n IHn] /=; rewrite IHn exprS. Qed.
+
+Let RinvE a : a <> R0 -> Rinv a = (a ^-1)%R.
+Proof. by move=> /eqP H0; rewrite /GRing.inv /= /invr ifF // (negbTE H0). Qed.
+
+Let RdivE a b : b <> R0 -> Rdiv a b = (a / b)%R.
+Proof. by move=> /eqP H0; rewrite /Rdiv RinvE //; exact/eqP. Qed.
+
+Lemma RlebE a b : Rleb a b = (a <= b)%R.
+Proof. by []. Qed.
+
+Lemma RltbE a b : Rltb a b = (a < b)%R.
+Proof. by []. Qed.
+
+Let R0E : R0 = 0%R.
+Proof. by []. Qed.
+
+Let R1E : R1 = 1%R.
+Proof. by []. Qed.
+
+Lemma RabsE a : Rabs a = `|a|%R.
+Proof. by []. Qed.
+
+Lemma INR_natmul n : INR n = (n%:R)%R.
+Proof.
+elim: n => [//|n IHn].
+by rewrite -addn1 plus_INR IHn mulrnDr.
+Qed.
+
+Definition unfoldR :=
+  (RminusE, RoppE, RaddE, RmultE, powE, R0E, R1E,
+   INR_natmul, RlebE, RltbE, RabsE).
+
+Definition unfoldR' :=
+  (RminusE, RdivE, RoppE, RinvE, RaddE, RmultE, powE, R0E, R1E,
+   INR_natmul, RlebE, RltbE, RabsE).
+
+End UnfoldR.

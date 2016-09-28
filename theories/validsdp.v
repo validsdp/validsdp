@@ -16,6 +16,9 @@ From ValidSDP Require Import soswitness.
 Require Import seqmx_complements misc.
 From Interval Require Import Interval_missing.
 
+Import GRing.Theory.
+Import Num.Theory.
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -249,67 +252,6 @@ elim p.
 by move=> ? /= -> ?; rewrite pow_powerRZ nat_N_Z.
 Qed.
 
-Definition Z2int (z : BinNums.Z) :=
-  match z with
-  | Z0 => 0%:Z
-  | Z.pos p => (nat_of_pos p)%:Z
-  | Z.neg n => (- (nat_of_pos n)%:Z)%R
-  end.
-
-Lemma nat_of_pos_gt0 p : (0 < nat_of_pos p)%N.
-Proof. by elim: p =>//= p IHp; rewrite NatTrec.doubleE double_gt0. Qed.
-
-Lemma Zabs_natE n : Z.abs_nat n = `|Z2int n|%N.
-Proof.
-case: n => //= p; first by rewrite binnat.to_natE.
-by rewrite abszN absz_nat binnat.to_natE.
-Qed.
-
-Local Open Scope Z_scope.
-
-Lemma dvdnP m n : reflect (Z.divide (Z.of_nat m) (Z.of_nat n)) (m %| n).
-Proof.
-apply: (iffP idP) => H.
-{ rewrite dvdn_eq in H; rewrite -(eqP H) /Z.divide; exists (Z.of_nat (n %/ m)).
-  by rewrite Nat2Z.inj_mul. }
-{ have [q Hq] := H; apply/dvdnP; exists `|Z2int q|%N; apply/Nat2Z.inj.
-  have [Zq|NZq] := Z_zerop q.
-  { by rewrite Zq /= in Hq *. }
-  case: m Hq H => [|m] Hq H.
-  { by rewrite Zmult_comm /= in Hq; rewrite mulnC /=. }
-  rewrite Nat2Z.inj_mul -Zabs_natE Zabs2Nat.id_abs Z.abs_eq //.
-  have H0 : (0 <= q * Z.of_nat m.+1) by rewrite -Hq; apply Zle_0_nat.
-  by apply: Zmult_le_0_reg_r H0. }
-Qed.
-
-Lemma ZgcdE n d : Z.gcd n (' d) = Z.of_nat (div.gcdn `|Z2int n| (nat_of_pos d)).
-Proof.
-apply: Z.gcd_unique.
-{ exact: Zle_0_nat. }
-{ apply/Z.divide_abs_r; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
-  by rewrite Zabs_natE dvdn_gcdl. }
-{ apply/Z.divide_abs_r; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
-  by rewrite Zabs_natE /= dvdn_gcdr. }
-move=> q Hn Hd; apply/Z.divide_abs_l; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
-rewrite Zabs_natE dvdn_gcd.
-apply/andP; split; apply/dvdnP; rewrite -!Zabs_natE !Zabs2Nat.id_abs.
-{ by apply/Z.divide_abs_l/Z.divide_abs_r. }
-{ by apply/Z.divide_abs_l; rewrite -binnat.to_natE positive_nat_Z. }
-Qed.
-
-Program Definition bigQ2rat (bq : bigQ) :=
-  let q := Qred [bq]%bigQ in
-  @Rat (Z2int (Qnum q), Z2int (Z.pos (Qden q))) _.
-Next Obligation.
-rewrite ltz_nat nat_of_pos_gt0 /=.
-set q := [bq]%bigQ.
-have /Qcanon.Qred_iff HQ := Qcanon.Qred_involutive q.
-set n := Qnum (Qred q) in HQ *.
-set d := Qden (Qred q) in HQ *.
-rewrite ZgcdE in HQ.
-by rewrite /div.coprime; apply/eqP/Nat2Z.inj; rewrite HQ.
-Qed.
-
 Definition interp_poly_ssr n (ap : abstr_poly) : {mpoly rat[n.+1]} :=
   let fix aux ap :=
     match ap with
@@ -343,12 +285,6 @@ Definition interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
   aux ap.
 
 Definition r_ratBigQ := fun_hrel bigQ2rat.
-
-Notation rat2R := (@ratr real_unitRingType) (only parsing).
-
-Lemma bigQ2R_same (c : bigQ) : bigQ2R c = rat2R (bigQ2rat c).
-Proof.
-Admitted. (* Erik *)
 
 Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
   match ap with
@@ -387,7 +323,7 @@ Proof.
 move=> n Pn Hvars n'; set env := fun _ => _.
 have Hn : n = n'.+1; [by move: Pn => /ltP; apply S_pred|].
 elim: ap Hvars.
-{ by move=> c _ /=; rewrite map_mpolyC ?GRing.raddf0 // mevalC bigQ2R_same. }
+{ by move=> c _ /=; rewrite map_mpolyC ?GRing.raddf0 // mevalC bigQ2R_rat. }
 { move=> i /= Hi; rewrite map_mpolyX mevalZ mevalX.
   rewrite GRing.rmorph1 GRing.mul1r /env; f_equal.
   by rewrite inordK -?Hn. }
@@ -713,7 +649,7 @@ Qed.
 Require Import bigop_tactics.
 
 Lemma soscheck_correct p z Q : soscheck_ssr p z Q ->
-  forall x, 0 <= (map_mpoly T2R p).@[x].
+  forall x, 0%R <= (map_mpoly T2R p).@[x].
 Proof.
 rewrite /soscheck_ssr /soscheck /fun_of_op /fun_of_ssr /map_mx2_op /map_mx_ssr.
 set zp := matrix.map_mx _ z.
@@ -738,11 +674,11 @@ have : exists E : 'M_s.+1,
   have Pnbij : forall i j, (0 < nbij i j)%N.
   { move=> i j; rewrite /nbij filter_index_enum; rewrite <-cardE.
     by apply/card_gt0P; exists (j, i); rewrite /in_mem /=. }
-  have Pr := max_coeff_pos _ : 0 <= T2R r.
+  have Pr := max_coeff_pos _ : 0%R <= T2R r.
   split.
   { move=> i j; rewrite !mxE Rabs_mult.
-    have NZnbij : INR (nbij i j) <> 0.
-    { by change 0 with (INR 0); move/INR_eq; move: (Pnbij i j); case nbij. }
+    have NZnbij : INR (nbij i j) <> 0%Re.
+    { by change 0%Re with (INR 0); move/INR_eq; move: (Pnbij i j); case nbij. }
     rewrite Rabs_Rinv // (Rabs_pos_eq _ (pos_INR _)).
     apply (Rmult_le_reg_r (INR (nbij i j))).
     { apply Rnot_ge_lt=> H; apply NZnbij.
@@ -771,13 +707,14 @@ have : exists E : 'M_s.+1,
   pose nbm := size [seq ij <- index_enum I_sp1_2 | zij ij.2 ij.1 == m].
   under big ? Hi
     (move/eqP in Hi; rewrite mxE /nbij Hi -/nbm mcoeffB GRing.raddfB /=).
-  rewrite misc.big_sum_pred_const -/nbm -[_ / _]/(_ * / _)%R.
-  rewrite GRing.mulrDl GRing.mulrDr -GRing.addrA.
+  rewrite misc.big_sum_pred_const -/nbm /Rdiv !unfoldR.
+  rewrite mulrDl mulrDr -addrA.
   rewrite -{1}(GRing.addr0 (T2R _)); f_equal.
   { rewrite GRing.mulrC -GRing.mulrA; case_eq (m \in msupp p).
     { move=> Hm; move: (check_base_correct Hbase Hm).
       move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
-      apply Rgt_not_eq, Rlt_gt; change R0 with (INR 0); apply lt_INR.
+      apply Rgt_not_eq, Rlt_gt.
+      rewrite -unfoldR; change R0 with (INR 0); apply lt_INR.
       rewrite /nbm filter_index_enum; rewrite <-cardE.
       by apply/ltP/card_gt0P; exists (j, i); rewrite /in_mem /=. }
     by rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 GRing.mul0r. }
@@ -795,13 +732,15 @@ have : exists E : 'M_s.+1,
   move=> h t; rewrite GRing.mulrC -GRing.mulrA /GRing.mul /= Rinv_l.
   { by rewrite Rmult_1_r GRing.addNr. }
   case size; [exact R1_neq_R0|].
-  by move=> n'; apply Rgt_not_eq, Rlt_gt; rewrite -S_INR; apply/lt_0_INR/ltP. }
+  move=> n'; apply Rgt_not_eq, Rlt_gt.
+  by apply/RltP; rewrite unfoldR ltr0Sn. }
 move=> [E [HE ->]] x.
 set M := _ *m _.
 replace (meval _ _)
 with ((matrix.map_mx (meval x) M) ord0 ord0); [|by rewrite mxE].
-replace R0 with ((@matrix.const_mx _ 1 1 R0) ord0 ord0); [|by rewrite mxE].
-rewrite /M !map_mxM -map_trmx map_mxD; apply /Mle_scalar /posdef_semipos.
+replace 0%R with ((@matrix.const_mx _ 1 1 R0) ord0 ord0); [|by rewrite mxE].
+rewrite /M !map_mxM -map_trmx map_mxD.
+apply /Mle_scalar /posdef_semipos.
 replace (matrix.map_mx _ (map_mpolyC_R E)) with E;
   [|by apply/matrixP => i j; rewrite !mxE /= mevalC].
 replace (matrix.map_mx _ _) with (matrix.map_mx (T2R \o F2T) Q);

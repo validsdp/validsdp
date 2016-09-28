@@ -6,15 +6,19 @@ Require Import Psatz.
 
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
 Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.algebra.ssralg mathcomp.algebra.matrix mathcomp.ssreflect.bigop.
+From mathcomp Require Import ssrnum ssrint rat div.
 
+From CoqEAL.refinements Require Import binnat.
 Require Import Rstruct.
+
+Import GRing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Open Scope R_scope.
 Open Scope ring_scope.
+Open Scope R_scope.
 
 Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
@@ -82,7 +86,7 @@ Proof. move => *; lra. Qed.
 Section Big_misc.
 
 Ltac simpl_re := rewrite /GRing.add /GRing.zero /=.
-  
+
 (** If something exists for each item, we can build an array. *)
 Lemma big_exists R (idx : R) op d (d0 : d) n F F' :
   (forall i : 'I_n, exists e : d, F i = F' i e) ->
@@ -119,13 +123,13 @@ Proof.
 move: n x; elim=> [|n IHk] x.
 { by rewrite big_ord0 /= Rmult_0_l. }
 by rewrite big_ord_recl S_INR Rplus_comm Rmult_plus_distr_r Rmult_1_l IHk.
-Qed.          
+Qed.
 
 Lemma big_sum_pred_const (I : Type) (r : seq I) (P : pred I) (x : R) :
   \big[+%R/0]_(i <- r | P i) x = INR (size [seq i <- r | P i]) * x.
 Proof.
 rewrite -big_filter; set l := [seq x <- r | P x]; elim l => [|h t IH].
-{ by rewrite big_nil /= GRing.mul0r. }
+{ by rewrite big_nil /= Rmult_0_l. }
 simpl size; rewrite big_cons S_INR IH /GRing.add /GRing.mul /=; ring.
 Qed.
 
@@ -145,7 +149,7 @@ Proof. apply big_sum_pos_pos => i; apply Rabs_pos. Qed.
 
 Lemma big_sum_sqr_pos n (F : 'I_n -> _) : (0 <= \sum_i (F i * F i)%Re)%Re.
 Proof. apply big_sum_pos_pos => i; apply sqr_ge_0. Qed.
-  
+
 (** If a sum of nonnegative values is zero, then all terms are zero. *)
 Lemma big_sum_pos_eq_0 n (F : 'I_n -> R) :
   ((forall i, 0 <= F i) -> \sum_i F i = 0 -> forall i, F i = 0)%Re.
@@ -155,7 +159,7 @@ have [R|//] := Rle_lt_or_eq_dec _ _ (H i).
 suff HH: (0 < \big[+%R/0]_j F j)%Re by move: Hi HH; simpl_re; lra.
 rewrite (bigD1 i) //=.
 set X := \big[_/_]_(_|_) _.
-suff: (0 <= X)%Ri by simpl_re; lra.
+suff: (0 <= X)%Re by simpl_re; lra.
 by apply big_sum_pred_pos_pos.
 Qed.
 
@@ -182,14 +186,14 @@ Proof.
 elim: n a1 a2 => [|n IHn] a1 a2 H12 //=.
 apply f_equal2 => //; apply IHn => i; rewrite !ffunE //.
 Qed.
-  
+
 Lemma max_tuple_monotone n (a1 : R ^ n.+1) (a2 : R ^ n.+1) :
   (forall i, a1 i <= a2 i) -> max_tuple a1 <= max_tuple a2.
 Proof.
 elim: n a1 a2 => [|n IHn] a1 a2 H12 //=; apply Rle_max_compat => //.
 by apply IHn => i; rewrite !ffunE.
 Qed.
-  
+
 Lemma max_tuple_i n (a : R ^ n.+1) (i : 'I_n.+1) : a i <= max_tuple a.
 Proof.
 elim: n a i => [|n IHn] a i /=; [by rewrite (ord_1_0 i); right|].
@@ -226,7 +230,7 @@ apply Rle_trans with (max_tuple [ffun i => max_tuple a * b i]).
   apply Rmult_le_compat_r; [apply Hb|apply max_tuple_i]. }
 right; apply max_tuple_Rmult; apply (Rle_trans _ _ _ (Ha ord0)), max_tuple_i.
 Qed.
-  
+
 Lemma max_tuple_sum n (a : R ^ n.+1) : \sum_i a i <= INR n.+1 * max_tuple a.
 Proof.
 elim: n a => [|n IHn] a.
@@ -316,4 +320,91 @@ rewrite !Z2R_mult in Hxy.
 apply (Rmult_eq_reg_r (Z2R (' Qden y))); last by simpl; pos_P2R.
 rewrite /Rdiv Rmult_assoc [(/ _ * _)%Re]Rmult_comm -Rmult_assoc Hxy.
 field; split; simpl; pos_P2R.
+Qed.
+
+(** About [int] and [rat] *)
+
+Definition Z2int (z : BinNums.Z) :=
+  match z with
+  | Z0 => 0%:Z
+  | Z.pos p => (nat_of_pos p)%:Z
+  | Z.neg n => (- (nat_of_pos n)%:Z)%R
+  end.
+
+Lemma nat_of_pos_gt0 p : (0 < nat_of_pos p)%N.
+Proof. by elim: p =>//= p IHp; rewrite NatTrec.doubleE double_gt0. Qed.
+
+Lemma Zabs_natE n : Z.abs_nat n = `|Z2int n|%N.
+Proof.
+case: n => //= p; first by rewrite binnat.to_natE.
+by rewrite abszN absz_nat binnat.to_natE.
+Qed.
+
+Local Open Scope Z_scope.
+
+Lemma dvdnP m n : reflect (Z.divide (Z.of_nat m) (Z.of_nat n)) (m %| n).
+Proof.
+apply: (iffP idP) => H.
+{ rewrite dvdn_eq in H; rewrite -(eqP H) /Z.divide; exists (Z.of_nat (n %/ m)).
+  by rewrite Nat2Z.inj_mul. }
+{ have [q Hq] := H; apply/dvdnP; exists `|Z2int q|%N; apply/Nat2Z.inj.
+  have [Zq|NZq] := Z_zerop q.
+  { by rewrite Zq /= in Hq *. }
+  case: m Hq H => [|m] Hq H.
+  { by rewrite Zmult_comm /= in Hq; rewrite mulnC /=. }
+  rewrite Nat2Z.inj_mul -Zabs_natE Zabs2Nat.id_abs Z.abs_eq //.
+  have H0 : (0 <= q * Z.of_nat m.+1) by rewrite -Hq; apply Zle_0_nat.
+  by apply: Zmult_le_0_reg_r H0. }
+Qed.
+
+Lemma ZgcdE n d : Z.gcd n (' d) = Z.of_nat (div.gcdn `|Z2int n| (nat_of_pos d)).
+Proof.
+apply: Z.gcd_unique.
+{ exact: Zle_0_nat. }
+{ apply/Z.divide_abs_r; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
+  by rewrite Zabs_natE dvdn_gcdl. }
+{ apply/Z.divide_abs_r; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
+  by rewrite Zabs_natE /= dvdn_gcdr. }
+move=> q Hn Hd; apply/Z.divide_abs_l; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
+rewrite Zabs_natE dvdn_gcd.
+apply/andP; split; apply/dvdnP; rewrite -!Zabs_natE !Zabs2Nat.id_abs.
+{ by apply/Z.divide_abs_l/Z.divide_abs_r. }
+{ by apply/Z.divide_abs_l; rewrite -binnat.to_natE positive_nat_Z. }
+Qed.
+
+Program Definition bigQ2rat (bq : bigQ) :=
+  let q := Qred [bq]%bigQ in
+  @Rat (Z2int (Qnum q), Z2int (Z.pos (Qden q))) _.
+Next Obligation.
+rewrite ltz_nat nat_of_pos_gt0 /=.
+set q := [bq]%bigQ.
+have /Qcanon.Qred_iff HQ := Qcanon.Qred_involutive q.
+set n := Qnum (Qred q) in HQ *.
+set d := Qden (Qred q) in HQ *.
+rewrite ZgcdE in HQ.
+by rewrite /div.coprime; apply/eqP/Nat2Z.inj; rewrite HQ.
+Qed.
+
+Lemma bigQ2R_redE (c : bigQ) : bigQ2R (BigQ.red c) = bigQ2R c.
+Proof.
+case: c => [//|n d].
+by rewrite /bigQ2R; apply: Q2R_Qeq; apply: BigQ.spec_red.
+Qed.
+
+Notation rat2R := (@ratr real_unitRingType) (only parsing).
+
+Lemma bigQ2R_rat (c : bigQ) : bigQ2R c = rat2R (bigQ2rat c).
+Proof.
+rewrite -[LHS]bigQ2R_redE /bigQ2R BigQ.strong_spec_red.
+rewrite /bigQ2rat /ratr; set r := Rat _.
+rewrite /GRing.inv /= /invr ifF /GRing.mul /= /Rdiv.
+{ rewrite /numq /denq /=; congr Rmult.
+  { rewrite /Z2R /Z2int; case: Qnum =>[//|p|p].
+      by rewrite P2R_INR binnat.to_natE INR_natmul.
+    rewrite P2R_INR binnat.to_natE INR_natmul /=.
+    now rewrite -> mulrNz. }
+  by rewrite /= P2R_INR binnat.to_natE INR_natmul. }
+rewrite -(denq_eq0 (r)).
+have->: 0%Re = O%:~R by [].
+exact/inj_eq/intr_inj.
 Qed.
