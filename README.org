@@ -17,6 +17,7 @@
   - Flocq 2.5
   - Coq-Interval 3.1.0
 - Clone and Install the following packages:
+  - SsrMultinomials (https://github.com/math-comp/multinomials)
   - paramcoq (https://github.com/drouhling/paramcoq)
   - CoqEAL (https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev)
     (branch =paramcoq-dev=)
