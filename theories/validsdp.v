@@ -338,6 +338,7 @@ rewrite -{1}[m]spec_NK /binnat.implem_N bin_of_natE nat_N_Z.
 by rewrite -Interval_missing.pow_powerRZ misc.pow_rexp !GRing.rmorphX.
 Qed.
 
+(* vraiment nécessaire ? *)
 Lemma interp_correct vm p :
   let n := size vm in
   let n' := n.-1 in
@@ -1123,55 +1124,58 @@ Definition soscheck_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
   let s := size zQ.1 in
   let Q := map (map F2FI) zQ.2 in
   [&& (n != 0%N),
+   (all (fun m => size m == n) zQ.1),
    (s != 0%N),
    (size Q == s),
    (all (fun e => size e == s) Q),
    vars_ltn n ap &
    soscheck_eff
-     (n := n) (s := s.-1) (* Erik@Pierre : link between n and s ? *)
+     (n := n) (s := s.-1)
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
      (F2T := FI2bigQ)
      (T2F := bigQ2FI)
      bp z Q].
 
-Lemma listR_seqmultinom_map (n : nat)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
-  let za := [seq [:: x] | x <- zQ.1] in
-  list_R (list_R (Rseqmultinom (n := n)))
-  (map_seqmx (spec (spec_of := multinom_of_seqmultinom_val n)) za) za.
-Admitted.
-(*
-  rewrite /za {2}[[seq [:: x0] | x0 <- zQ.1]](_: ?[x] = map_seqmx id ?x) //.
-  eapply (map_seqmx_R (A_R := fun m m' => m = m' /\ size m' = n.+1)); last first.
-  have : all (all (fun s => size s == n.+1)%B) za by admit.
-  clear; elim: za  =>[//|a l IHl] Hsz /=.
-  admit.
-  Set Printing All.
-  constructor 2 =>//.
-  elim: a Hsz =>[//|b r IHr] /= Hsz.
-  constructor 2 =>//.
-  split=>//.
-  by move: Hsz=>/andP[]/andP[]/eqP.
-  apply: IHr.
-  by move: Hsz=>/andP[]/andP[]/= _ -> ->.
-  apply: IHl.
-  by move: Hsz=>/=/andP[].
-  (* ...we should move all this to a separate lemma... *)
-  move=> m m' Hm; rewrite /spec /spec_id (proj1 Hm).
-  apply refinesP.
-  eapply refines_multinom_of_seqmultinom_val (* to rename! *).
-  by rewrite (proj2 Hm).
-}
-*)
+Lemma map_R_nth (T1 T2 : Type) (x0 : T2) (T_R : T1 -> T2 -> Type) (f : T2 -> T1) l :
+  (forall i, (i < size l)%N -> T_R (f (nth x0 l i)) (nth x0 l i)) ->
+  list_R T_R [seq f x | x <- l] l.
+Proof.
+elim: l=> [|a l IH H]; first by simpl.
+constructor 2.
+{ by move: (H 0%N) => /=; apply. }
+apply IH=> i Hi.
+by move: (H i.+1)=> /=; apply; rewrite ltnS.
+Qed.
 
-Theorem soscheck_correct_wrapup
+Lemma listR_seqmultinom_map (n : nat)
+  (z : seq (seq BinNums.N)) :
+  let za := [seq [:: x] | x <- z] in
+  (all (fun m => size m == n) z) ->
+  list_R (list_R (Rseqmultinom (n := n)))
+    (map_seqmx (spec (spec_of := multinom_of_seqmultinom_val n)) za)
+    za.
+Proof.
+move=> za H.
+apply (map_R_nth (x0:=[::]))=> i Hi.
+rewrite size_map in Hi.
+apply (map_R_nth (x0:=[::]))=> j Hj.
+rewrite /spec.
+apply refinesP, refines_multinom_of_seqmultinom_val.
+move /all_nthP in H.
+rewrite /za (nth_map [::]) //.
+suff -> : j = 0%N by simpl; apply H.
+move: Hj; rewrite /za (nth_map [::]) //=.
+by rewrite ltnS leqn0; move/eqP->.
+Qed.
+
+Theorem soscheck_eff_wrapup_correct
   (vm : seq R) (pap : p_abstr_poly)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
   soscheck_eff_wrapup vm pap zQ ->
   (0 <= interp_p_abstr_poly vm pap)%Re.
 Proof.
 rewrite /soscheck_eff_wrapup.
-case/and5P => Hn Hs HzQ HzQ' /andP [Hltn Hsos].
+case/and5P => Hn Hz Hs HzQ /and3P [HzQ' Hltn Hsos].
 pose n := size vm.
 pose n' := n.-1.
 set ap := abstr_poly_of_p_abstr_poly pap in Hsos *.
@@ -1182,7 +1186,7 @@ set Qa := map (map F2FI) zQ.2 in Hsos *.
 pose s := (size zQ.1).-1.
 pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s.+1 1 za.
 pose Qb := @spec_seqmx _ (FI0 fs) _ (id) s.+1 s.+1 Qa.
-rewrite interp_correct ; last by rewrite ?lt0n.
+rewrite interp_correct; last by rewrite ?lt0n.
 apply soscheck_correct with
         (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
         (2 := rat2F_correct)
@@ -1202,27 +1206,13 @@ refines_apply1; first refines_apply1; first refines_apply1.
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /za.
     by apply/allP => x /mapP [y Hy] ->. }
-  exact: listR_seqmultinom_map. }
+  apply: listR_seqmultinom_map.
+  by rewrite prednK ?lt0n // size_map eqxx /= /za. }
 rewrite refinesE; eapply Rseqmx_spec_seqmx.
 { rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
 by rewrite lt0n.
 Qed.
-
-(*
-Lemma interp_eff_correct vm p :
-  let n := size vm in
-  let n' := n.-1 in
-  let p' := abstr_poly_of_p_abstr_poly p in
-  let p'' := interp_poly_eff n' p' in
-  forall
- *)
-(*
-  (0 < n)%N ->
-  vars_ltn n p' ->
-  (map_mpoly rat2R p'').@[fun i : 'I_n'.+1 => nth R0 vm i]
-  = interp_p_abstr_poly vm p.
- *)
 
 Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.
 Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
@@ -1984,13 +1974,13 @@ Let p' x1 x2 := 161665552462085691/72057594037927936
 
 Lemma sigma_pos' (x0 x1 : R) : (sigma' x0 x1 >= 0)%Re.
 rewrite /sigma'.
-Time do_sdp. (* 5 s on Erik's laptop *)
-Time Qed. (* 1.5 s *)
+Time do_sdp. (* 5 s on Erik's laptop 7.3 *)
+Time Qed. (* 1.5 s 2.4 *)
 
 Lemma sigma1_pos' (x0 x1 : R) : (sigma1' x0 x1 >= 0)%Re.
 rewrite /sigma1'.
-Time do_sdp. (* 14.2 s on Erik's laptop *)
-Time Qed. (* 3.5 s *)
+Time do_sdp. (* 14.2 s on Erik's laptop 21 *)
+Time Qed. (* 3.5 s 6 *)
 
 Lemma p_ind' (x0 x1 : R) : ((p' (1/2 * (x0)^3 + 2/5 * (x1)^2)
                                 (-3/5 * (x0)^2 + 3/10 * (x1)^2))
