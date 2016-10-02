@@ -114,3 +114,4 @@
 ** TODO Specialize the algos with fine-tuned binary64 arith	       :Erik:
 - int31 (or int63)
 ** TODO More tests with native_compute				     :Pierre:
+* TODO validsdp dependencies: Add commit/version numbers in the README
