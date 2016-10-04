@@ -55,6 +55,7 @@ Definition m := bpow radix2 emax.
 Lemma m_ge_2 : 2 <= m.
 Proof. now change 2 with (bpow radix2 1); apply bpow_le. Qed.
 
+(* FIXME: rename to FI2FS ? *)
 Definition FI2F (x : FI) : F fis :=
   {| F_val := B2R prec emax x; F_prop := generic_format_B2R prec emax x |}.
 

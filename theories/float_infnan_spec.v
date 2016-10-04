@@ -23,6 +23,7 @@ Record Float_infnan_spec := {
   (** [is_finite f = true] iff the floating-point number [f] is finite. *)
   is_finite : FI -> bool;
 
+  (* FIXME: defining finite is unnecessary, because of the [is_true] coercion *)
   finite (x : FI) : Prop := is_finite x = true;
 
   finite0 : finite FI0;

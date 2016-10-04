@@ -1318,6 +1318,10 @@ Definition eps_inv := Eval compute in (2 ^ 53)%bigZ.
 Lemma eps_inv_correct : (Z2R [eps_inv]%bigZ <= / eps fis)%Re.
 Proof. by rewrite /= /flx64.eps /= Rinv_involutive; [right|lra]. Qed.
 
+(* This definition of [F2FI_val] is irrelevant as it maps some floats
+   such as [Interval_specific_ops.Float eps_inv (-1)%bigZ] to Fnan,
+   while these floats would faitfully satisfy [mantissa_bounded].
+
 Definition F2FI_val (f : F.type) : F.type :=
   match f with
     | Interval_specific_ops.Fnan => Interval_specific_ops.Fnan
@@ -1325,8 +1329,68 @@ Definition F2FI_val (f : F.type) : F.type :=
       if (BigZ.abs m <? eps_inv)%bigZ then f else Interval_specific_ops.Fnan
   end.
 
+Goal mantissa_bounded (Interval_specific_ops.Float eps_inv (-1)%bigZ).
+rewrite /eps_inv /mantissa_bounded /F.toX.
+right.
+exists (2 ^ 52).
+simpl; f_equal; field.
+apply: FLX_format_generic.
+have->: (2 ^ 52)%R = (bpow radix2 52) by simpl; ring.
+exact: generic_format_bpow.
+Qed.
+ *)
+
+Definition digits (m : bigZ) :=
+  match m with
+  | BigZ.Pos n => Bir.mantissa_digits n
+  | BigZ.Neg n => Bir.mantissa_digits n
+  end.
+
+(** Bitwise hack *)
+
+Definition significant_digits (m : bigZ) :=
+  let d := digits m in
+  let d' := digits (BigZ.land m (- m)) in
+  BigZ.succ (d - d').
+
+Lemma real_FtoX_toR f : F.real f -> F.toX f = Xreal (toR f).
+Proof. by rewrite FtoX_real; rewrite /X_real; case: F.toX. Qed.
+
+Lemma FLX53_correct m e :
+  (* (BigZ.abs m <? BigZ.shiftl eps_inv e)%bigZ *)
+  (significant_digits m <=? 53)%bigZ <=>
+  (* generic_format radix2 (FLX_exp 53)
+       (toR (Interval_specific_ops.Float m e)) *)
+  mantissa_bounded (Interval_specific_ops.Float m e).
+Proof.
+split => H.
+{ rewrite /mantissa_bounded /x_bounded; right.
+  exists (toR (Float m e)); first by rewrite -real_FtoX_toR.
+  red; rewrite /significant_digits in H.
+  set mr := BigZ.land m (- m).
+  exists (Fcore_defs.Float radix2
+                      [m / mr]%bigZ
+                      [digits (BigZ.land m (- m)) - 1]%bigZ).
+  split.
+  { rewrite /F2R /= -Z2R_Zpower /=.
+    admit. admit. } admit. } admit.
+Admitted. (* bitwise hack *)
+
+Definition F2FI_val (f : F.type) : F.type :=
+  match f with
+    | Interval_specific_ops.Fnan => Interval_specific_ops.Fnan
+    | Interval_specific_ops.Float m e =>
+      if (significant_digits m <=? 53)%bigZ then f else Interval_specific_ops.Fnan
+  end.
+
 Lemma F2FI_proof (x : F.type) : mantissa_bounded (F2FI_val x).
 Proof.
+case: x => [|m e]; first by left; rewrite /mantissa_bounded /F.toX /x_bounded /=.
+rewrite /F2FI_val.
+case E: BigZ.leb; last by left.
+exact/FLX53_correct.
+Qed.
+(*
 unfold mantissa_bounded, x_bounded, F2FI_val.
 case x; [now left|intros m e].
 set (c := BigZ.ltb _ _); case_eq c; intro Hc; [right|now left].
@@ -1354,12 +1418,9 @@ replace (_ + - _)%Z with Z0 by ring; rewrite Rmult_1_r.
 replace (_ + _)%Z with 53%Z by ring.
 rewrite <- Z2R_abs; unfold bpow; apply Z2R_lt.
 now revert Hm; unfold eps_inv, Z.pow_pos; simpl; rewrite <- BigZ.spec_abs.
-Qed.
+ *)
 
 Definition F2FI (f : F.type) : FI := Build_FI _ (F2FI_proof f).
-
-Lemma real_FtoX_toR f : F.real f -> F.toX f = Xreal (toR f).
-Proof. by rewrite FtoX_real; rewrite /X_real; case: F.toX. Qed.
 
 Lemma F2FI_correct (f : F.type) : finite (F2FI f) -> FI2F (F2FI f) = toR f :> R.
 Proof.
@@ -1368,8 +1429,8 @@ rewrite /finite FtoX_real /FI2F.
 case (FI_prop (F2FI (Float m e))) => Hf; [by rewrite Hf|].
 destruct Hf as (r, Hr, Hr'); move=> HF /=.
 suff: Xreal r = Xreal (proj_val (F.toX (Float m e))).
-{ by move=> H; inversion H. }
-by move: HF; rewrite -real_FtoX_toR // -Hr /F2FI /=; case (_ <? _).
+{ by case. }
+by move: HF; rewrite -real_FtoX_toR // -Hr /F2FI /=; case (_ <=? _).
 Qed.
 
 (* Erik: A little test to know which FI are in play:

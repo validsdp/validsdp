@@ -338,7 +338,7 @@ rewrite round_generic //.
 now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
-Lemma fimult_proof rm (x y : FI) : mantissa_bounded (F.mul rm 53%bigZ x y).
+Lemma fimult_proof rm (x y : F.type) : mantissa_bounded (F.mul rm 53%bigZ x y).
 unfold mantissa_bounded, x_bounded.
 rewrite F.mul_correct; set (z := Xmul _ _).
 unfold Xround; case z; [now left|intro r'; right]; unfold Xbind.
@@ -394,7 +394,7 @@ rewrite round_generic.
 now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
-Lemma fidiv_proof rm (x y : FI) : mantissa_bounded (F.div rm 53%bigZ x y).
+Lemma fidiv_proof rm (x y : F.type) : mantissa_bounded (F.div rm 53%bigZ x y).
 Proof.
 unfold mantissa_bounded, x_bounded.
 rewrite F.div_correct; set (z := Xdiv _ _).
@@ -460,7 +460,7 @@ Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
   FI2F (fidiv x y) = fdiv (FI2F x) (FI2F y) :> R.
 Proof. now intros Fxy Fy; apply fidiv_spec_aux. Qed.
 
-Lemma fisqrt_proof (x : FI) : mantissa_bounded (F.sqrt rnd_NE 53%bigZ x).
+Lemma fisqrt_proof (x : F.type) : mantissa_bounded (F.sqrt rnd_NE 53%bigZ x).
 Proof.
 unfold mantissa_bounded, x_bounded.
 rewrite F.sqrt_correct; set (z := Xsqrt _).

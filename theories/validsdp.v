@@ -1,5 +1,7 @@
 Require Import ZArith.
 From Flocq Require Import Fcore.
+From Interval Require Import Interval_definitions Interval_xreal.
+From Interval Require Import Interval_missing.
 From CoqEAL.refinements Require Import hrel refinements param (*seqmx*) binint rational.
 Require Import seqmx.
 Require Import Reals Flocq.Core.Fcore_Raux QArith BigZ BigQ Psatz FSetAVL.
@@ -14,7 +16,6 @@ Require Import cholesky_prog multipoly coqinterval_infnan.
 (* Require Import Quote. *)
 From ValidSDP Require Import soswitness.
 Require Import seqmx_complements misc.
-From Interval Require Import Interval_missing.
 
 Import GRing.Theory.
 Import Num.Theory.
@@ -827,15 +828,46 @@ Definition FI2rat := bigQ2rat \o FI2bigQ.
 
 (* Erik: [toR] could be proved extenstionnaly equal to [F_val \o FI2F]. *)
 
+Lemma F2FI_valE f :
+  mantissa_bounded f ->
+  F.toX (F2FI_val f) = F.toX f.
+Proof.
+case: f => [//|m e].
+by move/FLX53_correct; rewrite /F2FI_val =>->.
+Qed.
+
+Lemma Xreal_inj x y : Xreal x = Xreal y -> x = y.
+Proof. by case. Qed.
+
 Lemma rat2FI_correct r :
   @is_finite fs (rat2FI r) ->
   rat2R r <= F_val (@float_infnan_spec.FI2F fs (rat2FI r)).
 Proof.
-(* move=> Hr; rewrite /rat2FI /= /bigQ2FI /bigQ2F /rat2bigQ. *)
-Admitted.  (* Erik *)
+move => Hr; have := real_FtoX_toR Hr.
+rewrite /rat2FI /bigQ2F /bigQ2FI /=.
+rewrite F2FI_correct //=.
+rewrite /rat2bigQ /ratr.
+set n := numq r; set d := denq r.
+Opaque F.div.
+rewrite /bigQ2F' /=.
+Transparent F.div.
+rewrite F2FI_valE; last exact: fidiv_proof.
+rewrite !F.div_correct /Xround.
+case E: Xdiv =>[//|x] /= _.
+set xq := (n%:~R / d%:~R)%Ri.
+suff ->: x = xq.
+{ rewrite /round /=.
+  by have [_ [Hxq _]] := round_UP_pt radix2 (FLX_exp 53) xq. }
+rewrite {}/xq.
+move: E; set fn := Float _ _; set fd := Float _ _.
+rewrite (@real_FtoX_toR fn erefl) (@real_FtoX_toR fd erefl) /=.
+rewrite /Xdiv'.
+case: is_zero_spec =>// H0 [] <-.
+rewrite !toR_Float.
+admit. (* morphisms *)
+Admitted.
 
 (* TODO: move *)
-
 Lemma Q2R_0 : Q2R 0%Qrat = 0%Re.
 Proof. by rewrite /Q2R /= /Rdiv Rmult_0_l. Qed.
 
