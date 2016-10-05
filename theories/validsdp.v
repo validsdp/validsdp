@@ -811,8 +811,34 @@ Definition int2Z (n : int) : BinNums.Z :=
   match n with
   | Posz O => Z0
   | Posz n => Z.pos (Pos.of_nat n)
-  | Negz n => Z.neg (Pos.of_nat n)
+  | Negz n => Z.neg (Pos.of_nat n.+1)
   end.
+
+Lemma Z2R_int2Z_nat (n : nat) : Z2R (int2Z n) = n%:~R.
+Proof.
+elim: n => [//|n IHn].
+rewrite -addn1 PoszD intrD -{}IHn /=.
+rewrite addn1 -addn1 /= P2R_INR Nat2Pos.id ?addn1 // -addn1.
+set zn := match n with O => Z0 | _ => Z.pos (Pos.of_nat n) end.
+suff->: zn = Z.of_nat n by rewrite -INR_Z2R plus_INR.
+clear; rewrite {}/zn /Z.of_nat.
+case: n => // n.
+by rewrite Pos.of_nat_succ.
+Qed.
+
+Lemma Z2R_int2Z n : Z2R (int2Z n) = n%:~R.
+Proof.
+elim/int_rec: n =>// n IHn.
+{ exact: Z2R_int2Z_nat. }
+by clear IHn; rewrite mulrNz /= -Z2R_int2Z_nat.
+Qed.
+
+Lemma int2Z_le m n : (int2Z m <=? int2Z n)%coq_Z = (m <= n)%Ri.
+Proof.
+rewrite -(ler_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
+{ by move/Z.leb_le/Z2R_le/RleP. }
+by move/RleP/le_Z2R/Z.leb_le.
+Qed.
 
 Definition rat2bigQ (q : rat) : bigQ :=
   let n := BigZ.of_Z (int2Z (numq q)) in
@@ -839,6 +865,9 @@ Qed.
 Lemma Xreal_inj x y : Xreal x = Xreal y -> x = y.
 Proof. by case. Qed.
 
+Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z then n else Z0.
+Proof. by rewrite -[RHS](BigZ.spec_of_Z); case: n. Qed.
+
 Lemma rat2FI_correct r :
   @is_finite fs (rat2FI r) ->
   rat2R r <= F_val (@float_infnan_spec.FI2F fs (rat2FI r)).
@@ -863,9 +892,11 @@ move: E; set fn := Float _ _; set fd := Float _ _.
 rewrite (@real_FtoX_toR fn erefl) (@real_FtoX_toR fd erefl) /=.
 rewrite /Xdiv'.
 case: is_zero_spec =>// H0 [] <-.
-rewrite !toR_Float.
-admit. (* morphisms *)
-Admitted.
+rewrite !toR_Float BigZ.spec_of_Z !Z2R_int2Z BigZ_Pos_NofZ ifT; last first.
+by change Z0 with (int2Z 0%Ri); rewrite int2Z_le denq_ge0.
+rewrite Z2R_int2Z !Rsimpl unfoldR' //.
+by apply/eqP/negbT; rewrite intr_eq0 denq_eq0.
+Qed.
 
 (* TODO: move *)
 Lemma Q2R_0 : Q2R 0%Qrat = 0%Re.
@@ -889,24 +920,6 @@ rewrite -/(toR (Float m e)).
 rewrite /Interval_xreal.proj_val.
 by rewrite bigZZ2Q_correct.
 Qed.
-
-(* TO REMOVE
-
-Lemma rat2FI_correct r :
-  @is_finite fs (F2FI (rat2F r)) ->
-  rat2R r <= FI2F (F2FI (rat2F r)).
-Proof.
-move=> H.
-have := rat2F_correct r.
-rewrite /= /F2FI_val.
-case: rat2F H =>//= m e H.
-by case: ifP H.
-Qed.
-
-Lemma rat2R_FI2rat x0 :
-  rat2R (F2rat (coqinterval_infnan.FI_val x0)) = toR (FI_val x0).
-Proof. by rewrite rat2R_F2rat. Qed.
- *)
 
 Instance : refines (eq ==> r_ratBigQ) FI2rat FI2bigQ.
 Proof.
