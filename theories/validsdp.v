@@ -922,12 +922,67 @@ by rewrite bigZZ2Q_correct.
 Qed.
 
 Instance : refines (eq ==> r_ratBigQ) FI2rat FI2bigQ.
-Proof.
-Admitted.  (* Erik *)
+Proof. by rewrite refinesE => ? ? ->. Qed.
 
-Instance : refines (r_ratBigQ ==> eq) rat2FI bigQ2FI.
+Definition id1 {T} (x : T) := x.
+
+Definition r_QbigQ := fun_hrel BigQ.to_Q.
+
+Instance : refines (eq ==>  BigQ.eq) (rat2bigQ \o bigQ2rat) id.
+Admitted.
+
+Definition eqF (a b : F.type) := F.toX a = F.toX b.
+Definition eqFI (a b : FI) := F.toX a = F.toX b.
+
+Lemma FI_val_inj : injective FI_val.
+move=> x y Hxy.
+case: x Hxy => [vx px] Hxy.
+case: y Hxy => [vy py] Hxy.
+simpl in Hxy.
+move: py; rewrite -Hxy => py; f_equal; clear Hxy vy.
+case E: vx px py => [|m e] px py.
+admit.
+(* move/(ifft2 (FLX53_correct m e)) in px. *)
+admit.
+Admitted. (* proof irrelevance ?! *)
+
+Instance : refines (eqF ==> eqFI) F2FI F2FI.
+rewrite refinesE => f f' ref_f.
+rewrite /F2FI /eqFI /=.
+rewrite /eqF in ref_f.
+rewrite !F2FI_valE //. (* lemma for NaN case missing *)
+Admitted.
+
+Instance : refines (BigQ.eq ==> eqF) bigQ2F' bigQ2F'. (* morphism! *)
+Admitted.
+
+Instance : refines (r_ratBigQ ==> eqFI) rat2FI bigQ2FI.
 Proof.
-Admitted.  (* Erik *)
+rewrite /rat2FI .
+rewrite refinesE => x x' ref_x /=.
+rewrite -[x']/(id1 x') -ref_x.
+rewrite -[bigQ2FI _]/(bigQ2FI ((rat2bigQ \o bigQ2rat) x')).
+apply refinesP.
+refines_apply1.
+rewrite /bigQ2FI.
+rewrite refinesE => y y' ref_y /=.
+apply refinesP.
+refines_apply1.
+by refines_apply1; rewrite refinesE.
+Qed.
+
+(*
+Instance : refines (r_ratBigQ ==> fun_hrel BigQ.to_Q) rat2bigQ 
+
+Lemma 
+rewrite /rat2FI /bigQ2FI.
+do ![red in ref_x].
+rewrite -ref_x; simpl.
+rewrite /bigQ2F' /bigQ2F.
+Opaque F.div.
+simpl. case: x' {ref_x} =>//.
+Transparent F.div.
+ *)
 
 Lemma max_l : forall x0 y0 : rat_comRing, rat2R x0 <= rat2R (Num.max x0 y0).
 Proof.
@@ -1051,6 +1106,10 @@ Context {F2C : F -> C}.  (* exact conversion for finite values *)
 Context {C2F : C -> F}.  (* overapproximation *)
 Context `{!refines (eq ==> rAC) F2A F2C}.
 Context `{!refines (rAC ==> eq) A2F C2F}.
+(*
+Variable eqF : F -> F -> Prop. (* TODO: rather use [Type] *)
+Context `{!refines (rAC ==> eqF) A2F C2F}.
+ *)
 
 (* TODO: move *)
 Lemma list_Rxx T (rT : T -> T -> Type) l : (forall x, rT x x) -> list_R rT l l.
@@ -1302,7 +1361,7 @@ apply: (etrans (y := @soscheck_eff n'.+1 _
 { by rewrite -/n' /n in Hsos; apply Hsos. }
 apply refines_eq.
 refines_apply1; first refines_apply1; first refines_apply1.
-{ apply param_soscheck; tc. }
+{ apply param_soscheck; tc. admit. }
 { by apply param_interp_poly; rewrite prednK ?lt0n. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /za.
@@ -1313,7 +1372,7 @@ rewrite refinesE; eapply Rseqmx_spec_seqmx.
 { rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
 by rewrite lt0n.
-Qed.
+Admitted.
 
 Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.
 Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
