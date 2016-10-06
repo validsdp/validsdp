@@ -1,11 +1,11 @@
-NAME = Mosek
+NAME = Sdpa
 
 # Timeout in s
 TIMEOUT = 900
 # Memlimit in MB
 MEMLIMIT = 7168
 
-EXSML = $(shell find . -name "ex*.ml" | grep -v "_build/")
+EXSML = $(shell find . -name "*.ml" | grep -v "parse.ml" | grep -v "_build/")
 EXS = $(EXSML:.ml=)
 LOGS = $(EXSML:.ml=_${NAME}_${TIMEOUT}s.log)
 LOGS_COQ = $(EXSML:.ml=_Coq_${TIMEOUT}s.log)
