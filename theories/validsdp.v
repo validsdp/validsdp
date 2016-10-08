@@ -770,9 +770,6 @@ Definition bigZZ2Q (m : bigZ) (e : bigZ) :=
   BigQ.Qq m (BigN.shiftl 1%bigN p)
   end.
 
-(* TODO: move above *)
-Delimit Scope Z_scope with coq_Z.
-
 Lemma bigZZ2Q_correct m e :
   Q2R [bigZZ2Q m e]%bigQ = Z2R [m]%bigZ * bpow radix2 [e]%bigZ.
 Proof.
@@ -861,9 +858,6 @@ Proof.
 case: f => [//|m e].
 by move/FLX53_correct; rewrite /F2FI_val =>->.
 Qed.
-
-Lemma Xreal_inj x y : Xreal x = Xreal y -> x = y.
-Proof. by case. Qed.
 
 Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z then n else Z0.
 Proof. by rewrite -[RHS](BigZ.spec_of_Z); case: n. Qed.

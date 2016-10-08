@@ -1,5 +1,5 @@
 Require Import Reals Flocq.Core.Fcore_Raux BigZ Psatz.
-From Flocq Require Import Fcore.
+From Flocq Require Import Fcore Fcore_digits.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
 From CoqEAL Require Import hrel.
@@ -1348,13 +1348,335 @@ Definition digits (m : bigZ) :=
 
 (** Bitwise hack *)
 
+Definition bigZulp (m : bigZ) := BigZ.land m (- m).
+
+Definition Zulp (m : Z) := Z.land m (- m).
+
+Lemma bigZulpE m : [BigZ.land m (- m)]%bigZ = Zulp [m]%bigZ.
+Proof. by rewrite BigZ.spec_land BigZ.spec_opp. Qed.
+
 Definition significant_digits (m : bigZ) :=
   let d := digits m in
-  let d' := digits (BigZ.land m (- m)) in
+  let d' := digits (bigZulp m) in
   BigZ.succ (d - d').
 
 Lemma real_FtoX_toR f : F.real f -> F.toX f = Xreal (toR f).
 Proof. by rewrite FtoX_real; rewrite /X_real; case: F.toX. Qed.
+
+(*
+Lemma land_pow_digits :
+  [BigZ.land m (- m)]%bigZ = 2 ^ [
+  H : BigZ.succ (digits m - digits (BigZ.land m (- m))) <=? 53
+  mr := BigZ.land m (- m) : BigZ.t_
+  ============================
+  proj_val (F.toX (Float m e)) = Z2R [m / mr] * Z2R (2 ^ [digits (BigZ.land m (- m)) - 1])
+ *)
+
+(** Support results on [Zulp] *)
+
+Delimit Scope Z_scope with coq_Z.
+
+Lemma Zulp_gt0 m : m <> Z0 -> (0 < Zulp m)%coq_Z.
+Proof.
+move => NZm; rewrite /Zulp.
+case: m NZm => [//|p|p] NZm /=.
+{ change Z0 with (Z.of_N N0).
+  apply N2Z.inj_lt.
+  case E: Pos.pred_N => [//|q].
+  apply/N.neq_0_lt_0 =>K.
+  have {K} K' : forall n, N.testbit (Pos.ldiff p q) n = false.
+  { by move=> n; rewrite K N.bits_0. }
+  have Hp: p = (q + 1)%positive.
+  { zify.
+    by rewrite -E N.pos_pred_spec N2Z.inj_pred // -/(Zsucc _) -Zsucc_pred. }
+  clear E NZm.
+  rewrite {}Hp in K'.
+  elim: q K' => [q IHq|q IHq|] K'.
+  - apply: IHq => n.
+    move/(_ (N.succ n)) in K'.
+    by rewrite N.double_bits_succ -Pos.add_1_r in K'.
+  - move/(_ 0%num) in K'.
+    rewrite N.pos_ldiff_spec in K'.
+    by move/negbT/negP in K'; apply: K'.
+  - move/(_ 1%num) in K'.
+    rewrite N.pos_ldiff_spec in K'.
+    by move/negbT/negP in K'; apply: K'. }
+(* same proof *)
+{ change Z0 with (Z.of_N N0).
+  apply N2Z.inj_lt.
+  case E: Pos.pred_N => [//|q].
+  apply/N.neq_0_lt_0 =>K.
+  have {K} K' : forall n, N.testbit (Pos.ldiff p q) n = false.
+  { by move=> n; rewrite K N.bits_0. }
+  have Hp: p = (q + 1)%positive.
+  { zify.
+    by rewrite -E N.pos_pred_spec N2Z.inj_pred // -/(Zsucc _) -Zsucc_pred. }
+  clear E NZm.
+  rewrite {}Hp in K'.
+  elim: q K' => [q IHq|q IHq|] K'.
+  - apply: IHq => n.
+    move/(_ (N.succ n)) in K'.
+    by rewrite N.double_bits_succ -Pos.add_1_r in K'.
+  - move/(_ 0%num) in K'.
+    rewrite N.pos_ldiff_spec in K'.
+    by move/negbT/negP in K'; apply: K'.
+  - move/(_ 1%num) in K'.
+    rewrite N.pos_ldiff_spec in K'.
+    by move/negbT/negP in K'; apply: K'. }
+Qed.
+
+Lemma Zulp_neq0 m : m <> Z0 -> (Zulp m <> 0)%coq_Z.
+Proof. by move=> NZm; apply/BigNumPrelude.Zlt0_not_eq/Zulp_gt0. Qed.
+
+Lemma Pos_ldiff_eq0 p : Pos.ldiff p p = 0%num.
+Proof.
+apply: N.bits_inj_0 => n.
+elim: p n =>[p IHp|p IHp|//] n.
+{ case: n => [/=|n].
+  by rewrite N.testbit_even_0.
+  rewrite -N.succ_pos_pred.
+  by rewrite N.double_bits_succ. }
+case: n => [/=|n].
+by rewrite N.testbit_even_0.
+rewrite -N.succ_pos_pred.
+by rewrite N.double_bits_succ.
+Qed.
+
+(*
+Ltac tac_or3 :=
+  try (by constructor 1); try (by constructor 2); try by constructor 3.
+
+Lemma Pos_ldiff_succ p : [\/ Pos.ldiff (Pos.succ p) p = N.pos (Pos.succ p),
+                         Pos.ldiff (Pos.succ p) p = 2%num |
+                         Pos.ldiff (Pos.succ p) p = 1%num].
+Proof.
+elim: p => [p [IHp|IHp|IHp]|p [IHp|IHp|IHp]|] /=;
+  rewrite ?IHp; tac_or3;
+  rewrite ?Pos_ldiff_eq0; tac_or3.
+Abort.
+*)
+
+Lemma Pos_ldiff_neq0 q : Pos.ldiff (Pos.succ q) q <> 0%num.
+Proof.
+elim: q => [q IHq|q IHq|] //=; first by case: Pos.ldiff IHq.
+by rewrite /Pos.Nsucc_double Pos_ldiff_eq0.
+Qed.
+
+Lemma Pos_ldiff_mod q :
+  (N.pos (Pos.succ q) mod Pos.ldiff (Pos.succ q) q)%num = N0.
+Proof.
+elim: q => [q IHp|q IHp|] =>//=.
+now_show (N.double (N.pos (Pos.succ q)) mod N.double (Pos.ldiff (Pos.succ q) q)
+  = 0)%num.
+rewrite !N.double_spec !N.mul_mod_distr_l; [|exact: Pos_ldiff_neq0|done].
+by rewrite IHp.
+by rewrite Pos_ldiff_eq0 /= N.mod_1_r.
+Qed.
+
+Lemma Zulp_mul m : (m / Zulp m * Zulp m)%coq_Z = m.
+case: m => [|p|p] //.
+{ elim: p => [p IHp|p IHp|] //.
+  { by rewrite /= Pos_ldiff_eq0 /= Zdiv_1_r Zmult_1_r. }
+  rewrite /=.
+  case E : (Pos.pred_double p) => [q|q|] /=.
+  have->: p = Pos.succ q.
+  { rewrite Pos.pred_double_spec in E.
+    move/(congr1 Pos.succ) in E.
+    rewrite Pos.succ_pred // in E.
+    by case: E. }
+  { clear E.
+    symmetry; rewrite Zmult_comm; apply Znumtheory.Zdivide_Zdiv_eq.
+    by rewrite -[Z0]/(Z.of_N N0); apply N2Z.inj_lt;
+      case: Pos.ldiff (@Pos_ldiff_neq0 q).
+    apply Z.mod_divide.
+    by apply/BigNumPrelude.Zlt0_not_eq;
+      rewrite -[Z0]/(Z.of_N N0); apply N2Z.inj_lt;
+      case: Pos.ldiff (@Pos_ldiff_neq0 q).
+    now_show (Z.of_N (N.double (N.pos (Pos.succ q)))
+      mod Z.of_N (N.double (Pos.ldiff (Pos.succ q) q)) = Z0)%coq_Z.
+    rewrite -N2Z.inj_mod; last first.
+    rewrite N.double_spec.
+    apply/N.neq_mul_0; split =>//; exact: Pos_ldiff_neq0.
+    rewrite !N.double_spec !N.mul_mod_distr_l; [|exact: Pos_ldiff_neq0|done].
+    by rewrite Pos_ldiff_mod. }
+  { exfalso; clear IHp.
+    move: E; by case: p. }
+  clear E.
+  symmetry; rewrite Zmult_comm; apply Znumtheory.Zdivide_Zdiv_eq =>//.
+  exact: Z.divide_refl. }
+(* almost same proof *)
+elim: p => [p IHp|p IHp|] //.
+{ by rewrite /= Pos_ldiff_eq0 /= Zdiv_1_r Zmult_1_r. }
+rewrite /=.
+case E : (Pos.pred_double p) => [q|q|] /=.
+have->: p = Pos.succ q.
+{ rewrite Pos.pred_double_spec in E.
+  move/(congr1 Pos.succ) in E.
+  rewrite Pos.succ_pred // in E.
+  by case: E. }
+{ clear E.
+  symmetry; rewrite Zmult_comm; apply Znumtheory.Zdivide_Zdiv_eq.
+  by rewrite -[Z0]/(Z.of_N N0); apply N2Z.inj_lt;
+    case: Pos.ldiff (@Pos_ldiff_neq0 q).
+  apply Z.mod_divide.
+  by apply/BigNumPrelude.Zlt0_not_eq;
+    rewrite -[Z0]/(Z.of_N N0); apply N2Z.inj_lt;
+    case: Pos.ldiff (@Pos_ldiff_neq0 q).
+  now_show (- Z.of_N (N.double (N.pos (Pos.succ q)))
+    mod Z.of_N (N.double (Pos.ldiff (Pos.succ q) q)) = Z0)%coq_Z.
+  (*:*) apply Z_mod_zero_opp_full.
+  rewrite -N2Z.inj_mod; last first.
+  rewrite N.double_spec.
+  apply/N.neq_mul_0; split =>//; exact: Pos_ldiff_neq0.
+  rewrite !N.double_spec !N.mul_mod_distr_l; [|exact: Pos_ldiff_neq0|done].
+  by rewrite Pos_ldiff_mod. }
+{ exfalso; clear IHp.
+  move: E; by case: p. }
+clear E.
+symmetry; rewrite Zmult_comm; apply Znumtheory.Zdivide_Zdiv_eq =>//.
+(*:*) now_show (Z.pos p~0 | - Z.pos p~0)%coq_Z; apply Znumtheory.Zdivide_opp_r.
+exact: Z.divide_refl.
+Qed.
+
+Lemma Zulp_divides m : Z.divide (Zulp m) m.
+Proof.
+apply Znumtheory.Zdivide_intro with (m / Zulp m)%Z.
+by rewrite Zulp_mul.
+Qed.
+
+Definition Zdigits2 (n : Z) := Fcore_digits.Zdigits radix2 n.
+
+Lemma Zulp_double n : n <> Z0 -> Zulp (Z.double n) = (Z.double (Zulp n))%Z.
+Proof.
+case: n => [//|p|p].
+{ elim: p => [p IHp|p IHp|//] _ /=; first by rewrite /= Pos_ldiff_eq0.
+  case E : (Pos.pred_double p) => [q|q|//].
+  have->: p = Pos.succ q.
+  { rewrite Pos.pred_double_spec in E.
+    move/(congr1 Pos.succ) in E.
+    rewrite Pos.succ_pred // in E.
+    by case: E. }
+  by rewrite Z.double_spec -[2%Z]/(Z.of_N 2) -N2Z.inj_mul.
+  by rewrite Z.double_spec -[2%Z]/(Z.of_N 2) -N2Z.inj_mul. }
+(* same proof *)
+elim: p => [p IHp|p IHp|//] _ /=; first by rewrite /= Pos_ldiff_eq0.
+case E : (Pos.pred_double p) => [q|q|//].
+have->: p = Pos.succ q.
+{ rewrite Pos.pred_double_spec in E.
+  move/(congr1 Pos.succ) in E.
+  rewrite Pos.succ_pred // in E.
+  by case: E. }
+by rewrite Z.double_spec -[2%Z]/(Z.of_N 2) -N2Z.inj_mul.
+by rewrite Z.double_spec -[2%Z]/(Z.of_N 2) -N2Z.inj_mul.
+Qed.
+
+Lemma Zdigits2_mult_Zpower m e : m <> Z0 -> (0 <= e)%coq_Z ->
+  Zdigits2 (m * 2 ^ e) = (Zdigits2 m + e)%coq_Z.
+Proof. exact: Zdigits_mult_Zpower. Qed.
+
+Lemma Zdigits2_double m : m <> Z0 -> Zdigits2 (Z.double m) = (Z.succ (Zdigits2 m))%coq_Z.
+Proof.
+move=> NZm.
+suff->: Z.double m = (m * 2 ^ 1)%Z by apply: Zdigits2_mult_Zpower.
+by rewrite Z.double_spec Zmult_comm.
+Qed.
+
+Lemma Zdigits_opp r (n : Z) : Fcore_digits.Zdigits r (- n) = Fcore_digits.Zdigits r n.
+Proof. by case: n. Qed.
+
+Lemma digits_spec n : [digits n]%bigZ = Zdigits2 [n]%bigZ.
+Proof.
+rewrite /digits; case: n => n.
+have Hn : [n]%bigN = Z0 \/ [n]%bigN <> Z0.
+{ case E: [n]%bigN => [|p|p]; [by left|by right|exfalso].
+  by have := BigN.spec_pos n; rewrite E; auto. }
+have {Hn} [Zn|NZn] := Hn.
+{ rewrite /= Zn /= BigN.spec_sub.
+  apply/Z.max_l_iff.
+  rewrite BigN.spec_Ndigits BigN.spec_head00 //.
+  zify; omega. }
+{ rewrite [LHS]Bir.mantissa_digits_correct; last first.
+  { case E: [BigZ.Pos n]%bigZ NZn => [|p|p] //= NZn.
+    exists p; by rewrite -E.
+    clear NZn; exfalso; simpl in E.
+    by have := BigN.spec_pos n; rewrite E; auto. }
+  rewrite -Interval_generic_proof.digits_conversion.
+  rewrite /Zdigits2; f_equal.
+  rewrite /= /Bir.MtoP; simpl in NZn.
+  have := BigN.spec_pos n; case: [n]%bigN NZn => [p|p|] NZn; try done.
+    by move=> _ K; exfalso; auto. }
+(* almost same proof *)
+have Hn : [n]%bigN = Z0 \/ [n]%bigN <> Z0.
+{ case E: [n]%bigN => [|p|p]; [by left|by right|exfalso].
+  by have := BigN.spec_pos n; rewrite E; auto. }
+have {Hn} [Zn|NZn] := Hn.
+{ rewrite /= Zn /= BigN.spec_sub.
+  apply/Z.max_l_iff.
+  rewrite BigN.spec_Ndigits BigN.spec_head00 //.
+  zify; omega. }
+{ rewrite [LHS]Bir.mantissa_digits_correct; last first.
+  { case E: [BigZ.Pos n]%bigZ NZn => [|p|p] //= NZn.
+    exists p; by rewrite -E.
+    clear NZn; exfalso; simpl in E.
+    by have := BigN.spec_pos n; rewrite E; auto. }
+  rewrite -Interval_generic_proof.digits_conversion.
+  rewrite [RHS]Zdigits_opp /Zdigits2; f_equal.
+  rewrite /= /Bir.MtoP; simpl in NZn.
+  have := BigN.spec_pos n; case: [n]%bigN NZn => [p|p|] NZn; try done.
+  by move=> _ K; exfalso; auto. }
+Qed.
+
+Lemma digits_ge0 n :(0 <= digits n)%bigZ.
+Proof.
+apply/BigZ.leb_le.
+rewrite BigZ.spec_leb digits_spec // /Zdigits2.
+exact/Zle_is_le_bool/Fcore_digits.Zdigits_ge_0.
+Qed.
+
+Lemma digits_gt0 n : [n]%bigZ <> Z0 -> (0 < digits n)%bigZ.
+Proof.
+move=> NZn; apply/BigZ.ltb_lt.
+rewrite BigZ.spec_ltb digits_spec // /Zdigits2.
+exact/Zlt_is_lt_bool/Fcore_digits.Zdigits_gt_0.
+Qed.
+
+Lemma Zdigits2_ge0 n :(0 <= Zdigits2 n)%coq_Z.
+Proof.
+exact/Fcore_digits.Zdigits_ge_0.
+Qed.
+
+Lemma Zdigits2_gt0 n : n <> Z0 -> (0 < Zdigits2 n)%coq_Z.
+Proof.
+exact/Fcore_digits.Zdigits_gt_0.
+Qed.
+
+Lemma Zulp_digits m : m <> Z0 -> (2 ^ (Zdigits2 (Zulp m) - 1))%coq_Z = Zulp m.
+Proof.
+move=> NZm.
+case: m NZm => [//|p|p] _.
+{ elim: p => [p IHp|p IHp|//].
+  by rewrite /= Pos_ldiff_eq0 /=.
+  have->: Z.pos p~0 = Z.double (Z.pos p) by [].
+  rewrite Zulp_double // -[in RHS]IHp Zdigits2_double; last exact: Zulp_neq0.
+  have->: (Z.succ ?[n] - 1 = Z.succ (?n - 1))%coq_Z by intros; ring.
+  rewrite Z.pow_succ_r //.
+  apply(*:*) Z.lt_le_pred.
+  apply: Zdigits2_gt0.
+  exact: Zulp_neq0. }
+(* almost same proof *)
+{ elim: p => [p IHp|p IHp|//].
+  by rewrite /= Pos_ldiff_eq0 /=.
+  have->: Z.neg p~0 = Z.double (Z.neg p) by [].
+  rewrite Zulp_double // -[in RHS]IHp Zdigits2_double; last exact: Zulp_neq0.
+  have->: (Z.succ ?[n] - 1 = Z.succ (?n - 1))%coq_Z by intros; ring.
+  rewrite Z.pow_succ_r //.
+  apply(*:*) Z.lt_le_pred.
+  apply: Zdigits2_gt0.
+  exact: Zulp_neq0. }
+Qed.
+
+Lemma Xreal_inj x y : Xreal x = Xreal y -> x = y.
+Proof. by case. Qed.
 
 Lemma FLX53_correct m e :
   (* (BigZ.abs m <? BigZ.shiftl eps_inv e)%bigZ *)
@@ -1367,13 +1689,47 @@ split => H.
 { rewrite /mantissa_bounded /x_bounded; right.
   exists (toR (Float m e)); first by rewrite -real_FtoX_toR.
   red; rewrite /significant_digits in H.
-  set mr := BigZ.land m (- m).
   exists (Fcore_defs.Float radix2
-                      [m / mr]%bigZ
-                      [digits (BigZ.land m (- m)) - 1]%bigZ).
+                      [m / bigZulp m]%bigZ
+                      [digits (bigZulp m) - 1 + e]%bigZ).
   split.
-  { rewrite /F2R /= -Z2R_Zpower /=.
-    admit. admit. } admit. } admit.
+  { rewrite /F.toX /F.toF.
+    case: Bir.mantissa_sign (Bir.mantissa_sign_correct m) =>[/=|s n].
+    { rewrite /F2R /= BigZ.spec_div.
+      by rewrite /Bir.MtoZ =>->; rewrite Zdiv_0_l Rsimpl. }
+    case=> Hm Vn; rewrite /= FtoR_split.
+    case: s Hm => Hm; rewrite /= -Hm /F2R /= /Bir.MtoZ /Bir.EtoZ.
+    { rewrite BigZ.spec_add bpow_plus /= -Rmult_assoc; congr Rmult.
+      rewrite -Z2R_Zpower; last first.
+      { rewrite BigZ.spec_sub digits_spec.
+        apply(*:*) Z.lt_le_pred.
+        apply: Zdigits2_gt0.
+        rewrite /bigZulp BigZ.spec_land BigZ.spec_opp -/(Zulp [m]).
+        apply: Zulp_neq0.
+        by move: Hm; rewrite /Bir.MtoZ =>->. }
+      rewrite BigZ.spec_sub digits_spec.
+      rewrite -Z2R_mult; congr Z2R.
+      rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
+      rewrite -/(Zulp [m]) /= Zulp_digits; last by move=> K; rewrite /Bir.MtoZ K in Hm.
+      by rewrite Zulp_mul. }
+    rewrite BigZ.spec_add bpow_plus /= -Rmult_assoc; congr Rmult.
+    rewrite -Z2R_Zpower; last first.
+    { rewrite BigZ.spec_sub digits_spec.
+      apply(*:*) Z.lt_le_pred.
+      apply: Zdigits2_gt0.
+      rewrite /bigZulp BigZ.spec_land BigZ.spec_opp -/(Zulp [m]).
+      apply: Zulp_neq0.
+      by move: Hm; rewrite /Bir.MtoZ =>->. }
+    rewrite BigZ.spec_sub digits_spec.
+    rewrite -Z2R_mult; congr Z2R.
+    rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
+    rewrite -/(Zulp [m]) /= Zulp_digits; last by move=> K; rewrite /Bir.MtoZ K in Hm.
+    by rewrite Zulp_mul. }
+  simpl.
+  (* could be extracted to some lemma *)
+  have [_] := Zdigits_correct radix2 [m / bigZulp m]%bigZ.
+  admit. }
+admit.
 Admitted. (* bitwise hack *)
 
 Definition F2FI_val (f : F.type) : F.type :=
