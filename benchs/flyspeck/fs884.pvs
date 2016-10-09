@@ -1,0 +1,40 @@
+benchmarks : THEORY
+BEGIN
+
+  IMPORTING Bernstein@strategy
+
+  x1,x2,x3,x4,x5,x6:VAR real
+
+  %|- *_ : PROOF (bernstein) QED
+
+  P(x1,x2,x3,x4,x5,x6): MACRO real =
+    -(  x1
+  * (x1 * x4 * ((- x1) + x2 + x3 - x4 + x5 + x6)
+     + x2 * x5 * (x1 - x2 + x3 + x4 - x5 + x6)
+       + x3 * x6 * (x1 + x2 - x3 + x4 + x5 - x6) - x2 * x3 * x4
+         - x1 * x3 * x5 - x1 * x2 * x6 - x4 * x5 * x6)
+  * (4/1)
+  + ((- x2) * x3 - x1 * x4
+     + x2 * x5 + x3 * x6 - x5 * x6 + x1 * ((- x1) + x2 + x3 - x4 + x5 + x6))
+    * ((- x2) * x3 - x1 * x4
+       + x2 * x5 + x3 * x6 - x5 * x6 + x1 * ((- x1) + x2 + x3 - x4 + x5 + x6))
+    * (- 245468/1000000))
+
+  PP(x1,x2,x3,x4,x5,x6): MACRO real =
+    -30.2
+     + (x1 * x4 * ((- x1) + x2 + x3 - x4 + x5 + x6)
+        + x2 * x5 * (x1 - x2 + x3 + x4 - x5 + x6)
+          + x3 * x6 * (x1 + x2 - x3 + x4 + x5 - x6) - x2 * x3 * x4
+            - x1 * x3 * x5 - x1 * x2 * x6 - x4 * x5 * x6)
+
+  P_pos_: LEMMA
+    4<=x1 AND x1<=6.3504 AND
+    6.3504<=x2 AND x2<=6.3504 AND
+    4<=x3 AND x3<=6.3504 AND
+    4<=x4 AND x4<=4 AND
+    9.0601<=x5 AND x5<=10.4976 AND
+    4<=x6 AND x6<=6.3504 AND
+    PP(x1,x2,x3,x4,x5,x6) <= 0 AND
+    P(x1,x2,x3,x4,x5,x6) > 0
+
+END benchmarks
