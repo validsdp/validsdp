@@ -1306,17 +1306,7 @@ Definition eps_inv := Eval compute in (2 ^ 53)%bigZ.
 Lemma eps_inv_correct : (Z2R [eps_inv]%bigZ <= / eps fis)%Re.
 Proof. by rewrite /= /flx64.eps /= Rinv_involutive; [right|lra]. Qed.
 
-(* This definition of [F2FI_val] is irrelevant as it maps some floats
-   such as [Interval_specific_ops.Float eps_inv (-1)%bigZ] to Fnan,
-   while these floats would faitfully satisfy [mantissa_bounded].
-
-Definition F2FI_val (f : F.type) : F.type :=
-  match f with
-    | Interval_specific_ops.Fnan => Interval_specific_ops.Fnan
-    | Interval_specific_ops.Float m e =>
-      if (BigZ.abs m <? eps_inv)%bigZ then f else Interval_specific_ops.Fnan
-  end.
-
+(*
 Goal mantissa_bounded (Interval_specific_ops.Float eps_inv (-1)%bigZ).
 rewrite /eps_inv /mantissa_bounded /F.toX.
 right.
@@ -1327,36 +1317,6 @@ have->: (2 ^ 52)%R = (bpow radix2 52) by simpl; ring.
 exact: generic_format_bpow.
 Qed.
  *)
-
-Definition F2FI_val (f : F.type) : F.type :=
-  match f with
-    | Interval_specific_ops.Fnan => Interval_specific_ops.Fnan
-    | Interval_specific_ops.Float m e =>
-      if (signif_digits m <=? 53)%bigZ then f else Interval_specific_ops.Fnan
-  end.
-
-Lemma F2FI_proof (x : F.type) : mantissa_bounded (F2FI_val x).
-Proof.
-case: x => [|m e]; first by left; rewrite /mantissa_bounded /F.toX /x_bounded /=.
-rewrite /F2FI_val.
-case E: BigZ.leb; last by left.
-exact/signif_digits_correct.
-Qed.
-
-Definition F2FI (f : F.type) : FI := Build_FI _ (F2FI_proof f).
-
-Lemma F2FI_correct (f : F.type) : F.real (F2FI f) ->
-                                  FI2FS (F2FI f) = toR f :> R.
-Proof.
-case f => // m e.
-rewrite /= FtoX_real /coqinterval_infnan.FI2FS.
-case (FI_prop (F2FI (Float m e))) => Hf; [by rewrite Hf|].
-destruct Hf as (r, Hr, Hr'); move=> HF /=.
-suff: Xreal r = Xreal (proj_val (F.toX (Float m e))).
-{ by case. }
-move: HF.
-by rewrite -real_FtoX_toR // -Hr /F2FI /=; case (_ <=? _)%bigZ.
-Qed.
 
 Local Notation fris := coqinterval_round_up_infnan.
 

@@ -1194,13 +1194,14 @@ End refinement_soscheck.
 Section refinement_interp_poly.
 
 Global Instance param_ratBigQ_zero : refines r_ratBigQ 0%R 0%C.
-Admitted.  (* Erik *)
+Proof. rewrite refinesE /r_ratBigQ /bigQ2rat; red; exact: val_inj. Qed.
 
 Global Instance param_ratBigQ_one : refines r_ratBigQ 1%R 1%C.
-Admitted.  (* Erik *)
+Proof. rewrite refinesE /r_ratBigQ /bigQ2rat; red; exact: val_inj. Qed.
 
 Global Instance param_ratBigQ_opp : refines (r_ratBigQ ==> r_ratBigQ) -%R -%C.
-Admitted.  (* Erik *)
+Proof.
+Admitted. (* Erik *)
 
 Global Instance param_ratBigQ_add :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) +%R +%C.

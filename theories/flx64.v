@@ -36,8 +36,6 @@ Proof. unfold prec; omega. Qed.
 Instance valid_exp : Valid_exp fexp.
 Proof. now apply FLX_exp_valid. Qed.
 
-Definition radix2 := Build_radix 2 (refl_equal true).
-
 Definition format x := generic_format radix2 fexp x.
 
 Let F := FS_of format.
