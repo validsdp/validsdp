@@ -1,4 +1,4 @@
-Require Import Reals Flocq.Core.Fcore_Raux BigZ Psatz.
+Require Import Reals Flocq.Core.Fcore_Raux BigZ Psatz ROmega.
 From Flocq Require Import Fcore Fcore_digits.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
@@ -1303,7 +1303,7 @@ Require Import Interval.Interval_definitions.
 Require Import Interval.Interval_specific_ops.
 Require Import Interval.Interval_xreal.
 (*Module F := SpecificFloat BigIntRadix2.*)
-Local Open Scope bigZ_scope.
+Local Open Scope bigZ_scope. (* FIXME: to remove *)
 Require Import coqinterval_infnan.
 Require Import Interval.Interval_missing.
 
@@ -1353,10 +1353,10 @@ Definition bigZulp (m : bigZ) := BigZ.land m (- m).
 
 Definition Zulp (m : Z) := Z.land m (- m).
 
-Lemma bigZulpE m : [BigZ.land m (- m)]%bigZ = Zulp [m]%bigZ.
+Lemma bigZulp_spec m : [bigZulp m]%bigZ = Zulp [m]%bigZ.
 Proof. by rewrite BigZ.spec_land BigZ.spec_opp. Qed.
 
-Definition significant_digits (m : bigZ) :=
+Definition signif_digits (m : bigZ) :=
   let d := digits m in
   let d' := digits (bigZulp m) in
   BigZ.succ (d - d').
@@ -1427,6 +1427,9 @@ Qed.
 Lemma Zulp_neq0 m : m <> Z0 -> (Zulp m <> 0)%coq_Z.
 Proof. by move=> NZm; apply/BigNumPrelude.Zlt0_not_eq/Zulp_gt0. Qed.
 
+Lemma Zulp_ge0 m : (0 <= Zulp m)%coq_Z.
+Proof. case: m => [//|p|p]; apply Z.lt_le_incl; exact: Zulp_gt0. Qed.
+
 Lemma Pos_ldiff_eq0 p : Pos.ldiff p p = 0%num.
 Proof.
 apply: N.bits_inj_0 => n.
@@ -1440,20 +1443,6 @@ by rewrite N.testbit_even_0.
 rewrite -N.succ_pos_pred.
 by rewrite N.double_bits_succ.
 Qed.
-
-(*
-Ltac tac_or3 :=
-  try (by constructor 1); try (by constructor 2); try by constructor 3.
-
-Lemma Pos_ldiff_succ p : [\/ Pos.ldiff (Pos.succ p) p = N.pos (Pos.succ p),
-                         Pos.ldiff (Pos.succ p) p = 2%num |
-                         Pos.ldiff (Pos.succ p) p = 1%num].
-Proof.
-elim: p => [p [IHp|IHp|IHp]|p [IHp|IHp|IHp]|] /=;
-  rewrite ?IHp; tac_or3;
-  rewrite ?Pos_ldiff_eq0; tac_or3.
-Abort.
-*)
 
 Lemma Pos_ldiff_neq0 q : Pos.ldiff (Pos.succ q) q <> 0%num.
 Proof.
@@ -1541,6 +1530,15 @@ Lemma Zulp_divides m : Z.divide (Zulp m) m.
 Proof.
 apply Znumtheory.Zdivide_intro with (m / Zulp m)%Z.
 by rewrite Zulp_mul.
+Qed.
+
+Lemma Zulp_le m : (Zulp m <= Z.abs m)%coq_Z.
+Proof.
+have := Zulp_divides m.
+case: m => [//|p|p].
+by apply: Znumtheory.Zdivide_le; first exact: Zulp_ge0.
+move/Znumtheory.Zdivide_opp_r.
+by apply: Znumtheory.Zdivide_le; first exact: Zulp_ge0.
 Qed.
 
 Definition Zdigits2 (n : Z) := Fcore_digits.Zdigits radix2 n.
@@ -1677,17 +1675,115 @@ Qed.
 Lemma Xreal_inj x y : Xreal x = Xreal y -> x = y.
 Proof. by case. Qed.
 
-Lemma FLX53_correct m e :
-  (* (BigZ.abs m <? BigZ.shiftl eps_inv e)%bigZ *)
-  (significant_digits m <=? 53)%bigZ <=>
-  (* generic_format radix2 (FLX_exp 53)
-       (toR (Interval_specific_ops.Float m e)) *)
+Lemma Zdigits_div_ulp m :
+  m <> Z0 -> Zdigits2 (m / Zulp m) = Z.succ (Zdigits2 m - Zdigits2 (Zulp m)).
+Proof.
+move=> NZm.
+rewrite -{3}(Zulp_mul m).
+rewrite -{3}(Zulp_digits NZm).
+rewrite Zdigits2_mult_Zpower; first ring.
+{ apply/Z.div_small_iff; first exact: Zulp_neq0.
+  move=> [[K1 K2]|[K1 K2]].
+  { have Absm : (Z.abs m < Zulp m)%coq_Z by rewrite Z.abs_eq.
+    by have /Zlt_not_le Absm' := @Zulp_le m. }
+  have /Zlt_not_le K := Z.lt_le_trans _ _ _ K1 K2.
+  by have K' := @Zulp_ge0 m. }
+{ apply(*:*) Z.lt_le_pred.
+  apply: Zdigits2_gt0.
+  exact: Zulp_neq0. }
+Qed.
+
+Lemma Zdigits2_Zulp_le m p :
+  (Z.succ (Zdigits2 m - Zdigits2 (Zulp m)) <= p -> Zdigits2 (m / Zulp m) <= p)%coq_Z.
+Proof.
+have [->|NZm] := Z_zerop m.
+{ by simpl; auto with zarith. }
+by rewrite Zdigits_div_ulp.
+Qed.
+
+Lemma Zulp_mod2 m : m <> Z0 ->
+  ((m / Zulp m) mod 2 = 1)%coq_Z.
+Proof.
+move=> NZm.
+rewrite -(Zulp_digits NZm).
+apply/Z.testbit_true.
+{ apply(*:*) Z.lt_le_pred.
+  apply: Zdigits2_gt0.
+  exact: Zulp_neq0. }
+case: m NZm => [//|p|p] _.
+{ elim: p => [p IHp|p IHp|] //; first by rewrite /= Pos_ldiff_eq0.
+  rewrite -[Z.pos p~0]/(Z.double (Z.pos p)).
+  rewrite Zulp_double //.
+  have->: Z.double (Zulp (Z.pos p)) = (Zulp (Z.pos p) * 2 ^ 1)%Z
+    by rewrite Z.double_spec Zmult_comm.
+  rewrite Zdigits2_mult_Zpower //; last exact: Zulp_neq0.
+  have->: (?[a] + 1 - 1 = Z.succ (?a - 1))%Z by move=> ?; rewrite /Z.succ; ring.
+  rewrite Z.double_spec Z.testbit_even_succ //.
+  { apply(*:*) Z.lt_le_pred.
+    apply: Zdigits2_gt0.
+    exact: Zulp_neq0. } }
+(* almost same proof *)
+{ elim: p => [p IHp|p IHp|] //; first by rewrite /= Pos_ldiff_eq0.
+  rewrite -[Z.neg p~0]/(Z.double (Z.neg p)).
+  rewrite Zulp_double //.
+  have->: Z.double (Zulp (Z.pos p)) = (Zulp (Z.pos p) * 2 ^ 1)%Z
+    by rewrite Z.double_spec Zmult_comm.
+  rewrite Zdigits2_mult_Zpower //; last exact: Zulp_neq0.
+  have->: (?[a] + 1 - 1 = Z.succ (?a - 1))%Z by move=> ?; rewrite /Z.succ; ring.
+  rewrite Z.double_spec Z.testbit_even_succ //.
+  { apply(*:*) Z.lt_le_pred.
+    apply: Zdigits2_gt0.
+    exact: Zulp_neq0. } }
+Qed.
+
+Lemma Zulp_rel_prime m e :
+  m <> Z0 -> (0 <= e)%Z -> Znumtheory.rel_prime (Z.abs (m / Zulp m)) (2 ^ e).
+Proof.
+move=> NZm NNe.
+apply Zpow_facts.rel_prime_Zpower_r =>//.
+apply Znumtheory.rel_prime_sym.
+apply Znumtheory.prime_rel_prime; first exact: Znumtheory.prime_2.
+move/Z.divide_abs_r/Znumtheory.Zdivide_mod.
+by rewrite Zulp_mod2.
+Qed.
+
+Lemma Zdivide_div_l a b : (a | b)%coq_Z -> (b / a | b)%coq_Z.
+Proof.
+case: a => [|p|p]; first by rewrite Zdiv_0_r.
+by case => z ->; rewrite Z_div_mult_full //; apply Z.divide_mul_l, Z.divide_refl.
+by case => z ->; rewrite Z_div_mult_full //; apply Z.divide_mul_l, Z.divide_refl.
+Qed.
+
+Lemma Rabs_div_gt_1 a b : a <> R0 -> Rabs a < b <-> 1 < b / Rabs a.
+Proof.
+move=> H0; split => Hab.
+{ rewrite -[R1](Rinv_r_simpl_l (Rabs a)); last exact: Rabs_no_R0.
+  rewrite Rmult_1_l /Rdiv.
+  apply: Rmult_lt_compat_r =>//.
+  apply/Rinv_0_lt_compat.
+  exact: Rabs_pos_lt. }
+{ apply (Rmult_lt_reg_r (/ Rabs a)).
+  exact/Rinv_0_lt_compat/Rabs_pos_lt.
+  rewrite (Rinv_r (Rabs a)) //.
+  exact: Rabs_no_R0. }
+Qed.
+
+Lemma Rdiv_gt_1 a b : (0 < a)%R -> a < b <-> 1 < b / a.
+Proof.
+move=> H0.
+rewrite -(Rabs_pos_eq _ (Rlt_le _ _ H0)).
+apply: Rabs_div_gt_1 =>//.
+exact: Rgt_not_eq.
+Qed.
+
+Lemma signif_digits_correct m e :
+  (signif_digits m <=? 53)%bigZ <=>
   mantissa_bounded (Interval_specific_ops.Float m e).
 Proof.
 split => H.
 { rewrite /mantissa_bounded /x_bounded; right.
   exists (toR (Float m e)); first by rewrite -real_FtoX_toR.
-  red; rewrite /significant_digits in H.
+  red; rewrite /signif_digits in H.
   exists (Fcore_defs.Float radix2
                       [m / bigZulp m]%bigZ
                       [digits (bigZulp m) - 1 + e]%bigZ).
@@ -1724,18 +1820,100 @@ split => H.
     rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
     rewrite -/(Zulp [m]) /= Zulp_digits; last by move=> K; rewrite /Bir.MtoZ K in Hm.
     by rewrite Zulp_mul. }
-  simpl.
   (* could be extracted to some lemma *)
-  have [_] := Zdigits_correct radix2 [m / bigZulp m]%bigZ.
-  admit. }
-admit.
-Admitted. (* bitwise hack *)
+  have [_ H1] := Zdigits_correct radix2 [m / bigZulp m]%bigZ.
+  have H2 := @Zdigits2_Zulp_le [m] 53.
+  rewrite BigZ.spec_leb BigZ.spec_succ BigZ.spec_sub in H.
+  rewrite !digits_spec bigZulp_spec in H.
+  move/Z.leb_le in H.
+  move/(_ H) in H2.
+  rewrite !BigZ.spec_div !bigZulp_spec in H1 *.
+  apply (Z.lt_le_trans _ _ _ H1); exact: Zpower_le. }
+have {H} [|[r H1 [f [Hf1 Hf2]]]] := H; first by rewrite real_FtoX_toR.
+rewrite /signif_digits.
+set f1 := Fnum f in Hf2.
+rewrite Hf1 in H1.
+rewrite /F.toX /= in H1.
+case E: Bir.mantissa_sign H1 (Bir.mantissa_sign_correct m) => [|s p] H1 Hm.
+{ rewrite /Bir.MtoZ in Hm.
+  rewrite BigZ.spec_leb BigZ.spec_succ BigZ.spec_sub !digits_spec bigZulp_spec.
+  by rewrite Hm. }
+rewrite /Bir.MtoZ in Hm.
+rewrite BigZ.spec_leb BigZ.spec_succ BigZ.spec_sub !digits_spec bigZulp_spec.
+case: Hm => Hm Hp.
+have [Hlt|Hle] := Z_lt_le_dec (Z.abs f1) (Z.abs [m]%bigZ); last first.
+{ move/(Zdigits_le radix2 _ _ (Z.abs_nonneg _)) in Hle.
+  rewrite Zdigits_abs in Hle.
+  move/(Zdigits_le_Zpower radix2) in Hf2.
+  apply/Z.leb_le.
+  have NZm : [m]%bigZ <> 0%Z by rewrite Hm; case: (s).
+  have NZum : Zulp [m]%bigZ <> 0%Z by apply: Zulp_neq0.
+  have H0 := Zdigits2_gt0 NZum.
+  change [53]%bigZ with 53%Z; rewrite /Zdigits2 in H0 *.
+  rewrite Zdigits_abs in Hle.
+  clear - Hle Hf2 H0; romega. }
+have NZf1 : f1 <> Z0.
+{ move=> K; rewrite /F2R -/f1 K /= Rsimpl in H1.
+  case: H1; rewrite FtoR_split /F2R /=.
+  case/Rmult_integral.
+  { change R0 with (Z2R 0); apply: Z2R_neq; by case: (s). }
+  by apply: Rgt_not_eq; apply: bpow_gt_0. }
+move/(Zdigits_le_Zpower radix2) in Hf2.
+apply/Z.leb_le.
+rewrite -/(Z.succ _) -Zdigits_div_ulp; last by rewrite Hm; case: (s).
+apply: Z.le_trans _ Hf2.
+rewrite /Zdigits2 -Zdigits_abs -(Zdigits_abs _ f1).
+apply Zdigits_le; first exact: Z.abs_nonneg.
+apply Znumtheory.Zdivide_bounds =>//.
+apply Z.divide_abs_l.
+have Hmf : (Z2R [m]%bigZ * bpow radix2 [e]%bigZ = F2R f)%Re.
+{ rewrite Hm; apply Xreal_inj; rewrite -{}H1; congr Xreal.
+  rewrite FtoR_split /F2R /=.
+  by case: (s). }
+have Hlte : bpow radix2 [e] < bpow radix2 (Fexp f).
+{ rewrite /F2R in Hmf.
+  move/Z2R_lt in Hlt.
+  rewrite !Z2R_abs in Hlt.
+  rewrite -/f1 in Hmf.
+  move/(congr1 (Rdiv ^~ (bpow radix2 [e]%bigZ))) in Hmf.
+  rewrite /Rdiv Rinv_r_simpl_l in Hmf; last exact/Rgt_not_eq/bpow_gt_0.
+  rewrite {}Hmf in Hlt.
+  rewrite !Rabs_mult in Hlt.
+  apply/Rdiv_gt_1; first exact: bpow_gt_0.
+  move/Rdiv_gt_1: Hlt.
+  rewrite (_ : ?[a] * Rabs ?[b] * Rabs ?[c] / ?a = ?b * ?c); last first.
+    rewrite (Rabs_pos_eq (bpow _ _)); last exact: bpow_ge_0.
+    rewrite (Rabs_pos_eq (/ bpow _ _));
+      last exact/Rlt_le/Rinv_0_lt_compat/bpow_gt_0.
+    field.
+    split; last by apply/Rabs_no_R0; change R0 with (Z2R Z0); exact: Z2R_neq.
+    exact/Rgt_not_eq/bpow_gt_0.
+  apply.
+  by apply/Rabs_pos_lt; change R0 with (Z2R Z0); exact: Z2R_neq. }
+move/lt_bpow in Hlte.
+have {Hmf} Hmf : ([m]%bigZ = f1 * 2 ^ (Fexp f - [e]%bigZ))%coq_Z.
+{ clear - Hlte Hmf.
+  rewrite /F2R - /f1 in Hmf.
+  move/(congr1 (Rmult ^~ (bpow radix2 (- [e]%bigZ)))) in Hmf.
+  rewrite !Rmult_assoc -!bpow_plus Zegal_left //= Rmult_1_r in Hmf.
+  rewrite -Z2R_Zpower in Hmf; last romega.
+  rewrite -Z2R_mult in Hmf.
+  exact: eq_Z2R. }
+have Hdiv : (Z.abs ([m]%bigZ / Zulp [m]%bigZ) | [m]%bigZ)%coq_Z.
+{ apply/Z.divide_abs_l.
+  apply Zdivide_div_l.
+  by apply Zulp_divides. }
+rewrite {3}Hmf Z.mul_comm in Hdiv.
+apply (Znumtheory.Gauss _ (2 ^ (Fexp f - [e]))) =>//.
+apply: Zulp_rel_prime; last romega.
+by rewrite Hm; case: (s).
+Qed.
 
 Definition F2FI_val (f : F.type) : F.type :=
   match f with
     | Interval_specific_ops.Fnan => Interval_specific_ops.Fnan
     | Interval_specific_ops.Float m e =>
-      if (significant_digits m <=? 53)%bigZ then f else Interval_specific_ops.Fnan
+      if (signif_digits m <=? 53)%bigZ then f else Interval_specific_ops.Fnan
   end.
 
 Lemma F2FI_proof (x : F.type) : mantissa_bounded (F2FI_val x).
@@ -1743,37 +1921,8 @@ Proof.
 case: x => [|m e]; first by left; rewrite /mantissa_bounded /F.toX /x_bounded /=.
 rewrite /F2FI_val.
 case E: BigZ.leb; last by left.
-exact/FLX53_correct.
+exact/signif_digits_correct.
 Qed.
-(*
-unfold mantissa_bounded, x_bounded, F2FI_val.
-case x; [now left|intros m e].
-set (c := BigZ.ltb _ _); case_eq c; intro Hc; [right|now left].
-exists (@F2R radix2 {| Fnum := [m]%bigZ; Fexp := [e]%bigZ |}).
-{ unfold F.toX, FtoX, F.toF.
-  assert (Hm := Bir.mantissa_sign_correct m); revert Hm.
-  set (s := _ m); case_eq s; unfold Bir.MtoZ, F2R.
-  { now intros Hs Hm; rewrite Hm; rewrite Rmult_0_l. }
-  intros s' p Hp (Hm, Hm'); rewrite Hm; simpl; unfold Bir.EtoZ, FtoR, bpow.
-  case [e]%bigZ.
-  { now rewrite Rmult_1_r; case s'. }
-  { now intro p'; rewrite Z2R_mult; case s'. }
-  now intro p'; case s'. }
-revert Hc; unfold c; clear c; rewrite BigZ.ltb_lt; intro Hm.
-apply FLX_format_generic; [exact refl_equal|].
-set (f := {| Fnum := _; Fexp := _ |}).
-apply generic_format_F2R' with f; [reflexivity|intro Hf].
-unfold canonic_exp, FLX_exp; rewrite Z.le_sub_le_add_r; apply ln_beta_le_bpow.
-{ exact Hf. }
-unfold F2R, f; simpl.
-rewrite Rabs_mult; rewrite (Rabs_pos_eq (bpow _ _)); [|now apply bpow_ge_0].
-apply (Rmult_lt_reg_r (bpow radix2 (-[e]%bigZ))); [now apply bpow_gt_0|].
-rewrite Rmult_assoc; rewrite <- !bpow_plus.
-replace (_ + - _)%Z with Z0 by ring; rewrite Rmult_1_r.
-replace (_ + _)%Z with 53%Z by ring.
-rewrite <- Z2R_abs; unfold bpow; apply Z2R_lt.
-now revert Hm; unfold eps_inv, Z.pow_pos; simpl; rewrite <- BigZ.spec_abs.
- *)
 
 Definition F2FI (f : F.type) : FI := Build_FI _ (F2FI_proof f).
 

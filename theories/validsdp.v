@@ -856,7 +856,7 @@ Lemma F2FI_valE f :
   F.toX (F2FI_val f) = F.toX f.
 Proof.
 case: f => [//|m e].
-by move/FLX53_correct; rewrite /F2FI_val =>->.
+by move/signif_digits_correct; rewrite /F2FI_val =>->.
 Qed.
 
 Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z then n else Z0.
