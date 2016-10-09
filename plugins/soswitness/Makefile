@@ -25,4 +25,4 @@ clean: Makefile.coq
 	-$(MAKE) -f Makefile.coq clean
 	rm -f Makefile.coq
 
-.PHONY: coq clean install
+.PHONY: all clean install
