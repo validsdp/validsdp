@@ -23,6 +23,7 @@ seqmx_complements.v
 seqmx.v
 testsuite.v
 validsdp.v
+zulp.v
 # ellipsoid_error_infnan.v
 # ellipsoid_error.v
 # profile.v

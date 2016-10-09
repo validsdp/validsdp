@@ -14,7 +14,7 @@ Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog multipoly coqinterval_infnan.
 (* Require Import Quote. *)
-From ValidSDP Require Import soswitness.
+From ValidSDP Require Import soswitness zulp.
 Require Import seqmx_complements misc.
 
 Import GRing.Theory.
@@ -830,6 +830,8 @@ elim/int_rec: n =>// n IHn.
 by clear IHn; rewrite mulrNz /= -Z2R_int2Z_nat.
 Qed.
 
+Delimit Scope Z_scope with coq_Z. (* should be unnecessary *)
+ 
 Lemma int2Z_le m n : (int2Z m <=? int2Z n)%coq_Z = (m <= n)%Ri.
 Proof.
 rewrite -(ler_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
@@ -866,7 +868,7 @@ Lemma rat2FI_correct r :
   @is_finite fs (rat2FI r) ->
   rat2R r <= F_val (@float_infnan_spec.FI2F fs (rat2FI r)).
 Proof.
-move => Hr; have := real_FtoX_toR Hr.
+move => Hr; have := real_FtoX_toR _ Hr.
 rewrite /rat2FI /bigQ2F /bigQ2FI /=.
 rewrite F2FI_correct //=.
 rewrite /rat2bigQ /ratr.
