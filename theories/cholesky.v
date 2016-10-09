@@ -40,12 +40,12 @@ Section Error_lemmas.
 (** Sum [c - \sum a_i b_i] computed in float from left to right. *)
 Definition stilde := fcmdotprod_l2r.
 
-Lemma stilde_le_c k (c : F fs) (a : F fs ^ k) : (stilde c a a <= c)%Re.
+Lemma stilde_le_c k (c : FS fs) (a : FS fs ^ k) : (stilde c a a <= c)%Re.
 Proof.
 elim: k c a => [|k IHk] c a; [by right|].
 rewrite /stilde /fcmdotprod_l2r /= ffunE.
-replace (F_val _)
-with (F_val (stilde (fplus c (fopp (fmult (a ord0) (a ord0))))
+replace (FS_val _)
+with (FS_val (stilde (fplus c (fopp (fmult (a ord0) (a ord0))))
                     [ffun i => a (lift ord0 i)] [ffun i => a (lift ord0 i)])).
 { apply (Rle_trans _ _ _ (IHk _ _)).
   apply fplus_spec2; rewrite -Ropp_0; apply Ropp_le_contravar, fmult_spec2. }
@@ -56,12 +56,12 @@ Qed.
 Section Lemma_2_1.
 
 (** (2.2) *)
-Definition ytilded (k : nat) (c : F fs) (a b : F fs ^ k) (bk : F fs) :=
+Definition ytilded (k : nat) (c : FS fs) (a b : FS fs ^ k) (bk : FS fs) :=
   fdiv (stilde c a b) bk.
 
 Lemma ytilded_eq k
-      (c1 : F fs) (a1 b1 : F fs ^ k) (bk1 : F fs)
-      (c2 : F fs) (a2 b2 : F fs ^ k) (bk2 : F fs) :
+      (c1 : FS fs) (a1 b1 : FS fs ^ k) (bk1 : FS fs)
+      (c2 : FS fs) (a2 b2 : FS fs ^ k) (bk2 : FS fs) :
   (c1 = c2 :> R) -> (forall i, a1 i = a2 i :> R) ->
   (forall i, b1 i = b2 i :> R) -> (bk1 = bk2 :> R) ->
   ytilded c1 a1 b1 bk1 = ytilded c2 a2 b2 bk2 :> R.
@@ -72,7 +72,7 @@ Qed.
 (* begin hide *)
 (** ~(2.5) *)
 Lemma lemma_2_1_aux1 k (H2k : 2 * (INR k.+1) * eps fs < 1)
-      (a b : F fs ^ k) (c bk : F fs) (Hbk : bk <> 0 :> R) :
+      (a b : FS fs ^ k) (c bk : FS fs) (Hbk : bk <> 0 :> R) :
   exists (t : b_gamma fs k) (d : b_eps fs) (t' : b_gamma fs k.+1)
          (e : b_eta fs) (e' : b_eta fs),
   (ytilded c a b bk * bk * (1 + t) / (1 + d)
@@ -88,7 +88,7 @@ by replace (_ / (1 + d))%Re
 Qed.
 
 Lemma lemma_2_1_aux2 k (H2k : 2 * (INR k.+1) * eps fs < 1)
-      (a b : F fs ^ k) (c bk : F fs) (Hbk : bk <> 0 :> R) :
+      (a b : FS fs ^ k) (c bk : FS fs) (Hbk : bk <> 0 :> R) :
   exists (t : b_gamma fs k.+1) (t' : b_gamma fs k.+1) (e : b_eta fs),
   (ytilded c a b bk * bk
    = t * ytilded c a b bk * bk
@@ -119,7 +119,7 @@ Qed.
 
 (* end hide *)
 Lemma lemma_2_1 k (H2k : 2 * (INR k.+1) * eps fs < 1)
-      (a b : F fs ^ k) (c bk : F fs) (Hbk : bk <> 0 :> R) :
+      (a b : FS fs ^ k) (c bk : FS fs) (Hbk : bk <> 0 :> R) :
   (Rabs (c - \sum_i (a i * b i)%Re - bk * ytilded c a b bk)
    < gamma fs k.+1 * ((\sum_i Rabs (a i * b i)%Re)
                       + Rabs (bk * ytilded c a b bk))
@@ -153,9 +153,9 @@ End Lemma_2_1.
 (** *** Lemma 2.2. *)
 Section Lemma_2_2.
 
-Definition ytildes (k : nat) (c : F fs) (a : F fs ^ k) := fsqrt (stilde c a a).
+Definition ytildes (k : nat) (c : FS fs) (a : FS fs ^ k) := fsqrt (stilde c a a).
 
-Lemma ytildes_eq k (c1 : F fs) (a1 : F fs ^ k) (c2 : F fs) (a2 : F fs ^ k) :
+Lemma ytildes_eq k (c1 : FS fs) (a1 : FS fs ^ k) (c2 : FS fs) (a2 : FS fs ^ k) :
   (c1 = c2 :> R) -> (forall i, a1 i = a2 i :> R) ->
   ytildes c1 a1 = ytildes c2 a2 :> R.
 Proof.
@@ -164,7 +164,7 @@ Qed.
 
 (* begin hide *)
 Lemma lemma_2_2_aux1 k (H2k : 2 * (INR k.+1) * eps fs < 1)
-      (a : F fs ^ k) (c : F fs) (Hst : 0 <= stilde c a a) :
+      (a : FS fs ^ k) (c : FS fs) (Hst : 0 <= stilde c a a) :
   exists (t : b_gamma fs k) (d : b_eps fs)
          (t' : b_gamma fs k.+1) (e : b_eta fs),
   ((ytildes c a) ^ 2 * (1 + t) / (1 + d) ^ 2
@@ -180,7 +180,7 @@ by rewrite /= Rmult_1_r sqrt_def; [rewrite Htt'e|].
 Qed.
 
 Lemma lemma_2_2_aux2 k (H2k : 2 * (INR k.+2) * eps fs < 1)
-      (a : F fs ^ k) (c : F fs) (Hst : 0 <= stilde c a a) :
+      (a : FS fs ^ k) (c : FS fs) (Hst : 0 <= stilde c a a) :
   exists (t : b_gamma fs k.+2) (t' : b_gamma fs k.+1) (e : b_eta fs),
   ((ytildes c a) ^ 2
    = t * (ytildes c a) ^ 2
@@ -203,7 +203,7 @@ Qed.
 
 (* end hide *)
 Lemma lemma_2_2_1 k (H2k : 2 * (INR k.+2) * eps fs < 1)
-      (a : F fs ^ k) (c : F fs) (Hst : 0 <= stilde c a a) :
+      (a : FS fs ^ k) (c : FS fs) (Hst : 0 <= stilde c a a) :
   (Rabs (c - \sum_i (a i * a i)%Re - ytildes c a ^ 2)
    < gamma fs k.+2 * ((\sum_i (a i * a i)%Re) + ytildes c a ^ 2)
      + 2 * eta fs * (INR k.+1)).
@@ -233,7 +233,7 @@ rewrite S_INR; fs_lra fs.
 Qed.
 
 Lemma lemma_2_2_2 k (H2k : 2 * (INR k.+2) * eps fs < 1)
-      (a : F fs ^ k) (c : F fs) (Hst : 0 <= stilde c a a) :
+      (a : FS fs ^ k) (c : FS fs) (Hst : 0 <= stilde c a a) :
   (ytildes c a ^ 2 + \sum_i (a i * a i)%Re
    <= / (1 - gamma fs k.+2) * (c + 2 * eta fs * INR k))%Re.
 Proof.
@@ -265,21 +265,21 @@ End Error_lemmas.
 Section Cholesky_def.
 
 (** It is sometime needed to explicitly cast the matrices to R. *)
-Definition MF2R n m (M : 'M[F fs]_(n, m)) : 'M[R]_(n, m) :=
-  map_mx (@F_val (format fs)) M.
+Definition MF2R n m (M : 'M[FS fs]_(n, m)) : 'M[R]_(n, m) :=
+  map_mx (@FS_val (format fs)) M.
 
 Variable n : nat.
 
 Hypothesis H2n : 2 * INR n.+2 * eps fs < 1.
 
 (** The matrix we want to prove positive definite. *)
-Variable A : 'M[F fs]_n.+1.
+Variable A : 'M[FS fs]_n.+1.
 
 (** Must be symmetric. *)
 Hypothesis SymA : MF2R A^T = MF2R A.
 
 (** [Rt] is meant to be the (floating point computed) Cholesky factor of [A]. *)
-Variable Rt : 'M[F fs]_n.+1.
+Variable Rt : 'M[FS fs]_n.+1.
 
 (** [cholesky_spec] means that, in case floating point Cholesky
     decomposition runs to completion, [Rt] is the floating point Cholesky factor
@@ -342,7 +342,7 @@ Lemma delta_sym (i j : 'I_n.+1) : delta i j = delta j i.
 Proof.
 rewrite !mxE /GRing.add /GRing.opp /=.
 apply f_equal2; [|apply f_equal].
-{ by replace (F_val _) with (MF2R A i j); [rewrite -SymA|]; rewrite !mxE. }
+{ by replace (FS_val _) with (MF2R A i j); [rewrite -SymA|]; rewrite !mxE. }
 by apply /eq_bigr => k; rewrite /GRing.mul /= Rmult_comm !mxE.
 Qed.
 
@@ -467,7 +467,7 @@ have Hbk : (bk <> 0 :> R)%Re.
 replace (_ - _ : R) with (c - (\sum_k (a k * b k)%Re)
                           - bk * ytilded c a b bk)%Re;
   [|by rewrite /GRing.add /GRing.opp /c /=;
-    change (Ff (format fs)) with (F fs); ring].
+    change (FS_of (format fs)) with (FS fs); ring].
 apply (Rlt_le_trans _ _ _
                     (lemma_2_1 (bg_2_le (ltn_ord i) (bg_2S H2n)) a b c Hbk)).
 rewrite /bk -Hrtij.
@@ -499,7 +499,7 @@ have Hst : (0 <= stilde c a a)%Re.
 { apply Rlt_le, fsqrt_spec2; rewrite -Hrtij; apply HAR. }
 replace (_ - _ : R) with (c - (\sum_k (a k * a k)%Re) - ytildes c a ^ 2)%Re;
   [|by rewrite /GRing.add /GRing.opp /c /=;
-    change (Ff (format fs)) with (F fs); ring_simplify].
+    change (FS_of (format fs)) with (FS fs); ring_simplify].
 apply (Rlt_le_trans _ _ _ (lemma_2_2_1 H2i Hst)).
 apply Rplus_le_compat.
 { rewrite alpha_gamma //; apply Rmult_le_compat_l; [by apply gamma_pos, bg_2|].
@@ -591,7 +591,7 @@ Variable n : nat.
 
 Hypothesis H2n : 2 * INR n.+2 * eps fs < 1.
 
-Variable A : 'M[F fs]_n.+1.
+Variable A : 'M[FS fs]_n.+1.
 
 Hypothesis SymA : MF2R A^T = MF2R A.
 
@@ -612,9 +612,9 @@ Hypothesis Hc :
   forall (x : 'cV[R]_n.+1),
   (||x||_2 = 1)%Re -> (Mabs x)^T *m Delta A maxdiag *m Mabs x <=m: c%:M.
 
-Variable At : 'M[F fs]_n.+1.
+Variable At : 'M[FS fs]_n.+1.
 
-Definition At' : 'M[F fs]_n.+1 :=
+Definition At' : 'M[FS fs]_n.+1 :=
   \matrix_(i, j) if (i <= j)%N then At i j else At j i.
 
 Lemma SymAt' : At'^T = At'.
@@ -675,7 +675,7 @@ Lemma Delta_At'_le_Delta_A : Delta At' maxdiag <=m: Delta A maxdiag.
 Proof.
 move=> i j; rewrite !mxE; apply Rplus_le_compat_r.
 set (alpha := fun i j => gamma fs (min i j).+2).
-set (d := fun (A : 'M[F fs]_n.+1) (j : 'I_n.+1) =>
+set (d := fun (A : 'M[FS fs]_n.+1) (j : 'I_n.+1) =>
             sqrt (/ (1 - alpha j j) * (A j j + 2 * INR j * eta fs))%Re).
 have HAtA : forall k : 'I_n.+1, (d At k <= d A k)%Re.
 { move=> k; apply sqrt_le_1_alt, Rmult_le_compat_l.
@@ -688,7 +688,7 @@ rewrite /GRing.mul /= !(Rmult_assoc (gamma _ _)); apply Rmult_le_compat_l.
 apply Rmult_le_compat; try apply sqrt_pos; rewrite leqnn; apply HAtA.
 Qed.
 
-Lemma cholesky_success_At_At' (Rt : 'M[F fs]_n.+1) :
+Lemma cholesky_success_At_At' (Rt : 'M[FS fs]_n.+1) :
   cholesky_success At Rt -> cholesky_success At' Rt.
 Proof.
 rewrite /cholesky_success => HsAt.
@@ -698,7 +698,7 @@ move=> j; rewrite /At' !mxE (leqnn j); apply HsAt1.
 Qed.
 
 (** Corollary 2.4. *)
-Lemma corollary_2_4 (Rt : 'M[F fs]_n.+1) :
+Lemma corollary_2_4 (Rt : 'M[FS fs]_n.+1) :
   cholesky_success At Rt -> posdef (MF2R A).
 Proof.
 move=> HAtRt; apply posdef_norm_eq_1 => x Hx.
@@ -721,7 +721,7 @@ apply Mle_trans with (c%:M + x^T *m (MF2R A - c *: 1) *m x).
   { rewrite (proj1 HAt _ _ Hij) eqE /= (ltn_eqF Hij).
     by rewrite GRing.mulr0 GRing.subr0; right. }
   { rewrite (proj1 HAt _ _ Hji).
-    replace (F_val (A j i)) with ((MF2R A) j i); [|by rewrite mxE].
+    replace (FS_val (A j i)) with ((MF2R A) j i); [|by rewrite mxE].
     rewrite -{1}SymA !mxE eqE /= eq_sym (ltn_eqF Hji).
     by rewrite GRing.mulr0 GRing.subr0; right. }
   have H : i = j; [by apply ord_inj, anti_leq; apply /andP|]; rewrite H.
@@ -739,7 +739,7 @@ End Corollary_2_4.
 (** *** Corollary 2.7 : interval matrices. *)
 Section Corollary_2_7.
 
-Variable Rad : 'M[F fs]_n.+1.
+Variable Rad : 'M[FS fs]_n.+1.
 
 Hypothesis PRad : 0 <=m: MF2R Rad.
 
@@ -772,7 +772,7 @@ rewrite -Mle_scalar; move: (Hr vconst_norm1); apply Mle_trans.
 Qed.
 
 (** Corollary 2.7. *)
-Lemma corollary_2_7 (Rt : 'M[F fs]_n.+1) : cholesky_success At Rt ->
+Lemma corollary_2_7 (Rt : 'M[FS fs]_n.+1) : cholesky_success At Rt ->
   forall Xt : 'M[R]_n.+1, Mabs (Xt - MF2R A) <=m: MF2R Rad -> posdef Xt.
 Proof.
 move=> HAtRt Xt HXtAR; apply posdef_norm_eq_1 => x Hx.
@@ -811,7 +811,7 @@ apply Mle_trans with (c%:M + r%:M + x^T *m (MF2R A - (c + r) *: 1) *m x
   { rewrite (proj1 HAt _ _ Hij) eqE /= (ltn_eqF Hij).
     by rewrite GRing.mulr0 GRing.subr0; right. }
   { rewrite (proj1 HAt _ _ Hji).
-    replace (F_val (A j i)) with ((MF2R A) j i); [|by rewrite mxE].
+    replace (FS_val (A j i)) with ((MF2R A) j i); [|by rewrite mxE].
     rewrite -{1}SymA !mxE eqE /= eq_sym (ltn_eqF Hji).
     by rewrite GRing.mulr0 GRing.subr0; right. }
   have H : i = j; [by apply ord_inj, anti_leq; apply /andP|]; rewrite H.
@@ -841,7 +841,7 @@ Variable H4n : 4 * INR n.+2 * eps fs < 1.
 Lemma H2n : 2 * INR n.+2 * eps fs < 1.
 Proof. move: H4n (neps_pos fs n.+2); rewrite !Rmult_assoc; lra. Qed.
 
-Variable A : 'M[F fs]_n.+1.
+Variable A : 'M[FS fs]_n.+1.
 
 Hypothesis Pdiag : forall i : 'I_n.+1, (0 <= A i i)%Re.
 
@@ -851,7 +851,7 @@ Hypothesis Hmaxdiag : forall i : 'I_n.+1, A i i <= maxdiag.
 
 Let alpha i j := gamma fs (min i j).+2.
 
-Let d (A : 'M[F fs]_n.+1) (j : 'I_n.+1) :=
+Let d (A : 'M[FS fs]_n.+1) (j : 'I_n.+1) :=
   sqrt (/ (1 - alpha j j) * (A j j + 2 * INR j * eta fs))%Re.
 
 Let dv : 'cV_n.+1 := \col_i (d A i).
@@ -974,7 +974,7 @@ Qed.
 End C_upper_bound.
 
 (** *** A (very rough but easy to compute) upper bound on the constant r. *)
-Lemma r_upper_bound n (Rad : 'M[F fs]_n.+1) (PRad : 0 <=m: MF2R Rad)
+Lemma r_upper_bound n (Rad : 'M[FS fs]_n.+1) (PRad : 0 <=m: MF2R Rad)
       r (Hr : forall i j, Rad i j <= r) (x : 'cV_n.+1) : (||x||_2 = 1)%Re ->
   (Mabs x)^T *m MF2R Rad *m (Mabs x) <=m: ((INR n.+1 * r)%Re)%:M.
 Proof.
@@ -1000,17 +1000,17 @@ by do 2 f_equal; rewrite -matrixP => i j; rewrite !mxE GRing.mulr1.
 Qed.
 
 Lemma corollary_2_4_with_c_upper_bound n (H4n : 4 * INR n.+2 * eps fs < 1) :
-  forall A : 'M[F fs]_n.+1, MF2R A^T = MF2R A ->
+  forall A : 'M[FS fs]_n.+1, MF2R A^T = MF2R A ->
   (forall i : 'I_n.+1, 0 <= A i i) ->
   forall maxdiag : R, (forall i : 'I_n.+1, A i i <= maxdiag) ->
   forall c : R,
   (/2 * gamma fs (2 * n.+2) * (\tr (MF2R A))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
-  forall At : 'M[F fs]_n.+1,
+  forall At : 'M[FS fs]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, At i i <= A i i - c)) ->
-  forall Rt : 'M[F fs]_n.+1, cholesky_success At Rt ->
+  forall Rt : 'M[FS fs]_n.+1, cholesky_success At Rt ->
   posdef (MF2R A).
 Proof.
 move=> A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt Rt HARt.
@@ -1023,7 +1023,7 @@ apply (corollary_2_4 (H2n H4n) SymA Pdiag Hmaxdiag Hc' HAt HARt).
 Qed.
 
 Lemma corollary_2_7_with_c_r_upper_bounds n (H4n : 4 * INR n.+2 * eps fs < 1) :
-  forall A : 'M[F fs]_n.+1, MF2R A^T = MF2R A ->
+  forall A : 'M[FS fs]_n.+1, MF2R A^T = MF2R A ->
   (forall i : 'I_n.+1, 0 <= A i i) ->
   forall Rad : 'M_n.+1, 0 <=m: MF2R Rad ->
   forall maxdiag : R, (forall i : 'I_n.+1, A i i <= maxdiag) ->
@@ -1032,10 +1032,10 @@ Lemma corollary_2_7_with_c_r_upper_bounds n (H4n : 4 * INR n.+2 * eps fs < 1) :
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
   forall r : R, (forall (i j : 'I_n.+1), (Rad i j <= r)%Re) ->
-  forall At : 'M[F fs]_n.+1,
+  forall At : 'M[FS fs]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, (At i i <= A i i - c - INR n.+1 * r)%Re)) ->
-  forall Rt : 'M[F fs]_n.+1, cholesky_success At Rt ->
+  forall Rt : 'M[FS fs]_n.+1, cholesky_success At Rt ->
   forall Xt : 'M_n.+1, Mabs (Xt - MF2R A) <=m: MF2R Rad -> posdef Xt.
 Proof.
 move=> A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At HAt

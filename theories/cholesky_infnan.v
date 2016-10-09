@@ -32,22 +32,22 @@ Section Cholesky_def_infnan.
 
 Variable n : nat.
 
-Variable A : 'M[FI fs]_n.+1.
+Variable A : 'M[FIS fs]_n.+1.
 
 (** [Rt] is meant to be the (floating point computed) Cholesky factor of [A]. *)
-Variable Rt : 'M[FI fs]_n.+1.
+Variable Rt : 'M[FIS fs]_n.+1.
 
-Fixpoint stilde_infnan (k : nat) (c : FI fs) {struct k} :=
+Fixpoint stilde_infnan (k : nat) (c : FIS fs) {struct k} :=
   match k with
     | 0%N => fun _ _ => c
-    | k'.+1 => fun (a b : FI fs ^ (k'.+1)) =>
+    | k'.+1 => fun (a b : FIS fs ^ (k'.+1)) =>
                  @stilde_infnan k' (fiminus c (fimult (a ord0) (b ord0)))
                                 [ffun i => a (lift ord0 i)]
                                 [ffun i => b (lift ord0 i)]
   end.
 
 Lemma stilde_infnan_eq k
-      (c1 : FI fs) (a1 b1 : FI fs ^ k) (c2 : FI fs) (a2 b2 : FI fs ^ k) :
+      (c1 : FIS fs) (a1 b1 : FIS fs ^ k) (c2 : FIS fs) (a2 b2 : FIS fs ^ k) :
   (c1 = c2) ->
   (forall i, a1 i = a2 i) -> (forall i, b1 i = b2 i) ->
   stilde_infnan c1 a1 b1 = stilde_infnan c2 a2 b2.
@@ -56,10 +56,10 @@ elim: k c1 a1 b1 c2 a2 b2 => [//|k IHk] c1 a1 b1 c2 a2 b2 Hc Ha Hb.
 by apply IHk; [by rewrite Hc Ha Hb| |]; move=> i; rewrite !ffunE.
 Qed.
 
-Definition ytilded_infnan k (c : FI fs) (a b : FI fs ^ k) (bk : FI fs) :=
+Definition ytilded_infnan k (c : FIS fs) (a b : FIS fs ^ k) (bk : FIS fs) :=
   fidiv (stilde_infnan c a b) bk.
 
-Definition ytildes_infnan k (c : FI fs) (a : FI fs ^ k) :=
+Definition ytildes_infnan k (c : FIS fs) (a : FIS fs ^ k) :=
   fisqrt (stilde_infnan c a a).
 
 (** Version of [cholesky_spec] not ignoring overflows. *)
@@ -77,7 +77,7 @@ Definition cholesky_spec_infnan : Prop :=
 (** [cholesky_success] means [cholesky_spec] and floating point Cholesky
     decomposition runs to completion. *)
 Definition cholesky_success_infnan : Prop :=
-  cholesky_spec_infnan /\ forall i, (0 < FI2F (Rt i i))%Re.
+  cholesky_spec_infnan /\ forall i, (0 < FIS2FS (Rt i i))%Re.
 
 Lemma stilde_infnan_fc k c a b : finite (@stilde_infnan k c a b) -> finite c.
 Proof.
@@ -111,18 +111,18 @@ Lemma cholesky_success_infnan_f1 : cholesky_success_infnan ->
   forall (i j : 'I_n.+1), (i <= j)%N -> finite (A i j).
 Proof.
 move=> [H0 H1] i j Hij.
-have HRtj := FI2F_spec (Rgt_not_eq _ _ (Rlt_gt _ _ (H1 j))).
+have HRtj := FIS2FS_spec (Rgt_not_eq _ _ (Rlt_gt _ _ (H1 j))).
 rewrite (proj2 H0) in HRtj; case (ltnP i j) => Hij'.
 { move: (ytildes_infnan_fa HRtj (Ordinal Hij')); rewrite ffunE inord_val.
   rewrite (proj1 H0) // /ytilded_infnan => H.
-  apply (ytilded_infnan_fc H), FI2F_spec, Rgt_not_eq, Rlt_gt, H1. }
+  apply (ytilded_infnan_fc H), FIS2FS_spec, Rgt_not_eq, Rlt_gt, H1. }
 have -> : i = j; [by apply ord_inj, anti_leq; rewrite Hij|].
 apply (ytildes_infnan_fc HRtj).
 Qed.
 
 Lemma stilde_infnan_eq_stilde k c a b : finite (@stilde_infnan k c a b) ->
-  (FI2F (stilde_infnan c a b)
-   = stilde (FI2F c) [ffun k => FI2F (a k)] [ffun k => FI2F (b k)] :> R).
+  (FIS2FS (stilde_infnan c a b)
+   = stilde (FIS2FS c) [ffun k => FIS2FS (a k)] [ffun k => FIS2FS (b k)] :> R).
 Proof.
 elim: k c a b => [//|k IHk] c a b.
 rewrite /stilde_infnan /= -/stilde_infnan => H.
@@ -134,29 +134,29 @@ by rewrite (fimult_spec (fiminus_spec_fr HH)).
 Qed.
 
 Lemma ytilded_infnan_eq_ytilded k c a b bk :
-  finite (@ytilded_infnan k c a b bk) -> (FI2F bk <> 0 :> R) ->
-  (FI2F (ytilded_infnan c a b bk)
-   = ytilded (FI2F c) [ffun k => FI2F (a k)] [ffun k => FI2F (b k)]
-             (FI2F bk) :> R).
+  finite (@ytilded_infnan k c a b bk) -> (FIS2FS bk <> 0 :> R) ->
+  (FIS2FS (ytilded_infnan c a b bk)
+   = ytilded (FIS2FS c) [ffun k => FIS2FS (a k)] [ffun k => FIS2FS (b k)]
+             (FIS2FS bk) :> R).
 Proof.
-move=> H Hbk. have Fbk := FI2F_spec Hbk.
+move=> H Hbk. have Fbk := FIS2FS_spec Hbk.
 rewrite fidiv_spec // /fdiv stilde_infnan_eq_stilde //.
-by apply (fidiv_spec_fl H), FI2F_spec.
+by apply (fidiv_spec_fl H), FIS2FS_spec.
 Qed.
 
 Lemma ytildes_infnan_eq_ytildes k c a : finite (@ytildes_infnan k c a) ->
-  (FI2F (ytildes_infnan c a)
-   = ytildes (FI2F c) [ffun k => FI2F (a k)] :> R).
+  (FIS2FS (ytildes_infnan c a)
+   = ytildes (FIS2FS c) [ffun k => FIS2FS (a k)] :> R).
 Proof.
 move=> H.
 rewrite fisqrt_spec // /fsqrt stilde_infnan_eq_stilde //.
 apply (fisqrt_spec_f1 H).
 Qed.
 
-Definition MFI2F := map_mx (@FI2F fs).
+Definition MFI2F := map_mx (@FIS2FS fs).
 
 Lemma cholesky_spec_infnan_cholesky_spec :
-  (forall j, FI2F (Rt j j) <> 0 :> R) ->
+  (forall j, FIS2FS (Rt j j) <> 0 :> R) ->
   cholesky_spec_infnan -> cholesky_spec (MFI2F A) (MFI2F Rt).
 Proof.
 move=> Hjj H; destruct H as (H, H'); split.
@@ -164,11 +164,11 @@ move=> Hjj H; destruct H as (H, H'); split.
   rewrite mxE H // ytilded_infnan_eq_ytilded //.
   { by apply /ytilded_eq => [|i'|i'|]; try rewrite !ffunE; rewrite !mxE. }
   move: (Hjj j); rewrite H' => H2.
-  move: (ytildes_infnan_fa (FI2F_spec H2) (Ordinal Hij)).
+  move: (ytildes_infnan_fa (FIS2FS_spec H2) (Ordinal Hij)).
   rewrite -H // ffunE => H3.
   have H4 : i = inord (Ordinal Hij); [by rewrite inord_val|by rewrite H4]. }
 move=> j.
-rewrite mxE H' ytildes_infnan_eq_ytildes; [|by rewrite -H'; apply FI2F_spec].
+rewrite mxE H' ytildes_infnan_eq_ytildes; [|by rewrite -H'; apply FIS2FS_spec].
 by apply /ytildes_eq => [|i]; [|rewrite !ffunE]; rewrite mxE.
 Qed.
 
@@ -190,17 +190,17 @@ End Cholesky_def_infnan.
     [posdef (MF2R (MFI2F A))] means that [A] is positive definite. *)
 Lemma corollary_2_4_with_c_upper_bound_infnan :
   forall n, 4 * INR n.+2 * eps fs < 1 ->
-  forall A : 'M[FI fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
+  forall A : 'M[FIS fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
   (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->
   forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->
   forall c : R,
   (/2 * gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
-  forall At : 'M[FI fs]_n.+1,
+  forall At : 'M[FIS fs]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, (MFI2F At) i i <= (MFI2F A) i i - c)) ->
-  forall Rt : 'M[FI fs]_n.+1, cholesky_success_infnan At Rt ->
+  forall Rt : 'M[FIS fs]_n.+1, cholesky_success_infnan At Rt ->
   posdef (MF2R (MFI2F A)).
 Proof.
 move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt Rt HARt.
@@ -213,20 +213,20 @@ Qed.
 (* TODO: MF2R should be a coercion *)
 Lemma corollary_2_7_with_c_r_upper_bounds_infnan :
   forall n, 4 * INR n.+2 * eps fs < 1 ->
-  forall A : 'M[FI fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
+  forall A : 'M[FIS fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
   (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->
-  forall Rad : 'M[FI fs]_n.+1, 0 <=m: MF2R (MFI2F Rad) ->
+  forall Rad : 'M[FIS fs]_n.+1, 0 <=m: MF2R (MFI2F Rad) ->
   forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->
   forall c : R,
   (/2 * gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
   forall r : R, (forall (i j : 'I_n.+1), ((MFI2F Rad) i j <= r)%Re) ->
-  forall At : 'M[FI fs]_n.+1,
+  forall At : 'M[FIS fs]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
    (forall i : 'I_n.+1, ((MFI2F At) i i <= (MFI2F A) i i
                                            - c - INR n.+1 * r)%Re)) ->
-  forall Rt : 'M[FI fs]_n.+1, cholesky_success_infnan At Rt ->
+  forall Rt : 'M[FIS fs]_n.+1, cholesky_success_infnan At Rt ->
   forall Xt : 'M_n.+1,
   Mabs (Xt - MF2R (MFI2F A)) <=m: MF2R (MFI2F Rad) -> posdef Xt.
 Proof.

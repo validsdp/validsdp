@@ -30,11 +30,11 @@ Section Fcmdotprod.
 Variable fs : Float_spec.
 
 (** Sum [c - \sum a_i b_i] computed in float from left to right. *)
-Definition fcmdotprod_l2r n (c : F fs) (a b : F fs ^ n) : F fs :=
+Definition fcmdotprod_l2r n (c : FS fs) (a b : FS fs ^ n) : FS fs :=
   fsum_l2r_rec c [ffun i => fopp (fmult (a i) (b i))].
 
 Lemma fcmdotprod_l2r_eq n
-      (c1 : F fs) (a1 b1 : F fs ^ n) (c2 : F fs) (a2 b2 : F fs ^ n) :
+      (c1 : FS fs) (a1 b1 : FS fs ^ n) (c2 : FS fs) (a2 b2 : FS fs ^ n) :
   (c1 = c2 :> R) ->
   (forall i, a1 i = a2 i :> R) -> (forall i, b1 i = b2 i :> R) ->
   fcmdotprod_l2r c1 a1 b1 = fcmdotprod_l2r c2 a2 b2 :> R.
@@ -44,7 +44,7 @@ by apply fsum_l2r_rec_eq => [//|i]; rewrite !ffunE /fmult Ha Hb.
 Qed.
 
 Lemma fcmdotprod_l2r_err_gamma n (Hn : 2 * (INR n.+1) * eps fs < 1)
-      (c : F fs) (a b : F fs ^ n) :
+      (c : FS fs) (a b : FS fs ^ n) :
   exists t : b_gamma fs n,
   exists ta : (b_gamma fs n.+1 * (b_gamma fs n * b_eta fs)) ^ n,
   (fcmdotprod_l2r c a b
@@ -72,7 +72,7 @@ by rewrite Ht'; ring.
 Qed.
 
 Lemma fcmdotprod_l2r_err'_gamma n (Hn : 2 * (INR n.+1) * eps fs < 1)
-      (c : F fs) (a b : F fs ^ n) :
+      (c : FS fs) (a b : FS fs ^ n) :
   exists t : b_gamma fs n,
   exists ta : (b_gamma fs n.+1 * (b_gamma fs n * b_eta fs)) ^ n,
   (fcmdotprod_l2r c a b * (1 + t)
@@ -100,7 +100,7 @@ by rewrite Ht'; ring.
 Qed.
 
 Lemma fcmdotprod_l2r_err n (Hn : 2 * (INR n.+1) * eps fs < 1)
-      (c : F fs) (a b : F fs ^ n) :
+      (c : FS fs) (a b : FS fs ^ n) :
   exists (t : b_gamma fs n.+1) (e : b_eta fs),
   (fcmdotprod_l2r c a b
    = c - \sum_i (a i * b i)%Re + t * (Rabs c + \sum_i Rabs (a i * b i))
@@ -133,7 +133,7 @@ by rewrite -big_Rabs_ffunE -He Hea; apply eq_bigr => i; rewrite ffunE.
 Qed.
 
 Lemma fcmdotprod_l2r_err' n (Hn : 2 * (INR n.+1) * eps fs < 1)
-      (c : F fs) (a b : F fs ^ n) :
+      (c : FS fs) (a b : FS fs ^ n) :
   exists (t : b_gamma fs n) (t' : b_gamma fs n.+1) (e : b_eta fs),
   (fcmdotprod_l2r c a b * (1 + t)
    = c - \sum_i (a i * b i)%Re + t' * (\sum_i Rabs (a i * b i))
@@ -161,7 +161,7 @@ by rewrite -big_Rabs_ffunE -He Hea; apply eq_bigr => i; rewrite ffunE.
 Qed.
 
 Lemma fcmdotprod_l2r_err_abs n (Hn : 2 * (INR n.+1) * eps fs < 1)
-      (c : F fs) (a b : F fs ^ n) :
+      (c : FS fs) (a b : FS fs ^ n) :
   (Rabs (fcmdotprod_l2r c a b - (c - \sum_i (a i * b i)%Re))
    <= gamma fs n.+1 * (Rabs c + \sum_i Rabs (a i * b i))
       + 2 * INR n * eta fs)%Re.

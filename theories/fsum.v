@@ -39,7 +39,7 @@ Section Fsum.
 Variable fs : Float_spec.
 
 (** Sum [c + \sum a_i] computed in float from left to right. *)
-Fixpoint fsum_l2r_rec n (c : F fs) : F fs ^ n -> F fs :=
+Fixpoint fsum_l2r_rec n (c : FS fs) : FS fs ^ n -> FS fs :=
   match n with
     | 0%N => fun _ => c
     | n'.+1 =>
@@ -47,15 +47,15 @@ Fixpoint fsum_l2r_rec n (c : F fs) : F fs ^ n -> F fs :=
   end.
 
 (** Sum [\sum a_i] computed in float from left to right. *)
-Definition fsum_l2r n : F fs ^ n -> F fs :=
+Definition fsum_l2r n : FS fs ^ n -> FS fs :=
   match n with
     | 0%N => fun _ => F0 fs
     | n'.+1 =>
       fun a => fsum_l2r_rec (a ord0) [ffun i => a (lift ord0 i)]
   end.
 
-Lemma fsum_l2r_rec_eq n (c1 : F fs) (a1 : F fs ^ n)
-      (c2 : F fs) (a2 : F fs ^ n) :
+Lemma fsum_l2r_rec_eq n (c1 : FS fs) (a1 : FS fs ^ n)
+      (c2 : FS fs) (a2 : FS fs ^ n) :
   (c1 = c2 :> R) -> (forall i, a1 i = a2 i :> R) ->
   fsum_l2r_rec c1 a1 = fsum_l2r_rec c2 a2 :> R.
 Proof.
@@ -63,14 +63,14 @@ elim: n c1 a1 c2 a2 => [//|n IHn] c1 a1 c2 a2 Hc Ha.
 by apply IHn; [rewrite /fplus Hc Ha|move=> i; rewrite !ffunE].
 Qed.
 
-Lemma fsum_l2r_eq n (a1 : F fs ^ n) (a2 : F fs ^ n) :
+Lemma fsum_l2r_eq n (a1 : FS fs ^ n) (a2 : FS fs ^ n) :
   (forall i, a1 i = a2 i :> R) -> fsum_l2r a1 = fsum_l2r a2 :> R.
 Proof.
 case: n a1 a2 => [//|n] a1 a2 Ha.
 by apply fsum_l2r_rec_eq; [|move=> i; rewrite !ffunE].
 Qed.
 
-Lemma fsum_l2r_rec_r n (c : F fs) (a : F fs ^ n.+1) :
+Lemma fsum_l2r_rec_r n (c : FS fs) (a : FS fs ^ n.+1) :
   fsum_l2r_rec c a
   = fplus (fsum_l2r_rec c [ffun i : 'I_n => a (inord i)]) (a (inord n)) :> R.
 Proof.
@@ -89,7 +89,7 @@ rewrite /fplus; do 2 apply f_equal; apply f_equal2.
 do 2 apply f_equal; apply ord_inj; rewrite lift0 inordK // inordK //.
 Qed.
 
-Lemma fsum_l2r_r n (a : F fs ^ n.+2) :
+Lemma fsum_l2r_r n (a : FS fs ^ n.+2) :
   fsum_l2r a
   = fplus (fsum_l2r [ffun i : 'I_n.+1 => a (inord i)]) (a (inord n.+1)) :> R.
 Proof.
@@ -104,7 +104,7 @@ rewrite ffunE; do 2 apply f_equal.
 apply ord_inj; rewrite lift0 inordK // inordK //.
 Qed.
 
-Lemma fsum_l2r_rec_err_phi n c (a : F fs ^ n) :
+Lemma fsum_l2r_rec_err_phi n c (a : FS fs ^ n) :
   exists d : b_eps fs ^ n,
     (fsum_l2r_rec c a
      = phi 0 n d * c + \sum_i (phi (nat_of_ord i) n d * a i)%Re :> R)%Re.
@@ -125,7 +125,7 @@ apply f_equal2; [|by rewrite /a' ffunE].
 by rewrite phi_lift0; apply /phi_eq => k; rewrite !ffunE liftK.
 Qed.
 
-Lemma fsum_l2r_rec_err'_phi n c (a : F fs ^ n) :
+Lemma fsum_l2r_rec_err'_phi n c (a : FS fs ^ n) :
   exists d : b_eps fs ^ n,
   (fsum_l2r_rec c a / phi 0 n d = c + \sum_i (a i / phi 0 i d)%Re :> R)%Re.
 Proof.
@@ -140,7 +140,7 @@ rewrite (Rmult_comm (phi i n d)) (@phi_split fs i 0 n); [|by apply ltnW].
 rewrite Rinv_mult_distr; [field; split| |]; apply Rgt_not_eq, phi_pos.
 Qed.
 
-Lemma fsum_l2r_rec_err_gamma n (Hn : 2 * INR n * eps fs < 1) c (a : F fs ^ n) :
+Lemma fsum_l2r_rec_err_gamma n (Hn : 2 * INR n * eps fs < 1) c (a : FS fs ^ n) :
   exists (t : b_gamma fs n) (ta : b_gamma fs n ^ n),
   (fsum_l2r_rec c a
    = (1 + t) * c + \sum_i ((1 + ta i) * a i)%Re :> R)%Re.
@@ -157,7 +157,7 @@ have [ta Hta] := big_exists R0 Rplus (b_gamma_0 (bg_2 Hn)) HFF'.
 by exists t, ta; rewrite Hd Ht Hta.
 Qed.
 
-Lemma fsum_l2r_rec_err'_gamma n (Hn : INR n * eps fs < 1) c (a : F fs ^ n) :
+Lemma fsum_l2r_rec_err'_gamma n (Hn : INR n * eps fs < 1) c (a : FS fs ^ n) :
   exists (t : b_gamma fs n) (ta : b_gamma fs n ^ n),
   (fsum_l2r_rec c a * (1 + t)
    = c + \sum_i ((1 + ta i) * a i)%Re :> R)%Re.
@@ -174,7 +174,7 @@ have [ta Hta] := big_exists R0 Rplus (b_gamma_0 Hn) HFF'.
 by exists t, ta; rewrite /Rdiv Ht in Hd; rewrite Hd Hta.
 Qed.
 
-Lemma fsum_l2r_rec_err n (Hn : 2 * INR n * eps fs < 1) c (a : F fs ^ n) :
+Lemma fsum_l2r_rec_err n (Hn : 2 * INR n * eps fs < 1) c (a : FS fs ^ n) :
   exists t : b_gamma fs n,
   (fsum_l2r_rec c a = (c + \sum_i (a i : R))
                       + t * (Rabs c + \sum_i (Rabs (a i))) :> R)%Re.
@@ -190,7 +190,7 @@ ring_simplify; rewrite Rplus_assoc -big_split /= Htta; apply f_equal2; [ring|].
 by apply /eq_bigr => i _; rewrite ffunE; ring_simplify; rewrite Rmult_comm.
 Qed.
 
-Lemma fsum_l2r_rec_err' n (Hn : INR n * eps fs < 1) c (a : F fs ^ n) :
+Lemma fsum_l2r_rec_err' n (Hn : INR n * eps fs < 1) c (a : FS fs ^ n) :
   exists (t : b_gamma fs n) (t' : b_gamma fs n),
   (fsum_l2r_rec c a * (1 + t) = (c + \sum_i (a i : R))
                                 + t' * (\sum_i (Rabs (a i))) :> R)%Re.
@@ -203,7 +203,7 @@ apply /Rplus_eq_compat_l /eq_bigr => i _.
 by rewrite ffunE; ring_simplify; rewrite Rmult_comm.
 Qed.
 
-Lemma fsum_l2r_err_gamma n (Hn : 2 * INR n.-1 * eps fs < 1) (a : F fs ^ n) :
+Lemma fsum_l2r_err_gamma n (Hn : 2 * INR n.-1 * eps fs < 1) (a : FS fs ^ n) :
   exists ta : b_gamma fs n.-1 ^ n,
   (fsum_l2r a = \sum_i ((1 + ta i) * a i)%Re :> R)%Re.
 Proof.
@@ -217,7 +217,7 @@ rewrite big_ord_recl Htt'; apply f_equal2; [by rewrite ffunE unlift_none|].
 by apply /eq_bigr => i _; rewrite /a' !ffunE liftK.
 Qed.
 
-Lemma fsum_l2r_err n (Hn : 2 * INR n.-1 * eps fs < 1) (a : F fs ^ n) :
+Lemma fsum_l2r_err n (Hn : 2 * INR n.-1 * eps fs < 1) (a : FS fs ^ n) :
   exists t : b_gamma fs n.-1,
   (fsum_l2r a = (\sum_i (a i : R)) + t * (\sum_i (Rabs (a i))) :> R)%Re.
 Proof.
@@ -228,7 +228,7 @@ rewrite -big_Rabs_ffunE -Ht -big_split /= Hta.
 by apply eq_bigr => i _; rewrite ffunE; ring_simplify; rewrite Rmult_comm.
 Qed.
 
-Lemma fsum_l2r_err_abs n (Hn : 2 * INR n.-1 * eps fs < 1) (a : F fs ^ n) :
+Lemma fsum_l2r_err_abs n (Hn : 2 * INR n.-1 * eps fs < 1) (a : FS fs ^ n) :
   (Rabs (fsum_l2r a - \sum_i (a i : R))
    <= gamma fs n.-1 * \sum_i (Rabs (a i)))%Re.
 Proof.

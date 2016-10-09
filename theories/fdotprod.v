@@ -30,17 +30,17 @@ Section Fdotprod.
 Variable fs : Float_spec.
 
 (** Sum [\sum a_i b_i] computed in float from left to right. *)
-Definition fdotprod_l2r n (a b : F fs ^ n) : F fs :=
+Definition fdotprod_l2r n (a b : FS fs ^ n) : FS fs :=
   fsum_l2r [ffun i => fmult (a i) (b i)].
 
-Lemma fdotprod_l2r_eq n (a1 b1 : F fs ^ n) (a2 b2 : F fs ^ n) :
+Lemma fdotprod_l2r_eq n (a1 b1 : FS fs ^ n) (a2 b2 : FS fs ^ n) :
   (forall i, a1 i = a2 i :> R) -> (forall i, b1 i = b2 i :> R) ->
   fdotprod_l2r a1 b1 = fdotprod_l2r a2 b2 :> R.
 Proof.
 by move=> Ha Hb; apply fsum_l2r_eq => i; rewrite !ffunE /fmult Ha Hb.
 Qed.
 
-Lemma fdotprod_l2r_r n (a b : F fs ^ n.+2) :
+Lemma fdotprod_l2r_r n (a b : FS fs ^ n.+2) :
   fdotprod_l2r a b
   = fplus (fdotprod_l2r [ffun i : 'I_n.+1 => a (inord i)]
                         [ffun i : 'I_n.+1 => b (inord i)])
@@ -52,7 +52,7 @@ rewrite /fplus; do 2 apply f_equal; apply f_equal2.
 by rewrite ffunE.
 Qed.
   
-Lemma fdotprod_l2r_err_gamma n (Hn : 2 * INR n * eps fs < 1) (a b : F fs ^ n) :
+Lemma fdotprod_l2r_err_gamma n (Hn : 2 * INR n * eps fs < 1) (a b : FS fs ^ n) :
   exists ta : (b_gamma fs n * b_eta fs) ^ n,
   (fdotprod_l2r a b
    = \sum_i (a i * b i + (ta i).1 * (a i * b i) + 2 * (ta i).2)%Re :> R)%Re.
@@ -78,7 +78,7 @@ rewrite /F /F' /amb ffunE Hde /=.
 by rewrite !Rmult_plus_distr_l (Rmult_comm _ e) He' -Rmult_assoc Ht'; ring.
 Qed.
 
-Lemma fdotprod_l2r_err n (Hn : 2 * INR n * eps fs < 1) (a b : F fs ^ n) :
+Lemma fdotprod_l2r_err n (Hn : 2 * INR n * eps fs < 1) (a b : FS fs ^ n) :
   exists t : b_gamma fs n, exists e : b_eta fs,
   (fdotprod_l2r a b
    = \sum_i (a i * b i)%Re + t * (\sum_i Rabs (a i * b i)%Re)
@@ -98,7 +98,7 @@ rewrite -big_Rabs_ffunE -He.
 by apply eq_bigr => i; rewrite !ffunE Rmult_comm.
 Qed.
 
-Lemma fdotprod_l2r_err_abs n (Hn : 2 * INR n * eps fs < 1) (a b : F fs ^ n) :
+Lemma fdotprod_l2r_err_abs n (Hn : 2 * INR n * eps fs < 1) (a b : FS fs ^ n) :
   Rabs (fdotprod_l2r a b - \sum_i (a i * b i)%Re)
   <= gamma fs n * (\sum_i Rabs (a i * b i)) + 2 * INR n * eta fs.
 Proof.

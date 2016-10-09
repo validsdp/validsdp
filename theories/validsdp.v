@@ -417,7 +417,7 @@ Context `{!trmx_of (mx polyT)}.
 Context `{!hmul_of (mx polyT)}.
 
 Context {fs : Float_round_up_infnan_spec}.
-Let F := float_infnan_spec.FI fs.
+Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion *)
 Context {T2F : T -> F}.  (* overapproximation *)
 
@@ -442,7 +442,7 @@ Program Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool
     let pmp' := poly_sub_op p p' in
     max_coeff pmp' in
   posdef_check_itv (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
-                   (@is_finite fs) Q (T2F r).
+                   (@float_infnan_spec.finite fs) Q (T2F r).
 
 (* Why Coq doesn't complain [!one_of T] is not in the context ? *)
 
@@ -500,7 +500,7 @@ Definition check_base_eff : polyT -> mx monom s.+1 1 -> bool :=
 Definition max_coeff_eff : polyT -> T := max_coeff.
 
 Context {fs : Float_round_up_infnan_spec}.
-Let F := float_infnan_spec.FI fs.
+Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion *)
 Context {T2F : T -> F}.  (* overapproximation *)
 
@@ -572,7 +572,7 @@ Definition check_base_ssr : polyT -> 'cV[monom]_s.+1 -> bool := check_base.
 Definition max_coeff_ssr : polyT -> T := max_coeff.
 
 Context {fs : Float_round_up_infnan_spec}.
-Let F := float_infnan_spec.FI fs.
+Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion for finite values *)
 Context {T2F : T -> F}.  (* overapproximation *)
 
@@ -591,8 +591,8 @@ Definition soscheck_ssr : polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
 Variable (T2R : T -> R).
 Hypothesis T2R_additive : additive T2R.
 Canonical T2R_additive_struct := Additive T2R_additive.
-Hypothesis T2F_correct : forall x, is_finite (T2F x) -> T2R x <= float_infnan_spec.FI2F (T2F x).
-Hypothesis T2R_F2T : forall x, T2R (F2T x) = float_infnan_spec.FI2F x.
+Hypothesis T2F_correct : forall x, finite (T2F x) -> T2R x <= FIS2FS (T2F x).
+Hypothesis T2R_F2T : forall x, T2R (F2T x) = FIS2FS x.
 (* Note/Érik: we could replace [max_op] by [max], assuming [leq_of] *)
 Hypothesis max_l : forall x y : T, T2R x <= T2R (max_op x y).
 Hypothesis max_r : forall x y, T2R y <= T2R (max_op x y).
@@ -865,8 +865,8 @@ Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z the
 Proof. by rewrite -[RHS](BigZ.spec_of_Z); case: n. Qed.
 
 Lemma rat2FI_correct r :
-  @is_finite fs (rat2FI r) ->
-  rat2R r <= F_val (@float_infnan_spec.FI2F fs (rat2FI r)).
+  @finite fs (rat2FI r) ->
+  rat2R r <= FS_val (@FIS2FS fs (rat2FI r)).
 Proof.
 move => Hr; have := real_FtoX_toR Hr.
 rewrite /rat2FI /bigQ2F /bigQ2FI /=.
@@ -899,7 +899,7 @@ Lemma Q2R_0 : Q2R 0%Qrat = 0%Re.
 Proof. by rewrite /Q2R /= /Rdiv Rmult_0_l. Qed.
 
 Lemma rat2R_FI2rat :
- forall x0 : float_infnan_spec.FI fs, rat2R (FI2rat x0) = F_val (FI2F x0).
+ forall x0 : FIS fs, rat2R (FI2rat x0) = FS_val (FI2FS x0).
 Proof.
 move=> x; rewrite -bigQ2R_rat /bigQ2R.
 case: x => -[|m e] H /=.
@@ -1095,7 +1095,7 @@ refines_apply1.
 Qed.
 
 Context {fs : Float_round_up_infnan_spec}.
-Let F := float_infnan_spec.FI fs.
+Let F := FIS fs.
 Context {F2A : F -> A}.  (* exact conversion for finite values *)
 Context {A2F : A -> F}.  (* overapproximation *)
 Context {F2C : F -> C}.  (* exact conversion for finite values *)
@@ -1341,7 +1341,7 @@ set za := (map (fun x => [:: x]) zQ.1) in Hsos *.
 set Qa := map (map F2FI) zQ.2 in Hsos *.
 pose s := (size zQ.1).-1.
 pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s.+1 1 za.
-pose Qb := @spec_seqmx _ (float_infnan_spec.FI0 fs) _ (id) s.+1 s.+1 Qa.
+pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s.+1 s.+1 Qa.
 rewrite interp_correct; last by rewrite ?lt0n.
 apply soscheck_correct with
   (1 := GRing.RMorphism.base (ratr_is_rmorphism _))

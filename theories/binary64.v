@@ -41,7 +41,7 @@ Definition radix2 := Build_radix 2 (refl_equal true).
 
 Definition format x := generic_format radix2 fexp x.
 
-Let F := Ff format.
+Let F := FS_of format.
 
 Lemma format0 : format 0.
 Proof.
@@ -98,7 +98,7 @@ Variable choice : Z -> bool.
 
 (** All we need is rounding to nearest. *)
 Definition frnd (x : R) : F :=
-  Build_Ff (generic_format_round radix2 fexp (Znearest choice) x).
+  Build_FS_of (generic_format_round radix2 fexp (Znearest choice) x).
 
 Lemma frnd_spec (x : R) :
   exists (d : b_eps) (e : b_eta),
@@ -148,7 +148,7 @@ unfold fxy; unfold frnd ; simpl.
 { now apply error_le_half_ulp, FLT_exp_valid. }
 assert (Hxy'' : format (fxy - xy)).
 { now apply plus_error;
-  [apply FLT_exp_valid|apply FLT_exp_monotone|apply F_prop|apply F_prop]. }
+  [apply FLT_exp_valid|apply FLT_exp_monotone|apply FS_prop|apply FS_prop]. }
 destruct (Req_dec xy 0) as [Zxy|Nzxy].
 { now unfold fxy, fplus, frnd; simpl; fold xy; rewrite Zxy, round_0;
   [|apply valid_rnd_N]. }
@@ -190,7 +190,7 @@ Proof.
 intros Hy.
 unfold frnd; simpl.
 rewrite <- (round_generic radix2 fexp (Znearest choice) x) at 2;
-  [|now apply F_prop].
+  [|now apply FS_prop].
 now apply round_le; [apply FLT_exp_valid|apply valid_rnd_N|lra].
 Qed.
 
@@ -228,7 +228,7 @@ destruct (Req_dec x 0) as [Zx|Nzx].
 { now unfold fsqrt, frnd; simpl; rewrite Zx, sqrt_0, round_0, Rmult_0_r;
   [|apply valid_rnd_N]. }
 casetype False; apply Nzx.
-rewrite <- (round_generic radix2 fexp Zfloor x (F_prop x)).
+rewrite <- (round_generic radix2 fexp Zfloor x (FS_prop x)).
 set (ex := ln_beta radix2 x).
 apply round_DN_small_pos with ex.
 { destruct ex as (ex', Hex'); simpl.

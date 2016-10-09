@@ -40,7 +40,7 @@ Definition radix2 := Build_radix 2 (refl_equal true).
 
 Definition format x := generic_format radix2 fexp x.
 
-Let F := Ff format.
+Let F := FS_of format.
 
 Lemma format0 : format 0.
 Proof. apply generic_format_0. Qed.
@@ -91,7 +91,7 @@ Variable choice : Z -> bool.
 
 (** All we need is rounding to nearest. *)
 Definition frnd (x : R) : F :=
-  Build_Ff (generic_format_round radix2 fexp (Znearest choice) x).
+  Build_FS_of (generic_format_round radix2 fexp (Znearest choice) x).
 
 Lemma frnd_spec (x : R) :
   exists (d : b_eps) (e : b_eta),
@@ -133,7 +133,7 @@ Proof.
 intros Hy.
 unfold frnd; simpl.
 rewrite <- (round_generic radix2 fexp (Znearest choice) x) at 2;
-  [|now apply F_prop].
+  [|now apply FS_prop].
 now apply round_le; [apply FLX_exp_valid|apply valid_rnd_N|lra].
 Qed.
 
