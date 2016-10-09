@@ -1,0 +1,138 @@
+******* User Parameters *******
+
+* Maximal number of control points for maxplus approximation
+   samp_iters = 3
+
+* Branch and Bound Parameters  
+   bb = true
+
+* Replace all the variables x by sqrt (x), this is HIGHLY RECOMMENDED FOR FLYSPECK INEQUALITIES
+   xconvert_variables = false
+
+* Check the correctness of SOS certificates in Coq
+   check_certif_coq = true
+
+* Verbose settings
+   problem_verb = true
+   semialg_verb = true
+   parab_verb = true
+   pop_verb  = true
+   coq_verb = true
+   sdp_verb  = true
+   print_precision = 10
+
+* SDP/SOS parameters
+   relax_order = 2
+   reduce_sos = false
+   scale_pol = true
+   bound_squares_variables = true
+   mk_archimedean = false
+   eig_tol = 0.00001
+   eq_tol = 0.0
+   sdp_solver_epsilon = 10
+   sdp_solver_print = 10
+   erase_sdpa_files = false
+   erase_sollya_files = true
+   erase_coq_files = false
+
+* The type of polynomial coefficients for verification (float / flocaml / zarith)
+   coeff_type = zarith
+
+* The input file with boxes and inequalities
+   input_ineqs_filename = =INPUT=
+
+* Sollya parameters
+   approx_minimax = false
+   minimax_degree_sqrt = 4
+   minimax_degree = 6
+   minimax_precision = 165
+   minimax_sqrt = false
+
+******* Developers Parameters DO NOT EDIT THE FOLLOWING LINES ******* 
+
+* General parameters
+   normalize_ineqs = true
+   heuristic_corners = true
+   n_stat = 1
+   check_points = 0
+   common_denum = false
+   compute_max_ineq = false
+
+* Max-Plus parameters 
+   samp_root = false
+   n_activate_template = 10
+   max_degree_pol = 2
+
+* Verbose settings
+   sos_verb  = false
+   box_verb = true
+   time_verb = false
+   string_I_verb = false
+
+* SDP/SOS parameters
+   is_L1 = false
+   degree_L1 = 2
+   vars_L1 = 6
+   loc_support_clique = true
+   use_cliques = false
+   norm_magnitude = true
+   use_matlab = false
+   use_mypop = true
+   relax_type = Schor
+   sergei_acc = 12
+   interval_acc = 30.0
+   round_maxplus_error = true
+   fix_vars = false
+   relative_obj_tol = 0.005
+   erase_sparsepop_files = true
+
+* Check the correctness of SOS certificates in Coq
+   check_certif_coq_fsa = false
+   check_certif_coq_pop = true
+
+* dm_psatz parameters
+   dm_psatz_path = /home/user/dm_psatz/sage_trunk2
+   coq_sage_tmp_dir = /home/user/dm_psatz/sage_trunk2/tmp_coq_sage
+
+* Lambda_min parameters 
+   lambda_min_heuristic = true
+   linear_tm2 = false
+   minor_tm2 = false 
+   minor_lambda_min =  false 
+   approx_lambda_min = false
+
+* Adding cuts conditions
+   cut_at_first = false
+   cut_poly = false
+   lift_lc_sqrt = false
+   approx_func_centered = false
+   check_samp = false
+   samp_leaves = true
+   cmp_samp_max = false
+   cmp_true_min = false
+   get_rnd_cuts = false
+   rnd_cuts = 30
+   refine_bounds_cuts = false
+   mmm_relax = true
+
+* Binary Problems settings
+   binary = false
+
+* Branch and Bound settings
+   check_derivatives = false
+   inverse_hessian_diag = false
+   tolerance_cut_box = 0.001
+   cuts_heur_max = 10
+   tol_tight = 0.0007
+   tol_min   = 0.01
+   tol_r     = 0.2
+   tol_r_rect = 2.0 
+   tol_tm2 = 0.00
+
+* OCP Parameters
+   nb_templates = 4
+   nb_eqcstr = 10
+
+* Algo_disj: else if init_iter || O.is_semialg_T tree then try [H.find main_tbl (tree, ellips_nb)] with Not_found -> f tree 
+* Algo_disj:  let m_list, _, optim_next_list, _ = U.split4 (List.map (fun p -> get_semialg_min tbl ~incr_relax_order:false ~incr_cliques:false ~relax_order:Config.Config.relax_order (Ty.get_pmin p) cstrs [] true) result) in
+

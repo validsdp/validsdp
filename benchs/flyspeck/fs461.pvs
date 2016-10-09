@@ -1,0 +1,25 @@
+benchmarks : THEORY
+BEGIN
+
+  IMPORTING Bernstein@strategy
+
+  x1,x2,x3,x4,x5,x6:VAR real
+
+  %|- *_ : PROOF (bernstein) QED
+
+  P(x1,x2,x3,x4,x5,x6): MACRO real =
+    x1 * x4 * ((- x1) + x2 + x3 - x4 + x5 + x6)
+   + x2 * x5 * (x1 - x2 + x3 + x4 - x5 + x6)
+     + x3 * x6 * (x1 + x2 - x3 + x4 + x5 - x6) - x2 * x3 * x4 - x1 * x3 * x5
+       - x1 * x2 * x6 - x4 * x5 * x6
+
+  P_pos_: LEMMA
+    6.06887582536<=x1 AND x1<=7.02674064 AND
+    4<=x2 AND x2<=8 AND
+    4<=x3 AND x3<=8 AND
+    4<=x4 AND x4<=8 AND
+    4<=x5 AND x5<=8 AND
+    4<=x6 AND x6<=8 IMPLIES
+    P(x1,x2,x3,x4,x5,x6) > 0
+
+END benchmarks
