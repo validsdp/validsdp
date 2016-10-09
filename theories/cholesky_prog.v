@@ -18,6 +18,7 @@ Unset Printing Implicit Defensive.
 Open Scope R_scope.
 Open Scope ring_scope.
 
+Delimit Scope Z_scope with coq_Z.
 Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
 
@@ -1373,8 +1374,6 @@ Lemma land_pow_digits :
  *)
 
 (** Support results on [Zulp] *)
-
-Delimit Scope Z_scope with coq_Z.
 
 Lemma Zulp_gt0 m : m <> Z0 -> (0 < Zulp m)%coq_Z.
 Proof.
