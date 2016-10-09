@@ -1344,19 +1344,4 @@ Definition bigQ2F (q : bigQ) : F.type * F.type :=
                    (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0)
   end.
 
-Lemma toR_Float (m e : bigZ) :
-  toR (Float m e) = (Z2R [m]%bigZ * bpow F.radix [e]%bigZ)%Re.
-Proof.
-rewrite /F.toX /F.toF /=.
-have := Bir.mantissa_sign_correct m.
-case E_m: (Bir.mantissa_sign m) => [|s m']; last case.
-  by rewrite /Bir.MtoZ =>-> /=; rewrite Rmult_0_l.
-rewrite /proj_val /FtoX.
-rewrite (FtoR_split radix2 s (Bir.MtoP m') [e]%bigZ).
-rewrite /F2R /= /cond_Zopp => H1 H2; congr Rmult.
-move: H1; case: (s) => H1.
-by rewrite Pos2Z.opp_pos -H1.
-by rewrite -H1.
-Qed.
-
 End refinement_cholesky_3.

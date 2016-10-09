@@ -851,7 +851,7 @@ Definition rat2FI := bigQ2FI \o rat2bigQ.
 Definition FI2bigQ := F2bigQ \o FI_val.
 Definition FI2rat := bigQ2rat \o FI2bigQ.
 
-(* Erik: [toR] could be proved extenstionnaly equal to [F_val \o FI2F]. *)
+(* Erik: [toR] could be proved extensionnaly equal to [F_val \o FI2F]. *)
 
 Lemma F2FI_valE f :
   mantissa_bounded f ->
@@ -869,14 +869,13 @@ Lemma rat2FI_correct r :
   rat2R r <= FS_val (@FIS2FS fs (rat2FI r)).
 Proof.
 move => Hr; have := real_FtoX_toR Hr.
-rewrite /rat2FI /bigQ2F /bigQ2FI /=.
 rewrite F2FI_correct //=.
 rewrite /rat2bigQ /ratr.
 set n := numq r; set d := denq r.
 Opaque F.div.
 rewrite /bigQ2F' /=.
 Transparent F.div.
-rewrite F2FI_valE; last exact: fidiv_proof.
+rewrite F2FI_valE; last exact/mantissa_boundedP/fidiv_proof.
 rewrite !F.div_correct /Xround.
 case E: Xdiv =>[//|x] /= _.
 set xq := (n%:~R / d%:~R)%Ri.
@@ -903,18 +902,15 @@ Lemma rat2R_FI2rat :
 Proof.
 move=> x; rewrite -bigQ2R_rat /bigQ2R.
 case: x => -[|m e] H /=.
-{ case: H => H.
+{ move/mantissa_boundedP in H.
+  case: H => H.
   by rewrite Q2R_0.
   by case: H => r H1 H2 /=; rewrite /F.toX /= in H1 *. }
 rewrite /FI2bigQ /=.
+move/mantissa_boundedP in H.
 case: H => H /=; first by rewrite real_FtoX_toR in H.
 case: H => r H1 H2 /=.
-rewrite real_FtoX_toR // in H1.
-case: H1 =><-.
-rewrite toR_Float.
-rewrite -/(toR (Float m e)).
-rewrite /Interval_xreal.proj_val.
-by rewrite bigZZ2Q_correct.
+by rewrite bigZZ2Q_correct toR_Float.
 Qed.
 
 Instance : refines (eq ==> r_ratBigQ) FI2rat FI2bigQ.
@@ -931,23 +927,35 @@ Definition eqF (a b : F.type) := F.toX a = F.toX b.
 Definition eqFI (a b : FI) := F.toX a = F.toX b.
 
 Lemma FI_val_inj : injective FI_val.
+Proof.
 move=> x y Hxy.
 case: x Hxy => [vx px] Hxy.
 case: y Hxy => [vy py] Hxy.
 simpl in Hxy.
 move: py; rewrite -Hxy => py; f_equal; clear Hxy vy.
-case E: vx px py => [|m e] px py.
+exact: bool_irrelevance.
+Qed.
+
+Lemma eqF_signif_digits m e m' e' :
+  eqF (Float m e) (Float m' e') ->
+  (signif_digits m <=? 53)%bigZ = (signif_digits m' <=? 53)%bigZ.
+Proof.
+move=> HeqF.
+apply/idP/idP; move/signif_digits_correct => H; apply/signif_digits_correct.
 admit.
-(* move/(ifft2 (FLX53_correct m e)) in px. *)
 admit.
-Admitted. (* proof irrelevance ?! *)
+Admitted.
 
 Instance : refines (eqF ==> eqFI) F2FI F2FI.
 rewrite refinesE => f f' ref_f.
 rewrite /F2FI /eqFI /=.
 rewrite /eqF in ref_f.
-rewrite !F2FI_valE //. (* lemma for NaN case missing *)
-Admitted.
+case: f ref_f => [|m e] ref_f; case: f' ref_f => [|m' e'] ref_f //.
+by symmetry in ref_f; rewrite real_FtoX_toR in ref_f.
+by rewrite real_FtoX_toR in ref_f.
+rewrite /= (eqF_signif_digits ref_f).
+by case: ifP.
+Qed.
 
 Instance : refines (BigQ.eq ==> eqF) bigQ2F' bigQ2F'. (* morphism! *)
 Admitted.
