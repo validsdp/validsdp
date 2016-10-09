@@ -868,7 +868,7 @@ Lemma rat2FI_correct r :
   @is_finite fs (rat2FI r) ->
   rat2R r <= F_val (@float_infnan_spec.FI2F fs (rat2FI r)).
 Proof.
-move => Hr; have := real_FtoX_toR _ Hr.
+move => Hr; have := real_FtoX_toR Hr.
 rewrite /rat2FI /bigQ2F /bigQ2FI /=.
 rewrite F2FI_correct //=.
 rewrite /rat2bigQ /ratr.

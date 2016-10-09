@@ -1,5 +1,5 @@
 Require Import Reals.
-Require Import BigQ.
+Require Import ZArith BigQ.
 Require Import ROmega.
 From Flocq Require Import Fcore_defs.
 From Flocq Require Import Fcore_digits.
@@ -14,6 +14,12 @@ From Interval Require Import Interval_missing.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 Require Import misc coqinterval_infnan.
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
+Local Open Scope Z_scope.
+
 Notation toR := (fun f => proj_val (F.toX f)).
 
 Lemma real_FtoX_toR f : F.real f -> F.toX f = Xreal (toR f).
@@ -22,7 +28,7 @@ Proof. by rewrite FtoX_real; rewrite /X_real; case: F.toX. Qed.
 Lemma Xreal_inj x y : Xreal x = Xreal y -> x = y.
 Proof. by case. Qed.
 
-(** Number of radix2-[digits] of a [bigZ] number *)
+(** * Number of radix2 [digits] of a [bigZ] number *)
 
 Definition digits (m : bigZ) : bigZ :=
   match m with
@@ -30,7 +36,7 @@ Definition digits (m : bigZ) : bigZ :=
   | BigZ.Neg n => Bir.mantissa_digits n
   end.
 
-Definition Zdigits2 (n : Z) := Zdigits radix2 n.
+Definition Zdigits2 (n : BinNums.Z) := Zdigits radix2 n.
 
 Lemma Zdigits2_mult_Zpower m e : m <> Z0 -> (0 <= e)%Z ->
   Zdigits2 (m * 2 ^ e) = (Zdigits2 m + e)%Z.
@@ -43,7 +49,7 @@ suff->: Z.double m = (m * 2 ^ 1)%Z by apply: Zdigits2_mult_Zpower.
 by rewrite Z.double_spec Zmult_comm.
 Qed.
 
-Lemma Zdigits_opp r (n : Z) : Zdigits r (- n) = Zdigits r n.
+Lemma Zdigits_opp r (n : BinNums.Z) : Zdigits r (- n) = Zdigits r n.
 Proof. by case: n. Qed.
 
 Lemma digits_spec n : [digits n]%bigZ = Zdigits2 [n]%bigZ.
@@ -102,16 +108,16 @@ rewrite BigZ.spec_ltb digits_spec //.
 exact/Zlt_is_lt_bool/Zdigits_gt_0.
 Qed.
 
-(** Definition of ulp (unit in the last place) for signed integers *)
+(** * Definition of ulp (unit in the last place) for signed integers *)
 
-Definition Zulp (m : Z) : Z := Z.land m (- m).
+Definition Zulp (m : BinNums.Z) : BinNums.Z := Z.land m (- m).
 
 Definition bigZulp (m : bigZ) : bigZ := BigZ.land m (- m).
 
 Lemma bigZulp_spec m : [bigZulp m]%bigZ = Zulp [m]%bigZ.
 Proof. by rewrite BigZ.spec_land BigZ.spec_opp. Qed.
 
-(** Preliminary results *)
+(** ** Preliminary results *)
 
 Lemma Pos_ldiff_eq0 p : Pos.ldiff p p = 0%num.
 Proof.
@@ -151,7 +157,7 @@ by case => z ->; rewrite Z_div_mult_full //; apply Z.divide_mul_l, Z.divide_refl
 by case => z ->; rewrite Z_div_mult_full //; apply Z.divide_mul_l, Z.divide_refl.
 Qed.
 
-Lemma Rabs_div_gt_1 a b : a <> R0 -> Rabs a < b <-> 1 < b / Rabs a.
+Lemma Rabs_div_gt_1 a b : a <> R0 -> (Rabs a < b <-> 1 < b / Rabs a)%Re.
 Proof.
 move=> H0; split => Hab.
 { rewrite -[R1](Rinv_r_simpl_l (Rabs a)); last exact: Rabs_no_R0.
@@ -165,7 +171,7 @@ move=> H0; split => Hab.
   exact: Rabs_no_R0. }
 Qed.
 
-Lemma Rdiv_gt_1 a b : (0 < a)%R -> a < b <-> 1 < b / a.
+Lemma Rdiv_gt_1 a b : (0 < a)%Re -> (a < b <-> 1 < b / a)%Re.
 Proof.
 move=> H0.
 rewrite -(Rabs_pos_eq _ (Rlt_le _ _ H0)).
@@ -173,7 +179,7 @@ apply: Rabs_div_gt_1 =>//.
 exact: Rgt_not_eq.
 Qed.
 
-(** Support results on [Zulp] *)
+(** ** Support results on [Zulp] *)
 
 Lemma Zulp_gt0 m : m <> Z0 -> (0 < Zulp m)%Z.
 Proof.
@@ -364,7 +370,7 @@ Lemma Zdigits_div_ulp m :
 Proof.
 move=> NZm.
 rewrite -{3}(Zulp_mul m).
-rewrite -{3}(Zulp_digits _ NZm).
+rewrite -{3}(Zulp_digits NZm).
 rewrite Zdigits2_mult_Zpower; first ring.
 { apply/Z.div_small_iff; first exact: Zulp_neq0.
   move=> [[K1 K2]|[K1 K2]].
@@ -389,7 +395,7 @@ Lemma Zulp_mod2 m : m <> Z0 ->
   ((m / Zulp m) mod 2 = 1)%Z.
 Proof.
 move=> NZm.
-rewrite -(Zulp_digits _ NZm).
+rewrite -(Zulp_digits NZm).
 apply/Z.testbit_true.
 { apply(*:*) Z.lt_le_pred.
   apply: Zdigits_gt_0.
@@ -431,7 +437,7 @@ move/Z.divide_abs_r/Znumtheory.Zdivide_mod.
 by rewrite Zulp_mod2.
 Qed.
 
-(** Number of significant radix2 digits of a [bigZ] number *)
+(** * Number of significant radix2 digits of a [bigZ] number *)
 
 Definition signif_digits (m : bigZ) :=
   let d := digits m in
@@ -534,7 +540,7 @@ have Hmf : (Z2R [m]%bigZ * bpow radix2 [e]%bigZ = F2R f)%Re.
 { rewrite Hm; apply Xreal_inj; rewrite -{}H1; congr Xreal.
   rewrite FtoR_split /F2R /=.
   by case: (s). }
-have Hlte : bpow radix2 [e]%bigZ < bpow radix2 (Fexp f).
+have Hlte : (bpow radix2 [e]%bigZ < bpow radix2 (Fexp f))%Re.
 { rewrite /F2R in Hmf.
   move/Z2R_lt in Hlt.
   rewrite !Z2R_abs in Hlt.
@@ -545,7 +551,7 @@ have Hlte : bpow radix2 [e]%bigZ < bpow radix2 (Fexp f).
   rewrite !Rabs_mult in Hlt.
   apply/Rdiv_gt_1; first exact: bpow_gt_0.
   move/Rdiv_gt_1: Hlt.
-  rewrite (_ : ?[a] * Rabs ?[b] * Rabs ?[c] / ?a = ?b * ?c); last first.
+  rewrite (_ : ?[a] * Rabs ?[b] * Rabs ?[c] / ?a = ?b * ?c)%Re; last first.
     rewrite (Rabs_pos_eq (bpow _ _)); last exact: bpow_ge_0.
     rewrite (Rabs_pos_eq (/ bpow _ _));
       last exact/Rlt_le/Rinv_0_lt_compat/bpow_gt_0.
