@@ -1,5 +1,7 @@
 Require Import ZArith.
 From Flocq Require Import Fcore.
+From Interval Require Import Interval_definitions Interval_xreal.
+From Interval Require Import Interval_missing.
 From CoqEAL.refinements Require Import hrel refinements param (*seqmx*) binint rational.
 Require Import seqmx.
 Require Import Reals Flocq.Core.Fcore_Raux QArith BigZ BigQ Psatz FSetAVL.
@@ -10,11 +12,10 @@ From SsrMultinomials Require Import mpoly (* freeg *).
 Require Import Rstruct.
 Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog multipoly.
+Require Import cholesky_prog multipoly coqinterval_infnan.
 (* Require Import Quote. *)
-From ValidSDP Require Import soswitness.
+From ValidSDP Require Import soswitness zulp.
 Require Import seqmx_complements misc.
-From Interval Require Import Interval_missing.
 
 Import GRing.Theory.
 Import Num.Theory.
@@ -416,7 +417,7 @@ Context `{!trmx_of (mx polyT)}.
 Context `{!hmul_of (mx polyT)}.
 
 Context {fs : Float_round_up_infnan_spec}.
-Let F := FI fs.
+Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion *)
 Context {T2F : T -> F}.  (* overapproximation *)
 
@@ -440,7 +441,8 @@ Program Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool
       fun_of_op p'm I0 I0 in
     let pmp' := poly_sub_op p p' in
     max_coeff pmp' in
-  posdef_check_itv (@fieps fs) (@fieta fs) (@is_finite fs) Q (T2F r).
+  posdef_check_itv (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
+                   (@float_infnan_spec.finite fs) Q (T2F r).
 
 (* Why Coq doesn't complain [!one_of T] is not in the context ? *)
 
@@ -498,7 +500,7 @@ Definition check_base_eff : polyT -> mx monom s.+1 1 -> bool :=
 Definition max_coeff_eff : polyT -> T := max_coeff.
 
 Context {fs : Float_round_up_infnan_spec}.
-Let F := FI fs.
+Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion *)
 Context {T2F : T -> F}.  (* overapproximation *)
 
@@ -570,7 +572,7 @@ Definition check_base_ssr : polyT -> 'cV[monom]_s.+1 -> bool := check_base.
 Definition max_coeff_ssr : polyT -> T := max_coeff.
 
 Context {fs : Float_round_up_infnan_spec}.
-Let F := FI fs.
+Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion for finite values *)
 Context {T2F : T -> F}.  (* overapproximation *)
 
@@ -589,8 +591,8 @@ Definition soscheck_ssr : polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
 Variable (T2R : T -> R).
 Hypothesis T2R_additive : additive T2R.
 Canonical T2R_additive_struct := Additive T2R_additive.
-Hypothesis T2F_correct : forall x, is_finite (T2F x) -> T2R x <= FI2F (T2F x).
-Hypothesis T2R_F2T : forall x, T2R (F2T x) = FI2F x.
+Hypothesis T2F_correct : forall x, finite (T2F x) -> T2R x <= FIS2FS (T2F x).
+Hypothesis T2R_F2T : forall x, T2R (F2T x) = FIS2FS x.
 (* Note/Érik: we could replace [max_op] by [max], assuming [leq_of] *)
 Hypothesis max_l : forall x y : T, T2R x <= T2R (max_op x y).
 Hypothesis max_r : forall x y, T2R y <= T2R (max_op x y).
@@ -757,7 +759,7 @@ Qed.
 End theory_soscheck.
 
 (* Future definition of F2C *)
-Definition ZZtoQ (m : bigZ) (e : bigZ) :=
+Definition bigZZ2Q (m : bigZ) (e : bigZ) :=
   match m,e with
   | BigZ.Pos n, BigZ.Pos p => BigQ.Qz (BigZ.Pos (BigN.shiftl n p))
   | BigZ.Neg n, BigZ.Pos p => BigQ.Qz (BigZ.Neg (BigN.shiftl n p))
@@ -768,18 +770,30 @@ Definition ZZtoQ (m : bigZ) (e : bigZ) :=
   BigQ.Qq m (BigN.shiftl 1%bigN p)
   end.
 
-(* TODO: move above *)
-
-Lemma ZZtoQ_correct :
-( forall m e,
-  BigQ.to_Q (ZZtoQ m e) =
-  (Qmake (BigZ.to_Z m) 1) * (Qpower (Qmake 2 1) (BigZ.to_Z e)) )%Qrat.
+Lemma bigZZ2Q_correct m e :
+  Q2R [bigZZ2Q m e]%bigQ = Z2R [m]%bigZ * bpow radix2 [e]%bigZ.
 Proof.
-Admitted. (* Erik *)
+case: m => m; case: e => e.
+{ rewrite /= BigN.spec_shiftl_pow2 /Q2R Z2R_mult Rcomplements.Rdiv_1.
+  rewrite (Z2R_Zpower radix2) //.
+  exact: BigN.spec_pos. }
+{ rewrite /= ifF /Q2R /=; last exact/BigN.eqb_neq/BigN.shiftl_eq_0_iff.
+  rewrite BigN.spec_shiftl_pow2 /=.
+  rewrite bpow_opp -Z2R_Zpower; last exact: BigN.spec_pos.
+  move: (Zpower_gt_0 radix2 [e]%bigN (BigN.spec_pos _)); simpl.
+  by case: Zpower =>// p Hp. }
+{ rewrite /= BigN.spec_shiftl_pow2 /= -Z2R_Zpower; last exact: BigN.spec_pos.
+  by rewrite /Q2R /= Zopp_mult_distr_l Z2R_mult Rcomplements.Rdiv_1. }
+{ rewrite /= ifF /Q2R /=; last exact/BigN.eqb_neq/BigN.shiftl_eq_0_iff.
+  rewrite BigN.spec_shiftl_pow2 /=.
+  rewrite bpow_opp -Z2R_Zpower; last exact: BigN.spec_pos.
+  move: (Zpower_gt_0 radix2 [e]%bigN (BigN.spec_pos _)); simpl.
+  by case: Zpower =>// p Hp. }
+Qed.
 
 Definition F2bigQ (q : coqinterval_infnan.F.type) : bigQ :=
   match q with
-  | Interval_specific_ops.Float m e => ZZtoQ m e
+  | Interval_specific_ops.Float m e => bigZZ2Q m e
   | Interval_specific_ops.Fnan => 0%bigQ
   end.
 
@@ -790,43 +804,181 @@ Definition F2bigQ (q : coqinterval_infnan.F.type) : bigQ :=
 
 Let fs := coqinterval_infnan.coqinterval_round_up_infnan.
 
-Definition bigQ2FI := F2FI \o snd \o bigQ2F.
-Definition FI2bigQ := F2bigQ \o coqinterval_infnan.FI_val.
-
 Definition int2Z (n : int) : BinNums.Z :=
   match n with
   | Posz O => Z0
   | Posz n => Z.pos (Pos.of_nat n)
-  | Negz n => Z.neg (Pos.of_nat n)
+  | Negz n => Z.neg (Pos.of_nat n.+1)
   end.
+
+Lemma Z2R_int2Z_nat (n : nat) : Z2R (int2Z n) = n%:~R.
+Proof.
+elim: n => [//|n IHn].
+rewrite -addn1 PoszD intrD -{}IHn /=.
+rewrite addn1 -addn1 /= P2R_INR Nat2Pos.id ?addn1 // -addn1.
+set zn := match n with O => Z0 | _ => Z.pos (Pos.of_nat n) end.
+suff->: zn = Z.of_nat n by rewrite -INR_Z2R plus_INR.
+clear; rewrite {}/zn /Z.of_nat.
+case: n => // n.
+by rewrite Pos.of_nat_succ.
+Qed.
+
+Lemma Z2R_int2Z n : Z2R (int2Z n) = n%:~R.
+Proof.
+elim/int_rec: n =>// n IHn.
+{ exact: Z2R_int2Z_nat. }
+by clear IHn; rewrite mulrNz /= -Z2R_int2Z_nat.
+Qed.
+
+Delimit Scope Z_scope with coq_Z. (* should be unnecessary *)
+ 
+Lemma int2Z_le m n : (int2Z m <=? int2Z n)%coq_Z = (m <= n)%Ri.
+Proof.
+rewrite -(ler_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
+{ by move/Z.leb_le/Z2R_le/RleP. }
+by move/RleP/le_Z2R/Z.leb_le.
+Qed.
 
 Definition rat2bigQ (q : rat) : bigQ :=
   let n := BigZ.of_Z (int2Z (numq q)) in
   let d := BigN.N_of_Z (int2Z (denq q)) in
   (n # d)%bigQ.
 
-Definition rat2F := bigQ2FI \o rat2bigQ.
-Definition F2rat := bigQ2rat \o FI2bigQ.
+Definition bigQ2F' := snd \o bigQ2F.
+Definition bigQ2FI := F2FI \o bigQ2F'.
+Definition rat2FI := bigQ2FI \o rat2bigQ.
 
-Lemma rat2F_correct :
-  forall x0 : rat_comRing,
-  @is_finite fs (rat2F x0) ->
-  rat2R x0 <= @FI2F fs (rat2F x0).
-Proof.
-Admitted.  (* Erik *)
+Definition FI2bigQ := F2bigQ \o FI_val.
+Definition FI2rat := bigQ2rat \o FI2bigQ.
 
-Lemma rat2R_F2rat :
- forall x0 : FI fs, rat2R (F2rat x0) = FI2F x0.
-Proof.
-Admitted.  (* Erik *)
+(* Erik: [toR] could be proved extenstionnaly equal to [F_val \o FI2F]. *)
 
-Instance : refines (eq ==> r_ratBigQ) F2rat FI2bigQ.
+Lemma F2FI_valE f :
+  mantissa_bounded f ->
+  F.toX (F2FI_val f) = F.toX f.
 Proof.
-Admitted.  (* Erik *)
+case: f => [//|m e].
+by move/signif_digits_correct; rewrite /F2FI_val =>->.
+Qed.
 
-Instance : refines (r_ratBigQ ==> eq) rat2F bigQ2FI.
+Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z then n else Z0.
+Proof. by rewrite -[RHS](BigZ.spec_of_Z); case: n. Qed.
+
+Lemma rat2FI_correct r :
+  @finite fs (rat2FI r) ->
+  rat2R r <= FS_val (@FIS2FS fs (rat2FI r)).
 Proof.
-Admitted.  (* Erik *)
+move => Hr; have := real_FtoX_toR Hr.
+rewrite /rat2FI /bigQ2F /bigQ2FI /=.
+rewrite F2FI_correct //=.
+rewrite /rat2bigQ /ratr.
+set n := numq r; set d := denq r.
+Opaque F.div.
+rewrite /bigQ2F' /=.
+Transparent F.div.
+rewrite F2FI_valE; last exact: fidiv_proof.
+rewrite !F.div_correct /Xround.
+case E: Xdiv =>[//|x] /= _.
+set xq := (n%:~R / d%:~R)%Ri.
+suff ->: x = xq.
+{ rewrite /round /=.
+  by have [_ [Hxq _]] := round_UP_pt radix2 (FLX_exp 53) xq. }
+rewrite {}/xq.
+move: E; set fn := Float _ _; set fd := Float _ _.
+rewrite (@real_FtoX_toR fn erefl) (@real_FtoX_toR fd erefl) /=.
+rewrite /Xdiv'.
+case: is_zero_spec =>// H0 [] <-.
+rewrite !toR_Float BigZ.spec_of_Z !Z2R_int2Z BigZ_Pos_NofZ ifT; last first.
+by change Z0 with (int2Z 0%Ri); rewrite int2Z_le denq_ge0.
+rewrite Z2R_int2Z !Rsimpl unfoldR' //.
+by apply/eqP/negbT; rewrite intr_eq0 denq_eq0.
+Qed.
+
+(* TODO: move *)
+Lemma Q2R_0 : Q2R 0%Qrat = 0%Re.
+Proof. by rewrite /Q2R /= /Rdiv Rmult_0_l. Qed.
+
+Lemma rat2R_FI2rat :
+ forall x0 : FIS fs, rat2R (FI2rat x0) = FS_val (FI2FS x0).
+Proof.
+move=> x; rewrite -bigQ2R_rat /bigQ2R.
+case: x => -[|m e] H /=.
+{ case: H => H.
+  by rewrite Q2R_0.
+  by case: H => r H1 H2 /=; rewrite /F.toX /= in H1 *. }
+rewrite /FI2bigQ /=.
+case: H => H /=; first by rewrite real_FtoX_toR in H.
+case: H => r H1 H2 /=.
+rewrite real_FtoX_toR // in H1.
+case: H1 =><-.
+rewrite toR_Float.
+rewrite -/(toR (Float m e)).
+rewrite /Interval_xreal.proj_val.
+by rewrite bigZZ2Q_correct.
+Qed.
+
+Instance : refines (eq ==> r_ratBigQ) FI2rat FI2bigQ.
+Proof. by rewrite refinesE => ? ? ->. Qed.
+
+Definition id1 {T} (x : T) := x.
+
+Definition r_QbigQ := fun_hrel BigQ.to_Q.
+
+Instance : refines (eq ==>  BigQ.eq) (rat2bigQ \o bigQ2rat) id.
+Admitted.
+
+Definition eqF (a b : F.type) := F.toX a = F.toX b.
+Definition eqFI (a b : FI) := F.toX a = F.toX b.
+
+Lemma FI_val_inj : injective FI_val.
+move=> x y Hxy.
+case: x Hxy => [vx px] Hxy.
+case: y Hxy => [vy py] Hxy.
+simpl in Hxy.
+move: py; rewrite -Hxy => py; f_equal; clear Hxy vy.
+case E: vx px py => [|m e] px py.
+admit.
+(* move/(ifft2 (FLX53_correct m e)) in px. *)
+admit.
+Admitted. (* proof irrelevance ?! *)
+
+Instance : refines (eqF ==> eqFI) F2FI F2FI.
+rewrite refinesE => f f' ref_f.
+rewrite /F2FI /eqFI /=.
+rewrite /eqF in ref_f.
+rewrite !F2FI_valE //. (* lemma for NaN case missing *)
+Admitted.
+
+Instance : refines (BigQ.eq ==> eqF) bigQ2F' bigQ2F'. (* morphism! *)
+Admitted.
+
+Instance : refines (r_ratBigQ ==> eqFI) rat2FI bigQ2FI.
+Proof.
+rewrite /rat2FI .
+rewrite refinesE => x x' ref_x /=.
+rewrite -[x']/(id1 x') -ref_x.
+rewrite -[bigQ2FI _]/(bigQ2FI ((rat2bigQ \o bigQ2rat) x')).
+apply refinesP.
+refines_apply1.
+rewrite /bigQ2FI.
+rewrite refinesE => y y' ref_y /=.
+apply refinesP.
+refines_apply1.
+by refines_apply1; rewrite refinesE.
+Qed.
+
+(*
+Instance : refines (r_ratBigQ ==> fun_hrel BigQ.to_Q) rat2bigQ 
+
+Lemma 
+rewrite /rat2FI /bigQ2FI.
+do ![red in ref_x].
+rewrite -ref_x; simpl.
+rewrite /bigQ2F' /bigQ2F.
+Opaque F.div.
+simpl. case: x' {ref_x} =>//.
+Transparent F.div.
+ *)
 
 Lemma max_l : forall x0 y0 : rat_comRing, rat2R x0 <= rat2R (Num.max x0 y0).
 Proof.
@@ -943,13 +1095,17 @@ refines_apply1.
 Qed.
 
 Context {fs : Float_round_up_infnan_spec}.
-Let F := FI fs.
+Let F := FIS fs.
 Context {F2A : F -> A}.  (* exact conversion for finite values *)
 Context {A2F : A -> F}.  (* overapproximation *)
 Context {F2C : F -> C}.  (* exact conversion for finite values *)
 Context {C2F : C -> F}.  (* overapproximation *)
 Context `{!refines (eq ==> rAC) F2A F2C}.
 Context `{!refines (rAC ==> eq) A2F C2F}.
+(*
+Variable eqF : F -> F -> Prop. (* TODO: rather use [Type] *)
+Context `{!refines (rAC ==> eqF) A2F C2F}.
+ *)
 
 (* TODO: move *)
 Lemma list_Rxx T (rT : T -> T -> Type) l : (forall x, rT x x) -> list_R rT l l.
@@ -1017,12 +1173,12 @@ by tc.
 eapply refines_apply. eapply refines_apply. eapply refines_apply. by tc.
 eapply refines_apply; [eapply refines_apply|].
 { apply refine_mul_seqmx; [by tc| |].
-  { apply (ReffmpolyC_mpoly_add_eff (* C2A_correct *)). by tc. }
-  apply (ReffmpolyC_mpoly_mul_eff (* C2A_correct *)); by tc. }
+  { apply ReffmpolyC_mpoly_add_eff; by tc. }
+  apply ReffmpolyC_mpoly_mul_eff; by tc. }
 eapply refines_apply; [eapply refines_apply|].
 { apply refine_mul_seqmx; [by tc| |].
-  { apply (ReffmpolyC_mpoly_add_eff (* C2A_correct *)); by tc. }
-  apply (ReffmpolyC_mpoly_mul_eff (* C2A_correct *)); by tc. }
+  { apply ReffmpolyC_mpoly_add_eff; by tc. }
+  apply ReffmpolyC_mpoly_mul_eff; by tc. }
 { refines_apply_tc. }
 { refines_apply_tc.
   { apply refines_abstr=> c c' rc /=; refines_apply_tc. }
@@ -1132,8 +1288,8 @@ Definition soscheck_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
    soscheck_eff
      (n := n) (s := s.-1)
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
-     (F2T := FI2bigQ)
-     (T2F := bigQ2FI)
+     (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
+     (T2F := F2FI \o bigQ2F')
      bp z Q].
 
 Lemma map_R_nth (T1 T2 : Type) (x0 : T2) (T_R : T1 -> T2 -> Type) (f : T2 -> T1) l :
@@ -1185,23 +1341,23 @@ set za := (map (fun x => [:: x]) zQ.1) in Hsos *.
 set Qa := map (map F2FI) zQ.2 in Hsos *.
 pose s := (size zQ.1).-1.
 pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s.+1 1 za.
-pose Qb := @spec_seqmx _ (FI0 fs) _ (id) s.+1 s.+1 Qa.
+pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s.+1 s.+1 Qa.
 rewrite interp_correct; last by rewrite ?lt0n.
 apply soscheck_correct with
-        (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
-        (2 := rat2F_correct)
-        (3 := rat2R_F2rat)
-        (4 := max_l)
-        (5 := max_r)
-        (z := zb)
-        (Q := Qb).
+  (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
+  (2 := rat2FI_correct)
+  (3 := rat2R_FI2rat)
+  (4 := max_l)
+  (5 := max_r)
+  (z := zb)
+  (Q := Qb).
 apply: (etrans (y := @soscheck_eff n'.+1 _
   zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs
-  FI2bigQ bigQ2FI bp za Qa)); last first.
+  (F2bigQ \o FI_val) (F2FI \o bigQ2F') bp za Qa)); last first.
 { by rewrite -/n' /n in Hsos; apply Hsos. }
 apply refines_eq.
 refines_apply1; first refines_apply1; first refines_apply1.
-{ by apply param_soscheck; tc. }
+{ apply param_soscheck; tc. admit. }
 { by apply param_interp_poly; rewrite prednK ?lt0n. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /za.
@@ -1212,7 +1368,7 @@ rewrite refinesE; eapply Rseqmx_spec_seqmx.
 { rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
 by rewrite lt0n.
-Qed.
+Admitted.
 
 Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.
 Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
@@ -1229,7 +1385,7 @@ Ltac do_sdp :=
         let l := eval vm_compute in (M.elements bp) in
         let zQ := fresh "zQ" in
         soswitness of l as zQ;
-        apply (@soscheck_correct_wrapup vm pap zQ);
+        apply (@soscheck_eff_wrapup_correct vm pap zQ);
         (vm_cast_no_check (erefl true))
       )
     end

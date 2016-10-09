@@ -22,31 +22,6 @@ Arguments refines A%type B%type R%rel _ _.  (* TODO: il y a un problème de scop
 
 Hint Resolve list_R_nil_R.
 
-(** As in the latest version of CoqEAL, all relations are in [Type],
-we need to add some material, such as [ifft], which is similar to [iff] *)
-Inductive ifft (A B : Type) : Type := Ifft of (A -> B) & (B -> A).
-Infix "<=>" := ifft : type_scope.
-
-Section ApplyIfft.
-
-Variables P Q : Type.
-Hypothesis eqPQ : P <=> Q.
-
-Lemma ifft1 : P -> Q. Proof. by case: eqPQ. Qed.
-Lemma ifft2 : Q -> P. Proof. by case: eqPQ. Qed.
-
-End ApplyIfft.
-
-Hint View for move/ ifft1|2 ifft2|2.
-Hint View for apply/ ifft1|2 ifft2|2.
-
-Lemma ifftW (P Q : Prop) : P <=> Q -> (P <-> Q).
-Proof. by case. Qed.
-
-(** Tip to leverage a Boolean condition *)
-Definition sumb (b : bool) : {b = true} + {b = false} :=
-  if b is true then left erefl else right erefl.
-
 Ltac refines_apply_tc :=
   (by tc) || (eapply refines_apply; first refines_apply_tc;
               try by tc; try by rewrite refinesE).

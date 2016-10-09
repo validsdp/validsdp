@@ -1,25 +1,28 @@
 NAME = ValidSDP
-MODULES = \
-src/soswitness.ml4 \
-src/soswitness.mllib \
-theories/soswitness.v \
-test-suite/soswitnesstac.v
+MODULES =\
+  src/soswitness.ml4\
+  src/soswitness.mllib\
+  theories/soswitness.v\
+  test-suite/soswitnesstac.v
 
 all: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
 Makefile.coq: Makefile $(MODULES)
-	coq_makefile -I src -I $(shell ocamlfind query zarith) -I $(shell ocamlfind query osdp) \
-                     -Q theories $(NAME) \
-		     $(MODULES) \
-		     -o $@  #  -I $(shell ocamlfind query glpk)
-	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa osdp.cmxa $$</' -i $@  # glpk.cmxa
+	@ocamlfind query zarith >/dev/null
+	@ocamlfind query osdp >/dev/null
+#	@ocamlfind query glpk >/dev/null
+	coq_makefile -I src \
+	  -I "$(shell ocamlfind query zarith)" -I "$(shell ocamlfind query osdp)" \
+	  -Q theories $(NAME) $(MODULES) -o $@
+	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa osdp.cmxa $$</' -i $@
+#	& glpk.cmxa
 
 install: Makefile.coq
 	$(MAKE) -f Makefile.coq install
 
 clean: Makefile.coq
-	$(MAKE) -f Makefile.coq clean
+	-$(MAKE) -f Makefile.coq clean
 	rm -f Makefile.coq
 
-.PHONY: coq clean install
+.PHONY: all clean install
