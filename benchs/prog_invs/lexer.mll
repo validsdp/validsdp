@@ -24,6 +24,6 @@ rule token = parse
   | '.' { DOT }
   | 'x'(('0' | (['1'-'9'] digit*)) as n) { VAR (int_of_string n) }
   | ('0' | (['1'-'9'] digit*)) as n { INT n }
-  | (alpha (alpha|digit|['_'])*) as n { NAME n }
+  | (alpha (alpha|digit|['_' '''])*) as n { NAME n }
   | eof { EOF }
   | _ { token lexbuf }
