@@ -62,5 +62,5 @@ let check_bounds polys =
   check_lb && check_ub
 
 let _ =
-  let polys = Parse.file "seven_variable_magnetism.v" in
+  let polys = Parse.file "magnetism.v" in
   Format.printf "Bounds proved: %B@." (check_bounds polys)

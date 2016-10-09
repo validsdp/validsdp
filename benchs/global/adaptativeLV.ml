@@ -11,19 +11,19 @@ let options = { Sos.default with
 
 let x1, x2, x3, x4 = Sos.(??0, ??1, ??2, ??3)
 
-let p = Sos.(-x1*x3**3+4/1*x2*x3**2*x4+4/1*x1*x3*x4**2+2/1*x2*x4**3+4/1*x1*x3+4/1*x3**2-10/1*x2*x4-10/1*x4**2+2/1)
+let p = Sos.(x1*x2**2+x1*x3**2+x1*x4**2-11/10*x1+1/1)
                     
-(* bound on x1 : x1 \in [-0.5, 0.5] *)
-let b1 = Sos.((x1 + 1 / 2) * (1 / 2 - x1))
-(* bound on x2 : x2 \in [-0.5, 0.5] *)
-let b2 = Sos.((x2 + 1 / 2) * (1 / 2 - x2))
-(* bound on x3 : x3 \in [-0.5, 0.5] *)
-let b3 = Sos.((x3 + 1 / 2) * (1 / 2 - x3))
-(* bound on x4 : x4 \in [-0.5, 0.5] *)
-let b4 = Sos.((x4 + 1 / 2) * (1 / 2 - x4))
+(* bound on x1 : x1 \in [-2, 2] *)
+let b1 = Sos.((x1 + 2 / 1) * (2 / 1 - x1))
+(* bound on x2 : x2 \in [-2, 2] *)
+let b2 = Sos.((x2 + 2 / 1) * (2 / 1 - x2))
+(* bound on x3 : x3 \in [-2, 2] *)
+let b3 = Sos.((x3 + 2 / 1) * (2 / 1 - x3))
+(* bound on x4 : x4 \in [-2, 2] *)
+let b4 = Sos.((x4 + 2 / 1) * (2 / 1 - x4))
 
-let lb = Sos.(-3181 / 1000)
-let ub = Sos.(4486 / 1000)
+let lb = Sos.(-20802 / 1000)
+let ub = Sos.(22802 / 1000)
             
 (* chack that invariant lb <= p(x) <= ub when x satisfies bounds *)
 let check_bounds polys =
@@ -50,5 +50,5 @@ let check_bounds polys =
   check_lb && check_ub
 
 let _ =
-  let polys = Parse.file "caprasse_system.v" in
+  let polys = Parse.file "adaptativeLV.v" in
   Format.printf "Bounds proved: %B@." (check_bounds polys)

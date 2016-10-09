@@ -72,3 +72,8 @@ setup.log
 /dependencies/CoqEAL_refinements/Makefile.coq
 /dependencies/CoqEAL_theory/Makefile.coq
 *.log
+
+# PVS
+*.summary
+*.prf
+*.pvscontext

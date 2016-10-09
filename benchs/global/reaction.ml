@@ -46,5 +46,5 @@ let check_bounds polys =
   check_lb && check_ub
 
 let _ =
-  let polys = Parse.file "three_variable_reaction_diffusion.v" in
+  let polys = Parse.file "reaction.v" in
   Format.printf "Bounds proved: %B@." (check_bounds polys)

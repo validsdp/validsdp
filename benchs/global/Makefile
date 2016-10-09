@@ -1,6 +1,10 @@
+# Parameters
+
 COQCOMMAND = coqc
 PVS50COMMAND = ../pvs50/proveit
+DIR_NLC = ${HOME}/validsdp/code/benchs/nl-certify
 
+# SDP solver for OSDP (Sdpa | Csdp | Mosek)
 NAME = Sdpa
 
 # Timeout in s
@@ -8,11 +12,20 @@ TIMEOUT = 900
 # Memlimit in MB
 MEMLIMIT = 7168
 
+# End of parameters
+
+NLC = $(DIR_NLC)/nlcertify
+NLC_PARAM = $(DIR_NLC)/param.transc
+NLC_PATT := =INPUT=
+NLC_INEQ = $(abspath ./input.ineq)
+
 EXSML = $(shell find . -name "*.ml" | grep -v "parse.ml" | grep -v "_build/")
 EXS = $(EXSML:.ml=)
 LOGS = $(EXSML:.ml=_${NAME}_${TIMEOUT}s.log)
 LOGS_COQ = $(EXSML:.ml=_Coq_${TIMEOUT}s.log)
 LOGS_BERNSTEIN = $(EXSML:.ml=_Bernstein_${TIMEOUT}s.log)
+LOGS_NLCNOCOQ = $(EXSML:.ml=_nlcnocoq_${TIMEOUT}s.log)
+LOGS_NLCCOQ = $(EXSML:.ml=_nlccoq_${TIMEOUT}s.log)
 
 all: logs
 
@@ -21,6 +34,10 @@ logs: $(LOGS)
 logs_coq: $(LOGS_COQ)
 
 logs_bernstein: $(LOGS_BERNSTEIN)
+
+logs_nlcnocoq: $(LOGS_NLCNOCOQ)
+
+logs_nlccoq: $(LOGS_NLCCOQ)
 
 %_${NAME}_${TIMEOUT}s.log: %.ml
 	rm -f $@
@@ -35,6 +52,16 @@ logs_bernstein: $(LOGS_BERNSTEIN)
 %_Bernstein_${TIMEOUT}s.log: %.pvs
 	rm -f $@ $(<:.pvs=.summary)
 	runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k $(PVS50COMMAND) $< > $@ 2>&1 || true
+
+%_nlcnocoq_${TIMEOUT}s.log: $(NLC_INEQ)
+	rm -f $@
+	perl -w -p -e 's|$(NLC_PATT)|$(NLC_INEQ)|;' ./param.transc.nocoq > $(NLC_PARAM)
+	cd $(DIR_NLC) && runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k $(NLC) $(@:_nlcnocoq_${TIMEOUT}s.log=) > $(abspath $@) 2>&1 || true
+
+%_nlccoq_${TIMEOUT}s.log: $(NLC_INEQ)
+	rm -f $@
+	perl -w -p -e 's|$(NLC_PATT)|$(NLC_INEQ)|;' ./param.transc.coq > $(NLC_PARAM)
+	cd $(DIR_NLC) && runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k $(NLC) $(@:_nlccoq_${TIMEOUT}s.log=) > $(abspath $@) 2>&1 || true
 
 clean:
 	rm -rf _build *~ *.native *.cmi *.cmx *.o *.vo *.glob

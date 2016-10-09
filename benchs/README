@@ -1,0 +1,4 @@
+TODO: how to install and launch benchmarks
+
+./logs2tex > table.tex
+pdflatex benchs.tex
