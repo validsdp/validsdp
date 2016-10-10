@@ -989,25 +989,7 @@ Transparent F.div.
  *)
 
 Lemma rat2R_le (x y : rat) : (x <= y)%Ri -> rat2R x <= rat2R y.
-Proof.
-rewrite /Num.Def.ler /= /le_rat /ratr => H.
-apply/RleP; rewrite unfoldR.
-have H0 : (0 < (denq x * denq y)%:~R)%Ri.
-{ by move=> t; rewrite pmulrz_lgt0 ?ltr01 // pmulr_rgt0. }
-move/(_ real_numDomainType) in H0.
-rewrite -(ler_pmul2r H0) intrM.
-suff Hok :
-  (((numq x)%:~R * ((denq x)%:~R / (denq x)%:~R) * (denq y)%:~R) <=
-  ((numq y)%:~R * ((denq y)%:~R / (denq y)%:~R) * (denq x)%:~R :
-     Num.NumDomain.sort real_numDomainType))%Ri.
-rewrite -!mulrA.
-rewrite [(_^-1 * (_ * _))%Ri]mulrA [(_^-1 * _)%Ri]mulrC.
-rewrite [((denq x)%:~R * _)%Ri]mulrC.
-rewrite [(_^-1 * (_ * _))%Ri]mulrA [(_^-1 * _)%Ri]mulrC.
-by rewrite !mulrA in Hok *.
-do 2![rewrite divrr; last by rewrite unitf_gt0 // pmulrz_rgt0 ?ltr01 //].
-by rewrite !mulr1 -!intrM ler_int.
-Qed.
+Proof. by move=> Hxy; apply/RleP; rewrite unfoldR; rewrite ler_rat. Qed.
 
 Lemma max_l (x0 y0 : rat) : rat2R x0 <= rat2R (Num.max x0 y0).
 Proof. by apply: rat2R_le; rewrite ler_maxr lerr. Qed.
