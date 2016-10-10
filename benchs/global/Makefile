@@ -24,6 +24,7 @@ EXS = $(EXSML:.ml=)
 LOGS = $(EXSML:.ml=_${NAME}_${TIMEOUT}s.log)
 LOGS_COQ = $(EXSML:.ml=_Coq_${TIMEOUT}s.log)
 LOGS_BERNSTEIN = $(EXSML:.ml=_Bernstein_${TIMEOUT}s.log)
+LOGS_MC11 = $(EXSML:.ml=_MC11_${TIMEOUT}s.log)
 LOGS_NLCNOCOQ = $(EXSML:.ml=_nlcnocoq_${TIMEOUT}s.log)
 LOGS_NLCCOQ = $(EXSML:.ml=_nlccoq_${TIMEOUT}s.log)
 
@@ -34,6 +35,8 @@ logs: $(LOGS)
 logs_coq: $(LOGS_COQ)
 
 logs_bernstein: $(LOGS_BERNSTEIN)
+
+logs_MC11: $(LOGS_MC11)
 
 logs_nlcnocoq: $(LOGS_NLCNOCOQ)
 
@@ -53,6 +56,10 @@ logs_nlccoq: $(LOGS_NLCCOQ)
 	rm -f $@ $(<:.pvs=.summary)
 	runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k $(PVS50COMMAND) $< > $@ 2>&1 || true
 
+%_MC11_${TIMEOUT}s.log: %.sage
+	rm -f $@
+	runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k sage $< > $@ 2>&1 || true
+
 %_nlcnocoq_${TIMEOUT}s.log: $(NLC_INEQ)
 	rm -f $@
 	perl -w -p -e 's|$(NLC_PATT)|$(NLC_INEQ)|;' ./param.transc.nocoq > $(NLC_PARAM)
@@ -64,6 +71,6 @@ logs_nlccoq: $(LOGS_NLCCOQ)
 	cd $(DIR_NLC) && runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k $(NLC) $(@:_nlccoq_${TIMEOUT}s.log=) > $(abspath $@) 2>&1 || true
 
 clean:
-	rm -rf _build *~ *.native *.cmi *.cmx *.o *.vo *.glob
+	rm -rf _build *~ *.native *.cmi *.cmx *.o *.vo *.glob sdp_problem.dat-s sdp_problem.result
 
 .PHONY: clean

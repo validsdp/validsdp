@@ -1,4 +1,4 @@
-(* This one fails *)
+(* This one fails (but workds with Csdp) *)
 
 module Sos = struct
   include Osdp.Sos.Q
