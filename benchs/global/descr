@@ -1,0 +1,8 @@
+# name nb_vars degree
+adaptativeLV 4 4
+butcher 6 4
+caprasse 4 4
+heart 8 4
+magnetism 7 2
+reaction 3 2
+schwefel 3 4
