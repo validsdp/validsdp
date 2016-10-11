@@ -8,7 +8,6 @@ cholesky_prog.v
 cholesky.v
 coqinterval_infnan.v
 fcmdotprod.v
-fdotprod.v
 float_infnan_spec.v
 float_spec.v
 flx64.v
@@ -21,7 +20,6 @@ real_matrix.v
 Rstruct.v
 seqmx_complements.v
 seqmx.v
-testsuite.v
 validsdp.v
 zulp.v
 # ellipsoid_error_infnan.v
