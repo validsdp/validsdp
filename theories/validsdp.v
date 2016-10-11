@@ -975,8 +975,6 @@ rewrite /= (eqF_signif_digits ref_f).
 by case: ifP.
 Qed.
 
-Require Import QArith.
-
 Lemma BigQ_check_int_den_neq0 n d :
   match BigQ.check_int n d with
     | BigQ.Qz _ => true
@@ -1385,9 +1383,61 @@ Global Instance param_ratBigQ_eq :
   refines (r_ratBigQ ==> r_ratBigQ ==> eq) eqtype.eq_op eq_op.
 Admitted.  (* ratBigQ =%C *)
 
+Lemma Z2int_mul_nat_of_pos (x : BinNums.Z) (y : positive) :
+  (Z2int x * nat_of_pos y)%Ri = Z2int (x * ' y)%coq_Z.
+Proof.
+rewrite /Z2int; case Ex: x.
+{ by rewrite mul0r Z.mul_0_l. }
+{ by rewrite /= -!binnat.to_natE Pos2Nat.inj_mul. }
+by rewrite /= mulNr  -!binnat.to_natE Pos2Nat.inj_mul.
+Qed.
+
+Lemma Z2int_le x y : (Z2int x <= Z2int y)%Ri <-> (x <= y)%coq_Z.
+Proof.
+rewrite /Z2int; case Ex: x; case Ey: y=> //.
+{ rewrite oppr_ge0; split; move=> H; exfalso; move: H; [|by rewrite /Z.le].
+  apply/negP; rewrite -ltrNge; apply nat_of_pos_gt0. }
+{ split; move=> H; exfalso; move: H; [|by rewrite /Z.le].
+  apply/negP; rewrite -ltrNge; apply nat_of_pos_gt0. }
+{ rewrite -!binnat.to_natE /Num.Def.ler /=.
+  by rewrite -!positive_nat_Z -Nat2Z.inj_le; split; [apply/leP|move/leP]. }
+{ split; move=> H; exfalso; move: H; [|by rewrite /Z.le].
+  apply /negP; rewrite -ltrNge.
+  apply (@ltr_trans _ 0%Ri); rewrite ?oppr_lt0; apply nat_of_pos_gt0. }
+{ rewrite oppr_le0; split; by rewrite /Z.le. }
+{ split=>_; [by rewrite /Z.le|].
+  by apply (@ler_trans _ 0%Ri); [apply oppr_le0|apply ltrW, nat_of_pos_gt0]. }
+rewrite ler_opp2; split.
+{ rewrite /Z.le /Z.compare -!binnat.to_natE /Num.Def.ler /= => /leP.
+  by rewrite -Pos.compare_antisym -Pos2Nat.inj_le -Pos.compare_le_iff. }
+rewrite /Z.le /Z.compare -!binnat.to_natE /Num.Def.ler /=.
+rewrite -Pos.compare_antisym=>H; apply/leP.
+by rewrite -Pos2Nat.inj_le -Pos.compare_le_iff.
+Qed.
+  
 Global Instance param_ratBigQ_max :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) Num.max max_op.
-Admitted.  (* ratBigQ max, Pierre *)
+Proof.
+apply refines_abstr2=> a b rab c d rcd.
+rewrite /max_op /max_bigQ /BigQ.max /Num.max.
+case E: (_ <= _)%Ri; case E': (_ ?= _)%bigQ=>//; exfalso.
+{ move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
+  move: E; rewrite -rba -rdc.
+  rewrite /Num.Def.ler /= /le_rat /numq /denq /=.
+  move: E'; rewrite BigQ.spec_compare Qred_compare -Qlt_alt /Qlt.
+  by rewrite !Z2int_mul_nat_of_pos=>H; move/Z2int_le; apply Zlt_not_le. }
+{ move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
+  move: E; rewrite -rba -rdc.
+  rewrite /Num.Def.ler /= /le_rat /numq /denq /=.
+  move: E'; rewrite BigQ.spec_compare Qred_compare -Qeq_alt /Qeq.
+  by rewrite !Z2int_mul_nat_of_pos=>->; rewrite lerr. }
+move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
+move: E; rewrite -rba -rdc.
+rewrite /Num.Def.ler /= /le_rat /numq /denq /=.
+move: E'; rewrite BigQ.spec_compare Qred_compare -Qgt_alt /Qlt.
+rewrite !Z2int_mul_nat_of_pos=>H.
+by move/negP /Z2int_le=>H'; apply H', Z.lt_le_incl.
+Qed.
 
 Lemma param_interp_poly n ap : vars_ltn n.+1 ap ->
   refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
