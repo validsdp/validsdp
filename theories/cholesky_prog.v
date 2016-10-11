@@ -1243,6 +1243,11 @@ Context `{!refines (eqFIS ==> eqFIS ==> bool_R) eq_instFIS eq_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS ==> bool_R) leq_instFIS leq_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS ==> bool_R) lt_instFIS lt_instFIS}.
 
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) addup_instFIS addup_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) subdn_instFIS subdn_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) mulup_instFIS mulup_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) divup_instFIS divup_instFIS}.
+
 Hypothesis eqFIS_P : forall x y, reflect (eqFIS x y) (eq_instFIS x y).
 
 
@@ -1393,6 +1398,35 @@ refines_apply.
 rewrite refinesE => ??->; exact: bool_Rxx.
 Qed.
 
+Global Instance refines_foldl_diag_seqmx n1 :
+  forall T' (eqf : T' -> T' -> Type),
+  refines ((eqf ==> eqFIS ==> eqf) ==> eqf ==> list_R (list_R eqFIS) ==> eqf)
+    (@foldl_diag _ _ (@hseqmx) (@fun_of_seqmx (FIS fs) (FIS0 fs)) n1.+1
+       (@I0_instN n1) (@succ0_instN n1) T')
+  (@foldl_diag _ _ (@hseqmx) (@fun_of_seqmx (FIS fs) (FIS0 fs)) n1.+1
+       (@I0_instN n1) (@succ0_instN n1) T').
+Proof.
+move=> T' eqf.
+refines_abstr.
+  rewrite /foldl_diag.
+  refines_apply1.
+  refines_apply1.
+  eapply refines_apply.
+  eapply param_iteri_ord'.
+  by rewrite refinesE.
+  rewrite /fun_of_op /fun_of_seqmx.
+  refines_abstr.
+  refines_apply1.
+  rewrite refinesE.
+  apply nth_R.
+  3: exact: refinesP.
+  reflexivity.
+  apply: nth_R.
+  done.
+  exact: refinesP.
+  exact: refinesP.
+Qed.
+
 Global Instance param_all_diag' :
   refines ((eqFIS ==> bool_R) ==> RseqmxC eqFIS rn' rn' ==> bool_R)
     (@all_diag _ _ _ (@fun_of_ssr _) n1.+1 (@I0_ssr n1) (@succ0_ssr n1))
@@ -1406,35 +1440,13 @@ ref_abstr => f f' ref_f.
 ref_abstr => a a' ref_a.
 refines_apply1.
 ref_abstr => b b' ref_b.
-eapply refines_apply.
-2: apply ref_b.
-refines_apply1.
-refines_apply1.
-{ (* TODO: extract to some lemma
-|- refines (list_R (list_R eqFIS) ==> bool_R)
-    (foldl_diag (fun (b : bool) (c : FIS fs) => b && f c) true)
-    (foldl_diag (fun (b : bool) (c : FIS fs) => b && f c) true)
-*)
-  refines_abstr.
-  rewrite /foldl_diag.
-  refines_apply1.
-  refines_apply1.
-  refines_apply1.
-  by rewrite refinesE /Rord =>//.
-  rewrite /fun_of_op /fun_of_seqmx.
-  refines_abstr.
-  refines_apply1.
-  rewrite refinesE.
-  apply nth_R.
-  3: exact: refinesP.
-  shelve.
-  apply: nth_R.
-  done.
-  exact: refinesP.
-  exact: refinesP. }
-refines_abstr.
-Unshelve.
-reflexivity.
+refines_apply.
+rewrite refinesE => c c' ref_c d d' ref_d.
+suff_eq bool_Rxx.
+f_equal.
+by case: ref_c.
+eapply refinesP, refines_bool_eq.
+refines_apply.
 Qed.
 
 Global Instance param_max_diag :
@@ -1478,6 +1490,49 @@ by rewrite refinesE => ??-> ??->.
 by rewrite refinesE; reflexivity.
 Qed.
 
+Global Instance param_compute_c_aux' :
+  refines (RseqmxC eqFIS rn' rn' ==> eqFIS ==> eqFIS)
+    (@compute_c_aux _ _ _ (FIS0 fs) (FIS1 fs) (@fiopp fs)
+       (@fun_of_ssr (FIS fs)) n1.+1
+       (@I0_ssr n1) (@succ0_ssr n1) (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs)
+       (float_of_nat_up fs) (fieps fs) (fieta fs))
+    (@compute_c_aux _ _ (@hseqmx) (FIS0 fs) (FIS1 fs) (@fiopp fs)
+       (@fun_of_seqmx (FIS fs) (FIS0 fs)) n2.+1
+       (@I0_instN n2) (@succ0_instN n2) (@fiplus_up fs) (@fimult_up fs) (@fidiv_up fs)
+       (float_of_nat_up fs) (fieps fs) (fieta fs)).
+Proof.
+refines_trans.
+ref_abstr => a a' ref_a.
+ref_abstr => b b' ref_b.
+rewrite /compute_c_aux.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+eapply refines_apply.
+2: rewrite refinesE; reflexivity.
+eapply refines_apply.
+2: rewrite refinesE; reflexivity.
+rewrite refinesE =>??-> ??->.
+reflexivity.
+refines_apply1.
+rewrite /tr_up.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+eapply refines_apply.
+2: rewrite refinesE; reflexivity.
+eapply refines_apply.
+2: rewrite refinesE; reflexivity.
+rewrite refinesE =>??-> ??->.
+reflexivity.
+eapply refines_apply.
+2: tc.
+eapply refines_apply.
+tc.
+rewrite refinesE; reflexivity.
+Qed.
+
 
 Global Instance param_compute_c :
   refines (Rseqmx rn' rn' ==> eq)
@@ -1500,7 +1555,7 @@ by rewrite -(nat_R_eq rn').
 Qed.
 
 Global Instance param_compute_c' :
-  refines (RseqmxC eqFIS rn' rn' ==> eq)
+  refines (RseqmxC eqFIS rn' rn' ==> option_R eqFIS)
     (@compute_c (FIS fs) _ _
        (@zero_instFIS fs) (@one_instFIS fs) (@opp_instFIS fs)
        (@fun_of_ssr (FIS fs)) n1.+1 (@I0_ssr n1)
@@ -1518,11 +1573,13 @@ set ca := compute_c_aux _ _ a _.
 set ca' := compute_c_aux _ _ a' _.
 case: finite =>//=.
 case: (addup _ _ < 0)%C =>//.
+2: constructor.
+2: constructor.
 have->: finite ca = finite ca'.
 { eapply refinesP, refines_bool_eq. refines_apply1.
-  admit. }
-admit.
-Admitted.
+  refines_apply1.
+  refines_apply1.
+  admit. admit. } Admitted. (* seqmx/eqFIS refinement *)
 
 Global Instance param_map_diag :
   refines ((eq ==> eq) ==> Rseqmx rn' rn' ==> Rseqmx rn' rn')
@@ -1638,21 +1695,24 @@ ref_abstr => r r' ref_r.
 eapply refines_apply; [eapply refines_apply|].
 { apply (param_posdef_check_itv_aux (rn:=nat_Rxx n)). }
 2: done.
-admit; rewrite refinesE; split.
-Admitted.
+Admitted. (* nat_Rxx n.+1 vs. nat_R_S_R (nat_Rxx n) *)
+
+Global Instance refines_posdef_check_itv_seqmx n :
+  refines (list_R (list_R eqFIS) ==> eqFIS ==> bool_R)
+    (posdef_check_itv_seqmx (n:=n) (fieps fs) (fieta fs) (@finite fs))
+    (posdef_check_itv_seqmx (n:=n) (fieps fs) (fieta fs) (@finite fs)).
+Proof.
+refines_abstr.
+rewrite refinesE.
+suff_eq bool_Rxx.
+rewrite /posdef_check_itv_seqmx.
+Admitted. (* seqmx/eqFIS refinement *)
 
 Global Instance refines_posdef_check_itv' n :
   refines (RseqmxC eqFIS (nat_Rxx n.+1) (nat_Rxx n.+1) ==> eqFIS ==> bool_R)
     (@posdef_check_itv_ssr fs n)
     (posdef_check_itv_seqmx (n:=n) (fieps fs) (fieta fs) (@finite fs)).
-Proof.
-refines_trans.
-refines_abstr.
-rewrite refinesE.
-suff_eq bool_Rxx.
-rewrite /posdef_check_itv_seqmx.
-admit.
-Admitted.
+Proof. by refines_trans. Qed.
 
 End refinement_cholesky_2.
 

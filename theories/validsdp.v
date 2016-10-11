@@ -921,7 +921,7 @@ Definition id1 {T} (x : T) := x.
 Definition r_QbigQ := fun_hrel BigQ.to_Q.
 
 Instance : refines (eq ==>  BigQ.eq) (rat2bigQ \o bigQ2rat) id.
-Admitted.
+Admitted. (* rat2bigQ \o bigQ2rat *)
 
 Definition eqF (a b : F.type) := F.toX a = F.toX b.
 Definition eqFI (a b : FI) := F.toX a = F.toX b.
@@ -943,9 +943,7 @@ Lemma eqF_signif_digits m e m' e' :
 Proof.
 move=> HeqF.
 apply/idP/idP; move/signif_digits_correct => H; apply/signif_digits_correct.
-admit.
-admit.
-Admitted.
+Admitted. (* signif_digits *)
 
 Instance : refines (eqF ==> eqFI) F2FI F2FI.
 rewrite refinesE => f f' ref_f.
@@ -959,7 +957,7 @@ by case: ifP.
 Qed.
 
 Instance : refines (BigQ.eq ==> eqF) bigQ2F' bigQ2F'. (* morphism! *)
-Admitted.
+Admitted. (* bigQ2F' morphism *)
 
 Instance : refines (r_ratBigQ ==> eqFIS) rat2FIS bigQ2FIS.
 Proof.
@@ -1111,8 +1109,8 @@ Context {F2A : F -> A}.  (* exact conversion for finite values *)
 Context {A2F : A -> F}.  (* overapproximation *)
 Context {F2C : F -> C}.  (* exact conversion for finite values *)
 Context {C2F : C -> F}.  (* overapproximation *)
-Context `{!refines (eq ==> rAC) F2A F2C}.
 Variable eq_F : F -> F -> Prop.
+Context `{!refines (eq_F ==> rAC) F2A F2C}.
 Context `{!refines (rAC ==> eq_F) A2F C2F}.
 
 (* TODO: move *)
@@ -1159,6 +1157,34 @@ Ltac refines_apply_tc0 :=
 Ltac refinesP_apply_tc0 :=
   eapply refinesP; refines_apply_tc0.
 (*****************************************************************************)
+(*
+Instance : Equivalence eqFIS.
+constructor.
+done.
+by red => x y; symmetry.
+by red => x y z H1 H2; red; transitivity (F.toX y).
+Qed. *)
+
+Let eqFIS := eq_F.
+Context `{!Equivalence eqFIS}.
+Context `{!refines (eqFIS) zero_instFIS zero_instFIS}.
+Context `{!refines (eqFIS) one_instFIS one_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS) opp_instFIS opp_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS) sqrt_instFIS sqrt_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) add_instFIS add_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) mul_instFIS mul_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) div_instFIS div_instFIS}.
+Context `{ref_fin : !refines (eqFIS ==> bool_R) (@finite fs) (@finite fs)}.
+Context `{!refines (eqFIS ==> eqFIS ==> bool_R) eq_instFIS eq_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> bool_R) leq_instFIS leq_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> bool_R) lt_instFIS lt_instFIS}.
+
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) addup_instFIS addup_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) subdn_instFIS subdn_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) mulup_instFIS mulup_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) divup_instFIS divup_instFIS}.
+
+Hypothesis eqFIS_P : forall x y, reflect (eqFIS x y) (eq_instFIS x y).
 
 Lemma param_soscheck :
   refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (*(nat_R_S_R nat_R_O_R)*) (nat_Rxx 1) ==> RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==> bool_R)
@@ -1172,22 +1198,39 @@ apply f_equal2; [by apply refinesP; refines_apply_tc|].
 eapply refinesP, refines_bool_eq.
 eapply refines_apply.
 eapply refines_apply.
-eapply refines_posdef_check_itv with (eqFIS := eq_F).
-admit. (* Equivalence *)
-admit. (* the following admits should be section hypotheses *)
-admit.
-admit.
-admit.
-admit.
-admit.
-admit.
-admit.
-admit.
-admit.
-admit.
-admit.
-
-Admitted. (*
+eapply (refines_posdef_check_itv' (fs := fs) (eqFIS := eqFIS) _ (F := FIS fs)).
+admit. (* this admit should be unnecessary *)
+rewrite refinesE //.
+eapply refines_apply; first tc.
+eapply refines_apply. tc.
+eapply refines_apply. tc.
+eapply refines_apply.
+eapply refines_apply.
+eapply refines_apply. tc.
+eapply refines_apply.
+eapply refines_apply. tc.
+eapply refines_apply.
+eapply refines_apply. tc.
+eapply refines_apply. tc.
+eapply refines_apply.
+eapply refines_apply. tc. tc. tc.
+eapply refines_apply.
+eapply refines_apply. tc.
+refines_abstr =>/=.
+refines_apply.
+by rewrite refinesE.
+refines_apply.
+by rewrite refinesE.
+by rewrite refinesE.
+Unshelve.
+exact: eqFIS_P.
+exact: id.
+admit. (* this evar should be unnecessary *) Admitted.
+(*
+refines_apply.
+eapply refines_apply.
+rewrite /max_coeff.
+refines_apply1.
 (* refines_apply_tc. *)
 refines_apply_tc0.
 (* refines_apply_tc. *)
@@ -1228,27 +1271,27 @@ Proof. rewrite refinesE /r_ratBigQ /bigQ2rat; red; exact: val_inj. Qed.
 
 Global Instance param_ratBigQ_opp : refines (r_ratBigQ ==> r_ratBigQ) -%R -%C.
 Proof.
-Admitted. (* Erik *)
+Admitted. (* ratBigQ -%C *)
 
 Global Instance param_ratBigQ_add :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) +%R +%C.
-Admitted.  (* Erik *)
+Admitted.  (* ratBigQ +%C *)
 
 Global Instance param_ratBigQ_sub :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) (fun x y => x - y)%R sub_op.
-Admitted.  (* Erik *)
+Admitted.  (* ratBigQ -%C *)
 
 Global Instance param_ratBigQ_mul :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) *%R *%C.
-Admitted.  (* Erik *)
+Admitted.  (* ratBigQ *%C *)
 
 Global Instance param_ratBigQ_eq :
   refines (r_ratBigQ ==> r_ratBigQ ==> eq) eqtype.eq_op eq_op.
-Admitted.  (* Erik *)
+Admitted.  (* ratBigQ =%C *)
 
 Global Instance param_ratBigQ_max :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) Num.max max_op.
-Admitted.  (* Erik *)
+Admitted.  (* ratBigQ max *)
 
 Lemma param_interp_poly n ap : vars_ltn n.+1 ap ->
   refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
@@ -1385,19 +1428,19 @@ apply: (etrans (y := @soscheck_eff n'.+1 _
 { by rewrite -/n' /n in Hsos; apply Hsos. }
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1; first refines_apply1.
-{ apply param_soscheck with (C2A := bigQ2rat); tc.
-  admit. (* easy *) }
+{ apply param_soscheck with (C2A := bigQ2rat); tc; admit. (* easy *) }
 { by apply param_interp_poly; rewrite prednK ?lt0n. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /za.
     by apply/allP => x /mapP [y Hy] ->. }
   apply: listR_seqmultinom_map.
   by rewrite prednK ?lt0n // size_map eqxx /= /za. }
-(*
+refines_trans.
 rewrite refinesE; eapply Rseqmx_spec_seqmx.
 { rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
-by rewrite lt0n. *)
+admit. (* easy *)
+  by rewrite lt0n.
 Admitted.
 
 Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.
