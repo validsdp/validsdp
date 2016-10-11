@@ -868,14 +868,30 @@ Lemma rat2FIS_correct r :
   @finite fs (rat2FIS r) ->
   rat2R r <= FS_val (@FIS2FS fs (rat2FIS r)).
 Proof.
+Opaque F.div.
 move => Hr; have := real_FtoX_toR Hr.
 rewrite F2FI_correct //=.
 rewrite /rat2bigQ /ratr.
 set n := numq r; set d := denq r.
-Opaque F.div.
 rewrite /bigQ2F' /=.
-Transparent F.div.
-rewrite F2FI_valE; last exact/mantissa_boundedP/fidiv_proof.
+rewrite F2FI_valE; last first.
+{ apply/mantissa_boundedP; rewrite /bigQ2F.
+  set r' := BigQ.red _; case r'=>[t|t t0]; apply/fidiv_proof. }
+move=>->/=; rewrite /bigQ2F.
+set nr := BigQ.red _; case E': nr=>/=.
+{ admit. }
+admit.
+(*
+case E: BigN.eqb; [|rewrite {E}].
+{ rewrite /=; set dr := d%:~R.
+  suff->: (dr = 0)%Ri.
+  { rewrite invr_out ?mulr0; [by right|].
+    rewrite negbT=>//; apply unitr0. }
+  rewrite /dr; move: E; rewrite BigN.spec_eqb Z.eqb_eq -Z2R_int2Z=> E.
+  rewrite -[0%Ri]/(Z2R 0); f_equal; move: E.
+  rewrite BigN.spec_N_of_Z /d =>//.
+  apply /Z.leb_le.
+  by rewrite -[Z0]/(int2Z 0) int2Z_le denq_ge0. }
 rewrite !F.div_correct /Xround.
 case E: Xdiv =>[//|x] /= _.
 set xq := (n%:~R / d%:~R)%Ri.
@@ -892,6 +908,9 @@ by change Z0 with (int2Z 0%Ri); rewrite int2Z_le denq_ge0.
 rewrite Z2R_int2Z !Rsimpl unfoldR' //.
 by apply/eqP/negbT; rewrite intr_eq0 denq_eq0.
 Qed.
+ *)
+Transparent F.div.
+Admitted.
 
 (* TODO: move *)
 Lemma Q2R_0 : Q2R 0%Qrat = 0%Re.
@@ -956,8 +975,85 @@ rewrite /= (eqF_signif_digits ref_f).
 by case: ifP.
 Qed.
 
-Instance : refines (BigQ.eq ==> eqF) bigQ2F' bigQ2F'. (* morphism! *)
-Admitted. (* bigQ2F' morphism *)
+Require Import QArith.
+
+Lemma BigQ_check_int_den_neq0 n d :
+  match BigQ.check_int n d with
+    | BigQ.Qz _ => true
+    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
+  end.
+Proof.
+rewrite /BigQ.check_int.
+case E: (_ ?= _)%bigN=>//.
+move: E; rewrite BigN.compare_lt_iff=> E.
+apply/negP; rewrite /is_true BigN.eqb_eq=> H.
+apply (BigN.lt_irrefl BigN.one).
+by apply (BigN.lt_trans _ BigN.zero); [rewrite -H|apply BigN.lt_0_1].
+Qed.
+
+Lemma BigQ_norm_den_neq0 n d :
+  match BigQ.norm n d with
+    | BigQ.Qz _ => true
+    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
+  end.
+Proof.
+case E: (BigQ.norm _ _)=>//; apply negbT; move: E; rewrite /BigQ.norm.
+case E: (_ ?= _)%bigN.
+{ by move=> H; move: (BigQ_check_int_den_neq0 n d); rewrite H /= =>/negbTE. }
+{ set n' := (_ / _)%bigZ; set d' := (_ / _)%bigN.
+  by move=> H; move: (BigQ_check_int_den_neq0 n' d'); rewrite H /= =>/negbTE. }
+by [].
+Qed.
+
+Lemma BigQ_red_den_neq0 q :
+  match BigQ.red q with
+    | BigQ.Qz _ => true
+    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
+  end.
+Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0. Qed.
+
+Instance : refines (BigQ.eq ==> eqF) bigQ2F' bigQ2F'.
+Proof.
+Opaque F.div.
+rewrite refinesE => a b /BigQ.eqb_eq; rewrite BigQ.spec_eq_bool.
+rewrite /bigQ2F' /bigQ2F /= => rab.
+pose m := fun x => match BigQ.red x with
+                    | BigQ.Qz m => (m, 1%bigN)
+                    | (m # n)%bigQ => (m, n)
+                  end.
+rewrite -/(m a) -/(m b).
+pose f := fun (mn : bigZ * bigN) => let (m, n) := mn in ([m]%bigZ, [n]%bigN).
+suff H : f (m a) = f (m b).
+{ move: H; rewrite /f; case (m a), (m b); case=> H1 H2.
+  rewrite /eqF !F.div_correct.
+  do 4 rewrite real_FtoX_toR ?toR_Float=>//.
+  by rewrite H1 /= H2. }
+rewrite /f /m.
+have Hred: Qred [a]%bigQ = Qred [b]%bigQ.
+{ by apply Qred_complete, Qeq_bool_iff. }
+have H: [BigQ.red a]%bigQ = [BigQ.red b]%bigQ.
+{ by rewrite !BigQ.strong_spec_red. }
+case Ea: (BigQ.red a); case Eb: (BigQ.red b).
+{ by move: H; rewrite Ea Eb /=; case=>->. }
+{ move: H; rewrite Ea Eb /=.
+  case E: (_ =? _)%bigN.
+  { by move: (BigQ_red_den_neq0 b); rewrite Eb E. }
+  case=> ->; rewrite -Z2Pos.inj_1 Z2Pos.inj_iff; [by move<-|done|].
+  by apply BigQ.N_to_Z_pos; rewrite -Z.eqb_neq -BigN.spec_eqb. }
+{ move: H; rewrite Ea Eb /=.
+  case E: (_ =? _)%bigN.
+  { by move: (BigQ_red_den_neq0 a); rewrite Ea E. }
+  case=> ->; rewrite -Z2Pos.inj_1 Z2Pos.inj_iff; [by move->| |done].
+  by apply BigQ.N_to_Z_pos; rewrite -Z.eqb_neq -BigN.spec_eqb. }
+move: H; rewrite Ea Eb /=.
+case E: (_ =? _)%bigN.
+{ by move: (BigQ_red_den_neq0 a); rewrite Ea E. }
+case E': (_ =? _)%bigN.
+{ by move: (BigQ_red_den_neq0 b); rewrite Eb E'. }
+case=>->; rewrite Z2Pos.inj_iff; [by move->| |];
+  by apply BigQ.N_to_Z_pos; rewrite -Z.eqb_neq -BigN.spec_eqb.
+Transparent F.div.
+Qed.
 
 Instance : refines (r_ratBigQ ==> eqFIS) rat2FIS bigQ2FIS.
 Proof.
@@ -1291,7 +1387,7 @@ Admitted.  (* ratBigQ =%C *)
 
 Global Instance param_ratBigQ_max :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) Num.max max_op.
-Admitted.  (* ratBigQ max *)
+Admitted.  (* ratBigQ max, Pierre *)
 
 Lemma param_interp_poly n ap : vars_ltn n.+1 ap ->
   refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
@@ -2211,6 +2307,7 @@ rewrite /sigma1'.
 Time do_sdp. (* 14.2 s on Erik's laptop 21 *)
 Time Qed. (* 3.5 s 6 *)
 
+(*
 Lemma p_ind' (x0 x1 : R) : ((p' (1/2 * (x0)^3 + 2/5 * (x1)^2)
                                 (-3/5 * (x0)^2 + 3/10 * (x1)^2))
        - (sigma' x0 x1)
@@ -2219,3 +2316,4 @@ Lemma p_ind' (x0 x1 : R) : ((p' (1/2 * (x0)^3 + 2/5 * (x1)^2)
 rewrite /p' /sigma' /sigma1'.
 Time do_sdp. (* 24 s on Erik's laptop *)
 Time Qed. (* 5.5 s *)
+ *)

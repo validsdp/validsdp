@@ -1757,11 +1757,13 @@ Definition posdef_check_itv4_coqinterval' (M : seq (seq (FIS fris))) (r : (FIS f
 Definition prec := 53%bigZ.
 
 Definition bigQ2F (q : bigQ) : F.type * F.type :=
-  match q with
-  | BigQ.Qz m => let m0 := Interval_specific_ops.Float m Bir .exponent_zero in (m0, m0)
-  | BigQ.Qq m n => let m0 := Interval_specific_ops.Float m Bir.exponent_zero in
-                   let n0 := Interval_specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
-                   (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0)
-  end.
+  let (m, n) :=
+      match BigQ.red q with
+        | BigQ.Qz m => (m, 1%bigN)
+        | BigQ.Qq m n => (m, n)
+      end in
+  let m0 := Interval_specific_ops.Float m Bir.exponent_zero in
+  let n0 := Interval_specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
+  (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0).
 
 End refinement_cholesky_3.
