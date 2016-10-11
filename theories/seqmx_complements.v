@@ -157,6 +157,8 @@ case: j IHs => [|j] IHs //=; case: k IHs => [|k] IHs //=.
 by rewrite size_store_aux.
 Qed.
 
+Require Import Equivalence RelationClasses Morphisms.
+
 Global Instance store_ssr : store_of A ordinal (matrix A) :=
   fun m n (M : 'M[A]_(m, n)) (i : 'I_m) (j : 'I_n) v =>
   \matrix_(i', j')
@@ -167,7 +169,7 @@ Global Instance Rseqmx_store_seqmx
   refines (Rseqmx rm rn ==> Rord rm ==> Rord rn ==> eq ==> Rseqmx rm rn)
     (@store_ssr m1 n1) (@store_seqmx A m2 n2).
 Proof.
-rewrite refinesE=> _ _ [M sM h1 h2 h3] i _ <- j _ <- v _ <-.
+rewrite refinesE =>_ _ [M sM h1 h2 h3] i _ <- j _ <- v _ <-.
 constructor=>[|i' Hi'|i' j'].
 { by rewrite size_store_seqmx0. }
 { by rewrite size_nth_store_seqmx0; apply h2. }
@@ -187,8 +189,14 @@ Context `{eq_of A}.
 Global Instance heq_ssr : heq_of (matrix A) :=
   fun n1 n2 a b => [forall i, [forall j, (a i j == b i j)%C]].
 
+(* TODO: to move *)
+Ltac suff_eq Rxx :=
+  match goal with
+  | [ |- ?R ?a ?b ] => let H := fresh in suff H : a = b by rewrite H; eapply Rxx
+  end.
+
 Global Instance Rseqmx_heq_op m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (Rseqmx rm rn ==> Rseqmx rm rn ==> eq)
+  refines (Rseqmx rm rn ==> Rseqmx rm rn ==> bool_R)
     (@heq_ssr m1 n1) (heq_seqmx (n:=n2)).
 Proof.
 rewrite refinesE=> _ _ [a a' ha1 ha2 ha3] _ _ [b b' hb1 hb2 hb3].
@@ -196,6 +204,7 @@ rewrite /heq_ssr /heq_seqmx.
 rewrite eq_seqE; [|by rewrite ha1 hb1].
 have SzAs : seq.size (zip a' b') = m2.
 { by rewrite size1_zip ha1 // hb1. }
+suff_eq bool_Rxx.
 apply/idP/idP.
 { move/forallP=> H1; apply/all_nthP=> i; rewrite SzAs=> Hi.
   rewrite (nth_zip [::] [::]) ?hb1 //= eq_seqE ?ha2 ?hb2 //.
@@ -221,6 +230,29 @@ Section seqmx_param.
 
 Context (C : Type) (rAC : A -> C -> Type).
 Context `{!zero_of C, !spec_of C A}.
+
+Context `{!eq_of C}.
+
+(*
+Global Instance RseqmxC_heq_op m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+  refines (RseqmxC rAC rm rn ==> RseqmxC rAC rm rn ==> bool_R)
+    (@heq_ssr m1 n1) (heq_seqmx (n:=n2)).
+Proof.
+refines_trans.
+refines_abstr.
+rewrite refinesE; suff_eq bool_Rxx.
+
+rewrite /heq_seqmx.
+eapply Rseqmx_heq_op.
+rewrite refinesE; suff_eq bool_Rxx; apply refinesP.
+refines_abstr.
+refines_apply.
+refines_trans.
+refines_abstr.
+refines_apply.
+eapply Rseqmx_heq_op.
+tc
+ *)
 
 Lemma RseqmxC_spec_seqmx m n (M : @seqmx C) :
   (size M == m) && all (fun r => size r == n) M ->

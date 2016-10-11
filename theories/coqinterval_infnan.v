@@ -837,6 +837,8 @@ Definition coqinterval_infnan : Float_infnan_spec :=
     ficompare_spec_eq
     ficompare_spec_eq_f.
 
+Definition FI2FIS (x : FI) : FIS coqinterval_infnan := x.
+
 Definition fieps := Build_FI (mantissa_bounded_bpow (-53)%bigZ).
 
 Lemma fieps_spec :

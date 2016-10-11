@@ -845,11 +845,11 @@ Definition rat2bigQ (q : rat) : bigQ :=
   (n # d)%bigQ.
 
 Definition bigQ2F' := snd \o bigQ2F.
-Definition bigQ2FI := F2FI \o bigQ2F'.
-Definition rat2FI := bigQ2FI \o rat2bigQ.
+Definition bigQ2FIS := FI2FIS \o F2FI \o bigQ2F'.
+Definition rat2FIS := bigQ2FIS \o rat2bigQ.
 
-Definition FI2bigQ := F2bigQ \o FI_val.
-Definition FI2rat := bigQ2rat \o FI2bigQ.
+Definition FIS2bigQ : FIS coqinterval_infnan -> bigQ := F2bigQ \o FI_val.
+Definition FIS2rat : FIS coqinterval_infnan -> rat := bigQ2rat \o FIS2bigQ.
 
 (* Erik: [toR] could be proved extensionnaly equal to [F_val \o FI2F]. *)
 
@@ -864,9 +864,9 @@ Qed.
 Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z then n else Z0.
 Proof. by rewrite -[RHS](BigZ.spec_of_Z); case: n. Qed.
 
-Lemma rat2FI_correct r :
-  @finite fs (rat2FI r) ->
-  rat2R r <= FS_val (@FIS2FS fs (rat2FI r)).
+Lemma rat2FIS_correct r :
+  @finite fs (rat2FIS r) ->
+  rat2R r <= FS_val (@FIS2FS fs (rat2FIS r)).
 Proof.
 move => Hr; have := real_FtoX_toR Hr.
 rewrite F2FI_correct //=.
@@ -897,8 +897,8 @@ Qed.
 Lemma Q2R_0 : Q2R 0%Qrat = 0%Re.
 Proof. by rewrite /Q2R /= /Rdiv Rmult_0_l. Qed.
 
-Lemma rat2R_FI2rat :
- forall x0 : FIS fs, rat2R (FI2rat x0) = FS_val (FI2FS x0).
+Lemma rat2R_FIS2rat :
+ forall x0 : FIS fs, rat2R (FIS2rat x0) = FS_val (FI2FS x0).
 Proof.
 move=> x; rewrite -bigQ2R_rat /bigQ2R.
 case: x => -[|m e] H /=.
@@ -906,14 +906,14 @@ case: x => -[|m e] H /=.
   case: H => H.
   by rewrite Q2R_0.
   by case: H => r H1 H2 /=; rewrite /F.toX /= in H1 *. }
-rewrite /FI2bigQ /=.
+rewrite /FIS2bigQ /=.
 move/mantissa_boundedP in H.
 case: H => H /=; first by rewrite real_FtoX_toR in H.
 case: H => r H1 H2 /=.
 by rewrite bigZZ2Q_correct toR_Float.
 Qed.
 
-Instance : refines (eq ==> r_ratBigQ) FI2rat FI2bigQ.
+Instance : refines (eq ==> r_ratBigQ) FIS2rat FIS2bigQ.
 Proof. by rewrite refinesE => ? ? ->. Qed.
 
 Definition id1 {T} (x : T) := x.
@@ -925,6 +925,7 @@ Admitted.
 
 Definition eqF (a b : F.type) := F.toX a = F.toX b.
 Definition eqFI (a b : FI) := F.toX a = F.toX b.
+Definition eqFIS (a b : FIS coqinterval_infnan) := F.toX a = F.toX b.
 
 Lemma FI_val_inj : injective FI_val.
 Proof.
@@ -960,18 +961,19 @@ Qed.
 Instance : refines (BigQ.eq ==> eqF) bigQ2F' bigQ2F'. (* morphism! *)
 Admitted.
 
-Instance : refines (r_ratBigQ ==> eqFI) rat2FI bigQ2FI.
+Instance : refines (r_ratBigQ ==> eqFIS) rat2FIS bigQ2FIS.
 Proof.
-rewrite /rat2FI .
+rewrite /rat2FIS .
 rewrite refinesE => x x' ref_x /=.
 rewrite -[x']/(id1 x') -ref_x.
-rewrite -[bigQ2FI _]/(bigQ2FI ((rat2bigQ \o bigQ2rat) x')).
+rewrite -[bigQ2FIS _]/(bigQ2FIS ((rat2bigQ \o bigQ2rat) x')).
 apply refinesP.
 refines_apply1.
-rewrite /bigQ2FI.
+rewrite /bigQ2FIS.
 rewrite refinesE => y y' ref_y /=.
 apply refinesP.
 refines_apply1.
+by rewrite refinesE.
 by refines_apply1; rewrite refinesE.
 Qed.
 
@@ -1110,11 +1112,8 @@ Context {A2F : A -> F}.  (* overapproximation *)
 Context {F2C : F -> C}.  (* exact conversion for finite values *)
 Context {C2F : C -> F}.  (* overapproximation *)
 Context `{!refines (eq ==> rAC) F2A F2C}.
-Context `{!refines (rAC ==> eq) A2F C2F}.
-(*
-Variable eqF : F -> F -> Prop. (* TODO: rather use [Type] *)
-Context `{!refines (rAC ==> eqF) A2F C2F}.
- *)
+Variable eq_F : F -> F -> Prop.
+Context `{!refines (rAC ==> eq_F) A2F C2F}.
 
 (* TODO: move *)
 Lemma list_Rxx T (rT : T -> T -> Type) l : (forall x, rT x x) -> list_R rT l l.
@@ -1162,14 +1161,33 @@ Ltac refinesP_apply_tc0 :=
 (*****************************************************************************)
 
 Lemma param_soscheck :
-  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (*(nat_R_S_R nat_R_O_R)*) (nat_Rxx 1) ==> Rseqmx (nat_Rxx s.+1) (nat_Rxx s.+1) ==> eq)
+  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (*(nat_R_S_R nat_R_O_R)*) (nat_Rxx 1) ==> RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==> bool_R)
     (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
     (soscheck_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
 Proof.
 rewrite refinesE=> p p' rp z z' rz Q Q' rQ.
 rewrite /soscheck_ssr /soscheck_eff /soscheck.
+suff_eq bool_Rxx.
 apply f_equal2; [by apply refinesP; refines_apply_tc|].
-eapply refinesP.
+eapply refinesP, refines_bool_eq.
+eapply refines_apply.
+eapply refines_apply.
+eapply refines_posdef_check_itv with (eqFIS := eq_F).
+admit. (* Equivalence *)
+admit. (* the following admits should be section hypotheses *)
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+
+Admitted. (*
 (* refines_apply_tc. *)
 refines_apply_tc0.
 (* refines_apply_tc. *)
@@ -1196,7 +1214,7 @@ eapply refines_apply; [eapply refines_apply|].
 refines_apply_tc.
 by rewrite refinesE.
 by rewrite refinesE.
-Qed.
+*)
 
 End refinement_soscheck.
 
@@ -1355,8 +1373,8 @@ pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s.+1 s.+1 Qa.
 rewrite interp_correct; last by rewrite ?lt0n.
 apply soscheck_correct with
   (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
-  (2 := rat2FI_correct)
-  (3 := rat2R_FI2rat)
+  (2 := rat2FIS_correct)
+  (3 := rat2R_FIS2rat)
   (4 := max_l)
   (5 := max_r)
   (z := zb)
@@ -1365,19 +1383,21 @@ apply: (etrans (y := @soscheck_eff n'.+1 _
   zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs
   (F2bigQ \o FI_val) (F2FI \o bigQ2F') bp za Qa)); last first.
 { by rewrite -/n' /n in Hsos; apply Hsos. }
-apply refines_eq.
+apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1; first refines_apply1.
-{ apply param_soscheck; tc. admit. }
+{ apply param_soscheck with (C2A := bigQ2rat); tc.
+  admit. (* easy *) }
 { by apply param_interp_poly; rewrite prednK ?lt0n. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /za.
     by apply/allP => x /mapP [y Hy] ->. }
   apply: listR_seqmultinom_map.
   by rewrite prednK ?lt0n // size_map eqxx /= /za. }
+(*
 rewrite refinesE; eapply Rseqmx_spec_seqmx.
 { rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
-by rewrite lt0n.
+by rewrite lt0n. *)
 Admitted.
 
 Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.
