@@ -4,13 +4,15 @@ Open Scope N_scope.
 
 Goal True.
 Proof.
-Fail soswitness of ([::] : seq (seq N * BigQ.t_)) as y.
+(*
+  Fail soswitness of ([::] : seq (seq N * BigQ.t_)) as y.
 set (p := [:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]).
 Fail soswitness of p as y'.
 Fail soswitness of [:: ([:: 0; 0; 0; 0], 3%bigZ)] as y.
 Fail soswitness of [:: ([:: 0; 0; 0; 0], 3%bigQ)] as y.
 Fail soswitness of [:: ([:: 0; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ); ([:: 2; 1], (-12)%bigQ)] as y'.
 soswitness of [:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)] as y.
+*)
 Abort.
 
 (*
