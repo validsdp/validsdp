@@ -1,4 +1,5 @@
 TODO: how to install and launch benchmarks
++ runlim
 
 ./logs2tex > table.tex
 pdflatex benchs.tex

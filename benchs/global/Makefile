@@ -10,7 +10,7 @@ NAME = Sdpa
 # Timeout in s
 TIMEOUT = 900
 # Memlimit in MB
-MEMLIMIT = 7168
+MEMLIMIT = 4096
 
 # End of parameters
 
@@ -21,7 +21,7 @@ NLC_INEQ = $(abspath ./input.ineq)
 
 EXSML = $(shell find . -name "*.ml" | grep -v "parse.ml" | grep -v "_build/")
 EXS = $(EXSML:.ml=)
-LOGS = $(EXSML:.ml=_${NAME}_${TIMEOUT}s.log)
+LOGS_OSDP = $(EXSML:.ml=_${NAME}_${TIMEOUT}s.log)
 LOGS_COQ = $(EXSML:.ml=_Coq_${TIMEOUT}s.log)
 LOGS_BERNSTEIN = $(EXSML:.ml=_Bernstein_${TIMEOUT}s.log)
 LOGS_MC11 = $(EXSML:.ml=_MC11_${TIMEOUT}s.log)
@@ -30,7 +30,9 @@ LOGS_NLCCOQ = $(EXSML:.ml=_nlccoq_${TIMEOUT}s.log)
 
 all: logs
 
-logs: $(LOGS)
+logs: logs_osdp
+
+logs_osdp: $(LOGS_OSDP)
 
 logs_coq: $(LOGS_COQ)
 

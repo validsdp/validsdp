@@ -68,6 +68,5 @@ for fnd in ${DESCRS} ; do
   printf " \\\\\\\\\\n"
   PREVDIR=${DIR}
 done
-printf "\\\\hline\n"
 
 printf "\\\\end{tabular}\n"

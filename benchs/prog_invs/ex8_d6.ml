@@ -34,7 +34,7 @@ let options = { Sos.default with
                 Sos.verbose = 0(*3*);
                 Sos.sdp =
                   { Osdp.Sdp.default with
-                    Osdp.Sdp.solver = Osdp.Sdp.Mosek } }
+                    Osdp.Sdp.solver = Osdp.Sdp.Sdpa } }
 
 let x1, x2 = Sos.(??0, ??1)
 
