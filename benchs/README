@@ -65,7 +65,8 @@ For each benchmark <test>:
 
 input.ineq: due to NLCertify's input format, all benchmarks for this tool are gathered here
 lexer.mll parser.mly parse.ml parse.ml: files needed for OSDP benchmarks
-*.sage: other Sage files corresponding to MC11 code
+*.sage: other Sage files corresponding to MC11 code (c.f., test_MC11.sage)
+param.transc.coq param.transc.nocoq: parameters for NLCertify
 
 Remark: PVS and NLCertify are not applicable to prog_invs benchmarks.
 
