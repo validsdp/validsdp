@@ -1,5 +1,170 @@
-TODO: how to install and launch benchmarks
-+ runlim
+Preliminary remark
+==================
 
-./logs2tex > table.tex
-pdflatex benchs.tex
+Currently, the relaxation coefficients sigma* are hardcoded for
+ValidSDP benchmarks whereas they are automatically computed by other
+tools requiring them. This is a limitation of ValidSDP we are
+currently alleviating. The automatic computation feature is already
+available in the underlying OSDP library. Experiments with OSDP
+indicate that, whereas this computation has an impact on SDP solvers
+running time (let's say OSDP becomes two times slower), this shouldn't
+incur any major overhead to ValidSDP (since currently, SDP solver
+running time is only a small portion of ValidSDP total running time).
+
+Short description of benchmarks
+===============================
+
+Three subdirectories
+
+global
+------
+
+A set of global optimization problems consisting in proving bounds for
+polynomials on given hyperboxes. These problems are taken from
+
+  Cesar Munoz and Anthony Narkawicz
+  Formalization of {B}ernstein Polynomials and Applications to Global Optimization
+  J. Autom. Reasoning, 2013
+
+flyspeck
+--------
+
+A set of problems on 6 variable polynomials coming from some
+inequalities of the Flyspeck project. Most of them require to prove
+that a given polynomial is positive on a given hyperbox while some
+require to prove that at least one of two (fs868, fs884 and fs890) or
+three (fs260 and fs491) polynomials is positive on any point of a
+given hyperbox.
+
+prog_invs
+---------
+
+A set of problems about loop invariants of programs, from
+
+  Assalé Adjé, Pierre-Loïc Garoche, Victor Magron
+  Property-based Polynomial Invariant Generation Using Sums-of-Squares Optimization
+  Static Analysis Symposium (SAS), 2015
+
+They require to prove that a given polynomial $p$ is non negative when
+some initial conditions are met and that whenever $p$ is non negative,
+then $p\circ f$ also is, for a given polynomial $f$ (representing the
+loop body asignments).
+
+Content of each subdirectory
+----------------------------
+
+Makefile: to run the benchmarks (c.f., below)
+descr: list og benchmarks with number of variables and degrees
+
+For each benchmark <test>:
+
+<test>.ml: benchmark with OSDP
+<test>.v: benchmark with ValidSDP
+<test>.pvs: benchmark with PVS/Bernstein
+<test>.sage: benchmark with MC11
+
+input.ineq: due to NLCertify's input format, all benchmarks for this tool are gathered here
+lexer.mll parser.mly parse.ml parse.ml: files needed for OSDP benchmarks
+*.sage: other Sage files corresponding to MC11 code
+
+Remark: PVS and NLCertify are not applicable to prog_invs benchmarks.
+
+Dependencies
+============
+
+- runlim (http://fmv.jku.at/runlim/, Debian package rulim)
+- ValidSDP
+- PVS 5.0 with nasalib
+- SageMath (for MC11, www.sagemath.org, tested with version 7.3, te sage executable must be in the path)
+- NLCertify
+
+Installing PVS 5.0 and nasalib
+------------------------------
+
+1. Go to http://pvs.csl.sri.com/download.shtml
+
+  Download PVS 5.0
+
+2. Download the PVS NASA libraries for PVS 5.0
+
+  You can either go to
+      http://shemesh.larc.nasa.gov/fm/ftp/larc/PVS-library/pvslib.html
+
+  or directly download the following tarball:
+      http://shemesh.larc.nasa.gov/fm/ftp/larc/PVS-library-archive/p50_pvslib-full.tgz
+
+3. Unzip the tarballs and run the PVS installation scripts:
+
+  E.g., run the following commands, after replacing "..." with the actual path:
+
+  % mkdir ~/pvs50 && cd ~/pvs50
+  % tar xf .../pvs-5.0-ix86_64-Linux-allegro.tgz
+  % tar xf .../p50_pvslib-full.tgz
+  % bin/relocate
+
+4. Enable the nasalib patches for the proveit tool:
+
+  E.g., if PVS 5.0 is located in ~/pvs50, you can run:
+
+  % rm -i ~/.pvs.lisp ~/.pvs.l*fasl
+  % perl -w -i.bak -p -e 's,"\(proveit\)","(progn (load \\"$ENV{HOME}/pvs50/nasalib/pvs-patches.lisp\\") (proveit))",;' ~/pvs50/proveit
+
+5. Set the environment variable PVS_LIBRARY_PATH:
+
+  % export PVS_LIBRARY_PATH="${HOME}/pvs50/nasalib"
+
+Installing NLCertify
+--------------------
+
+Install OPAM (1.2) and Initialize it. To get some instructions
+regarding the installation, you can go to
+<http://opam.ocaml.org/doc/Install.html>.
+
+Install BLAS/LAPACK shared libraries (for lacaml)
+
+% sudo aptitude install libblas3 libblas-dev liblapack3 liblapack-dev
+
+Install NLCertify's dependencies (including SDPA)
+
+% opam install ocamlfind ocamlgraph zarith lacaml
+
+% apt-get install sdpa  # adapt to your distro if not Debian based
+
+Checkout NLCertify (as of 2014-11-04 12:07:04)
+
+% sudo aptitude install git gitk
+% mkdir -p ~/forge/git-anon && cd ~/forge/git-anon
+% git clone https://forge.ocamlcore.org/anonscm/git/nl-certify/nl-certify.git
+% cd nl-certify
+% git checkout --detach 9e8540429eb984c56ffa5ad74547de796250383b
+% make
+
+Remark: to compile with Coq 8.5, a few "From mathcomp " may have to be
+added in front of the Require Imports related to mathcomp.
+
+Running the benchmarks
+======================
+
+First, parameters at the beginning of each global/Makefile,
+flyspeck/Makefile and prog_invs/Makefile have to be adjusted.
+
+The, for running all tools
+
+% make
+
+Or independently
+
+% make logs_osdp
+% make logs_coq
+% make logs_bernstein
+% make logs_MC11
+% make logs_nlcnocoq
+% make logs_nlccoq
+
+Collecting the results
+----------------------
+
+% ./log2tex.sh > table.tex
+% pdflatex benchs.tex
+
+will produce a file benchs.pdf collecting running times.

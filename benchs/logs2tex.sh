@@ -11,7 +11,7 @@ for d in ${DIRS} ; do
 done
 
 printf "\\\\begin{tabular}{p{2.8cm}cccccccc}\n"
-printf "Problem & \$n\$ & \$d\$ & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {OSDP\\\\\\\\(not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {Validsdp};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {PVS/Bernstein};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {Monniaux and\\\\\\\\Corbineau 2011};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {NLCertify\\\\\\\\(not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {NLCertify\\\\\\\\(partly verified)};\\\\end{tikzpicture} \\\\\\\\\n"
+printf "Problem & \$n\$ & \$d\$ & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {OSDP\\\\\\\\[1pt](not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {ValidSDP};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {PVS/Bernstein};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {Monniaux and\\\\\\\\[1pt]Corbineau 2011\\\\\\\\[1pt](not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {NLCertify\\\\\\\\[1pt](not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {NLCertify};\\\\end{tikzpicture} \\\\\\\\\n"
 
 PREVDIR="."
 for fnd in ${DESCRS} ; do

@@ -1,5 +1,6 @@
 # Parameters
 
+# Paths to various tools
 COQCOMMAND = coqc
 PVS50COMMAND = ../pvs50/proveit
 DIR_NLC = ${HOME}/validsdp/code/benchs/nl-certify
@@ -30,7 +31,7 @@ LOGS_NLCCOQ = $(EXSML:.ml=_nlccoq_${TIMEOUT}s.log)
 
 all: logs
 
-logs: logs_osdp
+logs: logs_osdp logs_coq logs_bernstein logc_MC11 logs_nlcnocoq logs_nlccoq
 
 logs_osdp: $(LOGS_OSDP)
 

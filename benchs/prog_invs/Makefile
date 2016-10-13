@@ -1,3 +1,8 @@
+# Parameters
+
+COQCOMMAND = coqc
+
+# SDP solver for OSDP (Sdpa | Csdp | Mosek)
 NAME = Sdpa
 
 # Timeout in s
@@ -5,6 +10,7 @@ TIMEOUT = 900
 # Memlimit in MB
 MEMLIMIT = 4096
 
+# End of parameters
 EXSML = $(shell find . -name "ex*.ml" | grep -v "_build/")
 EXS = $(EXSML:.ml=)
 LOGS_OSDP = $(EXSML:.ml=_${NAME}_${TIMEOUT}s.log)
@@ -13,7 +19,7 @@ LOGS_MC11 = $(EXSML:.ml=_MC11_${TIMEOUT}s.log)
 
 all: logs
 
-logs: logs_osdp
+logs: logs_osdp logs_coq logc_MC11
 
 logs_osdp: $(LOGS_OSDP)
 
@@ -29,7 +35,7 @@ logs_MC11: $(LOGS_MC11)
 
 %_Coq_${TIMEOUT}s.log: %.v
 	rm -f $@
-	runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k coqc $< > $@ 2>&1 || true
+	runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k $(COQCOMMAND) $< > $@ 2>&1 || true
 
 %_MC11_${TIMEOUT}s.log: %.sage
 	rm -f $@
