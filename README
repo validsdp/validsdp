@@ -37,7 +37,7 @@ the instructions in the INSTALL file (only the SDPA dependency is
 required (Debian package sdpa for instance), in particular CSDP,
 Mosek, camlp4 and ocaml-glpk are not mandatory).
 
-The installation of ValidSDP itself can the procceed, first with the
+The installation of ValidSDP itself can then procceed, first with the
 OCaml plugin
 
 % cd plugins/soswitness/

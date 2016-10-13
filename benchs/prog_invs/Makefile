@@ -42,6 +42,6 @@ logs_MC11: $(LOGS_MC11)
 	runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k sage $< > $@ 2>&1 || true
 
 clean:
-	rm -rf _build *~ *.native *.cmi *.cmx *.o *.vo *.glob sdp_problem.dat-s sdp_problem.result
+	rm -rf _build *~ *.native *.cmi *.cmx *.o *.vo *.glob sdp_problem.dat-s sdp_problem.result *.log .*.aux
 
 .PHONY: clean

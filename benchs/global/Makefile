@@ -74,6 +74,6 @@ logs_nlccoq: $(LOGS_NLCCOQ)
 	cd $(DIR_NLC) && runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k $(NLC) $(@:_nlccoq_${TIMEOUT}s.log=) > $(abspath $@) 2>&1 || true
 
 clean:
-	rm -rf _build *~ *.native *.cmi *.cmx *.o *.vo *.glob sdp_problem.dat-s sdp_problem.result
+	rm -rf _build *~ *.native *.cmi *.cmx *.o *.vo *.glob sdp_problem.dat-s sdp_problem.result *.log pvsbin .*.aux *.prf *.summary
 
 .PHONY: clean
