@@ -1,3 +1,12 @@
+(** * Modified version of seqmx.v from CoqEAL not assuming a ringType everywhere. *)
+
+(** We need to manipulate matrices of floating-point
+values. Floating-point arithmetic does not have a ring structure
+(addition is not even associative). Nevertheless, the ring structure
+on the coefficients is definitely overkill for all non arithmetic
+operations over matrices. TODO: make this perfectly tidy and submit a
+pull request to CoqEAL. *)
+
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq ssralg.
 From mathcomp Require Import path choice fintype tuple finset bigop poly matrix mxpoly.
 

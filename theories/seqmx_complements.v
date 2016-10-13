@@ -1,3 +1,7 @@
+(** * A few operations missing in seqmx *)
+
+(** TODO: pull request to CoqEAL *)
+
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import choice fintype bigop matrix.
 
@@ -12,7 +16,7 @@ Open Scope ring_scope.
 
 Import Refinements.Op.
 
-Arguments refines A%type B%type R%rel _ _.  (* TODO: il y a un problème de scope sur refine *)
+Arguments refines A%type B%type R%rel _ _.  (** TODO: il y a un problème de scope sur refine *)
 
 Notation ord_instN := (fun _ : nat => nat) (only parsing).
 
@@ -232,27 +236,6 @@ Context (C : Type) (rAC : A -> C -> Type).
 Context `{!zero_of C, !spec_of C A}.
 
 Context `{!eq_of C}.
-
-(*
-Global Instance RseqmxC_heq_op m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC rm rn ==> RseqmxC rAC rm rn ==> bool_R)
-    (@heq_ssr m1 n1) (heq_seqmx (n:=n2)).
-Proof.
-refines_trans.
-refines_abstr.
-rewrite refinesE; suff_eq bool_Rxx.
-
-rewrite /heq_seqmx.
-eapply Rseqmx_heq_op.
-rewrite refinesE; suff_eq bool_Rxx; apply refinesP.
-refines_abstr.
-refines_apply.
-refines_trans.
-refines_abstr.
-refines_apply.
-eapply Rseqmx_heq_op.
-tc
- *)
 
 Lemma RseqmxC_spec_seqmx m n (M : @seqmx C) :
   (size M == m) && all (fun r => size r == n) M ->

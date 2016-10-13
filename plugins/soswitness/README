@@ -1,6 +1,0 @@
-Installation of the soswitness plugin
-=====================================
-
-Ideally, you should just have to type:
-
-    make && make install

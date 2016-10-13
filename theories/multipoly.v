@@ -1,13 +1,17 @@
+(** * CoqEAL refinement for effective multivariate polynomials *)
+
+(** TODO: tidy and submit a pull request to CoqEAL *)
+
 Require Import ZArith NArith FMaps FMapAVL.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import choice finfun tuple fintype ssralg bigop.
-(* tests with multipolys from
-   git clone https://github.com/math-comp/multinomials.git *)
+(** Multivariate polynomials from
+    git clone https://github.com/math-comp/multinomials.git *)
 From SsrMultinomials Require Import mpoly freeg.
 From CoqEAL Require Import hrel.
 From CoqEAL Require Import refinements.
 From CoqEAL Require Import param binord binnat.
-From CoqEAL Require Import seqmx (* for zipwith and eq_seq *).
+From CoqEAL Require Import seqmx  (** for zipwith and eq_seq *).
 Require Import misc.
 
 Set Implicit Arguments.
@@ -18,7 +22,7 @@ Unset Printing Implicit Defensive.
 
 Import Refinements.Op.
 
-Arguments refines A%type B%type R%rel _ _.  (* TODO: il y a un problème de scope sur refines *)
+Arguments refines A%type B%type R%rel _ _.  (** TODO: il y a un problème de scope sur refines *)
 
 Hint Resolve list_R_nil_R.
 
@@ -139,7 +143,7 @@ rewrite /mnmc_eq_seq /= Rnat_eqE Exy; rewrite eq_sym in Exy; rewrite Exy /=.
 exact: Hind.
 Qed.
 
-(* Remark: only compare is used in implementation (eq_dec isn't). *)
+(** Remark: only compare is used in implementation (eq_dec isn't). *)
 Definition compare (x y : t) : Compare lt eq x y :=
   match sumb (mnmc_lt_seq x y) with
   | left prf => LT prf
@@ -371,10 +375,6 @@ Section effmpoly_generic_2.
 
 Definition list_of_mpoly {T : ringType} {n} (p : {mpoly T[n]}) :
   seq ('X_{1..n} * T) := [seq (m, p@_m) | m <- path.sort mnmc_le (msupp p)].
-
-(* TODO: remove, not used
-Definition effmpoly_of_list : forall T, seq (seqmultinom * T) -> effmpoly T :=
-  MProps.of_list. *)
 
 Context {T : Type} `{!zero_of T, !one_of T}.
 Context `{!add_of T, !opp_of T, !sub_of T, !mul_of T, !eq_of T}.
@@ -1144,7 +1144,7 @@ Lemma MapsTo_mcoeff {n} m m' p p' a :
   refines (Reffmpoly (T := T) (n := n)) p p' ->
   refines Rseqmultinom m m' ->
   M.MapsTo m' a p' -> p@_m = a.
-(* the converse may be wrong if [a = 0] *)
+(** the converse may be wrong if [a = 0] *)
 Proof.
 move=> Hp Hm HMT.
 move/MFacts.find_mapsto_iff in HMT.
@@ -1499,7 +1499,8 @@ Qed.
 
 Definition mpoly_exp {n} (p : {mpoly T[n]}) (n : nat) := (p ^+ n)%R.
 
-(* Missing material on Pos.of_nat, pos_of_nat, bin_of_nat *)
+(** Missing material on Pos.of_nat, pos_of_nat, bin_of_nat *)
+
 Lemma Nat2Pos_xI m : ((Pos.of_nat m.+1)~1)%positive = Pos.of_nat ((m.+1).*2.+1).
 Proof.
 rewrite -muln2 [RHS]Nat2Pos.inj_succ // Nat2Pos.inj_mul //.
@@ -1712,7 +1713,7 @@ move: refines_m (proj2 Ha) (proj2 Ha'); rewrite !refinesE => refines_m.
 apply (snd refines_m).
 Qed.
 
-(* Missing in new CoqEAL *)
+(** Missing in new CoqEAL *)
 Fixpoint ohrel {A B : Type} (rAB : A -> B -> Type) sa sb : Type :=
   match sa, sb with
     | None,   None   => True
@@ -1897,87 +1898,6 @@ constructor=> k; specialize (Hht1 k); specialize (Hht2 k).
   by apply M.E.eq_refl. }
 by move=> e e' He He'; apply Hht2; apply InA_cons_tl.
 Qed.
-
-(*
-Lemma refines_M_hrel_elements :
-  refines (M_hrel ==> list_R (fun x y => M.E.eq x.1 y.1 * rAC x.2 y.2)%type)
-    (@M.elements A) (@M.elements C).
-Proof.
-apply refines_abstr => m m'; rewrite !refinesE => refines_m.
-set em := M.elements m; set em' := M.elements m'.
-have: ((forall k, {e | InA (M.eq_key_elt (elt:=A)) (k, e) em}
-                 <=> {e' | InA (M.eq_key_elt (elt:=C)) (k, e') em'})
-  * (forall k e e', InA (M.eq_key_elt (elt:=A)) (k, e) em ->
-                     InA (M.eq_key_elt (elt:=C)) (k, e') em' -> rAC e e'))%type.
-{ split.
-  { move=> k; split.
-    { move=> [e He].
-      have Hkm : M.In k m; [by exists e; apply M.elements_2|].
-      have /MProps.MIn_sig [e' He'] := proj1 (fst refines_m k) Hkm.
-      exists e'; by apply M.elements_1. }
-    move=> [e' He'].
-    have Hkm' : M.In k m'; [by exists e'; apply M.elements_2|].
-    have /MProps.MIn_sig [e He] := proj2 (fst refines_m _) Hkm'.
-    exists e; by apply M.elements_1. }
-  move=> k e e' He He'.
-  move: (M.elements_2 He) (M.elements_2 He'); apply (snd refines_m). }
-move: (M.elements_3 m) (M.elements_3 m'); rewrite -/em -/em'.
-clearbody em em'; move: {m m' refines_m} em em'.
-elim=> [|h t IH]; case=> [|h' t'] //=.
-{ move/MProps.SortedT_dec=> _ _ [Heq _].
-  move: (snd (Heq h'.1)); elim.
-  { by move=> h'2 /InA_nil. }
-  by exists h'.2; apply InA_cons_hd; split; [apply M.E.eq_refl|]. }
-{ move=> _ _ [Heq _]; move: (fst (Heq h.1)); elim.
-  { by move=> h2 /InA_nil. }
-  by exists h.2; apply InA_cons_hd; split; [apply M.E.eq_refl|]. }
-move=> Sht Sht' [Hht1 Hht2].
-have St := proj1 (Sorted_inv Sht); have St' := proj1 (Sorted_inv Sht').
-have Hhh' : M.E.eq h.1 h'.1.
-{ apply MultinomOrd.intro_eq; apply/negbTE/negP.
-  { move=> Hhh'1.
-    have Hh1 : {e | InA (M.eq_key_elt (elt:=A)) (h.1, e) (h :: t)}.
-    { by exists h.2; apply InA_cons_hd; split; [apply M.E.eq_refl|]. }
-    have [e' He'] := (fst (Hht1 _) Hh1).
-    have Hhh'1' : M.lt_key (h.1, e') h'; [by simpl|].
-    by apply (Sorted_InA_not_lt_hd Sht' He'). }
-  move=> Hh'h1.
-  have Hh1 : {e | InA (M.eq_key_elt (elt:=C)) (h'.1, e) (h' :: t')}.
-  { by exists h'.2; apply InA_cons_hd; split; [apply M.E.eq_refl|]. }
-  move: (snd (Hht1 _) Hh1) => [e He].
-  have Hh'h1' : M.lt_key (h'.1, e) h; [by simpl|].
-  by apply (Sorted_InA_not_lt_hd Sht He). }
-constructor 2.
-split; [exact Hhh'|].
-{ apply (Hht2 h.1); apply InA_cons_hd.
-  { by split; [apply M.E.eq_refl|]. }
-  by move: Hhh' => /mnmc_eq_seqP/eqP->; split; [apply M.E.eq_refl|]. }
-apply (IH _ St St').
-constructor=> k; specialize (Hht1 k); specialize (Hht2 k).
-{ split.
-  { move=> [e He].
-    have Ht1 : {e | InA (M.eq_key_elt (elt:=A)) (k, e) (h :: t)}.
-    { by exists e; apply InA_cons_tl. }
-    case (fst Hht1 Ht1) => e' He'.
-    exists e'.
-    have /InA_cons[Heq0|//] := He'.
-    move: (Sorted_InA_tl_lt Sht He); move /M.E.lt_not_eq.
-    move: Hhh'; move/mnmc_eq_seqP/eqP-> => Heq; exfalso; apply Heq.
-    move: (proj1 Heq0); move/mnmc_eq_seqP/eqP => /= ->.
-    by apply M.E.eq_refl. }
-  move=> [e' He'].
-  have Ht1 : { e' | InA (M.eq_key_elt (elt:=C)) (k, e') (h' :: t')}.
-  { by exists e'; apply InA_cons_tl. }
-  elim (snd Hht1 Ht1) => e He.
-  exists e.
-  have /InA_cons[Heq0|//] := He.
-  move: (Sorted_InA_tl_lt Sht' He'); move /M.E.lt_not_eq.
-  move: Hhh'; move/mnmc_eq_seqP/eqP<- => Heq; exfalso; apply Heq.
-  move: (proj1 Heq0); move/mnmc_eq_seqP/eqP => /= ->.
-  by apply M.E.eq_refl. }
-by move=> e e' He He'; apply Hht2; apply InA_cons_tl.
-Qed.
-*)
 
 Derive Inversion inv_list_R with
   (forall (A₁ A₂ : Type) (A_R : A₁ -> A₂ -> Type) (s1 : seq A₁) (s2 : seq A₂),
