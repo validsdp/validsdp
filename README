@@ -32,9 +32,9 @@ then follow their respective installation instructions (usually make
 and make install, in both subdirectories theory and refinements for
 CoqEAL).
 
-OSDP can be downloaded from (https://cavale.enseeiht.fr), then follow
-the instructions in the INSTALL file (only the SDPA dependency is
-required (Debian package sdpa for instance), in particular CSDP,
+OSDP can be downloaded from (https://cavale.enseeiht.fr/osdp), then
+follow the instructions in the INSTALL file (only the SDPA dependency
+is required (Debian package sdpa for instance), in particular CSDP,
 Mosek, camlp4 and ocaml-glpk are not mandatory).
 
 The installation of ValidSDP itself can then procceed, first with the
