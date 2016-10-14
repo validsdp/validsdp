@@ -73,12 +73,12 @@ End theory_nat_of.
 Section theory_nat_of2.
 
 (** Extra refinement lemmas *)
-Lemma Rord_I0 n1 n2 (rn : nat_R n1 n2) :
-  Rord (nat_R_S_R rn) I0_ssr (@I0_instN n2).
+Lemma Rord_I0 n1 n2 (rn : nat_R n1.+1 n2.+1) :
+  Rord rn I0_ssr (@I0_instN n2).
 Proof. done. Qed.
 
-Global Instance Rord_nat_of n1 n2 (rn : nat_R n1 n2) :
-  refines (Rord (nat_R_S_R rn) ==> eq) nat_of_ssr (nat_of_instN (n:=n2)).
+Global Instance Rord_nat_of n1 n2 (rn : nat_R n1.+1 n2.+1) :
+  refines (Rord rn ==> eq) nat_of_ssr (nat_of_instN (n:=n2)).
 Proof. by rewrite refinesE /Rord=> x y <-. Qed.
 
 End theory_nat_of2.

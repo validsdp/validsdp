@@ -949,7 +949,7 @@ Lemma eqF_signif_digits m e m' e' :
 Proof.
 move=> HeqF.
 apply/idP/idP; move/signif_digits_correct => H; apply/signif_digits_correct.
-Admitted.  (* signif_digits *)
+Admitted.  (* Erik: signif_digits *)
 
 Instance : refines (eqF ==> eqFI) F2FI F2FI.
 rewrite refinesE => f f' ref_f.
@@ -1086,6 +1086,8 @@ Instance zero_instMnm : zero_of 'X_{1..n} := mnm0.
 
 Instance zero_mpoly : zero_of (mpoly n A) := 0%R.
 
+(* Goal forall n, nat_R n.+1 n.+1 <=> nat_R_S_R (nat_Rxx n). *)
+
 Instance refines_check_base :
   refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> eq)
     (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
@@ -1128,7 +1130,7 @@ apply/idP/idP.
     suff: (m == mm) = (m' == mm'); [by move=>->|].
     apply Rseqmultinom_eq; [by rewrite refinesE|].
     rewrite /mm /mm' /mul_monom_op /mul_monom_ssr /mul_monom_eff.
-    refines_apply_tc; refines_apply_tc. }
+    refines_apply_tc; refines_apply_tc. (* (* nat_Rxx *)*) }
   by move/S.mem_2=> H; apply S.mem_1, S.add_2. }
 move/S.mem_2.
 set mm := mul_monom_op _ _; case Em' : (m' == mm).
@@ -1136,10 +1138,11 @@ set mm := mul_monom_op _ _; case Em' : (m' == mm).
   move: HIn; apply S.add_3=>_; apply /Hm /eqP.
   rewrite /is_true -Em'; apply Rseqmultinom_eq.
   { by rewrite refinesE. }
-  refines_apply_tc; refines_apply_tc. }
+  refines_apply_tc; refines_apply_tc. (* (* nat_Rxx *)  *)}
 move/S.add_3=>H; apply/orP; right; apply S.mem_1, H.
-by move/mnmc_eq_seqP; rewrite eq_sym Em'.
+  by move/mnmc_eq_seqP; rewrite eq_sym Em'.
 Qed.
+
 
 Context `{!max_of A}.
 Context `{!max_of C}.
@@ -1206,23 +1209,26 @@ Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) addup_instFIS addup_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) subdn_instFIS subdn_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) mulup_instFIS mulup_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) divup_instFIS divup_instFIS}.
+Context `{!refines (nat_R ==> eqFIS) nat2Fup_instFIS nat2Fup_instFIS}.
 
 Hypothesis eqFIS_P : forall x y, reflect (eqFIS x y) (eq_instFIS x y).
 
 Lemma param_soscheck :
-  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==> bool_R)
+  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==>
+          RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==> bool_R)
     (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
     (soscheck_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
 Proof.
 rewrite refinesE=> p p' rp z z' rz Q Q' rQ.
 rewrite /soscheck_ssr /soscheck_eff /soscheck.
 suff_eq bool_Rxx.
-apply f_equal2; [by apply refinesP; refines_apply_tc|].
+apply f_equal2.
+{ apply refinesP; refines_apply. }
 eapply refinesP, refines_bool_eq.
 eapply refines_apply.
 eapply refines_apply.
 eapply (refines_posdef_check_itv' (fs := fs) (eqFIS := eqFIS) _ (F := FIS fs)).
-admit.  (* this admit should be unnecessary *)
+admit.  (* Erik: this admit should be unnecessary *)
 rewrite refinesE //.
 eapply refines_apply; first tc.
 eapply refines_apply. tc.
@@ -1248,7 +1254,7 @@ by rewrite refinesE.
 Unshelve.
 exact: eqFIS_P.
 exact: id.
-admit.  (* this evar should be unnecessary *)
+admit.  (* Erik: this evar should be unnecessary *)
 Admitted.
 (*
 refines_apply.
@@ -1482,7 +1488,7 @@ apply: (etrans (y := @soscheck_eff n'.+1 _
 { by rewrite -/n' /n in Hsos; apply Hsos. }
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1; first refines_apply1.
-{ apply param_soscheck with (C2A := bigQ2rat); tc; admit. (* easy *) }
+{ apply param_soscheck with (C2A := bigQ2rat); tc; admit. (* Erik: easy *) }
 { by apply param_interp_poly; rewrite prednK ?lt0n. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /za.
@@ -1493,7 +1499,7 @@ refines_trans.
 rewrite refinesE; eapply Rseqmx_spec_seqmx.
 { rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
-admit. (* easy *)
+admit. (* Erik: easy *)
   by rewrite lt0n.
 Admitted.
 
