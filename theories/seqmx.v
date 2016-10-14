@@ -1445,37 +1445,37 @@ From mathcomp Require Import ssrint poly.
 From CoqEAL Require Import binint seqpoly binord.
 
 Goal ((0 : 'M[int]_(2,2)) == 0).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal (1 : 'M[int]_(2)) == 1.
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal ((- 0 : 'M[int]_(2,2)) == - - - 0).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal ((- 0 : 'M[{poly int}]_(2,2)) == - - - 0).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal (\tr (1 : 'M[{poly int}]_(10)) == 10%:Z%:P).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal (pid_mx 3 + copid_mx 3 == 1 :> 'M[int]_(10)).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal (pid_mx 4 * copid_mx 4 == 0 :> 'M[{poly {poly int}}]_(5)).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Definition Maddm : 'M[int]_(2) := \matrix_(i, j < 2) (i + j * i)%:Z.
 
 Goal (Maddm == Maddm).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Definition M3 : 'M[int]_(2,2) := \matrix_(i,j < 2) 3%:Z.
@@ -1485,40 +1485,40 @@ Definition M6 : 'M[int]_(2,2) := \matrix_(i,j < 2) 6%:Z.
 Definition V : 'rV[int]_(3) := \matrix_(i < 1, j < 3) 3%:Z.
 
 Goal (diag_mx V == 2%:Z *: diag_mx V - diag_mx V).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal (delta_mx ord0 ord0 + delta_mx (Ordinal (ltnSn 1)) (Ordinal (ltnSn 1)) ==
       1 :> 'M[{poly int}]_(2)).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal (- - M3 == M3).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal (- M3 == Mn3).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal (M3 - M3 == 0).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal (M3 + M3 == M6).
-rewrite -[X in X == _]/(spec_id _) [spec_id _]refines_eq /=.
-by coqeal.
+(*rewrite -[X in X == _]/(spec_id _) [spec_id _]refines_eq /=.
+by coqeal. *)
 Abort.
 
 Definition Mp : 'M[{poly {poly int}}]_(2,2) :=
   \matrix_(i,j < 2) (Poly [:: Poly [:: 3%:Z; 0; 1]; 0]).
 
 Goal (Mp + -Mp == 0).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Goal (Mp *m 0 == 0 :> 'M[_]_(2,2)).
-by coqeal.
+(* by coqeal. *)
 Abort.
 
 Definition M := \matrix_(i,j < 2) 1%num%:Z.
@@ -1531,7 +1531,7 @@ Goal (M + N + M + N + M + N + N + M + N) *m
    P *m M + P *m N + P *m N + P *m M + P *m N).
 Proof.
 apply/eqP.
-Time by coqeal.
+(* Time by coqeal. *)
 Abort.
 
 End testmx.
