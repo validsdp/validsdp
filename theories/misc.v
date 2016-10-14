@@ -11,8 +11,6 @@ From mathcomp Require Import ssrnum ssrint rat div.
 From CoqEAL.refinements Require Import binnat.
 Require Import Rstruct.
 
-Import GRing.Theory.
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -24,6 +22,7 @@ Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
 
 Import GRing.Theory.
+Import Num.Theory.
 
 (** As in the latest version of CoqEAL, all relations are in [Type],
 we need to add some material, such as [ifft], which is similar to [iff] *)
@@ -358,6 +357,69 @@ Definition Z2int (z : BinNums.Z) :=
 
 Lemma nat_of_pos_gt0 p : (0 < nat_of_pos p)%N.
 Proof. by elim: p =>//= p IHp; rewrite NatTrec.doubleE double_gt0. Qed.
+
+Lemma nat_of_pos_inj x y : nat_of_pos x = nat_of_pos y -> x = y.
+Proof. rewrite -!binnat.to_natE; apply Pos2Nat.inj. Qed.
+
+Lemma Z2int_inj x y : Z2int x = Z2int y -> x = y.
+Proof.
+rewrite /Z2int.
+case x, y=>//.
+{ move=>[] H.
+  by rewrite -[Z0]/(Z.of_nat 0%N) H -binnat.to_natE positive_nat_Z. }
+{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
+  case E: (Pos.to_nat _)=>//=.
+  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
+{ rewrite -binnat.to_natE; case E: (Pos.to_nat _)=>//=.
+  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
+{ by move=>[] /nat_of_pos_inj ->. }
+{ rewrite -!binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
+  case (Pos.to_nat p0)=>//=.
+  by move=>[] H; move: (binnat.to_nat_gt0 p); rewrite H ltnn. }
+{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
+  case E: (Pos.to_nat _)=>//=.
+  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
+{ rewrite -!binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
+  case E: (Pos.to_nat p)=>//=.
+  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
+rewrite -!binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
+case E: (Pos.to_nat p)=>//=.
+{ by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
+case E': (Pos.to_nat p0)=>//= [] [] H.
+by move: E'; rewrite -H -E=>/Pos2Nat.inj ->.
+Qed.
+
+Lemma Z2int_mul_nat_of_pos (x : BinNums.Z) (y : positive) :
+  (Z2int x * nat_of_pos y)%Ri = Z2int (Z.mul x (BinNums.Zpos y)).
+Proof.
+rewrite /Z2int; case Ex: x.
+{ by rewrite mul0r Z.mul_0_l. }
+{ by rewrite /= -!binnat.to_natE Pos2Nat.inj_mul. }
+by rewrite /= mulNr  -!binnat.to_natE Pos2Nat.inj_mul.
+Qed.
+
+Lemma Z2int_le x y : (Z2int x <= Z2int y)%Ri <-> Z.le x y.
+Proof.
+rewrite /Z2int; case Ex: x; case Ey: y=> //.
+{ rewrite oppr_ge0; split; move=> H; exfalso; move: H; [|by rewrite /Z.le].
+  apply/negP; rewrite -ltrNge; apply nat_of_pos_gt0. }
+{ split; move=> H; exfalso; move: H; [|by rewrite /Z.le].
+  apply/negP; rewrite -ltrNge; apply nat_of_pos_gt0. }
+{ rewrite -!binnat.to_natE /Num.Def.ler /=.
+  by rewrite -!positive_nat_Z -Nat2Z.inj_le; split; [apply/leP|move/leP]. }
+{ split; move=> H; exfalso; move: H; [|by rewrite /Z.le].
+  apply /negP; rewrite -ltrNge.
+  apply (@ltr_trans _ 0%Ri); rewrite ?oppr_lt0; apply nat_of_pos_gt0. }
+{ rewrite oppr_le0; split; by rewrite /Z.le. }
+{ split=>_; [by rewrite /Z.le|].
+  by apply (@ler_trans _ 0%Ri); [apply oppr_le0|apply ltrW, nat_of_pos_gt0]. }
+rewrite ler_opp2; split.
+{ rewrite /Z.le /Z.compare -!binnat.to_natE /Num.Def.ler /= => /leP.
+  by rewrite -Pos.compare_antisym -Pos2Nat.inj_le -Pos.compare_le_iff. }
+rewrite /Z.le /Z.compare -!binnat.to_natE /Num.Def.ler /=.
+rewrite -Pos.compare_antisym=>H; apply/leP.
+by rewrite -Pos2Nat.inj_le -Pos.compare_le_iff.
+Qed.
 
 Lemma Zabs_natE n : Z.abs_nat n = `|Z2int n|%N.
 Proof.
