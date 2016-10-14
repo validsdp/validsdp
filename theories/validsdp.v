@@ -1309,9 +1309,55 @@ Global Instance param_ratBigQ_mul :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) *%R *%C.
 Admitted.  (* ratBigQ *%C *)
 
+Lemma nat_of_pos_inj x y : nat_of_pos x = nat_of_pos y -> x = y.
+Proof. rewrite -!binnat.to_natE; apply Pos2Nat.inj. Qed.
+
+Lemma Z2int_inj x y : Z2int x = Z2int y -> x = y.
+Proof.
+rewrite /Z2int.
+case x, y=>//.
+{ move=>[] H.
+  by rewrite -[0%coq_Z]/(Z.of_nat 0%N) H -binnat.to_natE positive_nat_Z. }
+{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
+  case E: (Pos.to_nat _)=>//=.
+  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
+{ rewrite -binnat.to_natE; case E: (Pos.to_nat _)=>//=.
+  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
+{ by move=>[] /nat_of_pos_inj ->. }
+{ rewrite -!binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
+  case (Pos.to_nat p0)=>//=.
+  by move=>[] H; move: (binnat.to_nat_gt0 p); rewrite H ltnn. }
+{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
+  case E: (Pos.to_nat _)=>//=.
+  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
+{ rewrite -!binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
+  case E: (Pos.to_nat p)=>//=.
+  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
+rewrite -!binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
+case E: (Pos.to_nat p)=>//=.
+{ by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
+case E': (Pos.to_nat p0)=>//= [] [] H.
+by move: E'; rewrite -H -E=>/Pos2Nat.inj ->.
+Qed.
+
 Global Instance param_ratBigQ_eq :
   refines (r_ratBigQ ==> r_ratBigQ ==> eq) eqtype.eq_op eq_op.
-Admitted.  (* ratBigQ =%C *)
+Proof.
+apply refines_abstr2=> a b rab c d rcd.
+rewrite /eq_op /eq_bigQ /BigQ.eq_bool.
+case E: (_ == _); case E': (_ ?= _)%bigQ=>//; rewrite ?refinesE //; exfalso.
+{ move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
+  move: E; rewrite -rba -rdc=> /eqP [] /Z2int_inj Hn /nat_of_pos_inj Hd.
+  move: E'; rewrite BigQ.spec_compare Qred_compare -Qlt_alt /Qlt Hn Hd.
+  apply Z.lt_irrefl. }
+{ move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
+  move: E; rewrite -rba -rdc=> /eqP [] /Z2int_inj Hn /nat_of_pos_inj Hd.
+  move: E'; rewrite BigQ.spec_compare Qred_compare -Qgt_alt /Qlt Hn Hd.
+  apply Z.lt_irrefl. }
+move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
+move: E; rewrite -rba -rdc=> /eqP H; apply H, val_inj=>/={H}.
+by move: E'; rewrite BigQ.spec_compare -Qeq_alt=>/Qred_complete ->.
+Qed.
 
 Lemma Z2int_mul_nat_of_pos (x : BinNums.Z) (y : positive) :
   (Z2int x * nat_of_pos y)%Ri = Z2int (x * ' y)%coq_Z.
