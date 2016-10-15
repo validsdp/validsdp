@@ -1334,7 +1334,59 @@ Qed.
 
 Global Instance param_ratBigQ_add :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) +%R +%C.
-Admitted.  (* ratBigQ +%C *)
+Proof.
+apply refines_abstr2=> a b rab c d rcd.
+rewrite /GRing.add /= /addq /add_op /add_bigQ.
+case Ea: ((valq a).2 == 0%Ri).
+{ exfalso; move: rab Ea; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=><-/=;
+  by rewrite Posz_nat_of_pos_neq0. }
+case Ec: ((valq c).2 == 0%Ri).
+{ exfalso; move: rcd Ec; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=><-/=;
+  by rewrite Posz_nat_of_pos_neq0. }
+rewrite -addq_frac ?Ea ?Ec // !valqK.
+rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel; apply val_inj=>/=.
+have ->: Qred [b + d]%bigQ = Qred (Qred [b]%bigQ + Qred [d]%bigQ)%Qrat.
+{ by apply Qred_complete; rewrite BigQ.spec_add !Qred_correct. }
+move: rab rcd.
+rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=><-<-/=.
+set nb := Qnum (Qred _).
+set db := Qden (Qred _).
+set nd := Qnum (Qred _).
+set dd := Qden (Qred _).
+rewrite /GRing.add /GRing.mul /=.
+rewrite -!binnat.to_natE -multE -Pos2Nat.inj_mul !binnat.to_natE.
+rewrite Posz_nat_of_pos_neq0.
+case E: ((Z.ggcd _ _).2)=>/=; move: E.
+rewrite (surjective_pairing (_.2))=>[] [] <- <-.
+set nr := (_ + _)%coq_Z.
+set dr := (' _)%coq_Z.
+move: (Z.ggcd_gcd nr dr) (Z.ggcd_correct_divisors nr dr) (Z_ggcd_coprime nr dr).
+case (Z.ggcd _ _)=>g ab /= Hg; case ab=> a' b' [] /= Ha' Hb' CPab'.
+rewrite -[intRing.mulz (Z2int nb) _]/(Z2int nb * nat_of_pos db)%Ri.
+rewrite -[intRing.mulz (Z2int nd) _]/(Z2int nd * nat_of_pos dd)%Ri.
+rewrite -[intZmod.addz _ _]/(Z2int nb * nat_of_pos db + Z2int nd * nat_of_pos dd)%Ri.
+rewrite !Z2int_mul_nat_of_pos -Z2int_add -/nr !nat_of_pos_Z_to_pos -/dr.
+rewrite Ha' Hb' !Z2int_mul !abszM.
+have Pg' : (0 < Z2int g)%Ri.
+{ rewrite Hg; case E: (Z.gcd _ _).
+  { by exfalso; move: E; rewrite /Z.gcd; case nr. }
+  { by rewrite /Z2int /Num.Def.ltr /GRing.zero /= nat_of_pos_gt0. }
+  by exfalso; move: E; rewrite /Z.gcd; case nr. }
+have Pg : (0 < `|Z2int g|)%N.
+{ rewrite absz_gt0; apply/eqP=>H; move: Pg'; rewrite H.
+  by rewrite /GRing.zero /Num.Def.ltr /= ltnn. }
+rewrite -muln_gcdr !divnMl //.
+have ->: gcdn `|Z2int a'| `|Z2int b'| = 1%N; [|rewrite !divn1].
+{ by move: CPab'; rewrite /coprime=>H; apply/eqP/H=>{H}H; move: Pg'; rewrite H. }
+suff ->: (Z2int g * Z2int a' < 0 = (Z2int a' < 0))%Ri.
+{ rewrite -[_ (_ ^ _)%Ri _]/((-1) ^ (Z2int a' < 0)%Ri * Posz `|Z2int a'|%N)%Ri.
+  rewrite expN1r mulz_sign_abs /Z.to_pos.
+  move: Hb'; case b'=>//.
+  { by rewrite Z.mul_0_r=>[]. }
+  move=> p; move: Pg'; case g=>// p'.
+  by rewrite /Z2int=>/= H; exfalso; move: H; rewrite oppr_gt0. }
+by apply pmulr_rlt0.
+Qed.
 
 Global Instance param_ratBigQ_sub :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) (fun x y => x - y)%R sub_op.
@@ -1372,7 +1424,7 @@ have Pg' : (0 < Z2int g)%Ri.
 { rewrite Hg; case E: (Z.gcd _ _).
   { by exfalso; move: E; rewrite /Z.gcd; case (_ * _)%coq_Z. }
   { by rewrite /Z2int /Num.Def.ltr /GRing.zero /= nat_of_pos_gt0. }
-    by exfalso; move: E; rewrite /Z.gcd; case (_ * _)%coq_Z. }
+  by exfalso; move: E; rewrite /Z.gcd; case (_ * _)%coq_Z. }
 have Pg : (0 < `|Z2int g|)%N.
 { rewrite absz_gt0; apply/eqP=>H; move: Pg'; rewrite H.
   by rewrite /GRing.zero /Num.Def.ltr /= ltnn. }

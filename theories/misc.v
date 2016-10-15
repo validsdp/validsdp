@@ -399,6 +399,66 @@ Qed.
 Lemma Z2int_opp n : Z2int (- n) = (- (Z2int n))%Ri.
 Proof. by case n=>// p /=; rewrite GRing.opprK. Qed.
   
+Lemma Z2int_add x y : Z2int (x + y) = (Z2int x + Z2int y)%Ri.
+Proof.
+rewrite /Z2int /GRing.add /= /intZmod.addz /Z.add; case x, y=>//.
+{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz.
+  by case (Pos.to_nat p)=>// n; rewrite subn0. }
+{ by rewrite addn0. }
+{ by rewrite nat_of_addn_gt0. }
+{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz.
+  move: (Z.pos_sub_discr p p0); case (Z.pos_sub _ _).
+  { move<-; rewrite -binnat.to_natE; case (Pos.to_nat _)=>// n.
+    by rewrite ltnSn subnn. }
+  { move=> p' ->; rewrite -!binnat.to_natE Pos2Nat.inj_add.
+    case (Pos.to_nat p0); [by rewrite Nat.add_0_l addn0|move=> n].
+    rewrite ifT; [by rewrite plusE addKn|].
+    by rewrite plusE; apply ltn_addr; rewrite ltnSn. }
+  move=> p' ->; rewrite -!binnat.to_natE Pos2Nat.inj_add.
+  case (Pos.to_nat p').
+  { rewrite Nat.add_0_r; case (Pos.to_nat p)=>// n.
+    by rewrite ltnSn subnn. }
+  move=> n.
+  case E: (Pos.to_nat p)=>/=; [by rewrite subn0|].
+  rewrite ifF.
+  { by rewrite plusE addnS -addSn addKn. }
+  by rewrite plusE addnS -addSn -ltn_subRL subnn ltn0. }
+{ rewrite /GRing.opp /= /intZmod.oppz -binnat.to_natE.
+  by case (Pos.to_nat p); [rewrite addn0|move=>n; rewrite subn0]. }
+{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz.
+  move: (Z.pos_sub_discr p p0); case E': (Z.pos_sub _ _).
+  { move<-; rewrite -binnat.to_natE Z.pos_sub_diag; case (Pos.to_nat _)=>// n.
+    by rewrite ltnSn subnn. }
+  { move=> ->.
+    rewrite -!binnat.to_natE Pos2Nat.inj_add Z.pos_sub_lt; last first.
+    { by apply Pos.lt_add_diag_r. }
+    rewrite -binnat.to_natE Pos2Nat.inj_sub ?Pos2Nat.inj_add; last first.
+    { by apply Pos.lt_add_diag_r. }
+    rewrite plusE minusE addKn; case (Pos.to_nat _).
+    { by rewrite addn0; case (Pos.to_nat p0)=>// n; rewrite ltnSn subnn. }
+    move=> n.
+    case E: (Pos.to_nat p0 + n.+1)%N.
+    { by exfalso; move: E; rewrite addnS. }
+    rewrite -E ifF.
+    { f_equal.
+      have H: (Pos.to_nat p0 + n.+1 - n.+1 = Pos.to_nat p0 + n.+1 - n.+1)%N.
+      { done. }
+      move: H; rewrite {2}E addnK=>->.
+      by rewrite subnS subSn /= ?subKn //; move: E;
+        rewrite addnS=>[] [] <-; rewrite leq_addl. }
+    by rewrite addnS -ltn_subRL subnn ltn0. }
+  move=> ->; rewrite Z.pos_sub_gt; [|by apply Pos.lt_add_diag_r].
+  rewrite -!binnat.to_natE !Pos2Nat.inj_sub; [|by apply Pos.lt_add_diag_r].
+  rewrite Pos2Nat.inj_add; case (Pos.to_nat p).
+  { by rewrite plusE minusE !add0n subn0. }
+  by move=> n; rewrite plusE minusE addKn ifT // leq_addr. }
+rewrite -!binnat.to_natE Pos2Nat.inj_add /GRing.opp /= /intZmod.oppz plusE.
+case (Pos.to_nat p).
+{ by rewrite add0n; case (Pos.to_nat p0)=>// n; rewrite ltn0 subn0. }
+move=> n; case (Pos.to_nat p0); [by rewrite addn0 ltn0 subn0|].
+by move=> n'; rewrite addSn -addnS.
+Qed.
+
 Lemma Z2int_mul_nat_of_pos (x : BinNums.Z) (y : positive) :
   (Z2int x * nat_of_pos y)%Ri = Z2int (Z.mul x (BinNums.Zpos y)).
 Proof.
