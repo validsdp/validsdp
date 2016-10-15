@@ -1299,9 +1299,57 @@ Proof. rewrite refinesE /r_ratBigQ /bigQ2rat; red; exact: val_inj. Qed.
 Global Instance param_ratBigQ_one : refines r_ratBigQ 1%R 1%C.
 Proof. rewrite refinesE /r_ratBigQ /bigQ2rat; red; exact: val_inj. Qed.
 
+(*
+Lemma Posz_nat_of_pos_neq0 p : Posz (nat_of_pos p) == 0%Ri = false.
+Proof.
+rewrite -binnat.to_natE.
+case E: (Pos.to_nat _)=>//; exfalso; move: E.
+by move: (binnat.to_nat_gt0 p); case (Pos.to_nat _).
+Qed.
+  
+Lemma Z2int_opp n : Z2int (- n) = (- (Z2int n))%Ri.
+Proof. by case n=>// p /=; rewrite GRing.opprK. Qed.
+  
+Lemma Z_ggcd_1_r n : Z.ggcd n 1 = (1, (n, 1))%coq_Z.
+Proof.
+move: (Z.ggcd_gcd n 1) (Z.ggcd_correct_divisors n 1); rewrite Z.gcd_1_r.
+case (Z.ggcd _ _)=> g ab /= ->; case ab=> a b [].
+by rewrite !Z.mul_1_l => <- <-.
+Qed.
+*)
+
 Global Instance param_ratBigQ_opp : refines (r_ratBigQ ==> r_ratBigQ) -%R -%C.
 Proof.
-Admitted.  (* ratBigQ -%C *)
+apply refines_abstr=> a b.
+rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rab.
+rewrite /GRing.opp /= /oppq /opp_op /opp_bigQ /BigQ.opp.
+move: rab; case b.
+{ move=> n <-; rewrite /GRing.opp /=; apply val_inj=>/=.
+  rewrite !Z_ggcd_1_r /= gcdn1 !divn1 BigZ.spec_opp Z2int_opp.
+  by rewrite expN1r mulz_sign_abs. }
+rewrite -oppq_frac.
+move=> n d <-; apply val_inj=>/=.
+set n' := Qnum _.
+set d' := Qden _.
+set n'' := Qnum _.
+set d'' := Qden _.
+set g := gcdn _ _.
+have Hg: g = 1%N; [|rewrite Hg divn1].
+{ apply Nat2Z.inj; rewrite /g -ZgcdE /=.
+  apply Qcanon.Qred_iff, Qcanon.Qred_involutive. }
+rewrite !Posz_nat_of_pos_neq0 divn1 expN1r mulz_sign_abs abszN -/g Hg !divn1.
+rewrite !absz_nat.
+have ->: (Posz (nat_of_pos d'') < 0)%Ri = false.
+{ by rewrite -(absz_nat (nat_of_pos d'')) normr_lt0. }
+rewrite /= -(abszN (Z2int n'')) mulz_sign_abs; f_equal.
+{ rewrite -Z2int_opp; f_equal.
+  rewrite /n' /n''; case (_ =? _)%bigN=>//.
+  rewrite BigZ.spec_opp /= Z.ggcd_opp /=.
+  by case (Z.ggcd _)=> ? p; case p. }
+rewrite /d' /d''; case (_ =? _)%bigN=>//=.
+rewrite BigZ.spec_opp /= Z.ggcd_opp /=.
+by case (Z.ggcd _)=> ? p; case p.
+Qed.
 
 Global Instance param_ratBigQ_add :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) +%R +%C.

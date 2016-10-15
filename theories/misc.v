@@ -348,18 +348,25 @@ Qed.
 
 (** About [int] and [rat] *)
 
+Lemma nat_of_pos_gt0 p : (0 < nat_of_pos p)%N.
+Proof. by elim: p =>//= p IHp; rewrite NatTrec.doubleE double_gt0. Qed.
+
+Lemma nat_of_pos_inj x y : nat_of_pos x = nat_of_pos y -> x = y.
+Proof. rewrite -!binnat.to_natE; apply Pos2Nat.inj. Qed.
+
+Lemma Posz_nat_of_pos_neq0 p : Posz (nat_of_pos p) == 0%Ri = false.
+Proof.
+rewrite -binnat.to_natE.
+case E: (Pos.to_nat _)=>//; exfalso; move: E.
+by move: (binnat.to_nat_gt0 p); case (Pos.to_nat _).
+Qed.
+  
 Definition Z2int (z : BinNums.Z) :=
   match z with
   | Z0 => 0%:Z
   | Z.pos p => (nat_of_pos p)%:Z
   | Z.neg n => (- (nat_of_pos n)%:Z)%R
   end.
-
-Lemma nat_of_pos_gt0 p : (0 < nat_of_pos p)%N.
-Proof. by elim: p =>//= p IHp; rewrite NatTrec.doubleE double_gt0. Qed.
-
-Lemma nat_of_pos_inj x y : nat_of_pos x = nat_of_pos y -> x = y.
-Proof. rewrite -!binnat.to_natE; apply Pos2Nat.inj. Qed.
 
 Lemma Z2int_inj x y : Z2int x = Z2int y -> x = y.
 Proof.
@@ -389,6 +396,9 @@ case E': (Pos.to_nat p0)=>//= [] [] H.
 by move: E'; rewrite -H -E=>/Pos2Nat.inj ->.
 Qed.
 
+Lemma Z2int_opp n : Z2int (- n) = (- (Z2int n))%Ri.
+Proof. by case n=>// p /=; rewrite GRing.opprK. Qed.
+  
 Lemma Z2int_mul_nat_of_pos (x : BinNums.Z) (y : positive) :
   (Z2int x * nat_of_pos y)%Ri = Z2int (Z.mul x (BinNums.Zpos y)).
 Proof.
@@ -457,6 +467,13 @@ rewrite Zabs_natE dvdn_gcd.
 apply/andP; split; apply/dvdnP; rewrite -!Zabs_natE !Zabs2Nat.id_abs.
 { by apply/Z.divide_abs_l/Z.divide_abs_r. }
 { by apply/Z.divide_abs_l; rewrite -binnat.to_natE positive_nat_Z. }
+Qed.
+
+Lemma Z_ggcd_1_r n : Z.ggcd n 1 = (1, (n, 1))%Z.
+Proof.
+move: (Z.ggcd_gcd n 1) (Z.ggcd_correct_divisors n 1); rewrite Z.gcd_1_r.
+case (Z.ggcd _ _)=> g ab /= ->; case ab=> a b [].
+by rewrite !Z.mul_1_l => <- <-.
 Qed.
 
 Program Definition bigQ2rat (bq : bigQ) :=
