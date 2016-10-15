@@ -408,6 +408,15 @@ rewrite /Z2int; case Ex: x.
 by rewrite /= mulNr  -!binnat.to_natE Pos2Nat.inj_mul.
 Qed.
 
+Lemma Z2int_mul x y : Z2int (x * y) = (Z2int x * Z2int y)%Ri.
+Proof.
+case y=>/=.
+{ by rewrite GRing.mulr0 Z.mul_0_r. }
+{ by move=> p; rewrite Z2int_mul_nat_of_pos. }
+move=> p.
+by rewrite GRing.mulrN Z2int_mul_nat_of_pos -Z2int_opp Zopp_mult_distr_r.
+Qed.
+  
 Lemma Z2int_le x y : (Z2int x <= Z2int y)%Ri <-> Z.le x y.
 Proof.
 rewrite /Z2int; case Ex: x; case Ey: y=> //.
@@ -430,6 +439,9 @@ rewrite /Z.le /Z.compare -!binnat.to_natE /Num.Def.ler /=.
 rewrite -Pos.compare_antisym=>H; apply/leP.
 by rewrite -Pos2Nat.inj_le -Pos.compare_le_iff.
 Qed.
+
+Lemma nat_of_pos_Z_to_pos x : nat_of_pos x = `|Z2int (' x)|%N.
+Proof. by rewrite /absz /Z2int. Qed.
 
 Lemma Zabs_natE n : Z.abs_nat n = `|Z2int n|%N.
 Proof.
@@ -467,6 +479,31 @@ rewrite Zabs_natE dvdn_gcd.
 apply/andP; split; apply/dvdnP; rewrite -!Zabs_natE !Zabs2Nat.id_abs.
 { by apply/Z.divide_abs_l/Z.divide_abs_r. }
 { by apply/Z.divide_abs_l; rewrite -binnat.to_natE positive_nat_Z. }
+Qed.
+
+Lemma ZgcdE' n m : Z.gcd n m = Z.of_nat (gcdn `|Z2int n| `|Z2int m|).
+Proof.
+case m.
+{ rewrite Z.gcd_0_r {2}/absz {2}/Z2int /= gcdn0 -Zabs2Nat.id_abs; f_equal.
+  rewrite /Z.abs_nat /absz /Z2int.
+  case n=>// p; rewrite -!binnat.to_natE //.
+  case (Pos.to_nat _); [by rewrite GRing.oppr0|move=> n'].
+  by rewrite /GRing.opp /=. }
+{ by move=> p; rewrite ZgcdE nat_of_pos_Z_to_pos. }
+by move=> p; rewrite -Z.gcd_opp_r /= ZgcdE abszN /absz.
+Qed.
+  
+Lemma Z_ggcd_coprime a b :
+  let '(g, (a', b')) := Z.ggcd a b in
+  g <> 0%Z -> coprime `|Z2int a'| `|Z2int b'|.
+Proof.
+move: (Z.ggcd_gcd a b) (Z.ggcd_correct_divisors a b).
+case (Z.ggcd _ _)=> g ab; case ab=> a' b' /= Hg [] Ha Hb Pg.
+rewrite /coprime; apply/eqP /Nat2Z.inj; rewrite -ZgcdE' /=.
+suff ->: a' = (a / g)%Z.
+{ suff ->: b' = (b / g)%Z; [by apply Z.gcd_div_gcd|].
+  by rewrite Hb Z.mul_comm Z_div_mult_full. }
+by rewrite Ha Z.mul_comm Z_div_mult_full.
 Qed.
 
 Lemma Z_ggcd_1_r n : Z.ggcd n 1 = (1, (n, 1))%Z.
