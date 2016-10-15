@@ -948,8 +948,32 @@ Lemma eqF_signif_digits m e m' e' :
   (signif_digits m <=? 53)%bigZ = (signif_digits m' <=? 53)%bigZ.
 Proof.
 move=> HeqF.
-apply/idP/idP; move/signif_digits_correct => H; apply/signif_digits_correct.
-Admitted.  (* Erik: signif_digits *)
+apply/idP/idP.
+{ move/signif_digits_correct => H.
+  rewrite /eqF in HeqF.
+  move/(congr1 proj_val) in HeqF.
+  rewrite !toR_Float in HeqF.
+  apply/(signif_digits_correct _ e').
+  rewrite /mantissa_bounded /x_bounded in H *; right.
+  have {H} [|[r H1 H2]] := H e; first by rewrite real_FtoX_toR.
+  exists r =>//.
+  rewrite real_FtoX_toR // toR_Float; congr Xreal.
+  move/(congr1 proj_val) in H1.
+  rewrite !toR_Float /= in H1.
+  by rewrite -{}H1 {}HeqF. }
+{ move/signif_digits_correct => H.
+  rewrite /eqF in HeqF.
+  move/(congr1 proj_val) in HeqF.
+  rewrite !toR_Float in HeqF.
+  apply/(signif_digits_correct _ e).
+  rewrite /mantissa_bounded /x_bounded in H *; right.
+  have {H} [|[r H1 H2]] := H e'; first by rewrite real_FtoX_toR.
+  exists r =>//.
+  rewrite real_FtoX_toR // toR_Float; congr Xreal.
+  move/(congr1 proj_val) in H1.
+  rewrite !toR_Float /= in H1.
+  by rewrite -{}H1 -{}HeqF. }
+Qed.
 
 Instance : refines (eqF ==> eqFI) F2FI F2FI.
 rewrite refinesE => f f' ref_f.
