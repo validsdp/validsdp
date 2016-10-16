@@ -826,6 +826,13 @@ rewrite -(ler_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
 by move/RleP/le_Z2R/Z.leb_le.
 Qed.
 
+Lemma int2Z_lt m n : (int2Z m <? int2Z n)%coq_Z = (m < n)%Ri.
+Proof.
+rewrite -(ltr_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
+{ by move/Z.ltb_lt/Z2R_lt/RltP. }
+by move/RltP/lt_Z2R/Z.ltb_lt.
+Qed.
+
 Definition rat2bigQ (q : rat) : bigQ :=
   let n := BigZ.of_Z (int2Z (numq q)) in
   let d := BigN.N_of_Z (int2Z (denq q)) in
@@ -851,6 +858,70 @@ Qed.
 Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z then n else Z0.
 Proof. by rewrite -[RHS](BigZ.spec_of_Z); case: n. Qed.
 
+Lemma BigQ_check_int_den_neq0_aux n d :
+  match BigQ.check_int n d with
+    | BigQ.Qz _ => True
+    | BigQ.Qq _ d => [d]%bigN <> 0%coq_Z
+  end.
+Proof.
+rewrite /BigQ.check_int.
+case E: (_ ?= _)%bigN=>//.
+move: E; rewrite BigN.compare_lt_iff=> E H.
+apply (BigN.lt_irrefl BigN.one).
+apply (BigN.lt_trans _ BigN.zero); [|apply BigN.lt_0_1].
+by move: E; rewrite -BigN.ltb_lt BigN.spec_ltb H /=.
+Qed.
+
+Lemma BigQ_check_int_den_neq0 n d :
+  match BigQ.check_int n d with
+    | BigQ.Qz _ => true
+    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
+  end.
+Proof.
+move: (BigQ_check_int_den_neq0_aux n d); case (BigQ.check_int _ _)=>[//|_ n' H].
+by apply/negP; rewrite /is_true BigN.spec_eqb Z.eqb_eq=>H'; apply H; rewrite H'.
+Qed.
+
+Lemma BigQ_norm_den_neq0_aux n d :
+  match BigQ.norm n d with
+    | BigQ.Qz _ => True
+    | BigQ.Qq _ d => [d]%bigN <> 0%coq_Z
+  end.
+Proof.
+case E: (BigQ.norm _ _)=>//; move: E; rewrite /BigQ.norm.
+case (_ ?= _)%bigN.
+{ move: (BigQ_check_int_den_neq0_aux n d).
+  by case (BigQ.check_int _ _)=>[//| n' d'] H [] _ <-. }
+{ set n' := (_ / _)%bigZ; set d' := (_ / _)%bigN.
+  move: (BigQ_check_int_den_neq0_aux n' d').
+  by case (BigQ.check_int _ _)=>[//| n'' d''] H [] _ <-. }
+by [].
+Qed.
+
+Lemma BigQ_norm_den_neq0 n d :
+  match BigQ.norm n d with
+    | BigQ.Qz _ => true
+    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
+  end.
+Proof.
+move: (BigQ_norm_den_neq0_aux n d); case (BigQ.norm _ _)=>[//|_ n' H].
+by apply/negP; rewrite /is_true BigN.spec_eqb Z.eqb_eq=>H'; apply H; rewrite H'.
+Qed.
+
+Lemma BigQ_red_den_neq0_aux q :
+  match BigQ.red q with
+    | BigQ.Qz _ => True
+    | BigQ.Qq _ d => [d]%bigN <> 0%coq_Z
+  end.
+Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0_aux. Qed.
+
+Lemma BigQ_red_den_neq0 q :
+  match BigQ.red q with
+    | BigQ.Qz _ => true
+    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
+  end.
+Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0. Qed.
+
 Lemma rat2FIS_correct r :
   @finite fs (rat2FIS r) ->
   rat2R r <= FS_val (@FIS2FS fs (rat2FIS r)).
@@ -865,39 +936,59 @@ rewrite F2FI_valE; last first.
 { apply/mantissa_boundedP; rewrite /bigQ2F.
   set r' := BigQ.red _; case r'=>[t|t t0]; apply/fidiv_proof. }
 move=>->/=; rewrite /bigQ2F.
-set nr := BigQ.red _; case E': nr=>/=.
-{ admit. }
-admit.
-(*
-case E: BigN.eqb; [|rewrite {E}].
-{ rewrite /=; set dr := d%:~R.
-  suff->: (dr = 0)%Ri.
-  { rewrite invr_out ?mulr0; [by right|].
-    rewrite negbT=>//; apply unitr0. }
-  rewrite /dr; move: E; rewrite BigN.spec_eqb Z.eqb_eq -Z2R_int2Z=> E.
-  rewrite -[0%Ri]/(Z2R 0); f_equal; move: E.
-  rewrite BigN.spec_N_of_Z /d =>//.
-  apply /Z.leb_le.
-  by rewrite -[Z0]/(int2Z 0) int2Z_le denq_ge0. }
-rewrite !F.div_correct /Xround.
-case E: Xdiv =>[//|x] /= _.
-set xq := (n%:~R / d%:~R)%Ri.
-suff ->: x = xq.
-{ rewrite /round /=.
-  by have [_ [Hxq _]] := round_UP_pt radix2 (FLX_exp 53) xq. }
-rewrite {}/xq.
-move: E; set fn := Float _ _; set fd := Float _ _.
-rewrite (@real_FtoX_toR fn erefl) (@real_FtoX_toR fd erefl) /=.
-rewrite /Xdiv'.
-case: is_zero_spec =>// H0 [] <-.
-rewrite !toR_Float BigZ.spec_of_Z !Z2R_int2Z BigZ_Pos_NofZ ifT; last first.
-by change Z0 with (int2Z 0%Ri); rewrite int2Z_le denq_ge0.
-rewrite Z2R_int2Z !Rsimpl unfoldR' //.
-by apply/eqP/negbT; rewrite intr_eq0 denq_eq0.
-Qed.
- *)
+have Hd: (0 < int2Z d)%coq_Z.
+{ by move: (denq_gt0 r); rewrite -/d -int2Z_lt /= /is_true Z.ltb_lt. }
+have Hd' := Z.lt_le_incl _ _ Hd.
+set nr := BigQ.red _.
+move: (Qeq_refl [nr]%bigQ).
+rewrite {2}BigQ.strong_spec_red Qred_correct /Qeq /=.
+rewrite ifF /=; last first.
+{ rewrite BigN.spec_eqb !BigN.spec_N_of_Z //=; apply/negP.
+  by rewrite /is_true Z.eqb_eq=> H; move: Hd; rewrite H. }
+rewrite BigN.spec_N_of_Z // Z2Pos.id // BigZ.spec_of_Z.
+case E: nr.
+{ move=> /= Hnr; rewrite F.div_correct /Xround real_FtoX_toR //=.
+  rewrite /Xdiv' ifF; [|by apply Req_bool_false, R1_neq_R0].
+  rewrite /Rdiv Rinv_1 Rmult_1_r /round /rnd_of_mode /=.
+  set x := proj_val _; apply (Rle_trans _ x); last first.
+  { by apply round_UP_pt, FLX_exp_valid. }
+  rewrite /x -!Z2R_int2Z real_FtoX_toR // toR_Float /= Rmult_1_r.
+  apply (Rmult_le_reg_r (Z2R (int2Z d))).
+  { by rewrite -[R0]/(Z2R 0); apply Z2R_lt. }
+  rewrite -Z2R_mult Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc.
+  rewrite Rstruct.mulVr ?Rmult_1_r; [by right|].
+  rewrite -[R0]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
+  by move: Hd; rewrite H. }
+rewrite /= ifF /=; last first.
+{ move: E; rewrite /nr; set nrnr := (_ # _)%bigQ; move: (BigQ_red_den_neq0 nrnr).
+  by case (BigQ.red _)=>[//|n' d'] H [] _ <-; move: H=>/negbTE. }
+rewrite F.div_correct /Xround /Xdiv real_FtoX_toR //= real_FtoX_toR //=.
+rewrite /Xdiv' ifF; last first.
+{ apply Req_bool_false; rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
+  rewrite -[R0]/(Z2R 0); apply Z2R_neq.
+  move: E; rewrite /nr; set nrnr := (_ # _)%bigQ.
+  move: (BigQ_red_den_neq0_aux nrnr).
+  by case (BigQ.red _)=>[//|n' d'] H [] _ <-. }
+rewrite Z2Pos.id; last first.
+{ move: E; rewrite /nr; set nrnr := (_ # _)%bigQ.
+  move: (BigQ_red_den_neq0_aux nrnr); case (BigQ.red _)=>[//|? d'] H [] _ <-.
+  by case (Z_le_lt_eq_dec _ _ (BigN.spec_pos d'))=>// H'; exfalso; apply H. }
+move=> Hnd; rewrite /round /rnd_of_mode /=.
+set x := _ / _; apply (Rle_trans _ x); [|by apply round_UP_pt, FLX_exp_valid].
+rewrite /x -!Z2R_int2Z; do 2 rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
+apply (Rmult_le_reg_r (Z2R (int2Z d))).
+{ by rewrite -[R0]/(Z2R 0); apply Z2R_lt. }
+set lhs := _ * _; rewrite Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc -Z2R_mult.
+rewrite Hnd {}/lhs /GRing.mul /= Rmult_assoc.
+rewrite Rstruct.mulVr ?Rmult_1_r; [right|]; last first.
+{ rewrite -[R0]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
+  by move: Hd; rewrite H. }
+rewrite Z2R_mult Rmult_assoc Rinv_r ?Rmult_1_r //.
+move: (erefl nr); rewrite /nr; set nrnr := (_ # _)%bigQ=>_.
+move: (BigQ_red_den_neq0_aux nrnr); rewrite /nrnr -/nr E=>H.
+by rewrite -[R0]/(Z2R 0); apply Z2R_neq.
 Transparent F.div.
-Admitted.
+Qed.
 
 (* TODO: move *)
 Lemma Q2R_0 : Q2R 0%Qrat = 0%Re.
@@ -985,41 +1076,6 @@ by rewrite real_FtoX_toR in ref_f.
 rewrite /= (eqF_signif_digits ref_f).
 by case: ifP.
 Qed.
-
-Lemma BigQ_check_int_den_neq0 n d :
-  match BigQ.check_int n d with
-    | BigQ.Qz _ => true
-    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
-  end.
-Proof.
-rewrite /BigQ.check_int.
-case E: (_ ?= _)%bigN=>//.
-move: E; rewrite BigN.compare_lt_iff=> E.
-apply/negP; rewrite /is_true BigN.eqb_eq=> H.
-apply (BigN.lt_irrefl BigN.one).
-by apply (BigN.lt_trans _ BigN.zero); [rewrite -H|apply BigN.lt_0_1].
-Qed.
-
-Lemma BigQ_norm_den_neq0 n d :
-  match BigQ.norm n d with
-    | BigQ.Qz _ => true
-    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
-  end.
-Proof.
-case E: (BigQ.norm _ _)=>//; apply negbT; move: E; rewrite /BigQ.norm.
-case E: (_ ?= _)%bigN.
-{ by move=> H; move: (BigQ_check_int_den_neq0 n d); rewrite H /= =>/negbTE. }
-{ set n' := (_ / _)%bigZ; set d' := (_ / _)%bigN.
-  by move=> H; move: (BigQ_check_int_den_neq0 n' d'); rewrite H /= =>/negbTE. }
-by [].
-Qed.
-
-Lemma BigQ_red_den_neq0 q :
-  match BigQ.red q with
-    | BigQ.Qz _ => true
-    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
-  end.
-Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0. Qed.
 
 Instance : refines (BigQ.eq ==> eqF) bigQ2F' bigQ2F'.
 Proof.
