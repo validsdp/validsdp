@@ -1049,6 +1049,7 @@ Context {n1 n2 : nat} {rn : nat_R n1.+1 n2.+1}.
 
 Let r1 := nat_R_S_R nat_R_O_R.
 
+(*
 Section WrtEquivalence.
 
 Variable eqC : C -> C -> Prop.
@@ -1058,8 +1059,11 @@ Context `{!refines (eqC ==> eqC ==> eqC) add_op add_op}.
 Context `{!refines (eqC ==> eqC ==> eqC) div_op div_op}.
 Context `{!refines (eqC ==> eqC) sqrt_op sqrt_op}.
 
+End WrtEquivalence.
+ *)
+
 Global Instance param_dotmulB0 :
-  refines (Rord rn ==> eqC ==> Rseqmx r1 rn ==> Rseqmx r1 rn ==> eqC)
+  refines (Rord rn ==> eq ==> Rseqmx r1 rn ==> Rseqmx r1 rn ==> eq)
     (@dotmulB0_ssr _ _ _ _ n1.+1) (@dotmulB0_seqmx C _ _ _ n2.+1).
 Proof.
 eapply refines_abstr => k k' ref_k.
@@ -1089,8 +1093,9 @@ have->: [ffun i => [ffun k0 : 'I__ => (- (a ord0 (inord k0) * b ord0 (inord k0))
         [ffun i => (- (a ord0 (inord (lift ord0 i)) * b ord0 (inord (lift ord0 i))))%C].
 by move=> n; apply/ffunP => x; rewrite !ffunE.
 rewrite <-(IH (Ordinal Hk) (\row_(i < n'.+1) a ord0 (lift ord0 i))
-                           (\row_(i < n'.+1) b ord0 (lift ord0 i))).
-{ apply eq_subrelation; tc.
+             (\row_(i < n'.+1) b ord0 (lift ord0 i))
+          (c + - (a ord0 (@inord n'.+1 (@ord0 k.+1)) * b ord0 (@inord n'.+1 (@ord0 k.+1))))%C).
+{ (* apply eq_subrelation; tc. *)
   apply fsum_l2r_rec_eq => [|i] //.
   rewrite !ffunE /cc !mxE; repeat f_equal; apply/val_inj; rewrite /= !inordK //;
   by apply (ltn_trans (ltn_ord _)). }
@@ -1102,26 +1107,32 @@ by move=> j; rewrite mxE hb3.
 Qed.
 
 Lemma param_ytilded :
-  refines (Rord rn ==> eqC ==> Rseqmx r1 rn ==> Rseqmx r1 rn ==> eqC ==> eqC)
+  refines (Rord rn ==> eq ==> Rseqmx r1 rn ==> Rseqmx r1 rn ==> eq ==> eq)
     (ytilded_ssr (T:=C) (n := n1)) (ytilded_seqmx (n := n2)).
 Proof.
 ref_abstr => k k' ref_k; ref_abstr => c c' ref_c; ref_abstr => a a' ref_a; ref_abstr => b b' ref_b.
 ref_abstr => bk bk' ref_bk'.
 rewrite /ytilded_ssr /ytilded_seqmx /ytilded.
-refines_apply.
+refines_apply1.
+refines_apply1.
+by rewrite refinesE => ??-> ??->.
 Qed.
 
 Global Instance param_ytildes :
-  refines (Rord rn ==> eqC ==> Rseqmx r1 rn ==> eqC)
+  refines (Rord rn ==> eq ==> Rseqmx r1 rn ==> eq)
     (ytildes_ssr (T:=C) (n := n1)) (ytildes_seqmx (n := n2)).
 Proof.
 ref_abstr=> k k' ref_k; ref_abstr=> c c' ref_c; ref_abstr=> a a' ref_a.
 rewrite /ytildes_ssr /ytildes_seqmx /ytildes.
-refines_apply.
+refines_apply1.
+by rewrite refinesE => ??->.
 Qed.
 
 (* TODO: refactor *)
 Definition Rordn := fun j j' => j = j' /\ (j <= n1.+1)%N.
+
+Lemma refines_Rordn_eq j j' : refines Rordn j j' -> refines eq j j'.
+Proof. by rewrite !refinesE; case. Qed.
 
 Global Instance param_iteri_ord :
   forall T T', forall RT : T -> T' -> Type,
@@ -1139,7 +1150,7 @@ Qed.
 
 Global Instance param_iteri_ord' :
   forall T T', forall RT : T -> T' -> Type,
-  refines (Rordn ==> (nat_R ==> RT ==> RT)
+  refines (Rordn ==> (Rordn ==> RT ==> RT)
            ==> RT ==> RT)
     (@iteri_ord _ n1.+1 I0_instN succ0_instN T)
     (@iteri_ord _ n1.+1 I0_instN succ0_instN T').
@@ -1151,9 +1162,9 @@ apply (iteri_ord_ind2 (M := T) (M' := T') (j := j)) =>//.
 exact: (proj2 ref_j).
 intros.
 apply refinesP; refines_apply_tc.
-rewrite refinesE.
+(* rewrite refinesE.
 suff_eq nat_Rxx.
-by rewrite /nat_of /nat_of_instN in H0.
+by rewrite /nat_of /nat_of_instN in H0. *)
 Qed.
 
 (*
@@ -1178,8 +1189,6 @@ exact: refinesP.
 Qed.
  *)
 
-End WrtEquivalence.
-
 Global Instance param_inner_loop :
   refines (Rord rn ==> Rseqmx rn rn ==> Rseqmx rn rn ==> Rseqmx rn rn)
     (inner_loop_ssr (T:=C) (n := n1)) (inner_loop_seqmx (n := n2)).
@@ -1195,8 +1204,6 @@ eapply param_iteri_ord.
 rewrite refinesE=> i i' ri s s' rs.
 apply refinesP; refines_apply.
 eapply param_ytilded; tc.
-by rewrite refinesE => ??->??->.
-by rewrite refinesE => ??->??->.
 Qed.
 
 Global Instance param_outer_loop :
@@ -1210,9 +1217,6 @@ apply refinesP; refines_apply_tc.
 rewrite refinesE=> i i' ri s s' rs.
 eapply refinesP.
 refines_apply.
-eapply param_ytildes; tc.
-by rewrite refinesE => ??->??->.
-by rewrite refinesE => ??->.
 Qed.
 
 Global Instance param_cholesky :
@@ -1264,6 +1268,206 @@ Hypothesis (F2FIS_correct : forall f, finite (F2FIS f) -> FIS2FS (F2FIS f) = toR
 Section rn.
 
 Context {n1 n2 : nat} {rn : nat_R n1.+1 n2.+1}.
+
+Global Instance param_stilde_seqmx :
+  refines (nat_R ==> eqFIS ==> list_R eqFIS ==> list_R eqFIS ==> eqFIS)
+          stilde_seqmx stilde_seqmx.
+Proof.
+ref_abstr => k k' ref_k.
+ref_abstr => c c' ref_c.
+ref_abstr => a0 a0' ref_a.
+ref_abstr => b0 b0' ref_b.
+elim: k k' ref_k c c' ref_c a0 a0' ref_a b0 b0' ref_b =>
+  [|k IHk] k' ref_k c c' ref_c a0 a0' ref_a b0 b0' ref_b.
+{ rewrite refinesE in ref_k; move/nat_R_eq: ref_k => <- //. }
+rewrite refinesE in ref_k; move/nat_R_eq: ref_k => <- /=.
+rewrite refinesE in ref_a ref_b.
+case: ref_a => [|a1 a1' Ha1 a2 a2' Ha2]; tc.
+case: ref_b => [|b1 b1' Hb1 b2 b2' Hb2]; tc.
+apply IHk.
+by rewrite refinesE; exact: nat_Rxx.
+refines_apply.
+by rewrite refinesE.
+by rewrite refinesE.
+Qed.  
+
+Global Instance param_dotmulB0_seqmx :
+  refines (Rordn (n1 := n1) ==> eqFIS ==> list_R (list_R eqFIS) ==> list_R (list_R eqFIS) ==> eqFIS)
+    (dotmulB0_seqmx (n := n1.+1)) (dotmulB0_seqmx (n := n1.+1)).
+Proof.
+eapply refines_abstr => k k' ref_k.
+eapply refines_abstr => c c' ref_c.
+eapply refines_abstr => a0 a0' ref_a.
+eapply refines_abstr => b0 b0' ref_b.
+rewrite !refinesE in ref_k ref_a ref_b ref_c.
+red in ref_k; rewrite -(proj1 ref_k); clear ref_k.
+(* rewrite refinesE=> k _ <- c _ <- _ _ [a a' ha1 ha2 ha3] _ _ [b b' hb1 hb2 hb3]. *)
+rewrite /dotmulB0_seqmx.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+by rewrite refinesE; exact: nat_Rxx.
+param head_R.
+by rewrite refinesE.
+param head_R.
+by rewrite refinesE.
+Qed.
+
+Lemma param_ytilded_seqmx :
+  refines (Rordn (n1 := n1) ==> eqFIS ==> list_R (list_R eqFIS) ==> list_R (list_R eqFIS) ==> eqFIS ==> eqFIS)
+    (ytilded_seqmx (n := n1)) (ytilded_seqmx (n := n1)).
+Proof.
+refines_abstr.
+rewrite /ytilded_ssr /ytilded_seqmx /ytilded.
+refines_apply.
+Qed.
+
+Global Instance param_ytildes_seqmx :
+  refines (Rordn (n1 := n1) ==> eqFIS ==> list_R (list_R eqFIS) ==> eqFIS)
+  (ytildes_seqmx (n := n1)) (ytildes_seqmx (n := n1)).
+Proof.
+refines_abstr.
+rewrite /ytildes_seqmx /ytildes.
+refines_apply.
+Qed.
+
+Global Instance refines_inner_loop_seqmx :
+  refines ((Rordn (n1 := n1)) ==> list_R (list_R eqFIS) ==> list_R (list_R eqFIS) ==> list_R (list_R eqFIS))
+    (inner_loop_seqmx (n := n1)) (inner_loop_seqmx (n := n1)).
+Proof.
+rewrite refinesE=> j j' rj a a' ra r r' rr.
+rewrite /inner_loop_seqmx /inner_loop.
+apply refinesP.
+refines_apply1.
+eapply refines_apply.
+eapply refines_apply.
+eapply param_iteri_ord'.
+by rewrite /nat_of /nat_of_instN refinesE /Rordn.
+refines_abstr.
+refines_apply1.
+refines_apply1.
+eapply refines_apply.
+refines_apply1.
+{ rewrite refinesE; move=> ??? ??? ?? H ???; eapply store_seqmx_R =>//.
+  exact: nat_Rxx.
+  exact: nat_Rxx.
+  exact: refinesP.
+  suff_eq nat_Rxx; exact: (proj1 H).
+  exact: refinesP. }
+tc.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+eapply refines_apply.
+eapply param_ytilded_seqmx. by tc.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+admit.
+refines_apply1.
+refines_apply1.
+admit.
+refines_apply1.
+refines_apply1.
+admit.
+admit.
+Admitted. (* TODO *)
+
+(* Copy-paste of multipoly.v *)
+Lemma composable_imply_id2 :
+  forall (A B A' B' C' : Type) (rAB : A -> B -> Type) (R1 : A' -> B' -> Type)
+    (R2 : B' -> C' -> Type) (R3 : A' -> C' -> Type),
+    composable R1 R2 R3 -> composable (rAB ==> R1)%rel (eq ==> R2)%rel (rAB ==> R3)%rel
+    .
+Proof.
+intros A0 B A' B' C' rAB R1 R2 R3.
+rewrite !composableE => R123 fA fC [fB [RfAB RfBC]] a c rABac.
+apply: R123; exists (fB c); split; [ exact: RfAB | exact: RfBC ].
+Qed.
+
+Lemma composable_Rordn :
+  composable (Rord rn) (Rordn (n1 := n1)) (Rord rn).
+Proof.
+rewrite composableE => a a' [b [H1 [H2 H3]]].
+rewrite /Rord in H1 *.
+by transitivity b.
+Qed.
+
+Instance composable_Rordn_impl :
+  forall (A' B' C' : Type) (R1 : A' -> B' -> Type) (R2 : B' -> C' -> Type) (R3 : A' -> C' -> Type),
+  composable R1 R2 R3 ->
+  composable (Rord rn ==> R1)%rel (Rordn (n1 := n1) ==> R2)%rel (Rord rn ==> R3)%rel.
+Proof.
+intros A' B' C' R1 R2 R3.
+rewrite !composableE => R123 fA fC [fB [RfAB RfBC]] a c rABac.
+apply: R123; exists (fB c); split; [ exact: RfAB |].
+apply: RfBC.
+red in rABac |- *.
+split=>//.
+rewrite -rABac.
+exact/ltnW/ltn_ord.
+Qed.
+
+Global Instance param_inner_loop' :
+  refines (Rord rn ==> RseqmxC eqFIS rn rn ==> RseqmxC eqFIS rn rn ==> RseqmxC eqFIS rn rn)
+    (inner_loop_ssr (n := n1)) (inner_loop_seqmx (n := n2)).
+Proof.
+refines_trans.
+Qed.
+
+Global Instance param_outer_loop_seqmx n1 :
+  refines (list_R (list_R eqFIS) ==> list_R (list_R eqFIS) ==> list_R (list_R eqFIS))
+    (outer_loop_seqmx (n := n1)) (outer_loop_seqmx (n := n1)).
+Proof.
+rewrite refinesE=> a a' ra r r' rr.
+rewrite /outer_loop_seqmx /outer_loop.
+apply refinesP; refines_apply1.
+refines_apply1.
+eapply refines_apply.
+apply param_iteri_ord'.
+{ by rewrite refinesE /Rordn. }
+refines_abstr.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+rewrite /store_op.
+{ rewrite refinesE; do ?move=> ? *; eapply store_seqmx_R =>//.
+  exact: nat_Rxx.
+  exact: nat_Rxx.
+  exact: refinesP.
+  suff_eq nat_Rxx.
+  admit. (* easy *)
+  admit. (* easy *)
+  exact: refinesP. }
+refines_apply.
+admit.
+refines_apply.
+admit.
+admit.
+admit.
+admit.
+Admitted.
+(*
+eapply refines_inner_loop_seqmx.
+{ by rewrite refinesE; split; [rewrite (nat_R_eq rn)|]. }
+rewrite refinesE=> i i' ri s s' rs.
+eapply refinesP.
+refines_apply.
+eapply param_ytildes; tc.
+by rewrite refinesE => ??->??->.
+by rewrite refinesE => ??->.
+ *)
+
+Global Instance param_cholesky_seqmx n1 :
+  refines ((list_R (list_R eqFIS)) ==> list_R (list_R eqFIS))
+          (cholesky_seqmx (n := n1)) (cholesky_seqmx (n := n1)).
+Proof.
+rewrite /cholesky_seqmx /cholesky.
+refines_abstr.
+Qed.
 
 Global Instance refines_trmx_seqmx m n :
   refines (list_R (list_R eqFIS) ==> list_R (list_R eqFIS))
@@ -1383,19 +1587,9 @@ refines_apply1.
 refines_apply1.
 by rewrite refinesE /Rordn; split.
 refines_abstr.
-Qed.
-
-(* Copy-paste of multipoly.v
-Instance composable_imply_id2 :
-  forall (A B A' B' C' : Type) (rAB : A -> B -> Type) (R1 : A' -> B' -> Type)
-    (R2 : B' -> C' -> Type) (R3 : A' -> C' -> Type),
-  composable R1 R2 R3 -> composable (rAB ==> R1)%rel (eq ==> R2)%rel (rAB ==> R3)%rel.
-Proof.
-intros A0 B A' B' C' rAB R1 R2 R3.
-rewrite !composableE => R123 fA fC [fB [RfAB RfBC]] a c rABac.
-apply: R123; exists (fB c); split; [ exact: RfAB | exact: RfBC ].
-Qed.
- *)
+refines_apply.
+admit.
+Admitted.
 
 Global Instance param_foldl_diag' T' :
   forall eqf : T' -> T' -> Type,
@@ -1743,7 +1937,7 @@ Lemma optionE (A B : Type) (o : option A) (b : B) (f : A -> B) :
   end = oapp f b o.
 Proof. by []. Qed.
 
-(* Automation: for proving refinement lemmas involving options,
+(** Automation: for proving refinement lemmas involving options,
 do [rewrite !optionE; apply refines_option]. *)
 Lemma refines_option
   (A B : Type) (o1 o2 : option A) (b1 b2 : B) (f1 f2 : A -> B)
@@ -1764,7 +1958,6 @@ case: o1 => [a1|]; case: o2 => [a2|].
 { move=> /refinesP K; inversion K. }
 by move=> _ /=.
 Qed.
-
 
 Global Instance param_compute_c_seqmx :
   refines (eqFIS ==> eqFIS ==> (eqFIS ==> bool_R) ==> list_R (list_R eqFIS) ==> option_R eqFIS)
@@ -2048,7 +2241,7 @@ eapply refines_apply.
     refines_apply1.
     eapply param_all_diag_seqmx.
     eapply refines_apply.
-    admit. (* Erik: seqmx/cholesky *)
+    rewrite -/cholesky_seqmx (*!*); eapply param_cholesky_seqmx.
     eapply refines_apply. tc.
     eapply refines_apply. tc.
     { (* map_diag *)
@@ -2061,7 +2254,12 @@ eapply refines_apply.
       by rewrite refinesE /Rordn.
       (* store *)
       rewrite /cholesky.
+      refines_abstr; refines_apply1.
+      refines_apply1.
+      refines_apply1.
+      refines_apply1.
       admit. (* Erik *)
+      admit.
       tc. }
 Admitted.
 
@@ -2093,13 +2291,13 @@ by rewrite refinesE.
   exact: nat_Rxx.
   exact: nat_Rxx.
   exact: refinesP.
-  exact: refinesP.
-  exact: refinesP.
+  admit.
+  admit.
   eapply refinesP.
   do 3!refines_apply1.
-  rewrite refinesE; reflexivity.
-}
-Qed.
+  admit.
+  rewrite refinesE; reflexivity. }
+Admitted.
 
 Global Instance refines_posdef_check_itv' n :
   refines (RseqmxC eqFIS (nat_Rxx n.+1) (nat_Rxx n.+1) ==> eqFIS ==> bool_R)
