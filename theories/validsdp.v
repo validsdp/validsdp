@@ -791,47 +791,7 @@ Definition F2bigQ (q : coqinterval_infnan.F.type) : bigQ :=
 
 Let fs := coqinterval_infnan.coqinterval_round_up_infnan.
 
-Definition int2Z (n : int) : BinNums.Z :=
-  match n with
-  | Posz O => Z0
-  | Posz n => Z.pos (Pos.of_nat n)
-  | Negz n => Z.neg (Pos.of_nat n.+1)
-  end.
-
-Lemma Z2R_int2Z_nat (n : nat) : Z2R (int2Z n) = n%:~R.
-Proof.
-elim: n => [//|n IHn].
-rewrite -addn1 PoszD intrD -{}IHn /=.
-rewrite addn1 -addn1 /= P2R_INR Nat2Pos.id ?addn1 // -addn1.
-set zn := match n with O => Z0 | _ => Z.pos (Pos.of_nat n) end.
-suff->: zn = Z.of_nat n by rewrite -INR_Z2R plus_INR.
-clear; rewrite {}/zn /Z.of_nat.
-case: n => // n.
-by rewrite Pos.of_nat_succ.
-Qed.
-
-Lemma Z2R_int2Z n : Z2R (int2Z n) = n%:~R.
-Proof.
-elim/int_rec: n =>// n IHn.
-{ exact: Z2R_int2Z_nat. }
-by clear IHn; rewrite mulrNz /= -Z2R_int2Z_nat.
-Qed.
-
 Delimit Scope Z_scope with coq_Z.  (* should be unnecessary *)
-
-Lemma int2Z_le m n : (int2Z m <=? int2Z n)%coq_Z = (m <= n)%Ri.
-Proof.
-rewrite -(ler_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
-{ by move/Z.leb_le/Z2R_le/RleP. }
-by move/RleP/le_Z2R/Z.leb_le.
-Qed.
-
-Lemma int2Z_lt m n : (int2Z m <? int2Z n)%coq_Z = (m < n)%Ri.
-Proof.
-rewrite -(ltr_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
-{ by move/Z.ltb_lt/Z2R_lt/RltP. }
-by move/RltP/lt_Z2R/Z.ltb_lt.
-Qed.
 
 Definition rat2bigQ (q : rat) : bigQ :=
   let n := BigZ.of_Z (int2Z (numq q)) in
@@ -857,70 +817,6 @@ Qed.
 
 Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z then n else Z0.
 Proof. by rewrite -[RHS](BigZ.spec_of_Z); case: n. Qed.
-
-Lemma BigQ_check_int_den_neq0_aux n d :
-  match BigQ.check_int n d with
-    | BigQ.Qz _ => True
-    | BigQ.Qq _ d => [d]%bigN <> 0%coq_Z
-  end.
-Proof.
-rewrite /BigQ.check_int.
-case E: (_ ?= _)%bigN=>//.
-move: E; rewrite BigN.compare_lt_iff=> E H.
-apply (BigN.lt_irrefl BigN.one).
-apply (BigN.lt_trans _ BigN.zero); [|apply BigN.lt_0_1].
-by move: E; rewrite -BigN.ltb_lt BigN.spec_ltb H /=.
-Qed.
-
-Lemma BigQ_check_int_den_neq0 n d :
-  match BigQ.check_int n d with
-    | BigQ.Qz _ => true
-    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
-  end.
-Proof.
-move: (BigQ_check_int_den_neq0_aux n d); case (BigQ.check_int _ _)=>[//|_ n' H].
-by apply/negP; rewrite /is_true BigN.spec_eqb Z.eqb_eq=>H'; apply H; rewrite H'.
-Qed.
-
-Lemma BigQ_norm_den_neq0_aux n d :
-  match BigQ.norm n d with
-    | BigQ.Qz _ => True
-    | BigQ.Qq _ d => [d]%bigN <> 0%coq_Z
-  end.
-Proof.
-case E: (BigQ.norm _ _)=>//; move: E; rewrite /BigQ.norm.
-case (_ ?= _)%bigN.
-{ move: (BigQ_check_int_den_neq0_aux n d).
-  by case (BigQ.check_int _ _)=>[//| n' d'] H [] _ <-. }
-{ set n' := (_ / _)%bigZ; set d' := (_ / _)%bigN.
-  move: (BigQ_check_int_den_neq0_aux n' d').
-  by case (BigQ.check_int _ _)=>[//| n'' d''] H [] _ <-. }
-by [].
-Qed.
-
-Lemma BigQ_norm_den_neq0 n d :
-  match BigQ.norm n d with
-    | BigQ.Qz _ => true
-    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
-  end.
-Proof.
-move: (BigQ_norm_den_neq0_aux n d); case (BigQ.norm _ _)=>[//|_ n' H].
-by apply/negP; rewrite /is_true BigN.spec_eqb Z.eqb_eq=>H'; apply H; rewrite H'.
-Qed.
-
-Lemma BigQ_red_den_neq0_aux q :
-  match BigQ.red q with
-    | BigQ.Qz _ => True
-    | BigQ.Qq _ d => [d]%bigN <> 0%coq_Z
-  end.
-Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0_aux. Qed.
-
-Lemma BigQ_red_den_neq0 q :
-  match BigQ.red q with
-    | BigQ.Qz _ => true
-    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
-  end.
-Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0. Qed.
 
 Lemma rat2FIS_correct r :
   @finite fs (rat2FIS r) ->
