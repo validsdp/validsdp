@@ -96,22 +96,22 @@
    CLOSED: [2016-06-08 Wed 11:31]
 ** DONE Define fcts with "check_size" to discharge the last 2 goals  :Pierre:
 ** DONE Fix Ltac parsing w.r.t integers/rationals		       :Erik:
-** TODO Migration to CoqEAL/paramcoq-dev			:Pierre:Erik:
+** STARTED Migration to CoqEAL/paramcoq-dev			:Pierre:Erik:
 *** DONE Migrate iteri_ord, cholesky_prog			     :Pierre:
 *** DONE Migrate multipoly					       :Erik:
-*** STARTED refine effmpoly from rat to bigQ			       :Erik:
+*** DONE refine effmpoly from rat to bigQ			       :Erik:
 *** TODO Reportbug scope issue with refines/%rel
 *** TODO Submit multipoly.v upstream				       :Erik:
-** STARTED [#A] Finish writing the tactic in Ltac		       :Erik:
-*** TODO Prove ZZtoQ_correct					       :Erik:
+** DONE [#A] Finish writing the tactic in Ltac			       :Erik:
+*** DONE Prove bigZZ2Q_correct
 ** TODO Extend the tactic to handle parametric problems
 ** DONE Prove interp_poly_correct
 ** DONE param_soscheck, param_max_coeff, param_check_base            :Pierre:
 *** DONE Think-of lists vs. finsets (lists were enough apparently)
-** TODO benchs							     :Pierre:
-*** TODO Devise scripts to ease benchs (reuse CoqInterval's ones?)   :Pierre:
+** DONE benchs							     :Pierre:
+*** DONE Devise scripts to ease benchs (reuse CoqInterval's ones?)   :Pierre:
 * Optimizations
 ** TODO Specialize the algos with fine-tuned binary64 arith	       :Erik:
 - int31 (or int63)
 ** TODO More tests with native_compute				     :Pierre:
-* TODO validsdp dependencies: Add commit/version numbers in the README
+* DONE validsdp dependencies: Add commit/version numbers in the README
