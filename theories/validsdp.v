@@ -1203,67 +1203,27 @@ apply f_equal2.
 eapply refinesP, refines_bool_eq.
 eapply refines_apply.
 eapply refines_apply.
-eapply (refines_posdef_check_itv' (fs := fs) (eqFIS := eqFIS) _ (F := FIS fs)).
-admit.  (* Erik: this admit should be unnecessary *)
-rewrite refinesE //.
-eapply refines_apply; first tc.
-eapply refines_apply. tc.
-eapply refines_apply. tc.
-eapply refines_apply.
-eapply refines_apply.
-eapply refines_apply. tc.
-eapply refines_apply.
-eapply refines_apply. tc.
-eapply refines_apply.
-eapply refines_apply. tc.
-eapply refines_apply. tc.
-eapply refines_apply.
-eapply refines_apply. tc. tc. tc.
-eapply refines_apply.
-eapply refines_apply. tc.
-refines_abstr =>/=.
-refines_apply.
-by rewrite refinesE.
-refines_apply.
-by rewrite refinesE.
-by rewrite refinesE.
-Unshelve.
+eapply (refines_posdef_check_itv' (fs := fs) (eqFIS := eqFIS)).
 exact: eqFIS_P.
 exact: id.
-admit.  (* Erik: this evar should be unnecessary *)
-Admitted.
-(*
-refines_apply.
+eapply refines_apply. tc.
+eapply refines_apply. tc.
+eapply refines_apply. tc.
 eapply refines_apply.
-rewrite /max_coeff.
-refines_apply1.
-(* refines_apply_tc. *)
-refines_apply_tc0.
-(* refines_apply_tc. *)
-refines_apply_tc0.
-(* refines_apply_tc. *)
-(* refines_apply_tc0. *)
-eapply refines_apply. by tc.
-eapply refines_apply. eapply refines_apply. by tc.
-by tc.
-eapply refines_apply. eapply refines_apply. eapply refines_apply. by tc.
-eapply refines_apply; [eapply refines_apply|].
-{ apply refine_mul_seqmx; [by tc| |].
-  { apply ReffmpolyC_mpoly_add_eff; by tc. }
-  apply ReffmpolyC_mpoly_mul_eff; by tc. }
-eapply refines_apply; [eapply refines_apply|].
-{ apply refine_mul_seqmx; [by tc| |].
-  { apply ReffmpolyC_mpoly_add_eff; by tc. }
-  apply ReffmpolyC_mpoly_mul_eff; by tc. }
-{ refines_apply_tc. }
-{ refines_apply_tc.
-  { apply refines_abstr=> c c' rc /=; refines_apply_tc. }
-  rewrite refinesE; exists Q'; split=>//.
-  by apply list_Rxx=> x; apply list_Rxx. }
-refines_apply_tc.
+eapply refines_apply.
+eapply refines_apply. tc.
+eapply refines_apply.
+eapply refines_apply. tc.
+eapply refines_apply. tc.
+eapply refines_apply.
+eapply refines_apply. tc.
+refines_abstr; simpl. (* elim comp *)
+eapply refines_apply; tc.
 by rewrite refinesE.
-by rewrite refinesE.
-*)
+all: tc.
+by rewrite refinesE /Rord.
+by rewrite refinesE /Rord.
+Qed.
 
 End refinement_soscheck.
 
@@ -1590,7 +1550,7 @@ apply: (etrans (y := @soscheck_eff n'.+1 _
 { by rewrite -/n' /n in Hsos; apply Hsos. }
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1; first refines_apply1.
-{ apply param_soscheck with (C2A := bigQ2rat); tc; admit. (* Erik: easy *) }
+{ apply param_soscheck; tc; admit. (* Erik: easy *) }
 { by apply param_interp_poly; rewrite prednK ?lt0n. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /za.
@@ -1601,8 +1561,8 @@ refines_trans.
 rewrite refinesE; eapply Rseqmx_spec_seqmx.
 { rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
-admit. (* Erik: easy *)
-  by rewrite lt0n.
+rewrite refinesE; apply: list_Rxx => x; exact: list_Rxx.
+by rewrite lt0n.
 Admitted.
 
 Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.

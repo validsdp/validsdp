@@ -1475,7 +1475,7 @@ Proof.
 refines_trans.
 Qed.
 
-Global Instance param_outer_loop_seqmx n1 :
+Global Instance param_outer_loop_seqmx :
   refines (list_R (list_R eqFIS) ==> list_R (list_R eqFIS) ==> list_R (list_R eqFIS))
     (outer_loop_seqmx (n := n1)) (outer_loop_seqmx (n := n1)).
 Proof.
@@ -1492,38 +1492,58 @@ refines_apply1.
 refines_apply1.
 refines_apply1.
 rewrite /store_op.
-{ rewrite refinesE; do ?move=> ? *; eapply store_seqmx_R =>//.
-  exact: nat_Rxx.
-  exact: nat_Rxx.
-  exact: refinesP.
+{ param store_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
   suff_eq nat_Rxx.
-  admit. (* easy *)
-  admit. (* easy *)
-  exact: refinesP. }
-refines_apply.
-admit.
-refines_apply.
-admit.
-admit.
-admit.
-admit.
-Admitted.
-(*
-eapply refines_inner_loop_seqmx.
-{ by rewrite refinesE; split; [rewrite (nat_R_eq rn)|]. }
-rewrite refinesE=> i i' ri s s' rs.
-eapply refinesP.
-refines_apply.
-eapply param_ytildes; tc.
-by rewrite refinesE => ??->??->.
-by rewrite refinesE => ??->.
- *)
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)).
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)). }
+refines_apply1.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+rewrite /fun_of_op.
+{ param fun_of_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)).
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)). }
+refines_apply1.
+refines_apply1.
+{ param row_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)). }
+Qed.
 
-Global Instance param_cholesky_seqmx n1 :
+Global Instance param_cholesky_seqmx :
   refines ((list_R (list_R eqFIS)) ==> list_R (list_R eqFIS))
           (cholesky_seqmx (n := n1)) (cholesky_seqmx (n := n1)).
 Proof.
-rewrite /cholesky_seqmx /cholesky.
+rewrite /cholesky_seqmx /cholesky -[outer_loop]/(outer_loop_seqmx).
 refines_abstr.
 Qed.
 
@@ -1645,9 +1665,22 @@ refines_apply1.
 refines_apply1.
 by rewrite refinesE /Rordn; split.
 refines_abstr.
-refines_apply.
-admit.
-Admitted.
+do 4!refines_apply1.
+rewrite /fun_of_op.
+{ param fun_of_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n0)).
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n0)). }
+Qed.
 
 Global Instance param_foldl_diag' T' :
   forall eqf : T' -> T' -> Type,
@@ -1751,20 +1784,6 @@ Global Instance param_all_diag' :
 Proof.
 refines_trans.
 Qed.
-(*
-rewrite /all_diag.
-ref_abstr => f f' ref_f.
-ref_abstr => a a' ref_a.
-refines_apply1.
-ref_abstr => b b' ref_b.
-refines_apply.
-rewrite refinesE => c c' ref_c d d' ref_d.
-suff_eq bool_Rxx.
-f_equal.
-by case: ref_c.
-eapply refinesP, refines_bool_eq.
-refines_apply.
- *)
 
 Global Instance param_max_diag :
   refines (Rseqmx rn rn ==> eq)
@@ -1857,6 +1876,7 @@ tc.
 apply trivial_refines; reflexivity.
 tc.
 Qed.
+
 (*
 rewrite !refinesE in ref_b *.
 rewrite ref_b.
@@ -2235,6 +2255,64 @@ eapply refines_apply; [refines_apply|tc].
 exact: param_posdef_check_itv_aux.
 Qed.
 
+Definition map_diag_seqmx {n} :=
+  @map_diag _ _ (@hseqmx)
+    (@fun_of_seqmx _ (@zero_instFIS fs)) (@store_seqmx _) n.+1
+    (@I0_instN n) (@succ0_instN n).
+
+Global Instance refines_map_diag_seqmx n1 :
+  refines ((eqFIS ==> eqFIS) ==> list_R (list_R eqFIS) ==> list_R (list_R eqFIS))
+          (map_diag_seqmx (n := n1))
+          (map_diag_seqmx (n := n1)).
+Proof.
+rewrite /map_diag_seqmx /map_diag.
+refines_abstr.
+eapply refines_apply.
+eapply refines_apply.
+eapply refines_apply.
+eapply param_iteri_ord'.
+by rewrite refinesE /Rordn.
+(* store *)
+rewrite /cholesky.
+refines_abstr; refines_apply1.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+rewrite /store_op.
+{ param store_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)).
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)). }
+refines_apply1.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+rewrite /fun_of_op.
+{ param fun_of_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)).
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)). }
+done.
+Qed.
+
 Global Instance refines_posdef_check_seqmx n1 :
   refines (list_R (list_R eqFIS) ==> bool_R)
     (posdef_check_seqmx (n:=n1) (fieps fs) (fieta fs) (@finite fs))
@@ -2287,39 +2365,35 @@ eapply refines_apply.
     set c2 := compute_c _ _ _ _.
     rewrite !optionE.
     eapply refinesP, refines_bool_eq, refines_option.
-    refines_apply1.
-    refines_apply1.
-    refines_apply1.
-    eapply refines_apply; first by eapply param_compute_c_seqmx.
+    eapply refines_apply.
+    eapply refines_apply.
+    eapply refines_apply.
+    eapply refines_apply.
+    eapply param_compute_c_seqmx.
+    done.
+    tc.
+    refines_abstr.
     done.
     refines_abstr.
     refines_apply1.
     refines_apply1.
     refines_apply1.
     refines_apply1.
-    eapply param_all_diag_seqmx.
-    eapply refines_apply.
-    rewrite -/cholesky_seqmx (*!*); eapply param_cholesky_seqmx.
-    eapply refines_apply. tc.
-    eapply refines_apply. tc.
-    { (* map_diag *)
-      rewrite /map_diag.
-      refines_abstr.
-      eapply refines_apply.
-      eapply refines_apply.
-      eapply refines_apply.
-      eapply param_iteri_ord'.
-      by rewrite refinesE /Rordn.
-      (* store *)
-      rewrite /cholesky.
-      refines_abstr; refines_apply1.
+    refines_apply1.
+    refines_apply1.
+    by refines_abstr.
+    { rewrite /pos_diag.
       refines_apply1.
       refines_apply1.
       refines_apply1.
-      admit. (* Erik *)
-      admit.
-      tc. }
-Admitted.
+      refines_apply1.
+      refines_apply1.
+      refines_apply1.
+      by refines_abstr. }
+    rewrite refinesE; exact: bool_Rxx. } }
+rewrite refinesE; reflexivity.
+rewrite refinesE; reflexivity.
+Qed.
 
 Global Instance refines_posdef_check_itv_seqmx n :
   refines (list_R (list_R eqFIS) ==> eqFIS ==> bool_R)
@@ -2349,13 +2423,32 @@ by rewrite refinesE.
   exact: nat_Rxx.
   exact: nat_Rxx.
   exact: refinesP.
-  admit.
-  admit.
+  by suff_eq nat_Rxx; eapply refinesP, refines_Rordn_eq; tc.
+  by suff_eq nat_Rxx; eapply refinesP, refines_Rordn_eq; tc.
   eapply refinesP.
-  do 3!refines_apply1.
-  admit.
+  refines_apply1.
+  refines_apply1.
+  refines_apply1.
+  refines_apply1.
+  refines_apply1.
+  rewrite /fun_of_op.
+  { param fun_of_seqmx_R.
+    ref_abstr => m m' ref_m.
+    rewrite !refinesE in ref_m *.
+    suff_eq nat_Rxx.
+    congr S; exact: unify_rel.
+    ref_abstr => p p' ref_p.
+    rewrite !refinesE in ref_p *.
+    suff_eq nat_Rxx.
+    congr S; exact: unify_rel.
+    rewrite refinesE; suff_eq nat_Rxx.
+    exact: (Rordn_eq (n1 := n)).
+    rewrite refinesE; suff_eq nat_Rxx.
+    exact: (Rordn_eq (n1 := n)). }
+  refines_apply1.
+  refines_apply1.
   rewrite refinesE; reflexivity. }
-Admitted.
+Qed.
 
 Global Instance refines_posdef_check_itv' n :
   refines (RseqmxC eqFIS (nat_Rxx n.+1) (nat_Rxx n.+1) ==> eqFIS ==> bool_R)
