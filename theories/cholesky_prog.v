@@ -1134,6 +1134,9 @@ Definition Rordn := fun j j' => j = j' /\ (j <= n1.+1)%N.
 Lemma refines_Rordn_eq j j' : refines Rordn j j' -> refines eq j j'.
 Proof. by rewrite !refinesE; case. Qed.
 
+Lemma Rordn_eq j j' : Rordn j j' -> j = j'.
+Proof. exact: proj1. Qed.
+
 Global Instance param_iteri_ord :
   forall T T', forall RT : T -> T' -> Type,
   refines (Rordn ==> (Rord rn ==> RT ==> RT)
@@ -1349,13 +1352,19 @@ refines_apply1.
 refines_apply1.
 eapply refines_apply.
 refines_apply1.
-{ rewrite refinesE; move=> ??? ??? ?? H ???; eapply store_seqmx_R =>//.
-  exact: nat_Rxx.
-  exact: nat_Rxx.
-  exact: refinesP.
-  suff_eq nat_Rxx; exact: (proj1 H).
-  exact: refinesP. }
-tc.
+{ param store_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)). }
+rewrite refinesE; suff_eq nat_Rxx.
+exact: (Rordn_eq (n1 := n1)).
 refines_apply1.
 refines_apply1.
 refines_apply1.
@@ -1365,15 +1374,64 @@ eapply param_ytilded_seqmx. by tc.
 refines_apply1.
 refines_apply1.
 refines_apply1.
-admit.
+rewrite /fun_of_op.
+{ param fun_of_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)).
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)). }
 refines_apply1.
 refines_apply1.
-admit.
+{ param row_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)). }
 refines_apply1.
 refines_apply1.
-admit.
-admit.
-Admitted. (* TODO *)
+{ param row_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)). }
+refines_apply1.
+refines_apply1.
+refines_apply1.
+rewrite /fun_of_op.
+{ param fun_of_seqmx_R.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  ref_abstr => n n' ref_n.
+  rewrite !refinesE in ref_n *.
+  suff_eq nat_Rxx.
+  congr S; exact: unify_rel.
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)).
+  rewrite refinesE; suff_eq nat_Rxx.
+  exact: (Rordn_eq (n1 := n1)). }
+Qed.
 
 (* Copy-paste of multipoly.v *)
 Lemma composable_imply_id2 :
