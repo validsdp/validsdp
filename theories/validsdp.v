@@ -1567,6 +1567,12 @@ Ltac op1 lem := let H := fresh in
 Ltac op2 lem := let H1 := fresh in let H2 := fresh in
   rewrite refinesE /eqFIS => ?? H1 ?? H2 /=; rewrite !lem H1 H2.
 
+Ltac op22 lem1 lem2 := let H1 := fresh in let H2 := fresh in
+  rewrite refinesE /eqFIS => ?? H1 ?? H2 /=; rewrite !(lem1, lem2) H1 H2.
+
+Ltac op202 tac lem1 lem2 := let H1 := fresh in let H2 := fresh in
+  rewrite refinesE /eqFIS => ?? H1 ?? H2 /=; tac; rewrite !(lem1, lem2) H1 H2.
+
 Theorem soscheck_eff_wrapup_correct
   (vm : seq R) (pap : p_abstr_poly)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
@@ -1625,18 +1631,12 @@ Unshelve.
 { by op2 F.mul_correct. }
 { by op2 F.div_correct. }
 { op1 F.real_correct; exact: bool_Rxx. }
-{ rewrite /leq_instFIS /file /float_infnan_spec.ficompare /= /ficompare /=.
-  rewrite refinesE => ?? H1 ?? H2.
-  suff_eq bool_Rxx.
-  by rewrite !F.cmp_correct !F.real_correct H1 H2. }
-{ rewrite /lt_instFIS /filt /float_infnan_spec.ficompare /= /ficompare /=.
-  rewrite refinesE => ?? H1 ?? H2.
-  suff_eq bool_Rxx.
-  by rewrite !F.cmp_correct !F.real_correct H1 H2. }
+{ by op202 ltac:(rewrite /leq_instFIS /file /= /ficompare /=; suff_eq bool_Rxx)
+  F.cmp_correct F.real_correct. }
+{ by op202 ltac:(rewrite /lt_instFIS /filt /= /ficompare /=; suff_eq bool_Rxx)
+  F.cmp_correct F.real_correct. }
 { by op2 F.add_correct. }
-{ rewrite /subdn_instFIS /fiminus_down /=.
-  rewrite refinesE => ?? H1 ?? H2; red; simpl.
-    by rewrite !(F.neg_correct, F.add_correct) H1 H2. }
+{ by op22 F.neg_correct F.add_correct. }
 { by op2 F.mul_correct. }
 { by op2 F.div_correct. }
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
