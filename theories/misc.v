@@ -347,6 +347,21 @@ rewrite /Rdiv Rmult_assoc [(/ _ * _)%Re]Rmult_comm -Rmult_assoc Hxy.
 field; split; simpl; pos_P2R.
 Qed.
 
+Lemma Qeq_Q2R x y :
+  Q2R x = Q2R y -> Qeq x y.
+Proof.
+move=> Hxy; rewrite /Qeq.
+rewrite /Q2R in Hxy.
+apply: eq_Z2R.
+rewrite !Z2R_mult.
+apply (Rmult_eq_reg_r (/ Z2R (' Qden x))); last first.
+{ apply: Rinv_neq_0_compat.
+  by change R0 with (Z2R 0); apply: Z2R_neq. }
+rewrite /Rdiv in Hxy.
+rewrite Rmult_assoc [(_ * / _)%Re]Rmult_comm -Rmult_assoc Hxy.
+field; split; simpl; pos_P2R.
+Qed.
+
 (** About [int] and [rat] *)
 
 Lemma nat_of_pos_gt0 p : (0 < nat_of_pos p)%N.
