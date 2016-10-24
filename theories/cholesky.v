@@ -2,7 +2,7 @@
 
 (** This check is based on a floating-point Cholesky decomposition.
     The proof follows the paper:
-    S.M. Rump: Verification of positive definiteness, 
+    S.M. Rump: Verification of positive definiteness,
     BIT Numerical Mathematics, 46:433-452, 2006. *)
 
 Require Import Reals Flocq.Core.Fcore_Raux.
@@ -414,7 +414,7 @@ Proof.
 move=> H; apply Mmul_le_compat_r; [by apply Mabs_pos|].
 by apply Mmul_le_compat_l; [by rewrite -(trmx0); apply Mle_tr, Mabs_pos|].
 Qed.
-  
+
 (** (2.7) *)
 Lemma th_2_3_aux1_aux (j : 'I_n.+1) : (||rt j||_2^2 <= (d j)^2)%Re.
 Proof.
@@ -480,7 +480,7 @@ apply Rplus_le_compat.
 apply Rmult_le_compat_l; [fs_lra fs|].
 apply Rplus_le_compat; [by apply /le_INR /leP /ltn_ord|].
 rewrite Rabs_pos_eq; [apply Hmaxdiag'|apply Rlt_le, (proj2 HAR)].
-Qed.  
+Qed.
 
 Lemma th_2_3_aux2_aux2 (i : 'I_n.+1) :
   forall maxdiag', (forall i, (Rt i i <= maxdiag')%Re) ->
@@ -660,7 +660,7 @@ apply (Rmult_eq_reg_l (sqrt (INR n.+1))); [rewrite Rmult_1_r|lra].
 rewrite -{3}norm2_const -norm2_scale_pos; [|lra]; apply f_equal.
 rewrite -matrixP => i j; rewrite !mxE; apply Rinv_r; lra.
 Qed.
-  
+
 Lemma c_pos : 0 <= c.
 Proof.
 replace 0%Re with ((0 : 'M[R]_1) ord0 ord0); [|by rewrite mxE].

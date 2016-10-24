@@ -20,13 +20,13 @@ Record Float_infnan_spec := {
 
   FIS0 : FIS;
   FIS1 : FIS;
-  
+
   (** [finite f = true] iff the floating-point number [f] is finite. *)
   finite : FIS -> bool;
 
   finite0 : finite FIS0;
   finite1 : finite FIS1;
-  
+
   (** Underlying unbounded floating-point format.
       [FIS] and [FS fis] match when [finite] holds. *)
   fis :> Float_spec;
@@ -36,7 +36,7 @@ Record Float_infnan_spec := {
   m : R;
 
   m_ge_2 : 2 <= m;
-  
+
   (** Associates the corresponding value in [F fis] for finite values
       or [F0] for infinities and NaN. *)
   FIS2FS : FIS -> FS fis;
@@ -44,13 +44,13 @@ Record Float_infnan_spec := {
   FIS2FS_spec x : (FIS2FS x <> 0 :> R) -> finite x;
   FIS2FS0 : FIS2FS (FIS0) = F0 fis :> R;
   FIS2FS1 : FIS2FS (FIS1) = F1 fis :> R;
-  
+
   (** Some rounding. *)
   firnd : R -> FIS;
 
   firnd_spec x : finite (firnd x) -> FIS2FS (firnd x) = frnd fis x :> R;
   firnd_spec_f x : Rabs (frnd fis x) < m -> finite (firnd x);
-  
+
   (** Opposite. *)
   fiopp : FIS -> FIS;
 
@@ -112,7 +112,7 @@ Proof.
 apply Rle_trans with 2; [|now apply m_ge_2].
 rewrite <- (Rplus_0_l 0); apply Rplus_le_compat; apply Rle_0_1.
 Qed.
-       
+
 (** Subtraction. *)
 Definition fiminus (x y : FIS fs) : FIS fs := fiplus x (fiopp y).
 
@@ -224,12 +224,12 @@ Record Float_round_up_infnan_spec := {
   fieps : FIS fris;
 
   fieps_spec : eps fris <= FIS2FS fieps;
-  
+
   (** Overapproximation of eta. *)
   fieta : FIS fris;
 
   fieta_spec : eta fris <= FIS2FS fieta;
-  
+
   (** Addition with upward rounding. *)
   fiplus_up : FIS fris -> FIS fris -> FIS fris;
 
@@ -237,7 +237,7 @@ Record Float_round_up_infnan_spec := {
     (FIS2FS x + FIS2FS y <= FIS2FS (fiplus_up x y))%R;
   fiplus_up_spec_fl x y : finite (fiplus_up x y) -> finite x;
   fiplus_up_spec_fr x y : finite (fiplus_up x y) -> finite y;
-  
+
   (** Multiplication with upward rounding. *)
   fimult_up : FIS fris -> FIS fris -> FIS fris;
 
@@ -245,7 +245,7 @@ Record Float_round_up_infnan_spec := {
     (FIS2FS x * FIS2FS y <= FIS2FS (fimult_up x y))%R;
   fimult_up_spec_fl x y : finite (fimult_up x y) -> finite x;
   fimult_up_spec_fr x y : finite (fimult_up x y) -> finite y;
-  
+
   (** Division with upward rounding. *)
   fidiv_up : FIS fris -> FIS fris -> FIS fris;
 

@@ -392,7 +392,7 @@ move: Hini Hinj; rewrite !inord_val => <- <-; apply ytilded_ssr_eq => //.
 by rewrite store_ssr_lt1 //; move: Hi'i; rewrite /nat_of_ord => <-.
 Qed.
 
-Lemma outer_loop_correct (A R : 'M_n.+1) : outer_loop_inv A (outer_loop_ssr A R) n.+1. 
+Lemma outer_loop_correct (A R : 'M_n.+1) : outer_loop_inv A (outer_loop_ssr A R) n.+1.
 Proof.
 rewrite /outer_loop_ssr /outer_loop.
 set P := fun i s => outer_loop_inv A s i; rewrite -/(P _ _).
@@ -531,7 +531,7 @@ Context {n : nat}.
 
 Lemma dotmulB0_correct k (c : FIS fs) (a b : 'rV_n.+1) :
   dotmulB0_ssr k c a b = stilde_infnan c
-                                       [ffun i : 'I_k => a ord0 (inord i)] 
+                                       [ffun i : 'I_k => a ord0 (inord i)]
                                        [ffun i : 'I_k => b ord0 (inord i)].
 Proof.
 case: k => //= k Hk; elim: k Hk c a b => //= k IHk Hk c a b.
@@ -1292,7 +1292,7 @@ by rewrite refinesE; exact: nat_Rxx.
 refines_apply.
 by rewrite refinesE.
 by rewrite refinesE.
-Qed.  
+Qed.
 
 Global Instance refine_dotmulB0_seqmx :
   refines (Rordn (n1 := n1) ==> eqFIS ==> list_R (list_R eqFIS) ==> list_R (list_R eqFIS) ==> eqFIS)

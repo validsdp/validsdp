@@ -239,7 +239,7 @@ Lemma lemma_3_aux2_aux1 n (P : 'M[R]_n) : posdef P ->
   forall (x : 'cV[F fs]_n),
   forall (s lambda : R),
   ((MF2R x)^T *m P *m (MF2R x) <=m: lambda%:M)%Re ->
-  1%:M <=m s *: P ->  
+  1%:M <=m s *: P ->
   exists b : bounded 1,
   (\big[+%R/0]_i Rabs (x i ord0) = b * INR n * sqrt (s * lambda))%Re.
 Proof.
@@ -676,7 +676,7 @@ have Plambda' : (0 <= lambda').
   apply (@Mle_trans _ _ _ 0); [|by apply posdef_semipos].
   by move=> i j; rewrite !mxE (ord_1_0 i) (ord_1_0 j); right. }
 apply (Rle_trans _ ((sqrt lambda' + sqrt lambda * sqrt s' * ||r||_2
-                     + sqrt s' * ||f||_2)^2)%Re).    
+                     + sqrt s' * ||f||_2)^2)%Re).
 { right.
   rewrite /pow !Rmult_1_r.
   rewrite !Rmult_plus_distr_l !Rmult_plus_distr_r !Rmult_1_l.

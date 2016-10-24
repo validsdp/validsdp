@@ -27,7 +27,7 @@ Record Float_spec := {
 
   (** The opposite of a floating point number is a floating point number. *)
   format_opp x : format x -> format (- x);
-  
+
   (** Bound on the relative error (normalized numbers, no underflow). *)
   eps : R;
 

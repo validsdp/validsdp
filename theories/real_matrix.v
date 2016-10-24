@@ -156,7 +156,7 @@ Proof. move=> i j; rewrite !mxE; apply Rle_abs. Qed.
 
 Lemma Mge_opp_abs (A : 'M_(n, m)) : - Mabs A <=m: A.
 Proof. move=> i j; rewrite !mxE; apply Rge_opp_abs. Qed.
-  
+
 Lemma Mle_refl (A : 'M_(n, m)) : A <=m: A.
 Proof. by move=> i j; right. Qed.
 
@@ -196,7 +196,7 @@ Proof.
 by rewrite /Mle => H i j; rewrite !mxE; apply Rplus_le_compat_r.
 Qed.
 
-Lemma Madd_lt_compat_l (A B C : 'M_(n, m)) : B <m: C -> A + B <m: A + C.  
+Lemma Madd_lt_compat_l (A B C : 'M_(n, m)) : B <m: C -> A + B <m: A + C.
 Proof.
 by rewrite /Mlt => H i j; rewrite !mxE; apply Rplus_lt_compat_l.
 Qed.
@@ -429,7 +429,7 @@ Qed.
 Lemma normP_scale_pos (r : R) (x : 'cV_n) :
   (0 <= r -> normP (r *: x) = r * normP x)%Re.
 Proof. by move=> H; rewrite normP_scale Rabs_pos_eq. Qed.
-  
+
 (** Cauchy-Schwarz inequality. *)
 Lemma cauchy_schwarzP (x y : 'cV_n) : (dotprodP x y <= normP x * normP y)%Re.
 Proof.
@@ -477,7 +477,7 @@ Proof.
 apply Rabs_le; split; [|by apply cauchy_schwarzP].
 rewrite -(Ropp_involutive (dotprodP _ _)); apply Ropp_le_contravar.
 rewrite -dotprodP_opp_l -(normP_opp x); apply cauchy_schwarzP.
-Qed.  
+Qed.
 
 (** Triangular inequality. *)
 Lemma normP_triang (x y : 'cV[R]_n) : (normP (x + y) <= normP x + normP y)%Re.
@@ -663,7 +663,7 @@ Proof. rewrite !normP1; apply normP_scale, SymM1. Qed.
 Lemma norm2_scale_pos (r : R) (x : 'cV_n) :
   (0 <= r -> ||r *: x||_2 = r * ||x||_2)%Re.
 Proof. rewrite !normP1; apply normP_scale_pos, SymM1. Qed.
-  
+
 Lemma cauchy_schwarz (x y : 'cV_n) : (dotprod x y <= ||x||_2 * ||y||_2)%Re.
 Proof.
 rewrite !normP1 dotprodP1; apply cauchy_schwarzP; [apply SymM1|apply PM1].
@@ -673,7 +673,7 @@ Lemma cauchy_schwarz_Rabs (x y : 'cV_n) :
   Rabs (dotprod x y) <= ||x||_2 * ||y||_2.
 Proof.
 rewrite !normP1 dotprodP1; apply cauchy_schwarzP_Rabs; [apply SymM1|apply PM1].
-Qed.  
+Qed.
 
 Lemma norm2_triang (x y : 'cV[R]_n) : (||x + y||_2 <= ||x||_2 + ||y||_2)%Re.
 Proof. rewrite !normP1; apply normP_triang; [apply SymM1|apply PM1]. Qed.
@@ -722,7 +722,7 @@ End Norm2.
 Section FrobeniusNorm_def.
 
 Variable n m : nat.
-  
+
 Definition normFrobenius (M : 'M[R]_(n, m)) :=
   sqrt (\sum_i \sum_j ((M i j) * (M i j))%Re).
 
@@ -733,7 +733,7 @@ Notation "|| M ||_F" := (normFrobenius M) (format "|| M ||_F") : R_scope.
 Section FrobeniusNorm.
 
 Variable n m : nat.
-  
+
 Lemma norm21_le_sqrt_normF (M : 'M[R]_(n, m)) :
   (||\col_i (\sum_j Rabs (M i j))||_2 <= sqrt (INR m) * ||M||_F)%Re.
 Proof.

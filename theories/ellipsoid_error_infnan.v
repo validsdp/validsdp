@@ -197,7 +197,7 @@ have Pz : 0 <= z; [by apply (Rle_trans _ _ _ (Rabs_pos x)), Rmax_l|].
 rewrite -{2}(Rabs_pos_eq _ Pz).
 apply (md2k_expr_lt_m_aux Hke).
 by rewrite (Rabs_pos_eq _ Pz); apply Rmax_lub_lt.
-Qed.  
+Qed.
 
 Lemma lemma_rnd_f k x : Rabs x < md2k k -> finite (firnd fs x).
 Proof.
@@ -464,5 +464,5 @@ move=> HA HB Fx Fu Hx Hs Hlambda Hu; apply fiAxBu_bounded_aux => // i.
 apply Rle_lt_trans with 1; [|by []].
 by move: (Hu i ord0); rewrite !mxE.
 Qed.
-    
+
 End Fellipsoid_error_infnan.

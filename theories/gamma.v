@@ -63,7 +63,7 @@ Proof. apply bg_le, leqnSn. Qed.
 
 Lemma bg_2S n : 2 * INR n.+1 * eps fs < 1 -> 2 * INR n * eps fs < 1.
 Proof. rewrite S_INR; have Pe := (eps_pos fs); lra. Qed.
-  
+
 Lemma bg_2S2 n : 2 * INR n.+1 * eps fs < 1 -> INR n.+2 * eps fs < 1.
 Proof.
 apply Rle_lt_trans.
@@ -159,7 +159,7 @@ apply (Rle_trans _ _ _ (Rabs_triang _ _)).
 rewrite Rabs_R1 (Rabs_right 2); [|lra]; apply Rplus_le_compat_l.
 by apply Rle_trans with (gamma fs n); [case b|apply Rlt_le, gamma_lt_1].
 Qed.
-  
+
 End Bounded.
 
 (** Tactics to destruct bounded values before calling lra. *)
@@ -224,7 +224,7 @@ apply Rmult_le_compat_r; [by apply pos_INR|].
 apply Rmult_le_compat_r; [by apply pow2_ge_0|].
 by apply /le_INR /leP.
 Qed.
-  
+
 Lemma gamma_plus_mult n m : INR (n + m) * eps fs < 1 ->
   gamma fs n + gamma fs m + gamma fs n * gamma fs m <= gamma fs (n + m).
 Proof.
@@ -384,7 +384,7 @@ apply Rle_trans with (gamma fs n.+1 * (1 - eps fs)).
   have H : - INR n * eps fs ^ 2 <= 0.
   { rewrite -Ropp_0 Ropp_mult_distr_l_reverse; apply Ropp_le_contravar.
     by apply Rmult_le_pos; [apply pos_INR|apply pow2_ge_0]. }
-  rewrite S_INR; lra. }    
+  rewrite S_INR; lra. }
 apply Rmult_le_compat_l; [by apply gamma_pos|].
 apply Rabs_ge; right; bounded_lra fs.
 Qed.
@@ -451,7 +451,7 @@ Proof.
 rewrite /phi big_mkcond big_ord_recl /= GRing.mul1r -big_mkcond /=.
 by apply /eq_big => k /=; [case i; case k|rewrite ffunE].
 Qed.
-  
+
 (* begin hide *)
 Let phi_gamma_aux i j n (Hj : (j <= n.+1)%N)
                   (Hjmi : 2 * INR (j - i) * eps fs < 1) d :
@@ -501,7 +501,7 @@ case (leqP j n) => Hj.
 have [t Ht] := phi_gamma (bg_2_le (leq_subr i n) Hn) d.
 exists (widen_b_gamma (leq_subr i n) (bg_2 Hn) t).
 by rewrite -Ht (phi_cut _ _ (ltnW Hj)).
-Qed.  
+Qed.
 
 (* begin hide *)
 Let inv_phi_gamma_aux i j n (Hj: (j <= n.+1)%N)
