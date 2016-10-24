@@ -906,8 +906,29 @@ case: H => r H1 H2 /=.
 by rewrite bigZZ2Q_correct toR_Float.
 Qed.
 
-Instance : refines (eq ==> r_ratBigQ) FIS2rat FIS2bigQ.
-Proof. by rewrite refinesE => ? ? ->. Qed.
+Definition eqF (a b : F.type) := F.toX a = F.toX b.
+Definition eqFI (a b : FI) := F.toX a = F.toX b.
+Definition eqFIS (a b : FIS coqinterval_round_up_infnan) := F.toX a = F.toX b.
+
+Instance FIS_rat_bigQ : refines (eqFIS ==> r_ratBigQ) FIS2rat FIS2bigQ.
+Proof.
+ref_abstr => a1 a2 ref_a.
+rewrite refinesE /r_ratBigQ /FIS2rat /FIS2bigQ /=.
+rewrite refinesE /eqFIS in ref_a.
+rewrite /F2bigQ.
+case: a1 ref_a => [a Ha]; case: a2 => [b Hb] /= ref_a.
+case: a Ha ref_a => [|m e] Ha ref_a;
+case: b Hb ref_a => [|m' e'] Hb ref_b =>//.
+by symmetry in ref_b; rewrite real_FtoX_toR in ref_b.
+by rewrite real_FtoX_toR in ref_b.
+move/(congr1 proj_val) in ref_b.
+rewrite !toR_Float in ref_b.
+rewrite /fun_hrel /bigQ2rat.
+apply: val_inj =>/=.
+suff->: Qred [bigZZ2Q m' e']%bigQ = Qred [bigZZ2Q m e]%bigQ by [].
+apply: Qred_complete; apply: Qeq_Q2R.
+by rewrite !bigZZ2Q_correct.
+Qed.
 
 Definition id1 {T} (x : T) := x.
 
@@ -915,10 +936,6 @@ Definition r_QbigQ := fun_hrel BigQ.to_Q.
 
 Instance : refines (eq ==>  BigQ.eq) (rat2bigQ \o bigQ2rat) id.
 Admitted.  (* rat2bigQ \o bigQ2rat *)
-
-Definition eqF (a b : F.type) := F.toX a = F.toX b.
-Definition eqFI (a b : FI) := F.toX a = F.toX b.
-Definition eqFIS (a b : FIS coqinterval_infnan) := F.toX a = F.toX b.
 
 Lemma FI_val_inj : injective FI_val.
 Proof.
@@ -1118,7 +1135,6 @@ set mm := mul_monom_op _ _; case Em' : (m' == mm).
 move/S.add_3=>H; apply/orP; right; apply S.mem_1, H.
   by move/mnmc_eq_seqP; rewrite eq_sym Em'.
 Qed.
-
 
 Context `{!max_of A}.
 Context `{!max_of C}.
@@ -1517,6 +1533,18 @@ move: Hj; rewrite /za (nth_map [::]) //=.
 by rewrite ltnS leqn0; move/eqP->.
 Qed.
 
+Lemma eqFIS_P x y : reflect (eqFIS x y) (eq_instFIS x y).
+Proof.
+apply: (iffP idP).
+{ rewrite /eqFIS /eq_instFIS /fieq /float_infnan_spec.ficompare /= /ficompare;
+  rewrite F.cmp_correct !F.real_correct;
+  do 2![case: F.toX =>//=] => rx ry /=; case: Rcompare_spec =>// ->//. }
+rewrite /eqFIS /eq_instFIS /fieq /float_infnan_spec.ficompare /= /ficompare;
+  rewrite F.cmp_correct !F.real_correct;
+  do 2![case: F.toX =>//=] => rx ry [] <-; case: Rcompare_spec =>//;
+  by move/Rlt_irrefl.
+Qed.
+
 Theorem soscheck_eff_wrapup_correct
   (vm : seq R) (pap : p_abstr_poly)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
@@ -1544,13 +1572,14 @@ apply soscheck_correct with
   (5 := max_r)
   (z := zb)
   (Q := Qb).
-apply: (etrans (y := @soscheck_eff n'.+1 _
+apply (etrans (y := @soscheck_eff n'.+1 _
   zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs
   (F2bigQ \o FI_val) (F2FI \o bigQ2F') bp za Qa)); last first.
 { by rewrite -/n' /n in Hsos; apply Hsos. }
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1; first refines_apply1.
-{ apply param_soscheck; tc; admit. (* Erik: easy *) }
+{ eapply (param_soscheck (eq_F := eqFIS) (rAC := r_ratBigQ)). (* 17 evars *)
+  exact: eqFIS_P. }
 { by apply param_interp_poly; rewrite prednK ?lt0n. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /za.
@@ -1561,8 +1590,9 @@ refines_trans.
 rewrite refinesE; eapply Rseqmx_spec_seqmx.
 { rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
-rewrite refinesE; apply: list_Rxx => x; exact: list_Rxx.
-by rewrite lt0n.
+{ by rewrite refinesE; apply: list_Rxx => x; apply: list_Rxx => y. }
+  by rewrite lt0n.
+Unshelve.
 Admitted.
 
 Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.

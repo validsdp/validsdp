@@ -752,7 +752,8 @@ Definition ficompare (x y : FI) : option comparison :=
     | Xlt => Some Lt
     | Xgt => Some Gt
     | Xeq => Some Eq
-    | Xund => None
+    | Xund =>
+      if ~~ F.real x && ~~ F.real y then Some Eq else None
   end.
 
 Lemma ficompare_spec x y : finite x -> finite y ->
@@ -776,20 +777,18 @@ Qed.
 
 Lemma ficompare_spec_eq x y : ficompare x y = Some Eq -> FI2FS x = FI2FS y :> R.
 Proof.
-unfold ficompare; rewrite F.cmp_correct.
+unfold ficompare; rewrite F.cmp_correct !F.real_correct.
 unfold Xcmp.
-case_eq (F.toX x); [now simpl|]; intros rx Hrx.
-case_eq (F.toX y); [now simpl|]; intros ry Hry.
-assert (H := Rcompare_spec rx ry); revert H; case (Rcompare _ _); try now simpl.
-rewrite !FI2FS_X2F_FtoX Hrx Hry; intros H _.
-now inversion H as [_|H'|_]; rewrite H'.
+case Ex: (F.toX x) =>[|rx]; case Ey: (F.toX y) =>[|ry] //=;
+  first by rewrite Ex Ey.
+by case: Rcompare_spec =>//; rewrite Ex Ey =>->.
 Qed.
 
 Lemma ficompare_spec_eq_f x y : ficompare x y = Some Eq ->
   (finite x <-> finite y).
 Proof.
-unfold ficompare, finite; rewrite F.cmp_correct !FtoX_real.
-now case (F.toX x); [now simpl|]; intros rx; case (F.toX y).
+unfold ficompare, finite; rewrite F.cmp_correct !F.real_correct.
+by case Ex: (F.toX x) =>[|rx]; case Ey: (F.toX y) =>[|ry].
 Qed.
 
 Definition coqinterval_infnan : Float_infnan_spec :=
@@ -964,4 +963,3 @@ Definition coqinterval_round_up_infnan : Float_round_up_infnan_spec :=
     fidiv_up_spec_fl.
 
 End Coqinterval_infnan.
-
