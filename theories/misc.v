@@ -376,7 +376,7 @@ rewrite -binnat.to_natE.
 case E: (Pos.to_nat _)=>//; exfalso; move: E.
 by move: (binnat.to_nat_gt0 p); case (Pos.to_nat _).
 Qed.
-  
+
 Definition Z2int (z : BinNums.Z) :=
   match z with
   | Z0 => 0%:Z
@@ -414,7 +414,7 @@ Qed.
 
 Lemma Z2int_opp n : Z2int (- n) = (- (Z2int n))%Ri.
 Proof. by case n=>// p /=; rewrite GRing.opprK. Qed.
-  
+
 Lemma Z2int_add x y : Z2int (x + y) = (Z2int x + Z2int y)%Ri.
 Proof.
 rewrite /Z2int /GRing.add /= /intZmod.addz /Z.add; case x, y=>//.
@@ -492,7 +492,7 @@ case y=>/=.
 move=> p.
 by rewrite GRing.mulrN Z2int_mul_nat_of_pos -Z2int_opp Zopp_mult_distr_r.
 Qed.
-  
+
 Lemma Z2int_le x y : (Z2int x <= Z2int y)%Ri <-> Z.le x y.
 Proof.
 rewrite /Z2int; case Ex: x; case Ey: y=> //.
@@ -608,7 +608,7 @@ case m.
 { by move=> p; rewrite ZgcdE nat_of_pos_Z_to_pos. }
 by move=> p; rewrite -Z.gcd_opp_r /= ZgcdE abszN /absz.
 Qed.
-  
+
 Lemma Z_ggcd_coprime a b :
   let '(g, (a', b')) := Z.ggcd a b in
   g <> 0%Z -> coprime `|Z2int a'| `|Z2int b'|.
