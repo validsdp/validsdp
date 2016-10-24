@@ -1097,7 +1097,7 @@ Instance zero_mpoly : zero_of (mpoly n A) := 0%R.
 
 (* Goal forall n, nat_R n.+1 n.+1 <=> nat_R_S_R (nat_Rxx n). *)
 
-Instance refines_check_base :
+Instance refine_check_base :
   refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> eq)
     (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
 Proof.
@@ -1111,7 +1111,7 @@ suff : forall (m : 'X_{1..n}) m', Rseqmultinom m m' ->
 { move=> H; apply refinesP, refines_bool_eq; rewrite refinesE.
   have : list_R (prod_R Rseqmultinom rAC) l l'.
   { rewrite /l /l'; apply refinesP; eapply refines_apply.
-    { by apply refinesC_list_of_mpoly_eff. }
+    { by apply ReffmpolyC_list_of_mpoly_eff. }
     by rewrite refinesE. }
   apply all_R=> mc mc' rmc.
   move: (H mc.1 mc'.1); rewrite /smem_ssr /smem_eff /smem=>H'.
@@ -1157,7 +1157,7 @@ Context `{!max_of C}.
 Context `{!refines (rAC ==> rAC ==> rAC) max_op max_op}.
 
 (* TODO: move in CoqEAL_complement? *)
-Global Instance refines_foldl
+Global Instance refine_foldl
   (T T' : Type) (rT : T -> T' -> Type) (R R' : Type) (rR : R -> R' -> Type) :
   refines ((rR ==> rT ==> rR) ==> rR ==> list_R rT ==> rR)
     (@foldl T R) (@foldl T' R').
@@ -1170,7 +1170,7 @@ apply IH; [by inversion rs'|].
 by apply refinesP; refines_apply_tc; rewrite refinesE; inversion rs'.
 Qed.
 
-Instance param_max_coeff :
+Instance refine_max_coeff :
   refines (ReffmpolyC (n:=n) rAC ==> rAC) max_coeff_ssr max_coeff_eff.
 Proof.
 rewrite refinesE=> p p' rp.
@@ -1221,7 +1221,7 @@ Context `{!refines (nat_R ==> eqFIS) nat2Fup_instFIS nat2Fup_instFIS}.
 
 Hypothesis eqFIS_P : forall x y, reflect (eqFIS x y) (eq_instFIS x y).
 
-Lemma param_soscheck :
+Lemma refine_soscheck :
   refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==>
           RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==> bool_R)
     (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
@@ -1235,7 +1235,7 @@ apply f_equal2.
 eapply refinesP, refines_bool_eq.
 eapply refines_apply.
 eapply refines_apply.
-eapply (refines_posdef_check_itv' (fs := fs) (eqFIS := eqFIS)).
+eapply (refine_posdef_check_itv' (fs := fs) (eqFIS := eqFIS)).
 exact: eqFIS_P.
 exact: id.
 eapply refines_apply. tc.
@@ -1261,13 +1261,13 @@ End refinement_soscheck.
 
 Section refinement_interp_poly.
 
-Global Instance param_ratBigQ_zero : refines r_ratBigQ 0%R 0%C.
+Global Instance refine_ratBigQ_zero : refines r_ratBigQ 0%R 0%C.
 Proof. rewrite refinesE /r_ratBigQ /bigQ2rat; red; exact: val_inj. Qed.
 
-Global Instance param_ratBigQ_one : refines r_ratBigQ 1%R 1%C.
+Global Instance refine_ratBigQ_one : refines r_ratBigQ 1%R 1%C.
 Proof. rewrite refinesE /r_ratBigQ /bigQ2rat; red; exact: val_inj. Qed.
 
-Global Instance param_ratBigQ_opp : refines (r_ratBigQ ==> r_ratBigQ) -%R -%C.
+Global Instance refine_ratBigQ_opp : refines (r_ratBigQ ==> r_ratBigQ) -%R -%C.
 Proof.
 apply refines_abstr=> a b.
 rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rab.
@@ -1300,7 +1300,7 @@ rewrite BigZ.spec_opp /= Z.ggcd_opp /=.
 by case (Z.ggcd _)=> ? p; case p.
 Qed.
 
-Global Instance param_ratBigQ_add :
+Global Instance refine_ratBigQ_add :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) +%R +%C.
 Proof.
 apply refines_abstr2=> a b rab c d rcd.
@@ -1356,14 +1356,14 @@ suff ->: (Z2int g * Z2int a' < 0 = (Z2int a' < 0))%Ri.
 by apply pmulr_rlt0.
 Qed.
 
-Global Instance param_ratBigQ_sub :
+Global Instance refine_ratBigQ_sub :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) (fun x y => x - y)%R sub_op.
 Proof.
 apply refines_abstr2=> a b rab c d rcd.
 rewrite /sub_op /sub_bigQ /BigQ.sub; eapply refines_apply; tc.
 Qed.
 
-Global Instance param_ratBigQ_mul :
+Global Instance refine_ratBigQ_mul :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) *%R *%C.
 Proof.
 apply refines_abstr2=> a b rab c d rcd.
@@ -1409,7 +1409,7 @@ suff ->: (Z2int g * Z2int a' < 0 = (Z2int a' < 0))%Ri.
 by apply pmulr_rlt0.
 Qed.
 
-Global Instance param_ratBigQ_eq :
+Global Instance refine_ratBigQ_eq :
   refines (r_ratBigQ ==> r_ratBigQ ==> eq) eqtype.eq_op eq_op.
 Proof.
 apply refines_abstr2=> a b rab c d rcd.
@@ -1428,7 +1428,7 @@ move: E; rewrite -rba -rdc=> /eqP H; apply H, val_inj=>/={H}.
 by move: E'; rewrite BigQ.spec_compare -Qeq_alt=>/Qred_complete ->.
 Qed.
 
-Global Instance param_ratBigQ_max :
+Global Instance refine_ratBigQ_max :
   refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) Num.max max_op.
 Proof.
 apply refines_abstr2=> a b rab c d rcd.
@@ -1452,7 +1452,7 @@ rewrite !Z2int_mul_nat_of_pos=>H.
 by move/negP /Z2int_le=>H'; apply H', Z.lt_le_incl.
 Qed.
 
-Lemma param_interp_poly n ap : vars_ltn n.+1 ap ->
+Lemma refine_interp_poly n ap : vars_ltn n.+1 ap ->
   refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
 Proof.
 elim: ap.
@@ -1541,7 +1541,7 @@ apply (map_R_nth (x0:=[::]))=> i Hi.
 rewrite size_map in Hi.
 apply (map_R_nth (x0:=[::]))=> j Hj.
 rewrite /spec.
-apply refinesP, refines_multinom_of_seqmultinom_val.
+apply refinesP, refine_multinom_of_seqmultinom_val.
 move /all_nthP in H.
 rewrite /za (nth_map [::]) //.
 suff -> : j = 0%N by simpl; apply H.
@@ -1606,9 +1606,9 @@ apply (etrans (y := @soscheck_eff n'.+1 _
 { by rewrite -/n' /n in Hsos; apply Hsos. }
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1; first refines_apply1.
-{ eapply (param_soscheck (eq_F := eqFIS) (rAC := r_ratBigQ)). (* 17 evars *)
+{ eapply (refine_soscheck (eq_F := eqFIS) (rAC := r_ratBigQ)). (* 17 evars *)
   exact: eqFIS_P. }
-{ by apply param_interp_poly; rewrite prednK ?lt0n. }
+{ by apply refine_interp_poly; rewrite prednK ?lt0n. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /za.
     by apply/allP => x /mapP [y Hy] ->. }
