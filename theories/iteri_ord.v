@@ -9,8 +9,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Arguments refines A%type B%type R%rel _ _.  (* TODO: il y a un preoblème de scope sur refine *)
-
 Implicit Types n : nat.
 
 (** ** Definition of type classes *)

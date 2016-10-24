@@ -25,8 +25,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Delimit Scope Q_scope with Qrat.
-
 Local Open Scope R_scope.
 
 Coercion bigQ2R : BigQ.t_ >-> R.
@@ -886,10 +884,6 @@ by rewrite -[R0]/(Z2R 0); apply Z2R_neq.
 Transparent F.div.
 Qed.
 
-(* TODO: move *)
-Lemma Q2R_0 : Q2R 0%Qrat = 0%Re.
-Proof. by rewrite /Q2R /= /Rdiv Rmult_0_l. Qed.
-
 Lemma rat2R_FIS2rat :
  forall x0 : FIS fs, rat2R (FIS2rat x0) = FS_val (FI2FS x0).
 Proof.
@@ -1191,13 +1185,6 @@ Context {C2F : C -> F}.  (* overapproximation *)
 Variable eq_F : F -> F -> Prop.
 Context `{!refines (eq_F ==> rAC) F2A F2C}.
 Context `{!refines (rAC ==> eq_F) A2F C2F}.
-
-(* TODO: move *)
-Lemma list_Rxx T (rT : T -> T -> Type) l : (forall x, rT x x) -> list_R rT l l.
-Proof.
-move=> Hr; elim l=> [|h t IH]; [by apply list_R_nil_R|].
-by apply list_R_cons_R.
-Qed.
 
 Let eqFIS := eq_F.
 Context `{!Equivalence eqFIS}.

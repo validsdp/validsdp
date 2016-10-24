@@ -602,23 +602,6 @@ Qed.
 
 End theory_cholesky_2.
 
-(* TODO: to move *)
-Ltac suff_eq Rxx :=
-  match goal with
-  | [ |- ?R ?a ?b ] =>
-    let H := fresh in
-    suff H : a = b; first (rewrite H; eapply Rxx =>//)
-  end.
-
-(* TODO: move *)
-Lemma list_Rxx T (rT : T -> T -> Type) l : (forall x, rT x x) -> list_R rT l l.
-Proof.
-move=> Hr; elim l=> [|h t IH]; [by apply list_R_nil_R|].
-by apply list_R_cons_R.
-Qed.
-
-Hint Resolve list_R_nil_R.
-
 Section theory_cholesky_3.
 
 (** *** Proof-oriented definitions, Float_round_up_infnan_spec scalars *)
@@ -1013,9 +996,6 @@ Ltac refines_apply_tc :=
 
 (** ** Part 3: Parametricity *)
 
-(* TODO: pull request *)
-Arguments refinesP {T T' R x y} _.
-
 (** *** 3.1 Data refinement *)
 
 Require Import Equivalence RelationClasses Morphisms.
@@ -1262,11 +1242,9 @@ Context `{!refines (nat_R ==> eqFIS) nat2Fup_instFIS nat2Fup_instFIS}.
 Hypothesis eqFIS_P : forall x y, reflect (eqFIS x y) (eq_instFIS x y).
 
 
-(* FIXME: D.R.Y *)
+(* TODO: refactor sections, remove "@", "_", etc. *)
 Variables (F : Type) (F2FIS : F -> FIS fs) (toR : F -> R).
 Hypothesis (F2FIS_correct : forall f, finite (F2FIS f) -> FIS2FS (F2FIS f) = toR f :> R).
-
-(* FIXME: remove @, _, etc. *)
 
 Section rn.
 
@@ -1959,82 +1937,6 @@ set ca := compute_c_aux _ _ a _.
 set ca' := compute_c_aux _ _ a' _.
 have <- : ca = ca'; [by exact: refinesP|].
 by rewrite -(nat_R_eq rn).
-Qed.
-
-(* TODO: move *)
-Lemma option_Rxx T (rT : T -> T -> Type) l : (forall x, rT x x) -> option_R rT l l.
-Proof. by move=> Hr; case: l => *; constructor. Qed.
-
-(** Ltac to do [pose f := F] when the goal is convertible with [?F a b c = _] *)
-Ltac get_fun n F :=
-  let rec aux n F :=
-    match n with
-    | S ?n =>
-      match F with
-      | ?G ?z  => aux n G
-      end
-    | O => F
-    end in
-  aux n F.
-Tactic Notation "get_fun_lhs" uconstr(a) "as" ident(f) :=
-  let lhs := fresh in set lhs := LHS;
-  (*[*) let n := constr:(1%N) in pattern a in lhs; (*]*)
-  let F := eval cbv delta [lhs] in lhs in
-  let F := get_fun n F in
-  unfold lhs in * |- *; try clear lhs; pose f := F.
-Tactic Notation "get_fun_lhs" uconstr(a) uconstr(b) "as" ident(f) :=
-  let lhs := fresh in set lhs := LHS;
-  (*[*) let n := constr:(2%N) in pattern a, b in lhs; (*]*)
-  let F := eval cbv delta [lhs] in lhs in
-  let F := get_fun n F in
-  unfold lhs in * |- *; try clear lhs; pose f := F.
-Tactic Notation "get_fun_lhs" uconstr(a) uconstr(b) uconstr(c) "as" ident(f) :=
-  let lhs := fresh in set lhs := LHS;
-  (*[*) let n := constr:(3%N) in pattern a, b, c in lhs; (*]*)
-  let F := eval cbv delta [lhs] in lhs in
-  let F := get_fun n F in
-  unfold lhs in * |- *; try clear lhs; pose f := F.
-
-(** Automation: for proving refinement lemmas involving if-then-else's
-do [rewrite !ifE; apply refines_if_expr]. *)
-Lemma refines_if_expr
-  (A : Type) (b1 b2 : bool) (vt1 vt2 vf1 vf2 : A) (R : A -> A -> Type) :
-  b1 = b2 -> (b1 -> b2 -> R vt1 vt2) -> (~~ b1 -> ~~ b2 -> R vf1 vf2) ->
-  R (if_expr b1 vt1 vf1) (if_expr b2 vt2 vf2).
-Proof.
-move=> Hb; rewrite -!{}Hb => Ht Hf.
-rewrite /if_expr; case: b1 Ht Hf => Ht Hf.
-exact: Ht.
-exact: Hf.
-Qed.
-
-Lemma optionE (A B : Type) (o : option A) (b : B) (f : A -> B) :
-  match o with
-  | Some a => f a
-  | None => b
-  end = oapp f b o.
-Proof. by []. Qed.
-
-(** Automation: for proving refinement lemmas involving options,
-do [rewrite !optionE; apply refines_option]. *)
-Lemma refines_option
-  (A B : Type) (o1 o2 : option A) (b1 b2 : B) (f1 f2 : A -> B)
-  (rA : A -> A -> Type) (rB : B -> B -> Type) :
-  refines (option_R rA) o1 o2 ->
-  refines (rA ==> rB) f1 f2 ->
-  refines rB b1 b2 ->
-  refines rB (oapp f1 b1 o1) (oapp f2 b2 o2).
-Proof.
-rewrite /oapp.
-rewrite -!/(oapp _ _ _).
-case: o1 => [a1|]; case: o2 => [a2|].
-{ move=> HA HAB HB /=.
-  refines_apply.
-  rewrite !refinesE in HA *.
-  by inversion_clear HA. }
-{ move=> /refinesP K; inversion K. }
-{ move=> /refinesP K; inversion K. }
-by move=> _ /=.
 Qed.
 
 Global Instance refine_compute_c_seqmx :

@@ -16,11 +16,13 @@ Open Scope ring_scope.
 
 Import Refinements.Op.
 
-Arguments refines A%type B%type R%rel _ _.  (** TODO: il y a un problème de scope sur refine *)
+(** * Misc CoqEAL-related material *)
+
+Arguments refines A%type B%type R%rel _ _. (* Fix a scope issue with refines *)
+
+Hint Resolve list_R_nil_R.
 
 Notation ord_instN := (fun _ : nat => nat) (only parsing).
-
-Section misc.
 
 Definition Rord n1 n2 (rn : nat_R n1 n2) : 'I_n1 -> ord_instN n2 -> Type :=
   fun x y => x = y :> nat.
@@ -29,7 +31,67 @@ Definition Rord n1 n2 (rn : nat_R n1 n2) : 'I_n1 -> ord_instN n2 -> Type :=
 Lemma ord_1_0 (i : 'I_1) : i = ord0.
 Proof. by case: i => [[]] // HH; apply /eqP. Qed.
 
-End misc.
+(** Automation: for turning [sth_R a b] goals into mere [a = b] goals,
+do [suff_eq sth_Rxx]. *)
+Ltac suff_eq Rxx :=
+  match goal with
+  | [ |- ?R ?a ?b ] =>
+    let H := fresh in
+    suff H : a = b; first (rewrite H; eapply Rxx =>//)
+  end.
+
+Lemma list_Rxx T (rT : T -> T -> Type) l : (forall x, rT x x) -> list_R rT l l.
+Proof.
+move=> Hr; elim l=> [|h t IH]; [by apply list_R_nil_R|].
+by apply list_R_cons_R.
+Qed.
+
+Lemma option_Rxx T (rT : T -> T -> Type) l : (forall x, rT x x) -> option_R rT l l.
+Proof. by move=> Hr; case: l => *; constructor. Qed.
+
+(** Automation: for proving refinement lemmas involving if-then-else's
+do [rewrite !ifE; apply refines_if_expr]. *)
+Lemma refines_if_expr
+  (A : Type) (b1 b2 : bool) (vt1 vt2 vf1 vf2 : A) (R : A -> A -> Type) :
+  b1 = b2 -> (b1 -> b2 -> R vt1 vt2) -> (~~ b1 -> ~~ b2 -> R vf1 vf2) ->
+  R (if_expr b1 vt1 vf1) (if_expr b2 vt2 vf2).
+Proof.
+move=> Hb; rewrite -!{}Hb => Ht Hf.
+rewrite /if_expr; case: b1 Ht Hf => Ht Hf.
+exact: Ht.
+exact: Hf.
+Qed.
+
+Lemma optionE (A B : Type) (o : option A) (b : B) (f : A -> B) :
+  match o with
+  | Some a => f a
+  | None => b
+  end = oapp f b o.
+Proof. by []. Qed.
+
+Arguments refinesP {T T' R x y} _.
+
+(** Automation: for proving refinement lemmas involving options,
+do [rewrite !optionE; apply refines_option]. *)
+Lemma refines_option
+  (A B : Type) (o1 o2 : option A) (b1 b2 : B) (f1 f2 : A -> B)
+  (rA : A -> A -> Type) (rB : B -> B -> Type) :
+  refines (option_R rA) o1 o2 ->
+  refines (rA ==> rB) f1 f2 ->
+  refines rB b1 b2 ->
+  refines rB (oapp f1 b1 o1) (oapp f2 b2 o2).
+Proof.
+rewrite /oapp.
+rewrite -!/(oapp _ _ _).
+case: o1 => [a1|]; case: o2 => [a2|].
+{ move=> HA HAB HB /=.
+  refines_apply.
+  rewrite !refinesE in HA *.
+  by inversion_clear HA. }
+{ move=> /refinesP K; inversion K. }
+{ move=> /refinesP K; inversion K. }
+by move=> _ /=.
+Qed.
 
 Section classes.
 
@@ -192,12 +254,6 @@ Context `{eq_of A}.
 
 Global Instance heq_ssr : heq_of (matrix A) :=
   fun n1 n2 a b => [forall i, [forall j, (a i j == b i j)%C]].
-
-(* TODO: to move *)
-Ltac suff_eq Rxx :=
-  match goal with
-  | [ |- ?R ?a ?b ] => let H := fresh in suff H : a = b by rewrite H; eapply Rxx
-  end.
 
 Global Instance Rseqmx_heq_op m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
   refines (Rseqmx rm rn ==> Rseqmx rm rn ==> bool_R)

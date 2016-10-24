@@ -22,7 +22,7 @@ Unset Printing Implicit Defensive.
 
 Import Refinements.Op.
 
-Arguments refines A%type B%type R%rel _ _.  (** TODO: il y a un problème de scope sur refines *)
+Arguments refines A%type B%type R%rel _ _. (* Fix a scope issue with refines *)
 
 Hint Resolve list_R_nil_R.
 

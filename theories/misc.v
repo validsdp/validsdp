@@ -21,6 +21,7 @@ Open Scope R_scope.
 
 Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
+Delimit Scope Q_scope with Qrat.
 
 Import GRing.Theory.
 Import Num.Theory.
@@ -311,9 +312,11 @@ Definition Q2R (x : Q) : R :=
 Definition bigQ2R (x : BigQ.t_ (* the type of (_ # _)%bigQ *)) : R :=
   Q2R [x]%bigQ.
 
-
 Ltac pos_P2R :=
   by rewrite P2R_INR; apply not_0_INR, not_eq_sym, lt_0_neq, Pos2Nat.is_pos.
+
+Lemma Q2R_0 : Q2R 0%Qrat = 0%Re.
+Proof. by rewrite /Q2R /= /Rdiv Rmult_0_l. Qed.
 
 Lemma Q2R_inv x : Q2R x <> 0%Re -> Q2R (/ x) = / (Q2R x).
 Proof.
