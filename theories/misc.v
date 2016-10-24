@@ -532,6 +532,28 @@ Definition int2Z (n : int) : BinNums.Z :=
   | Negz n => Z.neg (Pos.of_nat n.+1)
   end.
 
+Lemma int2Z_K : cancel int2Z Z2int.
+Proof.
+case => [n|n]; case: n => [|n] //=.
+case: n => [//|n].
+{ by rewrite -binnat.to_natE -Nat2Pos.inj_succ // Nat2Pos.id. }
+case: n => [//|n].
+{ by rewrite -binnat.to_natE -!Nat2Pos.inj_succ // Nat2Pos.id. }
+Qed.
+
+Lemma Z2intK : cancel Z2int int2Z.
+Proof.
+case => [|p|p] //=.
+{ have Pp := nat_of_pos_gt0 p.
+  by rewrite /= -(prednK Pp) (prednK Pp) -binnat.to_natE Pos2Nat.id. }
+rewrite /int2Z.
+have Pp := nat_of_pos_gt0 p.
+rewrite -(prednK Pp) {Pp} /= -!binnat.to_natE.
+rewrite -[in RHS](Pos2Nat.id p).
+set n := Pos.to_nat p.
+by case: n.
+Qed.
+
 Lemma Z2R_int2Z_nat (n : nat) : Z2R (int2Z n) = n%:~R.
 Proof.
 elim: n => [//|n IHn].

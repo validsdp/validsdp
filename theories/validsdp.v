@@ -934,8 +934,24 @@ Definition id1 {T} (x : T) := x.
 
 Definition r_QbigQ := fun_hrel BigQ.to_Q.
 
-Instance : refines (eq ==>  BigQ.eq) (rat2bigQ \o bigQ2rat) id.
-Admitted.  (* rat2bigQ \o bigQ2rat *)
+Instance bigQ2ratK : refines (eq ==>  BigQ.eq) (rat2bigQ \o bigQ2rat) id.
+Proof.
+rewrite refinesE => x x' ref_x.
+apply/BigQ.eqb_eq.
+rewrite BigQ.spec_eq_bool.
+apply/Qeq_bool_iff.
+set p := Qden (Qred [x]%bigQ).
+have Pp := nat_of_pos_gt0 p.
+rewrite /= -(prednK Pp) (prednK Pp) -!binnat.to_natE Pos2Nat.id ifF; last first.
+{ by rewrite BigN.spec_eqb BigN.spec_0 BigN.spec_N_of_Z. }
+rewrite BigZ.spec_of_Z BigN.BigN.spec_N_of_Z //= /p.
+rewrite /numq /= Z2intK.
+set qx := _ # _.
+suff->: qx = [BigQ.red x']%bigQ by apply: BigQ.spec_red.
+rewrite /qx -ref_x BigQ.strong_spec_red.
+set x0 := Qred [x]%bigQ.
+by case: x0.
+Qed.
 
 Lemma FI_val_inj : injective FI_val.
 Proof.
