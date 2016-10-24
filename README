@@ -1,5 +1,8 @@
+ValidSDP
+========
+
 Dependencies
-============
+------------
 
 - Coq 8.5 (http://coq.inria.fr, tested with 8.5pl2)
 - mathcomp (https://math-comp.github.io/math-comp/, tested with version 1.6)
@@ -12,17 +15,17 @@ Dependencies
 - OSDP (https://cavale.enseeiht.fr/osdp, tested with version 0.4.5)
 
 Installation
-============
+------------
 
 Most of the dependencies (Coq, mathcomp, Flocq, Coquelicot and
-CoqInterval) can be easily installed with Opam
-(https://opam.ocaml.org). Once Opam is installed, type
+CoqInterval) can be easily installed with OPAM
+(https://opam.ocaml.org). Once OPAM is installed, type
 
 % opam repo add coq-released https://coq.inria.fr/opam/released
-% opam install ocamlfind zarith coq-interval
+% opam install ocamlfind zarith coq.8.5.2 coq-interval
 
-Paramcoq, CoqEAL and multinomials have to be retrieved from their git
-repository
+Paramcoq, CoqEAL and multinomials have to be retrieved from their Git
+repository:
 
 % git clone https://github.com/drouhling/paramcoq.git
 % git clone https://github.com/CoqEAL/CoqEAL.git
@@ -37,34 +40,34 @@ follow the instructions in the INSTALL file (only the SDPA dependency
 is required (Debian package sdpa for instance), in particular CSDP,
 Mosek, camlp4 and ocaml-glpk are not mandatory).
 
-The installation of ValidSDP itself can then procceed, first with the
-OCaml plugin
+The installation of ValidSDP itself can then proceed, first with the
+OCaml plugin:
 
 % cd plugins/soswitness/
 % make
-% make install  # possibly as root (but probably not if you installed Coq via Opam)
+% make install  # possibly as root (but probably not if you installed Coq via OPAM)
 % cd ../..
 
-Then with the Coq tactic
+Then with the Coq tactic:
 
 % cd theories
 % make -j2
-% make install  # possibly as root (but probably not if you installed Coq via Opam)
+% make install  # possibly as root (but probably not if you installed Coq via OPAM)
 % cd ..
 
 Usage
-=====
+-----
 
 Examples of usage of the tactic can be found at the end of the
 validsdp.v file.
 
 Documentation
-=============
+-------------
 
-Documentation of the Coq code
+To generate documentation from the Coq code:
 
 % cd theories
 % make doc
 
-the documentations can then be browsed from from html/toc.html with
+The documentation can then be browsed from from html/toc.html with
 your favorite browser.
