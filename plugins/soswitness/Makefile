@@ -25,4 +25,7 @@ clean: Makefile.coq
 	-$(MAKE) -f Makefile.coq clean
 	rm -f Makefile.coq
 
-.PHONY: all clean install
+dist: $(MODULES) Makefile
+	T=$$(mktemp -d ../../dist1.XXX)/validsdp/plugins/soswitness && mkdir -p $$T && rsync -R $^ $$T; echo '\n'See $$T
+
+.PHONY: all clean install dist

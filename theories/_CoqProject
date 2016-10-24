@@ -51,3 +51,5 @@ QUOT = "$(shell printf '\x22')"
 	  -e 's,id=.main.>,&<img src='\''deps.png'\'' border=0 usemap='\''#coq_dependencies'\'' />,' \
 	  -e '/<img src='\''deps.png'\''/r deps.html';\
 	fi"
+
+-extra-phony dist "$(VFILES) _CoqProject Makefile coqgraph.ml" "T=$$(mktemp -d ../dist2.XXX)/validsdp/theories && mkdir -p $$T && rsync -R $^ $$T; echo '\n'See $$T"
