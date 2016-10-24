@@ -1,9 +1,0 @@
-Version of CoqEAL (from https://github.com/CoqEAL/CoqEAL, retrieved on
-03/08/16) that compile with Coq 8.5 and Ssreflect 1.6:
-
-cd CoqEAL_theory
-make
-make install
-cd ../CoqEAL_refinements
-make
-make install
