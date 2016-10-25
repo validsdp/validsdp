@@ -31,18 +31,18 @@ Variable fs : Float_spec.
 
 (** Sum [\sum a_i b_i] computed in float from left to right
     with a_i \in R, b_i \in F. *)
-Definition fdotprod_l2r_fstr (k : nat) (a : R ^ k) (b : F fs ^ k) : F fs :=
+Definition fdotprod_l2r_fstr (k : nat) (a : R ^ k) (b : FS fs ^ k) : FS fs :=
   fdotprod_l2r [ffun i => frnd fs (a i)] b.
 
-Lemma fdotprod_l2r_fstr_eq k (a1 : R ^ k) (b1 : F fs ^ k)
-      (a2 : R ^ k) (b2 : F fs ^ k) :
+Lemma fdotprod_l2r_fstr_eq k (a1 : R ^ k) (b1 : FS fs ^ k)
+      (a2 : R ^ k) (b2 : FS fs ^ k) :
   (forall i, a1 i = a2 i) -> (forall i, b1 i = b2 i :> R) ->
   fdotprod_l2r_fstr a1 b1 = fdotprod_l2r_fstr a2 b2 :> R.
 Proof.
 by move=> Ha Hb; apply fsum_l2r_eq => i; rewrite !ffunE /fmult Ha Hb.
 Qed.
 
-Lemma fdotprod_l2r_fstr_r k (a : R ^ k.+2) (b : F fs ^ k.+2) :
+Lemma fdotprod_l2r_fstr_r k (a : R ^ k.+2) (b : FS fs ^ k.+2) :
   fdotprod_l2r_fstr a b
   = fplus (fdotprod_l2r_fstr [ffun i : 'I_k.+1 => a (inord i)]
                              [ffun i : 'I_k.+1 => b (inord i)])
@@ -55,7 +55,7 @@ by rewrite ffunE.
 Qed.
 
 Lemma fdotprod_l2r_fstr_err_gamma k (Hk : 2 * INR k.+1 * eps fs < 1)
-      (a : R ^ k) (b : F fs ^ k) :
+      (a : R ^ k) (b : FS fs ^ k) :
   exists oa : (b_gamma fs k.+1 * (b_eta fs * b_eta fs)) ^ k,
   (fdotprod_l2r_fstr a b
    = \sum_i (a i * b i + (oa i).1 * (a i * b i)
@@ -98,7 +98,7 @@ by rewrite /F /F' in Hea; rewrite -Hea -Hoa.
 Qed.
 
 Lemma fdotprod_l2r_fstr_err k (Hk : 2 * INR k.+1 * eps fs < 1)
-      (a : R ^ k) (b : F fs ^ k) :
+      (a : R ^ k) (b : FS fs ^ k) :
   exists o : b_gamma fs k.+1, exists e : b_eta fs, exists e' : b_eta fs,
   (fdotprod_l2r_fstr a b
    = \sum_i (a i * b i)%Re + o * (\sum_i Rabs (a i * b i)%Re)
@@ -130,10 +130,10 @@ apply f_equal2; [apply f_equal2; [apply f_equal2|]|]; apply /eq_bigr => i _;
 Qed.
 
 Lemma lemma_2_aux1 n (x : 'cV_n.+1) (i : 'I_n.+1) :
-  (Rabs (x i ord0) <= ||x||_2)%Re.
+  (Rabs (x i ord0) <= `||x||_2)%Re.
 Proof.
 apply Rsqr_incr_0_var; [|by apply norm2_pos].
-replace (Rsqr ||x||_2) with (||x||_2^2); [|by rewrite /= Rmult_1_r].
+replace (Rsqr `||x||_2) with (`||x||_2^2); [|by rewrite /= Rmult_1_r].
 rewrite norm2_sqr_dotprod dotprod_sum.
 rewrite (bigD1 i) /= //.
 rewrite -(Rplus_0_r (Rsqr _)) -Rsqr_abs; apply Rplus_le_compat_l.
@@ -152,7 +152,7 @@ have Nzx : x <> 0.
   specialize (H ord0 ord0); move: H; rewrite !mxE; apply R1_neq_R0. }
 apply (Rlt_le_trans _ ((x^T *m x) ord0 ord0)).
 { rewrite -/(dotprod x x) -norm2_sqr_dotprod.
-  replace (_ ^ 2) with (Rsqr ||x||_2); [|by rewrite /= Rmult_1_r].
+  replace (_ ^ 2) with (Rsqr `||x||_2); [|by rewrite /= Rmult_1_r].
   by apply Rlt_0_sqr, Rgt_not_eq, norm2_def_contrap. }
 move: Hs; rewrite mulmx1 Mle_scalar => Hs; apply (Rle_trans _ _ _ Hs).
 rewrite /posdef in PP; specialize (PP x Nzx).
@@ -186,7 +186,7 @@ apply (Rle_trans _ _ _ (lemma_2_aux1 _ _)).
 apply Rsqr_incr_0_var; [|by apply sqrt_pos].
 rewrite /Rsqr sqrt_def.
 { apply (Rle_trans  _ ((x^T *m (s *: P) *m x) ord0 ord0)).
-  { replace (_ * _)%Re with (||x||_2^2); [|by rewrite /= Rmult_1_r].
+  { replace (_ * _)%Re with (`||x||_2^2); [|by rewrite /= Rmult_1_r].
     by move: (HP x); rewrite mulmx1 norm2_sqr_dotprod -Mle_scalar. }
   rewrite -scalemxAr -scalemxAl mxE; apply Rmult_le_compat_l;
   [by apply (lemma_2_aux2 PP)|].
@@ -197,13 +197,13 @@ Qed.
 
 (** A x + B u computed in float (from left to right). *)
 Definition fAxBu (n p : nat)
-           (A : 'M[R]_n) (x : 'cV[F fs]_n)
-           (B : 'M[R]_(n, p)) (u : 'cV[F fs]_p) :=
+           (A : 'M[R]_n) (x : 'cV[FS fs]_n)
+           (B : 'M[R]_(n, p)) (u : 'cV[FS fs]_p) :=
   \col_i (fdotprod_l2r_fstr
             [ffun k => row_mx A B i k] [ffun k => col_mx x u k ord0]).
 
-Definition MF2R : forall m n : nat, 'M[F fs]_(m, n) -> 'M[R]_(m, n) :=
-  map_mx (@F_val (format fs)).
+Definition MF2R : forall m n : nat, 'M[FS fs]_(m, n) -> 'M[R]_(m, n) :=
+  map_mx (@FS_val (format fs)).
 
 Lemma lemma_3_aux1 n (x y z : 'cV_n) :
   (forall i : 'I_n, exists d : bounded 1,
@@ -236,7 +236,7 @@ by replace i with (rshift 1 i'); [rewrite !mxE|apply ord_inj; rewrite Hi'].
 Qed.
 
 Lemma lemma_3_aux2_aux1 n (P : 'M[R]_n) : posdef P ->
-  forall (x : 'cV[F fs]_n),
+  forall (x : 'cV[FS fs]_n),
   forall (s lambda : R),
   ((MF2R x)^T *m P *m (MF2R x) <=m: lambda%:M)%Re ->
   1%:M <=m s *: P ->
@@ -260,7 +260,7 @@ rewrite Hb Rmult_assoc -big_sum_const.
 by apply /Rmult_eq_compat_l /eq_bigr => i _; rewrite ffunE.
 Qed.
 
-Lemma lemma_3_aux2_aux2 p (u : 'cV[F fs]_p) : Mabs (MF2R u) <=m: \col__ 1%Re ->
+Lemma lemma_3_aux2_aux2 p (u : 'cV[FS fs]_p) : Mabs (MF2R u) <=m: \col__ 1%Re ->
   exists b : bounded 1,
   (\big[+%R/0]_i Rabs (u i ord0) = b * INR p)%Re.
 Proof.
@@ -282,7 +282,7 @@ Qed.
 
 Lemma lemma_3_aux2 n p (Hnp : 2 * INR (n + p).+1 * eps fs < 1) :
   forall (P : 'M[R]_n), posdef P ->
-  forall (A : 'M[R]_n) (B : 'M[R]_(n, p)) (x : 'cV[F fs]_n) (u : 'cV[F fs]_p),
+  forall (A : 'M[R]_n) (B : 'M[R]_(n, p)) (x : 'cV[FS fs]_n) (u : 'cV[FS fs]_p),
   forall (s lambda : R),
   ((MF2R x)^T *m P *m (MF2R x) <=m: lambda%:M)%Re ->
   Mabs (MF2R u) <=m: \col__ 1%Re ->
@@ -308,7 +308,7 @@ by rewrite -Hbu; apply /eq_bigr => i _; rewrite ffunE col_mxEd.
 Qed.
 
 Lemma lemma_3_aux3_aux1 n (P : 'M[R]_n) : posdef P ->
-  forall (A : 'M[R]_n) (x : 'cV[F fs]_n),
+  forall (A : 'M[R]_n) (x : 'cV[FS fs]_n),
   forall (s lambda : R),
   ((MF2R x)^T *m P *m (MF2R x) <=m: lambda%:M)%Re ->
   1%:M <=m s *: P ->
@@ -337,7 +337,7 @@ rewrite big_distrr /=.
 by apply /eq_bigr => i' _; rewrite ffunE Rabs_mult Rabs_Rabsolu.
 Qed.
 
-Lemma lemma_3_aux3_aux2 n p (B : 'M[R]_(n, p)) (u : 'cV[F fs]_p) :
+Lemma lemma_3_aux3_aux2 n p (B : 'M[R]_(n, p)) (u : 'cV[FS fs]_p) :
   Mabs (MF2R u) <=m: \col__ 1%Re ->
   forall (i : 'I_n),
   exists b : bounded 1,
@@ -362,7 +362,7 @@ Qed.
 
 Lemma lemma_3_aux3 n p (Hnp : 2 * INR (n + p).+1 * eps fs < 1) (P : 'M[R]_n) :
   posdef P ->
-  forall (A : 'M[R]_n) (B : 'M[R]_(n, p)) (x : 'cV[F fs]_n) (u : 'cV[F fs]_p),
+  forall (A : 'M[R]_n) (B : 'M[R]_(n, p)) (x : 'cV[FS fs]_n) (u : 'cV[FS fs]_p),
   forall (s lambda : R),
   ((MF2R x)^T *m P *m (MF2R x) <=m: lambda%:M)%Re ->
   Mabs (MF2R u) <=m: \col__ 1 ->
@@ -393,7 +393,7 @@ Qed.
 
 Lemma lemma_3 n p (Hnp : 2 * INR (n + p).+1 * eps fs < 1) (P : 'M[R]_n) :
   posdef P ->
-  forall (A : 'M[R]_n) (B : 'M[R]_(n, p)) (x : 'cV[F fs]_n) (u : 'cV[F fs]_p),
+  forall (A : 'M[R]_n) (B : 'M[R]_(n, p)) (x : 'cV[FS fs]_n) (u : 'cV[FS fs]_p),
   forall (s lambda : R),
   ((MF2R x)^T *m P *m (MF2R x) <=m: lambda%:M)%Re ->
   Mabs (MF2R u) <=m: \col__ 1%Re ->
@@ -473,11 +473,11 @@ rewrite -/(dotprod x x) -norm2_sqr_dotprod.
 have Hsn : (0 < sqrt (INR n.+1))%Re.
 { apply sqrt_lt_R0, lt_0_INR, lt_0_Sn. }
 rewrite /x.
-replace (||_||_2) with 1%Re; [by simpl; ring|apply sym_eq].
+replace (`||_||_2) with 1%Re; [by simpl; ring|apply sym_eq].
 have H : (0 < sqrt (INR n.+1))%Re.
 { apply sqrt_lt_R0; rewrite S_INR; move: (pos_INR n); lra. }
 apply (Rmult_eq_reg_l (sqrt (INR n.+1))); [rewrite Rmult_1_r|lra].
-apply eq_trans with (||\col_(_ < n.+1) 1||_2); [|by apply norm2_const].
+apply eq_trans with (`||\col_(_ < n.+1) 1||_2); [|by apply norm2_const].
 rewrite -{1}(Rabs_right (sqrt _)); [|lra]; rewrite -norm2_scale.
 apply f_equal; rewrite -matrixP => i j; rewrite !mxE; apply Rinv_r; lra.
 Qed.
@@ -485,7 +485,7 @@ Qed.
 Lemma lemma_4 n (P : 'M[R]_n) : semipos P ->
   forall (s' : R), P <=m s' *: 1%:M ->
   forall (d : (bounded 1)^n) (x : 'cV_n),
-  (normP P ((diag_mx (\row_i (d i : R))) *m x) <= sqrt s' * ||x||_2)%Re.
+  (normP P ((diag_mx (\row_i (d i : R))) *m x) <= sqrt s' * `||x||_2)%Re.
 Proof.
 case: n P => [|n] P PP s' Hs' d x.
 { rewrite /normP /dotprodP /norm2 /dotprod !mxE !big_ord0 sqrt_0 Rmult_0_r.
@@ -494,7 +494,7 @@ set (D := diag_mx (\row_i (d i : R))).
 apply (Rle_trans _ (sqrt (((D *m x)^T *m (s' *: (D *m x))) ord0 ord0))).
 { rewrite /normP; apply sqrt_le_1_alt; rewrite -Mle_scalar.
   by move: (Hs' (D *m x)); rewrite -!scalemxAr mulmx1 -scalemxAl. }
-apply (Rle_trans _ (sqrt (s' * ||D *m x||_2^2))%Re).
+apply (Rle_trans _ (sqrt (s' * `||D *m x||_2^2))%Re).
 { apply sqrt_le_1_alt.
   rewrite -scalemxAr mxE norm2_sqr_dotprod /dotprod.
   by right. }
@@ -512,7 +512,7 @@ Lemma lemma_4_sqr n (P : 'M[R]_n) : semipos P ->
   forall (d : (bounded 1)^n) (x : 'cV_n),
   ((x^T *m (diag_mx (\row_i (d i : R)))^T *m P
     *m (diag_mx (\row_i (d i : R))) *m x)%Ri ord0 ord0
-   <= s' * ||x||_2^2)%Re.
+   <= s' * `||x||_2^2)%Re.
 Proof.
 case: n P => [|n] P PP s' Hs' d x.
 { rewrite /norm2 /dotprod !mxE !big_ord0 sqrt_0 /pow Rmult_0_l Rmult_0_r.
@@ -530,16 +530,16 @@ Qed.
 
 Theorem ellipsoid_error n p (Hnp : 2 * INR (n + p).+1 * eps fs < 1) :
   forall (P : 'M[R]_n), P^T = P -> posdef P ->
-  forall (A : 'M[R]_n) (B : 'M[R]_(n, p)) (x : 'cV[F fs]_n) (u : 'cV[F fs]_p),
+  forall (A : 'M[R]_n) (B : 'M[R]_(n, p)) (x : 'cV[FS fs]_n) (u : 'cV[FS fs]_p),
   forall (s s' lambda lambda' : R),
   ((MF2R x)^T *m P *m (MF2R x) <=m: lambda%:M)%Re ->
   Mabs (MF2R u) <=m: \col__ 1%Re ->
   (A *m MF2R x + B *m MF2R u)^T
   *m P *m (A *m MF2R x + B *m MF2R u) <=m: lambda'%:M ->
   1%:M <=m s *: P -> P <=m s' *: 1%:M ->
-  let a := (gamma fs (n + p).+1 * sqrt (s * s') * sqrt (INR n) * ||A||_F
+  let a := (gamma fs (n + p).+1 * sqrt (s * s') * sqrt (INR n) * `||A||_F
             + 2 * sqrt (s * s') * INR n * sqrt (INR n) * eta fs)%Re in
-  let b := (gamma fs (n + p).+1 * sqrt s' * sqrt (INR p) * ||B||_F
+  let b := (gamma fs (n + p).+1 * sqrt s' * sqrt (INR p) * `||B||_F
             + 2 * sqrt s' * INR (n + 2 * p) * sqrt (INR n) * eta fs)%Re in
   ((MF2R (fAxBu A x B u))^T *m P *m (MF2R (fAxBu A x B u))) ord0 ord0
   <= (sqrt lambda' + sqrt lambda * a + b)^2.
@@ -554,9 +554,9 @@ set (r := sqrt s *: (gamma fs (n.+1 + p).+1 *: (\col_i \sum_j Rabs (A i j))
 set (f := gamma fs (n.+1 + p).+1 *: (\col_i \sum_j Rabs (B i j))
           + (2 * INR (n.+1 + 2 * p))%Re *: \col__ (eta fs)).
 move=> Hlambda Hu Hlambda' Hs Hs'.
-set (a := (gamma fs (n.+1 + p).+1 * sqrt (s * s') * sqrt (INR n.+1) * ||A||_F
+set (a := (gamma fs (n.+1 + p).+1 * sqrt (s * s') * sqrt (INR n.+1) * `||A||_F
            + 2 * sqrt (s * s') * INR n.+1 * sqrt (INR n.+1) * eta fs)%Re).
-set (b := (gamma fs (n.+1 + p).+1 * sqrt s' * sqrt (INR p) * ||B||_F)%Re).
+set (b := (gamma fs (n.+1 + p).+1 * sqrt s' * sqrt (INR p) * `||B||_F)%Re).
 set (c := (sqrt s' * 2 * INR (n.+1 + 2 * p) * sqrt (INR n.+1) * eta fs)%Re).
 replace (_ * eta _)%Re with c; [|by rewrite /c; ring].
 simpl.
@@ -616,10 +616,10 @@ apply (Rle_trans _ (((y^T *m P *m y + lambda *: (r^T *m D^T *m P *m D *m r)
   apply Rmult_le_compat_l; [lra|].
   rewrite -(mulmxA _ D).
   by apply (cauchy_schwarzP SymP (posdef_semipos PP)). }
-apply (Rle_trans _ ((y^T *m P *m y)%Ri ord0 ord0 + lambda * s' * ||r||_2^2
-                    + s' * ||f||_2^2 + 2 * sqrt lambda * s' * ||r||_2 * ||f||_2
-                    + 2 * sqrt lambda * sqrt s' * normP P y * ||r||_2
-                    + 2 * sqrt s' * normP P y * ||f||_2)).
+apply (Rle_trans _ ((y^T *m P *m y)%Ri ord0 ord0 + lambda * s' * `||r||_2^2
+                    + s' * `||f||_2^2 + 2 * sqrt lambda * s' * `||r||_2 * `||f||_2
+                    + 2 * sqrt lambda * sqrt s' * normP P y * `||r||_2
+                    + 2 * sqrt s' * normP P y * `||f||_2)).
 { apply Rplus_le_compat.
   { apply Rplus_le_compat.
     { apply Rplus_le_compat.
@@ -635,23 +635,23 @@ apply (Rle_trans _ ((y^T *m P *m y)%Ri ord0 ord0 + lambda * s' * ||r||_2^2
       apply Rmult_le_compat_l; [by apply sqrt_pos|].
       rewrite -(sqrt_def s'); [|by apply (lemma_4_aux1 (posdef_semipos PP))].
       replace (_ * _ * _)%Re
-      with ((sqrt s' * ||r||_2) * (sqrt s' * ||f||_2))%Re by ring.
+      with ((sqrt s' * `||r||_2) * (sqrt s' * `||f||_2))%Re by ring.
       apply Rmult_le_compat; [by apply normP_pos|by apply normP_pos
                               |by apply (lemma_4 (posdef_semipos PP))
                               |by apply (lemma_4 (posdef_semipos PP))]. }
     rewrite !Rmult_assoc; apply Rmult_le_compat_l; [lra|].
     apply Rmult_le_compat_l; [by apply sqrt_pos|].
-    replace (_ * (_ * _))%Re with (normP P y * (sqrt s' * ||r||_2))%Re by ring.
+    replace (_ * (_ * _))%Re with (normP P y * (sqrt s' * `||r||_2))%Re by ring.
     by apply Rmult_le_compat_l;
       [apply normP_pos|apply (lemma_4 (posdef_semipos PP))]. }
   rewrite !Rmult_assoc; apply Rmult_le_compat_l; [lra|].
-  replace (_ * (_ * _))%Re with (normP P y * (sqrt s' * ||f||_2))%Re by ring.
+  replace (_ * (_ * _))%Re with (normP P y * (sqrt s' * `||f||_2))%Re by ring.
   by apply Rmult_le_compat_l;
     [apply normP_pos|apply (lemma_4 (posdef_semipos PP))]. }
-apply (Rle_trans _ (lambda' + lambda * s' * ||r||_2^2 + s' * ||f||_2^2
-                    + 2 * s' * sqrt lambda * ||r||_2 * ||f||_2
-                    + 2 * sqrt s' * sqrt lambda * sqrt lambda' * ||r||_2
-                    + 2 * sqrt s' * sqrt lambda' * ||f||_2)%Re).
+apply (Rle_trans _ (lambda' + lambda * s' * `||r||_2^2 + s' * `||f||_2^2
+                    + 2 * s' * sqrt lambda * `||r||_2 * `||f||_2
+                    + 2 * sqrt s' * sqrt lambda * sqrt lambda' * `||r||_2
+                    + 2 * sqrt s' * sqrt lambda' * `||f||_2)%Re).
 { apply Rplus_le_compat.
   { apply Rplus_le_compat.
     { apply Rplus_le_compat.
@@ -660,7 +660,7 @@ apply (Rle_trans _ (lambda' + lambda * s' * ||r||_2^2 + s' * ||f||_2^2
       right; ring. }
     rewrite !Rmult_assoc; apply Rmult_le_compat_l; [lra|].
     replace (_ * _)%Re
-    with (sqrt s' * (sqrt lambda * (normP P y * ||r||_2)))%Re by ring.
+    with (sqrt s' * (sqrt lambda * (normP P y * `||r||_2)))%Re by ring.
     do 2 (apply Rmult_le_compat_l; [by apply sqrt_pos|]).
     apply Rmult_le_compat_r; [by apply norm2_pos|].
     by apply sqrt_le_1_alt; replace lambda' with (lambda'%:M (@ord0 0) ord0);
@@ -675,26 +675,26 @@ have Plambda' : (0 <= lambda').
   apply (@Mle_trans _ _ _ (y^T *m P *m y)); [|by []].
   apply (@Mle_trans _ _ _ 0); [|by apply posdef_semipos].
   by move=> i j; rewrite !mxE (ord_1_0 i) (ord_1_0 j); right. }
-apply (Rle_trans _ ((sqrt lambda' + sqrt lambda * sqrt s' * ||r||_2
-                     + sqrt s' * ||f||_2)^2)%Re).
+apply (Rle_trans _ ((sqrt lambda' + sqrt lambda * sqrt s' * `||r||_2
+                     + sqrt s' * `||f||_2)^2)%Re).
 { right.
   rewrite /pow !Rmult_1_r.
   rewrite !Rmult_plus_distr_l !Rmult_plus_distr_r !Rmult_1_l.
   rewrite sqrt_def; [|by []].
-  replace (sqrt lambda * sqrt s' * ||r||_2 * (_ * ||r||_2))%Re
+  replace (sqrt lambda * sqrt s' * `||r||_2 * (_ * `||r||_2))%Re
   with ((sqrt lambda * sqrt lambda) * (sqrt s' * sqrt s')
-        * ||r||_2 * ||r||_2)%Re by ring.
-  replace (sqrt s' * ||f||_2 * (sqrt lambda * sqrt s' * ||r||_2))%Re
-  with ((sqrt s' * sqrt s') * sqrt lambda * ||r||_2 * ||f||_2)%Re by ring.
-  replace (sqrt lambda * sqrt s' * ||r||_2 * (sqrt s' * ||f||_2))%Re
-  with ((sqrt s' * sqrt s') * sqrt lambda * ||r||_2 * ||f||_2)%Re by ring.
-  replace (sqrt s' * ||f||_2 * (sqrt s' * ||f||_2))%Re
-  with ((sqrt s' * sqrt s') * ||f||_2 * ||f||_2)%Re by ring.
+        * `||r||_2 * `||r||_2)%Re by ring.
+  replace (sqrt s' * `||f||_2 * (sqrt lambda * sqrt s' * `||r||_2))%Re
+  with ((sqrt s' * sqrt s') * sqrt lambda * `||r||_2 * `||f||_2)%Re by ring.
+  replace (sqrt lambda * sqrt s' * `||r||_2 * (sqrt s' * `||f||_2))%Re
+  with ((sqrt s' * sqrt s') * sqrt lambda * `||r||_2 * `||f||_2)%Re by ring.
+  replace (sqrt s' * `||f||_2 * (sqrt s' * `||f||_2))%Re
+  with ((sqrt s' * sqrt s') * `||f||_2 * `||f||_2)%Re by ring.
   rewrite sqrt_def; [|by apply (lemma_2_aux3 PP Hlambda)].
   rewrite sqrt_def; [|by apply (lemma_4_aux1 (posdef_semipos PP))].
   ring. }
 rewrite /pow !Rmult_1_r.
-have H0 : (sqrt lambda' + sqrt lambda * sqrt s' * ||r||_2 + sqrt s' * ||f||_2
+have H0 : (sqrt lambda' + sqrt lambda * sqrt s' * `||r||_2 + sqrt s' * `||f||_2
            <= sqrt lambda' + sqrt lambda * a + b + c)%Re.
 { rewrite (Rplus_assoc _ b c).
   apply Rplus_le_compat.
@@ -705,7 +705,7 @@ have H0 : (sqrt lambda' + sqrt lambda * sqrt s' * ||r||_2 + sqrt s' * ||f||_2
        |by apply (lemma_4_aux1 (posdef_semipos PP))].
     replace (_ + _)%Re
     with (sqrt s' * (sqrt s * (gamma fs (n.+1 + p).+1
-                               * sqrt (INR n.+1) * ||A||_F
+                               * sqrt (INR n.+1) * `||A||_F
                                + 2 * INR n.+1 * sqrt (INR n.+1) * eta fs)))%Re
       by ring.
     apply Rmult_le_compat_l; [by apply sqrt_pos|].
@@ -724,7 +724,7 @@ have H0 : (sqrt lambda' + sqrt lambda * sqrt s' * ||r||_2 + sqrt s' * ||f||_2
     by apply f_equal; rewrite -matrixP => i j; rewrite !mxE GRing.mulr1. }
   rewrite /f /b /c.
   replace (_ + _ * eta fs)%Re
-  with (sqrt s' * (gamma fs (n.+1 + p).+1 * sqrt (INR p) * ||B||_F
+  with (sqrt s' * (gamma fs (n.+1 + p).+1 * sqrt (INR p) * `||B||_F
                    + 2 * INR (n.+1 + 2 * p) * sqrt (INR n.+1) * eta fs))%Re
     by ring.
   apply Rmult_le_compat_l; [by apply sqrt_pos|].
@@ -737,8 +737,8 @@ have H0 : (sqrt lambda' + sqrt lambda * sqrt s' * ||r||_2 + sqrt s' * ||f||_2
   rewrite -norm2_const Rmult_comm -{2}(Rabs_pos_eq (eta fs));
     [rewrite -norm2_scale|by apply Rlt_le, eta_pos].
   by apply f_equal; rewrite -matrixP => i j; rewrite !mxE GRing.mulr1. }
-have H1 : (0 <= sqrt lambda' + sqrt lambda * sqrt s' * ||r||_2
-                + sqrt s' * ||f||_2)%Re.
+have H1 : (0 <= sqrt lambda' + sqrt lambda * sqrt s' * `||r||_2
+                + sqrt s' * `||f||_2)%Re.
 { apply Rplus_le_le_0_compat.
   { apply Rplus_le_le_0_compat; [by apply sqrt_pos|].
     apply Rmult_le_pos; [by apply Rmult_le_pos; apply sqrt_pos|].
@@ -749,22 +749,22 @@ Qed.
 
 (** ** Another similar result. *)
 
-Definition x1 (n : nat) (x : 'cV[F fs]_n) :=
+Definition x1 (n : nat) (x : 'cV[FS fs]_n) :=
   (castmx (addn1 n, erefl 1%N) (col_mx x (\col__ (F1 fs)))).
 
 (** $A [x 1]^T$#A [x 1]^T# computed in float (from left to right). *)
-Definition fAx1 (n : nat) (A : 'M[R]_n.+1) (x : 'cV[F fs]_n) :=
+Definition fAx1 (n : nat) (A : 'M[R]_n.+1) (x : 'cV[FS fs]_n) :=
   \col_i (fdotprod_l2r_fstr [ffun k => A i k] [ffun k => (x1 x) k ord0]).
 
 Lemma lemma_5 n (Hn : 2 * INR n.+2 * eps fs < 1)
-      (A : 'M[R]_n.+1) (x : 'cV[F fs]_n) :
+      (A : 'M[R]_n.+1) (x : 'cV[FS fs]_n) :
   exists d : (bounded 1)^n.+1,
   MF2R (fAx1 A x)
   = A *m MF2R (x1 x)
     + diag_mx (\row_i (d i : R))
       *m (\col_i (gamma fs n.+2
                   * (Mabs (row i A) *m Mabs (MF2R (x1 x))) ord0 ord0
-                  + 2 * (INR n + 2 + ||MF2R x||_1) * eta fs)%Re).
+                  + 2 * (INR n + 2 + `||MF2R x||_1) * eta fs)%Re).
 Proof.
 apply lemma_3_aux1 => i.
 have [o [e [e' Hoee']]] := fdotprod_l2r_fstr_err
@@ -824,21 +824,21 @@ Qed.
 Theorem assignment_error n (Hn : 2 * INR n.+2 * eps fs < 1) (P A : 'M[R]_n.+1) :
   P^T = P -> semipos P ->
   forall (s b : R), P <=m s *: 1%:M ->
-  forall (x : 'cV[F fs]_n),
+  forall (x : 'cV[FS fs]_n),
   let x1 := MF2R (x1 x) in
   let e := \col_i (gamma fs n.+2 * (Mabs (row i A) *m Mabs x1) ord0 ord0
-                   + 2 * (INR n + 2 + ||MF2R x||_1) * eta fs)%Re in
-  (s * ||e||_2^2 <= b)%Re ->
+                   + 2 * (INR n + 2 + `||MF2R x||_1) * eta fs)%Re in
+  (s * `||e||_2^2 <= b)%Re ->
   (x1^T *m A^T *m P *m A *m x1) ord0 ord0
-  <= ((sqrt b - sqrt s * ||e||_2)^2)%Re ->
+  <= ((sqrt b - sqrt s * `||e||_2)^2)%Re ->
   ((MF2R (fAx1 A x))^T *m P *m (MF2R (fAx1 A x))) ord0 ord0 <= b.
 Proof.
 move=> SymP PP s b Hs x /=.
 set (x2 := MF2R (x1 x)).
 set (e := \col_i (gamma fs n.+2 * (Mabs (row i A) *m Mabs x2) ord0 ord0 +
-                  2 * (INR n + 2 + ||MF2R x||_1) * eta fs)%Re).
+                  2 * (INR n + 2 + `||MF2R x||_1) * eta fs)%Re).
 simpl in e; fold e.
-change (_ * (||e||_2 * 1))%Re with (||e||_2^2)%Re.
+change (_ * (`||e||_2 * 1))%Re with (`||e||_2^2)%Re.
 set (y := A *m x2).
 rewrite -trmx_mul -mulmxA; change (A *m x2) with y.
 move=> Hs' Hy.
@@ -852,29 +852,29 @@ apply Rle_trans with ((y^T *m P *m y + (D *m e)^T *m P *m (D *m e)) ord0 ord0
 { rewrite mxE; apply Rplus_le_compat_l.
   rewrite mxE /GRing.mul /= Rmult_assoc; apply Rmult_le_compat_l; [lra|].
   by apply cauchy_schwarzP. }
-apply Rle_trans with ((y^T *m P *m y) ord0 ord0 + s * ||e||_2^2
-                      + 2 * normP P y * (sqrt s * ||e||_2))%Re.
+apply Rle_trans with ((y^T *m P *m y) ord0 ord0 + s * `||e||_2^2
+                      + 2 * normP P y * (sqrt s * `||e||_2))%Re.
 { rewrite mxE /GRing.add /= !Rplus_assoc; apply Rplus_le_compat_l.
   apply Rplus_le_compat.
   { rewrite trmx_mul /D.
-    change (_ * (_ * 1))%Re with (||e||_2^2).
+    change (_ * (_ * 1))%Re with (`||e||_2^2).
     by rewrite mulmxA; apply lemma_4_sqr. }
   rewrite /GRing.mul /= !Rmult_assoc; apply Rmult_le_compat_l; [lra|].
   apply Rmult_le_compat_l; [by apply normP_pos|].
   by apply lemma_4. }
-have Hy' : (normP P y <= sqrt b - sqrt s * ||e||_2)%Re.
-{ apply Rle_trans with (sqrt ((sqrt b - sqrt s * ||e||_2)^2)); [|right].
+have Hy' : (normP P y <= sqrt b - sqrt s * `||e||_2)%Re.
+{ apply Rle_trans with (sqrt ((sqrt b - sqrt s * `||e||_2)^2)); [|right].
   { by apply sqrt_le_1_alt. }
   rewrite /= Rmult_1_r sqrt_square; [by []|].
   apply Rle_0_minus.
-  replace (||e||_2) with (sqrt (||e||_2^2)).
+  replace (`||e||_2) with (sqrt (`||e||_2^2)).
   { rewrite -sqrt_mult; [|by apply (lemma_4_aux1 PP)|by apply pow2_ge_0].
     by apply sqrt_le_1_alt. }
   rewrite /= Rmult_1_r.
   by rewrite sqrt_square; [|apply norm2_pos]. }
 apply Rle_trans
-with ((sqrt b - sqrt s * ||e||_2)^2 + s * ||e||_2^2
-      + 2 * (sqrt b - sqrt s * ||e||_2) * (sqrt s * ||e||_2))%Re; [|right].
+with ((sqrt b - sqrt s * `||e||_2)^2 + s * `||e||_2^2
+      + 2 * (sqrt b - sqrt s * `||e||_2) * (sqrt s * `||e||_2))%Re; [|right].
 { apply Rplus_le_compat; [by apply Rplus_le_compat_r|].
   rewrite !Rmult_assoc; apply Rmult_le_compat_l; [lra|].
   by apply Rmult_le_compat_r;
@@ -882,7 +882,7 @@ with ((sqrt b - sqrt s * ||e||_2)^2 + s * ||e||_2^2
 ring_simplify; rewrite /= !Rmult_1_r.
 rewrite sqrt_def; [rewrite sqrt_def; [ring|]|].
 { by apply (lemma_4_aux1 PP). }
-apply Rle_trans with (s * ||e||_2^2)%Re; [|exact Hs'].
+apply Rle_trans with (s * `||e||_2^2)%Re; [|exact Hs'].
 by apply Rmult_le_pos; [apply (lemma_4_aux1 PP)|apply pow2_ge_0].
 Qed.
 

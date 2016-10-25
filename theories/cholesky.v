@@ -416,7 +416,7 @@ by apply Mmul_le_compat_l; [by rewrite -(trmx0); apply Mle_tr, Mabs_pos|].
 Qed.
 
 (** (2.7) *)
-Lemma th_2_3_aux1_aux (j : 'I_n.+1) : (||rt j||_2^2 <= (d j)^2)%Re.
+Lemma th_2_3_aux1_aux (j : 'I_n.+1) : (`||rt j||_2^2 <= (d j)^2)%Re.
 Proof.
 have H2j := bg_2_le (leq_add (leqnn 1) (ltn_ord j)) H2n.
 rewrite norm2_sqr_dotprod dotprod_rt_i_j //.
@@ -439,7 +439,7 @@ by apply Rmult_le_pos; [fs_lra fs|apply pos_INR].
 Qed.
 
 (** (2.7) *)
-Lemma th_2_3_aux1 (j : 'I_n.+1) : (||rt j||_2 <= d j)%Re.
+Lemma th_2_3_aux1 (j : 'I_n.+1) : (`||rt j||_2 <= d j)%Re.
 Proof.
 move: (th_2_3_aux1_aux j).
 rewrite /= !Rmult_1_r -!/(Rsqr _) => H.
@@ -540,7 +540,7 @@ Qed.
 
 Lemma th_2_3_aux3 (i j : 'I_n.+1) :
   (Rabs (delta i j)
-   < alpha i j * ||rt i||_2 * ||rt j||_2
+   < alpha i j * `||rt i||_2 * `||rt j||_2
      + 4 * eta fs * (INR n.+2 + maxdiag))%Re.
 Proof.
 have Hmd : forall i0 : 'I_n.+1, Rt i0 i0 <= 2 * (maxdiag + 1);
@@ -610,7 +610,7 @@ Variable c : R.
 
 Hypothesis Hc :
   forall (x : 'cV[R]_n.+1),
-  (||x||_2 = 1)%Re -> (Mabs x)^T *m Delta A maxdiag *m Mabs x <=m: c%:M.
+  (`||x||_2 = 1)%Re -> (Mabs x)^T *m Delta A maxdiag *m Mabs x <=m: c%:M.
 
 Variable At : 'M[FS fs]_n.+1.
 
@@ -652,7 +652,7 @@ apply Rplus_lt_le_0_compat; [|exact Pmaxdiag].
 rewrite !S_INR; move: (pos_INR n); lra.
 Qed.
 
-Lemma vconst_norm1 : ||\col_(k < n.+1) (/ sqrt (INR n.+1))%Re||_2 = 1.
+Lemma vconst_norm1 : `||\col_(k < n.+1) (/ sqrt (INR n.+1))%Re||_2 = 1.
 Proof.
 have H : (0 < sqrt (INR n.+1))%Re.
 { apply sqrt_lt_R0; rewrite S_INR; move: (pos_INR n); lra. }
@@ -747,7 +747,7 @@ Variable r : R.
 
 Hypothesis Hr :
   forall (x : 'cV[R]_n.+1),
-  (||x||_2 = 1)%Re -> (Mabs x)^T *m MF2R Rad *m Mabs x <=m: r%:M.
+  (`||x||_2 = 1)%Re -> (Mabs x)^T *m MF2R Rad *m Mabs x <=m: r%:M.
 
 Hypothesis HAt :
   (forall (i j : 'I_n.+1), ((i < j)%N -> At i j = A i j))
@@ -871,11 +871,11 @@ apply Rplus_le_compat.
 by right; rewrite GRing.addr0 !GRing.mulr1.
 Qed.
 
-Lemma c_upper_bound_aux1 (x : 'cV_n.+1) : (||x||_2 = 1)%Re ->
+Lemma c_upper_bound_aux1 (x : 'cV_n.+1) : (`||x||_2 = 1)%Re ->
   (Mabs x)^T *m Delta A maxdiag *m (Mabs x)
-  <=m: gamma fs n.+2 *: (||dv||_2^2)%:M
+  <=m: gamma fs n.+2 *: (`||dv||_2^2)%:M
        + (4 * eta fs * (INR n.+2 + maxdiag))%Re
-           *: (||\col_(k < n.+1) 1||_2^2)%:M.
+           *: (`||\col_(k < n.+1) 1||_2^2)%:M.
 Proof.
 move=> Hx; apply (Mle_trans (Mmul_abs_lr _ (Mle_abs _))).
 set (eta_eps := (4 * eta fs * (INR n.+2 + maxdiag))%Re).
@@ -891,7 +891,7 @@ have Peta_eps : (0 <= eta_eps)%Re.
 { apply Rmult_le_pos; [fs_lra fs|].
   move: (pos_INR n.+2) (Pmaxdiag Pdiag Hmaxdiag); lra. }
 have H : forall y : 'cV_n.+1, (y^T *m Mabs x)^T *m (y^T *m Mabs x)
-                              <=m: (||y||_2^2)%:M => [y|].
+                              <=m: (`||y||_2^2)%:M => [y|].
 { rewrite Mmul_scalar trmx_scalar Mle_scalar_mx /GRing.mul /= Rmult_1_r.
   apply Rsqr_le_abs_1; rewrite (Rabs_pos_eq (norm2 _)); [|by apply norm2_pos].
   rewrite -(Rmult_1_r (norm2 _)) -Hx -(norm2_mabs x).
@@ -901,10 +901,10 @@ apply Madd_le_compat.
 by apply Mscale_le_compat; [|apply H].
 Qed.
 
-Lemma c_upper_bound_aux2 (x : 'cV_n.+1) : (||x||_2 = 1)%Re ->
-  gamma fs n.+2 *: ((||dv||_2^2)%:M : 'M_1)
+Lemma c_upper_bound_aux2 (x : 'cV_n.+1) : (`||x||_2 = 1)%Re ->
+  gamma fs n.+2 *: ((`||dv||_2^2)%:M : 'M_1)
   + (4 * eta fs * (INR n.+2 + maxdiag))%Re
-    *: (||\col_(k < n.+1) 1||_2^2)%:M
+    *: (`||\col_(k < n.+1) 1||_2^2)%:M
   <=m: ((gamma fs n.+2 / (1 - gamma fs n.+2) * (\tr (MF2R A)
                                                 + 2 * (INR n.+1)^2 * eta fs)
          + 4 * eta fs * INR n.+1 * (INR n.+2 + maxdiag))%Re)%:M.
@@ -942,7 +942,7 @@ apply Rplus_le_compat; [|right; apply Rmult_eq_compat_l].
 by rewrite /In1 norm2_const sqrt_def; [|by apply pos_INR].
 Qed.
 
-Lemma c_upper_bound_aux3 (x : 'cV_n.+1) : (||x||_2 = 1)%Re ->
+Lemma c_upper_bound_aux3 (x : 'cV_n.+1) : (`||x||_2 = 1)%Re ->
   (Mabs x)^T *m Delta A maxdiag *m (Mabs x)
   <=m: ((/2 * gamma fs (2 * n.+2) * (\tr (MF2R A) + 2 * (INR n.+1)^2 * eta fs)
          + 4 * eta fs * INR n.+1 * (INR n.+2 + maxdiag))%Re)%:M.
@@ -952,7 +952,7 @@ apply (Mle_trans (c_upper_bound_aux1 Hx) (c_upper_bound_aux2 Hx)).
 Qed.
 (* end hide *)
 
-Lemma c_upper_bound (x : 'cV_n.+1) : (||x||_2 = 1)%Re ->
+Lemma c_upper_bound (x : 'cV_n.+1) : (`||x||_2 = 1)%Re ->
   (Mabs x)^T *m Delta A maxdiag *m (Mabs x)
   <=m: ((/2 * gamma fs (2 * n.+2) * (\tr (MF2R A))
          + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag))%Re)%:M.
@@ -975,7 +975,7 @@ End C_upper_bound.
 
 (** *** A (very rough but easy to compute) upper bound on the constant r. *)
 Lemma r_upper_bound n (Rad : 'M[FS fs]_n.+1) (PRad : 0 <=m: MF2R Rad)
-      r (Hr : forall i j, Rad i j <= r) (x : 'cV_n.+1) : (||x||_2 = 1)%Re ->
+      r (Hr : forall i j, Rad i j <= r) (x : 'cV_n.+1) : (`||x||_2 = 1)%Re ->
   (Mabs x)^T *m MF2R Rad *m (Mabs x) <=m: ((INR n.+1 * r)%Re)%:M.
 Proof.
 move=> Hx; apply Mle_trans with ((Mabs x)^T *m const_mx r *m (Mabs x)).
@@ -987,7 +987,7 @@ have Hcr : @const_mx _ n.+1 n.+1 r = (\col__ sqrt r) *m (\col__ sqrt r)^T.
 { rewrite -matrixP; move=> i j; rewrite !mxE big_ord_recl big_ord0 GRing.addr0.
   by rewrite !mxE /GRing.mul /= sqrt_def. }
 rewrite Hcr mulmxA -mulmxA -{1}(trmxK (\col__ _)) -trmx_mul.
-apply Mle_trans with (||\col_(_ < n.+1) sqrt r||_2^2)%:M.
+apply Mle_trans with (`||\col_(_ < n.+1) sqrt r||_2^2)%:M.
 { rewrite Mmul_scalar trmx_scalar Mle_scalar_mx /GRing.mul /= Rmult_1_r.
   apply Rsqr_le_abs_1; rewrite (Rabs_pos_eq (norm2 _)); [|by apply norm2_pos].
   rewrite -(Rmult_1_r (norm2 _)) -Hx -(norm2_mabs x).
@@ -1015,7 +1015,7 @@ Lemma corollary_2_4_with_c_upper_bound n (H4n : 4 * INR n.+2 * eps fs < 1) :
 Proof.
 move=> A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt Rt HARt.
 have Pmaxdiag := Rle_trans _ _ _ (Pdiag ord0) (Hmaxdiag ord0).
-have Hc' : forall x : 'cV_n.+1, ||x||_2 = 1 ->
+have Hc' : forall x : 'cV_n.+1, `||x||_2 = 1 ->
            (Mabs x)^T *m Delta A maxdiag *m Mabs x <=m: c%:M.
 { move=> x Hx; apply (Mle_trans (c_upper_bound H4n Pdiag Hmaxdiag Hx)).
   by rewrite Mle_scalar_mx. }
@@ -1041,7 +1041,7 @@ Proof.
 move=> A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At HAt
          Rt HARt Xt HXtARad.
 have Pmaxdiag := Rle_trans _ _ _ (Pdiag ord0) (Hmaxdiag ord0).
-have Hc' : forall x : 'cV_n.+1, ||x||_2 = 1 ->
+have Hc' : forall x : 'cV_n.+1, `||x||_2 = 1 ->
            (Mabs x)^T *m Delta A maxdiag *m Mabs x <=m: c%:M.
 { move=> x Hx; apply (Mle_trans (c_upper_bound H4n Pdiag Hmaxdiag Hx)).
   by rewrite Mle_scalar_mx. }

@@ -627,8 +627,8 @@ Definition norm1 n (x : 'cV_n) : R := \sum_i Rabs (x i ord0).
 
 Definition norm2 n (x : 'cV_n) := sqrt (dotprod x x).
 
-Notation "|| x ||_1" := (norm1 x) (format "|| x ||_1") : R_scope.
-Notation "|| x ||_2" := (norm2 x) (format "|| x ||_2") : R_scope.
+Notation "`|| x ||_1" := (norm1 x) (format "`|| x ||_1") : R_scope.
+Notation "`|| x ||_2" := (norm2 x) (format "`|| x ||_2") : R_scope.
 
 Section Norm2.
 
@@ -639,48 +639,48 @@ Lemma normP1 (x : 'cV_n) : norm2 x = normP (M1 n) x.
 Proof. by rewrite /norm2 /normP dotprodP1. Qed.
 
 (** We then get the same lemmas. *)
-Lemma norm2_sqr_dotprod (x : 'cV_n) : (||x||_2^2 = dotprod x x)%Re.
+Lemma norm2_sqr_dotprod (x : 'cV_n) : (`||x||_2^2 = dotprod x x)%Re.
 Proof. rewrite normP1 dotprodP1; apply normP_sqr_dotprod, PM1. Qed.
 
-Lemma norm2_pos (x : 'cV_n) : (0 <= ||x||_2)%Re.
+Lemma norm2_pos (x : 'cV_n) : (0 <= `||x||_2)%Re.
 Proof. rewrite /norm2; apply sqrt_pos. Qed.
 
-Lemma norm2_0 : ||0 : 'cV_n||_2 = 0.
+Lemma norm2_0 : `||0 : 'cV_n||_2 = 0.
 Proof. by rewrite /norm2 dotprod_0_l sqrt_0. Qed.
 
-Lemma norm2_def (x : 'cV_n) : (||x||_2 = 0)%Re -> x = 0.
+Lemma norm2_def (x : 'cV_n) : (`||x||_2 = 0)%Re -> x = 0.
 Proof. rewrite normP1; apply normP_def, PdM1. Qed.
 
-Lemma norm2_def_contrap (x : 'cV_n) : x <> 0 -> (0 < ||x||_2)%Re.
+Lemma norm2_def_contrap (x : 'cV_n) : x <> 0 -> (0 < `||x||_2)%Re.
 Proof. rewrite normP1; apply normP_def_contrap, PdM1. Qed.
 
-Lemma norm2_opp (x : 'cV_n) : ||- x||_2 = ||x||_2.
+Lemma norm2_opp (x : 'cV_n) : `||- x||_2 = `||x||_2.
 Proof. rewrite !normP1; apply normP_opp, SymM1. Qed.
 
-Lemma norm2_scale (r : R) (x : 'cV_n) : (||r *: x||_2 = Rabs r * ||x||_2)%Re.
+Lemma norm2_scale (r : R) (x : 'cV_n) : (`||r *: x||_2 = Rabs r * `||x||_2)%Re.
 Proof. rewrite !normP1; apply normP_scale, SymM1. Qed.
 
 Lemma norm2_scale_pos (r : R) (x : 'cV_n) :
-  (0 <= r -> ||r *: x||_2 = r * ||x||_2)%Re.
+  (0 <= r -> `||r *: x||_2 = r * `||x||_2)%Re.
 Proof. rewrite !normP1; apply normP_scale_pos, SymM1. Qed.
 
-Lemma cauchy_schwarz (x y : 'cV_n) : (dotprod x y <= ||x||_2 * ||y||_2)%Re.
+Lemma cauchy_schwarz (x y : 'cV_n) : (dotprod x y <= `||x||_2 * `||y||_2)%Re.
 Proof.
 rewrite !normP1 dotprodP1; apply cauchy_schwarzP; [apply SymM1|apply PM1].
 Qed.
 
 Lemma cauchy_schwarz_Rabs (x y : 'cV_n) :
-  Rabs (dotprod x y) <= ||x||_2 * ||y||_2.
+  Rabs (dotprod x y) <= `||x||_2 * `||y||_2.
 Proof.
 rewrite !normP1 dotprodP1; apply cauchy_schwarzP_Rabs; [apply SymM1|apply PM1].
 Qed.
 
-Lemma norm2_triang (x y : 'cV[R]_n) : (||x + y||_2 <= ||x||_2 + ||y||_2)%Re.
+Lemma norm2_triang (x y : 'cV[R]_n) : (`||x + y||_2 <= `||x||_2 + `||y||_2)%Re.
 Proof. rewrite !normP1; apply normP_triang; [apply SymM1|apply PM1]. Qed.
 
 (** The following lemmas don't generally hold for any quadratic norm but they
     do for [norm2].  *)
-Lemma Mle_norm2 (x y : 'cV[R]_n) : Mabs x <=m: Mabs y -> (||x||_2 <= ||y||_2)%Re.
+Lemma Mle_norm2 (x y : 'cV[R]_n) : Mabs x <=m: Mabs y -> (`||x||_2 <= `||y||_2)%Re.
 Proof.
 move=> Hxy.
 rewrite /norm2 /dotprod.
@@ -692,14 +692,14 @@ by apply Rplus_le_compat;
   [apply Rsqr_le_abs_1; move: (Hxy i ord0); rewrite !mxE|].
 Qed.
 
-Lemma norm2_mabs (x : 'cV_n) : ||Mabs x||_2 = ||x||_2.
+Lemma norm2_mabs (x : 'cV_n) : `||Mabs x||_2 = `||x||_2.
 Proof.
 rewrite /norm2; apply f_equal.
 rewrite /dotprod !mxE; apply /eq_bigr => k _.
 rewrite !mxE /GRing.mul /= -Rabs_mult; apply Rabs_pos_eq, sqr_ge_0.
 Qed.
 
-Lemma norm2_const : ||\col_(k < n) 1||_2 = sqrt (INR n).
+Lemma norm2_const : `||\col_(k < n) 1||_2 = sqrt (INR n).
 Proof.
 rewrite /norm2 dotprod_sum /=.
 replace (\sum_i _ : R) with (\sum_(i < n) 1%Re);
@@ -707,9 +707,9 @@ replace (\sum_i _ : R) with (\sum_(i < n) 1%Re);
 by rewrite big_sum_const Rmult_1_r.
 Qed.
 
-Lemma norm1_le_sqrt_norm2 (x : 'cV_n) : (||x||_1 <= sqrt (INR n) * ||x||_2)%Re.
+Lemma norm1_le_sqrt_norm2 (x : 'cV_n) : (`||x||_1 <= sqrt (INR n) * `||x||_2)%Re.
 Proof.
-replace (||x||_1) with (dotprod (\col__ 1) (Mabs x));
+replace (`||x||_1) with (dotprod (\col__ 1) (Mabs x));
   [|by rewrite /dotprod /norm1 mxE;
     apply /eq_bigr => i; rewrite !mxE /GRing.mul /= Rmult_1_l].
 apply (Rle_trans _ _ _ (cauchy_schwarz _ _)).
@@ -728,23 +728,23 @@ Definition normFrobenius (M : 'M[R]_(n, m)) :=
 
 End FrobeniusNorm_def.
 
-Notation "|| M ||_F" := (normFrobenius M) (format "|| M ||_F") : R_scope.
+Notation "`|| M ||_F" := (normFrobenius M) (format "`|| M ||_F") : R_scope.
 
 Section FrobeniusNorm.
 
 Variable n m : nat.
 
 Lemma norm21_le_sqrt_normF (M : 'M[R]_(n, m)) :
-  (||\col_i (\sum_j Rabs (M i j))||_2 <= sqrt (INR m) * ||M||_F)%Re.
+  (`||\col_i (\sum_j Rabs (M i j))||_2 <= sqrt (INR m) * `||M||_F)%Re.
 Proof.
-apply (Rle_trans _ (||\col_i (sqrt (INR m)
+apply (Rle_trans _ (`||\col_i (sqrt (INR m)
                               * sqrt (\sum_j (M i j) * (M i j)))%Re||_2)).
 { apply Mle_norm2 => i j; rewrite !mxE.
   rewrite Rabs_pos_eq; [|by apply big_sum_Rabs_pos].
   rewrite Rabs_pos_eq; [|by apply Rmult_le_pos; apply sqrt_pos].
-  replace (\sum_j Rabs (M i j)) with (||\col_j M i j||_1);
+  replace (\sum_j Rabs (M i j)) with (`||\col_j M i j||_1);
     [|by apply /eq_bigr => j'; rewrite mxE].
-  replace (sqrt (\sum__ _)) with (||\col_j M i j||_2);
+  replace (sqrt (\sum__ _)) with (`||\col_j M i j||_2);
     [|by rewrite /norm2 /dotprod mxE; apply f_equal;
       apply /eq_bigr => j'; rewrite !mxE].
   apply norm1_le_sqrt_norm2. }
@@ -814,7 +814,7 @@ Qed.
 
 (** Vectors of norm 1 are enough to test positive definiteness. *)
 Lemma posdef_norm_eq_1 n (A : 'M_n) :
-  (forall (x : 'cV_n), ||x||_2 = 1 -> 0 <m: x^T *m A *m x) -> posdef A.
+  (forall (x : 'cV_n), `||x||_2 = 1 -> 0 <m: x^T *m A *m x) -> posdef A.
 Proof.
 move=> HA x Hx.
 have Hinx := Rinv_0_lt_compat _ (norm2_def_contrap Hx).
