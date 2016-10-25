@@ -785,7 +785,7 @@ Definition F2bigQ (q : coqinterval_infnan.F.type) : bigQ :=
    [Variable fs : Float_round_up_infnan_spec.]
 *)
 
-Let fs := coqinterval_infnan.coqinterval_round_up_infnan.
+Local Notation fs := coqinterval_infnan.coqinterval_round_up_infnan (only parsing).
 
 Delimit Scope Z_scope with coq_Z.  (* should be unnecessary *)
 
