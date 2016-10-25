@@ -3,7 +3,12 @@
 all::
 	@echo "You can run: make dist"
 
+DIST1 = dist1
+DIST2 = dist2
+
 dist:: AUTHORS README
-	T=$$(mktemp -d dist0.XXX)/validsdp && mkdir -p $$T && rsync -R $^ $$T; echo '\n'Target is $$T
 	$(MAKE) -C plugins/soswitness dist
 	$(MAKE) -C theories dist
+	T=$$(mktemp -d dist.XXX) && S=validsdp && mkdir -p $$T/$$S && rsync -R $^ $$T/$$S && rsync -av $(DIST1)/$$S $(DIST2)/$$S $$T; echo '\n'See $$T/$$S'\n'
+	$(RM) -r $$(readlink $(DIST1)) $$(readlink $(DIST2))
+	$(RM) $(DIST1) $(DIST2)

@@ -26,6 +26,6 @@ clean: Makefile.coq
 	rm -f Makefile.coq
 
 dist: $(MODULES) Makefile
-	T=$$(mktemp -d ../../dist1.XXX)/validsdp/plugins/soswitness && mkdir -p $$T && rsync -R $^ $$T; echo '\n'See $$T
+	T=$$(mktemp -d ../../dist1.XXX) && S=$$T/validsdp/plugins/soswitness && mkdir -p $$S && rsync -R $^ $$S && rm -f ../../dist1 && ln -rsv $$T ../../dist1
 
 .PHONY: all clean install dist
