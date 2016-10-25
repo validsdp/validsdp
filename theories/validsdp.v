@@ -142,7 +142,7 @@ Ltac get_poly t l :=
     | powerRZ ?a ?b =>
       match b with
       | Z.pos ?p => aux_u' PPowN a (N.pos p)
-      | _ => fail 100 "Only constant, positive exponents are allowed."
+      | _ => fail 100 "Only constant, positive exponents are allowed"
       end
     | pow ?a ?n => aux_u' PPown a n
     | _ =>
@@ -310,8 +310,6 @@ Proof.
 rewrite /map_mpoly /mmap msuppX big_cons big_nil GRing.addr0 mmap1_id.
 by rewrite mul_mpolyC mcoeffX eqxx.
 Qed.
-
-Local Open Scope R_scope.
 
 Lemma interp_abstr_poly_correct (l : seq R) (ap : abstr_poly) :
   let n := size l in (0 < n)%N -> vars_ltn n ap ->
@@ -1635,7 +1633,7 @@ Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
 (** *** The main tactic. *)
 
 Ltac do_sdp :=
-  match goal with
+  lazymatch goal with
   | [ |- (0 <= ?r)%Re ] =>
     match get_poly r (@Datatypes.nil R) with
       (?pap, ?vm) =>
@@ -1645,14 +1643,14 @@ Ltac do_sdp :=
         let bp := constr:(interp_poly_eff n' ap) in
         let l := eval vm_compute in (M.elements bp) in
         let zQ := fresh "zQ" in
-        soswitness of l as zQ;
+        (soswitness of l as zQ);
         apply (@soscheck_eff_wrapup_correct vm pap zQ);
         (vm_cast_no_check (erefl true))
       )
     end
   | [ |- (?a <= ?b)%Re ] =>
     match a with
-    | R0 => fail 100 "do_sdp fails to conclude."
+    | R0 => fail 100 "do_sdp: assert false"
     | _ => apply Rle_minus_le; do_sdp
     end
   | [ |- (?a >= ?b)%Re ] =>
