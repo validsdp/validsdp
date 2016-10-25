@@ -34,6 +34,8 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope R_scope.
 
+(** * Instantiation of the mathcomp algebraic hierarchy with the Reals stdlib *)
+
 Definition eqr (r1 r2 : R) : bool :=
   if Req_EM_T r1 r2 is left _ then true else false.
 

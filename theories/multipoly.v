@@ -1,7 +1,3 @@
-(** * CoqEAL refinement for effective multivariate polynomials *)
-
-(** TODO: tidy and submit a pull request to CoqEAL *)
-
 Require Import ZArith NArith FMaps FMapAVL.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import choice finfun tuple fintype ssralg bigop.
@@ -18,7 +14,9 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(** * Effective multivariate polynomials built on FMaps *)
+(** * CoqEAL refinement for effective multivariate polynomials built on FMaps *)
+
+(** TODO: tidy and submit a pull request to CoqEAL *)
 
 Import Refinements.Op.
 
@@ -63,7 +61,7 @@ rewrite -(nat_of_binK m) -(nat_of_binK n).
 by rewrite /spec_N in Hmn; rewrite Hmn.
 Qed.
 
-(** ** Part I: Generic operations *)
+(** ** Part 1: Generic operations *)
 
 Section effmpoly_generic.
 
@@ -436,7 +434,7 @@ End effmpoly_generic_2.
 Derive Inversion inv_InA with
   (forall (A : Type) (eqA : A -> A -> Prop) (x : A) (s : seq A), @InA A eqA x s) Sort Prop.
 
-(** ** Part II: Proofs for proof-oriented types and programs *)
+(** ** Part 2: Proofs for proof-oriented types and programs *)
 
 Section effmpoly_theory.
 
@@ -1632,7 +1630,7 @@ Qed.
 
 End effmpoly_theory.
 
-(** ** Part III: Parametricity *)
+(** ** Part 3: Parametricity *)
 
 Derive Inversion inv_HdRel with
   (forall (A : Type) (eqA : A -> A -> Prop) (x : A) (s : seq A), @HdRel A eqA x s) Sort Prop.

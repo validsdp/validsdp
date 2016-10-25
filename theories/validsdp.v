@@ -447,7 +447,7 @@ Module S := FSetAVL.Make MultinomOrd.
 
 Section eff_soscheck.
 
-(** *** 1.2 Generic defs for seqmx and effmpoly *)
+(** *** General definitions for seqmx and effmpoly *)
 
 Context {n : nat}.  (** number of variables of polynomials *)
 Context {T : Type}.  (** type of coefficients of polynomials *)

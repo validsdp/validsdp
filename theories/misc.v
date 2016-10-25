@@ -275,7 +275,7 @@ End Max_tuple.
 
 End Misc.
 
-(** Section taken from coq-interval *)
+(** ** map2 - Section taken from coq-interval *)
 Section Map2.
 Variables (A : Type) (B : Type) (C : Type).
 Variable f : A -> B -> C.
@@ -305,7 +305,7 @@ Qed.
 
 End Map2.
 
-(** About [BigQ] *)
+(** ** Lemmas about [BigQ] *)
 Definition Q2R (x : Q) : R :=
   (Z2R (Qnum x) / Z2R (Z.pos (Qden x)))%Re.
 
@@ -365,7 +365,73 @@ rewrite Rmult_assoc [(_ * / _)%Re]Rmult_comm -Rmult_assoc Hxy.
 field; split; simpl; pos_P2R.
 Qed.
 
-(** About [int] and [rat] *)
+Local Open Scope Z_scope.
+
+Lemma BigQ_check_int_den_neq0_aux n d :
+  match BigQ.check_int n d with
+    | BigQ.Qz _ => True
+    | BigQ.Qq _ d => [d]%bigN <> 0
+  end.
+Proof.
+rewrite /BigQ.check_int.
+case E: (_ ?= _)%bigN=>//.
+move: E; rewrite BigN.compare_lt_iff=> E H.
+apply (BigN.lt_irrefl BigN.one).
+apply (BigN.lt_trans _ BigN.zero); [|apply BigN.lt_0_1].
+by move: E; rewrite -BigN.ltb_lt BigN.spec_ltb H /=.
+Qed.
+
+Lemma BigQ_check_int_den_neq0 n d :
+  match BigQ.check_int n d with
+    | BigQ.Qz _ => true
+    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
+  end.
+Proof.
+move: (BigQ_check_int_den_neq0_aux n d); case (BigQ.check_int _ _)=>[//|_ n' H].
+by apply/negP; rewrite /is_true BigN.spec_eqb Z.eqb_eq=>H'; apply H; rewrite H'.
+Qed.
+
+Lemma BigQ_norm_den_neq0_aux n d :
+  match BigQ.norm n d with
+    | BigQ.Qz _ => True
+    | BigQ.Qq _ d => [d]%bigN <> 0
+  end.
+Proof.
+case E: (BigQ.norm _ _)=>//; move: E; rewrite /BigQ.norm.
+case (_ ?= _)%bigN.
+{ move: (BigQ_check_int_den_neq0_aux n d).
+  by case (BigQ.check_int _ _)=>[//| n' d'] H [] _ <-. }
+{ set n' := (_ / _)%bigZ; set d' := (_ / _)%bigN.
+  move: (BigQ_check_int_den_neq0_aux n' d').
+  by case (BigQ.check_int _ _)=>[//| n'' d''] H [] _ <-. }
+by [].
+Qed.
+
+Lemma BigQ_norm_den_neq0 n d :
+  match BigQ.norm n d with
+    | BigQ.Qz _ => true
+    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
+  end.
+Proof.
+move: (BigQ_norm_den_neq0_aux n d); case (BigQ.norm _ _)=>[//|_ n' H].
+by apply/negP; rewrite /is_true BigN.spec_eqb Z.eqb_eq=>H'; apply H; rewrite H'.
+Qed.
+
+Lemma BigQ_red_den_neq0_aux q :
+  match BigQ.red q with
+    | BigQ.Qz _ => True
+    | BigQ.Qq _ d => [d]%bigN <> 0
+  end.
+Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0_aux. Qed.
+
+Lemma BigQ_red_den_neq0 q :
+  match BigQ.red q with
+    | BigQ.Qz _ => true
+    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
+  end.
+Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0. Qed.
+
+(** ** Lemmas about [int] and [rat] *)
 
 Lemma nat_of_pos_gt0 p : (0 < nat_of_pos p)%N.
 Proof. by elim: p =>//= p IHp; rewrite NatTrec.doubleE double_gt0. Qed.
@@ -576,8 +642,6 @@ elim/int_rec: n =>// n IHn.
 by clear IHn; rewrite mulrNz /= -Z2R_int2Z_nat.
 Qed.
 
-Local Open Scope Z_scope.
-
 Lemma int2Z_le m n : int2Z m <=? int2Z n = (m <= n)%Ri.
 Proof.
 rewrite -(ler_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
@@ -690,67 +754,3 @@ rewrite -(denq_eq0 (r)).
 have->: 0%Re = O%:~R by [].
 exact/inj_eq/intr_inj.
 Qed.
-
-Lemma BigQ_check_int_den_neq0_aux n d :
-  match BigQ.check_int n d with
-    | BigQ.Qz _ => True
-    | BigQ.Qq _ d => [d]%bigN <> 0
-  end.
-Proof.
-rewrite /BigQ.check_int.
-case E: (_ ?= _)%bigN=>//.
-move: E; rewrite BigN.compare_lt_iff=> E H.
-apply (BigN.lt_irrefl BigN.one).
-apply (BigN.lt_trans _ BigN.zero); [|apply BigN.lt_0_1].
-by move: E; rewrite -BigN.ltb_lt BigN.spec_ltb H /=.
-Qed.
-
-Lemma BigQ_check_int_den_neq0 n d :
-  match BigQ.check_int n d with
-    | BigQ.Qz _ => true
-    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
-  end.
-Proof.
-move: (BigQ_check_int_den_neq0_aux n d); case (BigQ.check_int _ _)=>[//|_ n' H].
-by apply/negP; rewrite /is_true BigN.spec_eqb Z.eqb_eq=>H'; apply H; rewrite H'.
-Qed.
-
-Lemma BigQ_norm_den_neq0_aux n d :
-  match BigQ.norm n d with
-    | BigQ.Qz _ => True
-    | BigQ.Qq _ d => [d]%bigN <> 0
-  end.
-Proof.
-case E: (BigQ.norm _ _)=>//; move: E; rewrite /BigQ.norm.
-case (_ ?= _)%bigN.
-{ move: (BigQ_check_int_den_neq0_aux n d).
-  by case (BigQ.check_int _ _)=>[//| n' d'] H [] _ <-. }
-{ set n' := (_ / _)%bigZ; set d' := (_ / _)%bigN.
-  move: (BigQ_check_int_den_neq0_aux n' d').
-  by case (BigQ.check_int _ _)=>[//| n'' d''] H [] _ <-. }
-by [].
-Qed.
-
-Lemma BigQ_norm_den_neq0 n d :
-  match BigQ.norm n d with
-    | BigQ.Qz _ => true
-    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
-  end.
-Proof.
-move: (BigQ_norm_den_neq0_aux n d); case (BigQ.norm _ _)=>[//|_ n' H].
-by apply/negP; rewrite /is_true BigN.spec_eqb Z.eqb_eq=>H'; apply H; rewrite H'.
-Qed.
-
-Lemma BigQ_red_den_neq0_aux q :
-  match BigQ.red q with
-    | BigQ.Qz _ => True
-    | BigQ.Qq _ d => [d]%bigN <> 0
-  end.
-Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0_aux. Qed.
-
-Lemma BigQ_red_den_neq0 q :
-  match BigQ.red q with
-    | BigQ.Qz _ => true
-    | BigQ.Qq _ d => ~~(d =? BigN.zero)%bigN
-  end.
-Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0. Qed.

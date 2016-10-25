@@ -16,7 +16,7 @@ Open Scope ring_scope.
 
 Import Refinements.Op.
 
-(** * Misc CoqEAL-related material *)
+(** * Extra material about CoqEAL *)
 
 Arguments refines A%type B%type R%rel _ _. (* Fix a scope issue with refines *)
 
@@ -30,6 +30,8 @@ Definition Rord n1 n2 (rn : nat_R n1 n2) : 'I_n1 -> ord_instN n2 -> Type :=
 (** [ord0] is the only value in ['I_1]. *)
 Lemma ord_1_0 (i : 'I_1) : i = ord0.
 Proof. by case: i => [[]] // HH; apply /eqP. Qed.
+
+(** ** Tactics and general lemmas *)
 
 (** Automation: for turning [sth_R a b] goals into mere [a = b] goals,
 do [suff_eq sth_Rxx]. *)
@@ -95,7 +97,7 @@ Qed.
 
 Section classes.
 
-(** ** Part 0: Definition of operational type classes *)
+(** ** Definition of operational type classes *)
 
 Class fun_of_of A I B :=
   fun_of_op : forall (m n : nat), B m n -> I m -> I n -> A.
@@ -109,6 +111,8 @@ End classes.
 Typeclasses Transparent fun_of_of row_of store_of trmx_of.
 
 Notation "A ^T" := (trmx_op A) : hetero_computable_scope.
+
+(** ** General definitions for seqmx *)
 
 Section seqmx_op.
 
@@ -148,11 +152,8 @@ Global Instance heq_seqmx : heq_of (@hseqmx A) :=
 
 End seqmx_op.
 
-Parametricity fun_of_seqmx.
-Parametricity row_seqmx.
-Parametricity store_seqmx.
-Parametricity trmx_seqmx.
-Parametricity heq_seqmx.
+
+(** ** Refinement proofs *)
 
 Section seqmx_theory.
 
@@ -285,6 +286,14 @@ Unshelve.
 exact ([::], [::]).
 exact (zero_of0, zero_of0).
 Qed.
+
+(** ** Parametricity *)
+
+Parametricity fun_of_seqmx.
+Parametricity row_seqmx.
+Parametricity store_seqmx.
+Parametricity trmx_seqmx.
+Parametricity heq_seqmx.
 
 Section seqmx_param.
 

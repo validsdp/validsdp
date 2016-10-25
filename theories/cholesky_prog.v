@@ -160,7 +160,7 @@ End generic_cholesky.
 
 Section seqmx_cholesky.
 
-(** *** 1.3 Generic defs for seqmx
+(** *** 1.3 General definitions for seqmx
 
 - instantiation of dotmulB0, store, map_mx, eq, transpose
 - a few support lemmas
