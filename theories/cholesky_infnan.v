@@ -210,7 +210,6 @@ apply (corollary_2_4_with_c_upper_bound H4n SymFIA Pdiag Hmaxdiag Hc).
 by split; [move=> i j Hij; rewrite !mxE (proj1 HAt)|by apply HAt].
 Qed.
 
-(* TODO: MF2R should be a coercion *)
 Lemma corollary_2_7_with_c_r_upper_bounds_infnan :
   forall n, 4 * INR n.+2 * eps fs < 1 ->
   forall A : 'M[FIS fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
