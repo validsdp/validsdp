@@ -365,7 +365,7 @@ Class polyX_of monom polyT := polyX_op : monom -> polyT.
 
 Class poly_sub_of polyT := poly_sub_op : polyT -> polyT -> polyT.
 
-(* TODO: regarder si pas déjà dans Coq_EAL *)
+(* TODO: Refactor as a definition using lt *)
 Class max_of T := max_op : T -> T -> T.
 
 Class map_mx2_of B := map_mx2_op :
