@@ -2358,46 +2358,6 @@ Global Instance refine_posdef_check_itv' n :
     (posdef_check_itv_seqmx (n:=n) (fieps fs) (fieta fs) (@finite fs)).
 Proof. refines_trans. Qed.
 
-End refinement_cholesky_2.
-
-(** *** 3.2 Data refinement with CoqInterval datatypes *)
-Section refinement_cholesky_3.
-
-Let fis := coqinterval_infnan.coqinterval_infnan.
-
-Definition eps_inv := Eval compute in (2 ^ 53)%bigZ.
-
-Lemma eps_inv_correct : (Z2R [eps_inv]%bigZ <= / eps fis)%Re.
-Proof. by rewrite /= /flx64.eps /= Rinv_involutive; [right|lra]. Qed.
-
-(*
-Goal mantissa_bounded (Interval_specific_ops.Float eps_inv (-1)%bigZ).
-rewrite /eps_inv /mantissa_bounded /F.toX.
-right.
-exists (2 ^ 52).
-simpl; f_equal; field.
-apply: FLX_format_generic.
-have->: (2 ^ 52)%R = (bpow radix2 52) by simpl; ring.
-exact: generic_format_bpow.
-Qed.
- *)
-
-Local Notation fris := coqinterval_round_up_infnan.
-
-Definition posdef_check4_coqinterval' (M : seq (seq (FIS fris))) : bool :=
-  let m := seq.size M in
-  all (fun l => seq.size l == m)%B M &&
-  posdef_check_seqmx (T := FIS fris) (n := m.-1)
-    coqinterval_infnan.fieps coqinterval_infnan.fieta
-    (@float_infnan_spec.finite _) M.
-
-Definition posdef_check_itv4_coqinterval' (M : seq (seq (FIS fris))) (r : (FIS fris)) : bool :=
-  let m := seq.size M in
-  all (fun l => seq.size l == m)%B M &&
-  posdef_check_itv_seqmx (T := FIS fris) (n := m.-1)
-    coqinterval_infnan.fieps coqinterval_infnan.fieta
-    (@float_infnan_spec.finite _) M r.
-
 Definition prec := 53%bigZ.
 
 Definition bigQ2F (q : bigQ) : F.type * F.type :=
@@ -2410,4 +2370,4 @@ Definition bigQ2F (q : bigQ) : F.type * F.type :=
   let n0 := Interval_specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
   (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0).
 
-End refinement_cholesky_3.
+End refinement_cholesky_2.
