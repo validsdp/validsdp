@@ -94,7 +94,7 @@ Lemma lb_pos (x0 x1 x2 x3 x4 x5 x6 : R) :
 Proof.
 rewrite /p /lb /lb_sigma /lb_sigma1 /b1 /lb_sigma2 /b2 /lb_sigma3 /b3
         /lb_sigma4 /b4 /lb_sigma5 /b5 /lb_sigma6 /b6 /lb_sigma7 /b7.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma lb_sigma_pos (x0 x1 x2 x3 x4 x5 x6 : R) : lb_sigma x0 x1 x2 x3 x4 x5 x6 > 0.
@@ -133,7 +133,7 @@ Lemma ub_pos (x0 x1 x2 x3 x4 x5 x6 : R) :
 Proof.
 rewrite /p /ub /ub_sigma /ub_sigma1 /b1 /ub_sigma2 /b2 /ub_sigma3 /b3
         /ub_sigma4 /b4 /ub_sigma5 /b5 /ub_sigma6 /b6 /ub_sigma7 /b7.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma ub_sigma_pos (x0 x1 x2 x3 x4 x5 x6 : R) : ub_sigma x0 x1 x2 x3 x4 x5 x6 > 0.

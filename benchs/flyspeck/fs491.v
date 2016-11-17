@@ -270,7 +270,7 @@ Lemma relax_pos (x0 x1 x2 x3 x4 x5 : R) :
   - sigma6 x0 x1 x2 x3 x4 x5 * b6 x0 x1 x2 x3 x4 x5 - 1/100000000 >= 0.
 Proof.
 rewrite /sigma /p /sigma' /p' /sigma'' /p'' /sigma1 /b1 /sigma2 /b2 /sigma3 /b3 /sigma4 /b4 /sigma5 /b5 /sigma6 /b6.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma sigma_pos (x0 x1 x2 x3 x4 x5 : R) : sigma x0 x1 x2 x3 x4 x5 > 0.
@@ -280,25 +280,25 @@ Lemma sigma'_pos (x0 x1 x2 x3 x4 x5 : R) : sigma' x0 x1 x2 x3 x4 x5 >= 0.
 Proof. rewrite /sigma'. interval. Qed.
 
 Lemma sigma''_pos (x0 x1 x2 x3 x4 x5 : R) : sigma'' x0 x1 x2 x3 x4 x5 >= 0.
-Proof. rewrite /sigma''. do_sdp. Qed.
+Proof. rewrite /sigma''. validsdp. Qed.
 
 Lemma sigma1_pos (x0 x1 x2 x3 x4 x5 : R) : sigma1 x0 x1 x2 x3 x4 x5 >= 0.
-Proof. rewrite /sigma1. do_sdp. Qed.
+Proof. rewrite /sigma1. validsdp. Qed.
 
 Lemma sigma2_pos (x0 x1 x2 x3 x4 x5 : R) : sigma2 x0 x1 x2 x3 x4 x5 >= 0.
-Proof. rewrite /sigma2. do_sdp. Qed.
+Proof. rewrite /sigma2. validsdp. Qed.
 
 Lemma sigma3_pos (x0 x1 x2 x3 x4 x5 : R) : sigma3 x0 x1 x2 x3 x4 x5 >= 0.
-Proof. rewrite /sigma3. do_sdp. Qed.
+Proof. rewrite /sigma3. validsdp. Qed.
 
 Lemma sigma4_pos (x0 x1 x2 x3 x4 x5 : R) : sigma4 x0 x1 x2 x3 x4 x5 >= 0.
-Proof. rewrite /sigma4. do_sdp. Qed.
+Proof. rewrite /sigma4. validsdp. Qed.
 
 Lemma sigma5_pos (x0 x1 x2 x3 x4 x5 : R) : sigma5 x0 x1 x2 x3 x4 x5 >= 0.
-Proof. rewrite /sigma5. do_sdp. Qed.
+Proof. rewrite /sigma5. validsdp. Qed.
 
 Lemma sigma6_pos (x0 x1 x2 x3 x4 x5 : R) : sigma6 x0 x1 x2 x3 x4 x5 >= 0.
-Proof. rewrite /sigma6. do_sdp. Qed.
+Proof. rewrite /sigma6. validsdp. Qed.
 
 Lemma var_bounds (x l u : R) : l <= x <= u -> (x - l) * (u - x) >= 0.
 Proof.

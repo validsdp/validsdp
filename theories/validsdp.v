@@ -1632,7 +1632,7 @@ Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
 
 (** *** The main tactic. *)
 
-Ltac do_sdp :=
+Ltac validsdp :=
   lazymatch goal with
   | [ |- (0 <= ?r)%Re ] =>
     match get_poly r (@Datatypes.nil R) with
@@ -1650,17 +1650,17 @@ Ltac do_sdp :=
     end
   | [ |- (?a <= ?b)%Re ] =>
     match a with
-    | R0 => fail 100 "do_sdp: assert false"
-    | _ => apply Rle_minus_le; do_sdp
+    | R0 => fail 100 "validsdp: assert false"
+    | _ => apply Rle_minus_le; validsdp
     end
   | [ |- (?a >= ?b)%Re ] =>
-    apply Rle_ge; do_sdp
+    apply Rle_ge; validsdp
   end.
 
 (** Some quick tests. *)
 
-Lemma test_do_sdp (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
-Time do_sdp.
+Lemma test_validsdp (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
+Time validsdp.
 Time Qed.
 
 Let sigma x0 x1 x2 : R := 6444365281246187/9007199254740992
@@ -1823,12 +1823,12 @@ Let p x0 x1 x2 : R :=
 
 Lemma sigma_pos (x0 x1 x2 : R) : (sigma x0 x1 x2 >= 0)%Re.
 rewrite /sigma.
-Time do_sdp.
+Time validsdp.
 Time Qed.
 
 Lemma sigma1_pos (x0 x1 x2 : R) : (sigma1 x0 x1 x2 >= 0)%Re.
 rewrite /sigma1.
-Time do_sdp.
+Time validsdp.
 Time Qed.
 
 Lemma p_ind (x0 x1 x2 : R) :
@@ -1838,5 +1838,5 @@ Lemma p_ind (x0 x1 x2 : R) :
    - (sigma x0 x1 x2) * (p x0 x1 x2)
    - (sigma1 x0 x1 x2) * (x0^2 + x1^2 + x2^2 - 1) >= 0)%Re.
 rewrite /p /sigma /sigma1.
-Time do_sdp.
+Time validsdp.
 Time Qed.

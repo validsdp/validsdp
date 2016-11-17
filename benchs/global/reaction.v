@@ -52,7 +52,7 @@ Lemma lb_pos (x0 x1 x2 : R) :
   - lb_sigma3 x0 x1 x2 * b3 x0 x1 x2 >= 0.
 Proof.
 rewrite /p /lb /lb_sigma /lb_sigma1 /b1 /lb_sigma2 /b2 /lb_sigma3 /b3.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma lb_sigma_pos (x0 x1 x2 : R) : lb_sigma x0 x1 x2 > 0.
@@ -74,7 +74,7 @@ Lemma ub_pos (x0 x1 x2 : R) :
   - ub_sigma3 x0 x1 x2 * b3 x0 x1 x2 >= 0.
 Proof.
 rewrite /p /ub /ub_sigma /ub_sigma1 /b1 /ub_sigma2 /b2 /ub_sigma3 /b3.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma ub_sigma_pos (x0 x1 x2 : R) : ub_sigma x0 x1 x2 > 0.

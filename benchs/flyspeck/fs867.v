@@ -58,7 +58,7 @@ Lemma relax_pos (x0 x1 x2 x3 x4 x5 : R) :
   - sigma6 x0 x1 x2 x3 x4 x5 * b6 x0 x1 x2 x3 x4 x5 - 1/100000000 >= 0.
 Proof.
 rewrite /sigma /p /sigma1 /b1 /sigma2 /b2 /sigma3 /b3 /sigma4 /b4 /sigma5 /b5 /sigma6 /b6.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma sigma_pos (x0 x1 x2 x3 x4 x5 : R) : sigma x0 x1 x2 x3 x4 x5 > 0.
