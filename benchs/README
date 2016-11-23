@@ -23,18 +23,18 @@ A set of global optimization problems consisting in proving bounds for
 polynomials on given hyperboxes. These problems are taken from
 
   Cesar Munoz and Anthony Narkawicz
-  Formalization of {B}ernstein Polynomials and Applications to Global Optimization
+  Formalization of Bernstein Polynomials and Applications to Global Optimization
   J. Autom. Reasoning, 2013
 
 flyspeck
 --------
 
-A set of problems on 6 variable polynomials coming from some
+A set of problems on 6-variable polynomials coming from some
 inequalities of the Flyspeck project. Most of them require to prove
-that a given polynomial is positive on a given hyperbox while some
-require to prove that at least one of two (fs868, fs884 and fs890) or
-three (fs260 and fs491) polynomials is positive on any point of a
-given hyperbox.
+that a given polynomial is positive on a given hyperbox. Some
+require to prove that at least one of two or three polynomials is
+positive on any point of a given hyperbox (two polynomials in
+fs868, fs884 and fs890, three polynomials in fs260 and fs491).
 
 prog_invs
 ---------
@@ -48,13 +48,13 @@ A set of problems about loop invariants of programs, from
 They require to prove that a given polynomial $p$ is non negative when
 some initial conditions are met and that whenever $p$ is non negative,
 then $p\circ f$ also is, for a given polynomial $f$ (representing the
-loop body asignments).
+loop body assignments).
 
 Content of each subdirectory
 ----------------------------
 
 Makefile: to run the benchmarks (c.f., below)
-descr: list og benchmarks with number of variables and degrees
+descr: list of benchmarks with number of variables and degrees
 
 For each benchmark <test>:
 
@@ -65,7 +65,7 @@ For each benchmark <test>:
 
 input.ineq: due to NLCertify's input format, all benchmarks for this tool are gathered here
 lexer.mll parser.mly parse.ml parse.ml: files needed for OSDP benchmarks
-*.sage: other Sage files corresponding to MC11 code (c.f., test_MC11.sage)
+*.sage: other Sage files corresponding to MC11 code (e.g., test_MC11.sage)
 param.transc.coq param.transc.nocoq: parameters for NLCertify
 
 Remark: PVS and NLCertify are not applicable to prog_invs benchmarks.
@@ -73,10 +73,10 @@ Remark: PVS and NLCertify are not applicable to prog_invs benchmarks.
 Dependencies
 ============
 
-- runlim (http://fmv.jku.at/runlim/, Debian package rulim)
+- runlim (http://fmv.jku.at/runlim/, Debian package runlim)
 - ValidSDP
 - PVS 5.0 with nasalib
-- SageMath (for MC11, www.sagemath.org, tested with version 7.3, te sage executable must be in the path)
+- SageMath (for MC11, www.sagemath.org, tested with version 7.3, the sage executable must be in the path)
 - NLCertify
 
 Installing PVS 5.0 and nasalib
@@ -141,7 +141,7 @@ Checkout NLCertify (as of 2014-11-04 12:07:04)
 % make
 
 Remark: to compile with Coq 8.5, a few "From mathcomp " may have to be
-added in front of the Require Imports related to mathcomp.
+added in front of the "Require Import" commands related to mathcomp.
 
 Running the benchmarks
 ======================
@@ -149,7 +149,7 @@ Running the benchmarks
 First, parameters at the beginning of each global/Makefile,
 flyspeck/Makefile and prog_invs/Makefile have to be adjusted.
 
-The, for running all tools
+Then, for running all tools
 
 % make
 
