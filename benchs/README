@@ -139,9 +139,10 @@ Checkout NLCertify (as of 2014-11-04 12:07:04)
 % cd nl-certify
 % git checkout --detach 9e8540429eb984c56ffa5ad74547de796250383b
 % make
+% cd coq && make #(see remark below)
 
-Remark: to compile with Coq 8.5, a few "From mathcomp " may have to be
-added in front of the "Require Import" commands related to mathcomp.
+Remark: to compile with Coq 8.5, a few "From mathcomp " must be added
+before the "Require Import"s related to mathcomp. See nl-certify.patch
 
 Running the benchmarks
 ======================
