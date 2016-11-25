@@ -163,7 +163,7 @@ Installing HOL Light & Formal_ineqs
 % mkdir -p ~/forge/git-anon && cd ~/forge/git-anon
 % git clone https://github.com/jrh13/hol-light.git
 % cd hol-light
-% git checkout --detach 9e8540429eb984c56ffa5ad74547de796250383b
+% git checkout --detach 970121cabace1f59d72b5e55fdb9678c99264bce
 % make
 
 ### Install dmtcp-1.2.8 (NOT dmtcp-2.x):
