@@ -144,6 +144,56 @@ Checkout NLCertify (as of 2014-11-04 12:07:04)
 Remark: to compile with Coq 8.5, a few "From mathcomp " must be added
 before the "Require Import"s related to mathcomp. See nl-certify.patch
 
+Installing HOL Light & Formal_ineqs
+-----------------------------------
+
+### Install Camlp5 (tested with OCaml 4.02.3, using OPAM)
+
+% opam install camlp5
+
+% camlp5 -v # Camlp5 version 6.16 (ocaml 4.02.3)
+
+% camlp5 -pmode # should output "strict"
+  # if not, see https://github.com/jrh13/hol-light/blob/master/README
+
+### Reuse CSDP 6.1.1 (that has been installed for OSDP)
+
+### Checkout HOL Light
+
+% mkdir -p ~/forge/git-anon && cd ~/forge/git-anon
+% git clone https://github.com/jrh13/hol-light.git
+% cd hol-light
+% git checkout --detach 9e8540429eb984c56ffa5ad74547de796250383b
+% make
+
+### Install dmtcp-1.2.8 (NOT dmtcp-2.x):
+
+% mkdir -p ~/forge/git-anon && cd ~/forge/git-anon
+% git clone -b 1.2.8 https://github.com/dmtcp/dmtcp.git
+% cd dmtcp
+% ./configure && make && sudo make install
+
+### Create checkpoints using DMTCP
+
+Note: this procedure may not work within an SSH session.
+
+% export HOLLIGHT_DIR=~/forge/git-anon/hol-light
+
+% cd $HOLLIGHT_DIR
+% mkdir dmtcp-multi && cd dmtcp-multi
+% dmtcp_checkpoint -n ocaml -I +../camlp5 # then type this, including the '#':
+  #use "../hol.ml";;
+  #use "../Multivariate/realanalysis.ml";;
+% dmtcp_command --checkpoint # from another terminal (when computation is over)
+  # and finally close the OCaml top-level (with Ctrl+D)
+
+% cd $HOLLIGHT_DIR
+% mkdir dmtcp-multi-ineqs && cd dmtcp-multi-ineqs
+% ../dmtcp-multi/dmtcp_restart_script.sh --ckptdir ./ # restarts the top-level
+  #use "../Formal_ineqs/make.ml";;
+% dmtcp_command --checkpoint # from another terminal (when computation is over)
+  # and finally close the OCaml top-level (with Ctrl+D)
+
 Running the benchmarks
 ======================
 
