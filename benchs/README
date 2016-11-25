@@ -127,7 +127,7 @@ Install BLAS/LAPACK shared libraries (for lacaml)
 
 Install NLCertify's dependencies (including SDPA)
 
-% opam install ocamlfind ocamlgraph zarith lacaml
+% opam install ocamlfind ocamlgraph zarith lacaml.7.2.6
 
 % apt-get install sdpa  # adapt to your distro if not Debian based
 
