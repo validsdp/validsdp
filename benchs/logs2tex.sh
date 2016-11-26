@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DIRS="global flyspeck prog_invs"
-PROVERS="Sdpa Coq Bernstein MC11 nlcnocoq nlccoq"
+PROVERS="Sdpa Coq Bernstein MC11 nlcnocoq nlccoq Taylor"
 TIMEOUT="900"
 
 DESCRS=""
@@ -10,8 +10,8 @@ for d in ${DIRS} ; do
   DESCRS="${DESCRS} ${DESCRS2}"  
 done
 
-printf "\\\\begin{tabular}{p{2.8cm}cccccccc}\n"
-printf "Problem & \$n\$ & \$d\$ & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {OSDP\\\\\\\\[1pt](not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {ValidSDP};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {PVS/Bernstein};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {Monniaux and\\\\\\\\[1pt]Corbineau 2011\\\\\\\\[1pt](not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {NLCertify\\\\\\\\[1pt](not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {NLCertify};\\\\end{tikzpicture} \\\\\\\\\n"
+printf "\\\\begin{tabular}{p{2.8cm}ccccccccc}\n"
+printf "Problem & \$n\$ & \$d\$ & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {OSDP\\\\\\\\[1pt](not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {ValidSDP};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {PVS/Bernstein};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {Monniaux and\\\\\\\\[1pt]Corbineau 2011\\\\\\\\[1pt](not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {NLCertify\\\\\\\\[1pt](not verified)};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {NLCertify};\\\\end{tikzpicture} & \\\\begin{tikzpicture}\\\\node[rotate=90,align=left] {HOL Light/Taylor};\\\\end{tikzpicture} \\\\\\\\\n"
 
 PREVDIR="."
 for fnd in ${DESCRS} ; do
@@ -58,6 +58,11 @@ for fnd in ${DESCRS} ; do
           OK=1
         fi
         ;;
+      Taylor)
+        if grep -q -e "^\[runlim\] status:[ 	]*ok" "${LOG}" && ! grep -q -e "Error\|Exception\|Failure" "${LOG}" ; then
+          OK=1
+	fi
+	;;
       esac
       if [ ${OK} = "1" ] ; then
         TIME=$(grep "^\[runlim\] real:" ${LOG} | sed -e 's/^\[runlim\] real:[ \t]*//;s/ seconds//')
