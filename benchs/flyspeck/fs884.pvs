@@ -34,7 +34,7 @@ BEGIN
     4<=x4 AND x4<=4 AND
     9.0601<=x5 AND x5<=10.4976 AND
     4<=x6 AND x6<=6.3504 AND
-    PP(x1,x2,x3,x4,x5,x6) <= 0 AND
+    PP(x1,x2,x3,x4,x5,x6) <= 0 IMPLIES
     P(x1,x2,x3,x4,x5,x6) > 0
 
 END benchmarks
