@@ -61,6 +61,7 @@ For each benchmark <test>:
 <test>.ml: benchmark with OSDP
 <test>.v: benchmark with ValidSDP
 <test>.pvs: benchmark with PVS/Bernstein
+<test>.hl: benchmark with HOL Light/Formal_ineqs
 <test>.sage: benchmark with MC11
 
 input.ineq: due to NLCertify's input format, all benchmarks for this tool are gathered here
@@ -68,16 +69,17 @@ lexer.mll parser.mly parse.ml parse.ml: files needed for OSDP benchmarks
 *.sage: other Sage files corresponding to MC11 code (e.g., test_MC11.sage)
 param.transc.coq param.transc.nocoq: parameters for NLCertify
 
-Remark: PVS and NLCertify are not applicable to prog_invs benchmarks.
+Remark: PVS, HOL Light and NLCertify are not applicable to prog_invs benchmarks.
 
 Dependencies
 ============
 
 - runlim (http://fmv.jku.at/runlim/, Debian package runlim)
 - ValidSDP
-- PVS 5.0 with nasalib
 - SageMath (for MC11, www.sagemath.org, tested with version 7.3, the sage executable must be in the path)
-- NLCertify
+- PVS 5.0 with nasalib (see below)
+- NLCertify (see below)
+- HOL Light (see below)
 
 Installing PVS 5.0 and nasalib
 ------------------------------
@@ -212,6 +214,7 @@ Or independently
 % make logs_MC11
 % make logs_nlcnocoq
 % make logs_nlccoq
+% make logs_taylor
 
 Collecting the results
 ----------------------
