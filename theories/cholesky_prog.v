@@ -986,14 +986,6 @@ Qed.
 
 End theory_cholesky_3.
 
-(** Tactic addressing goals like [refines R3 (f a b) (f' c d)],
-    by repetitive (e)apply [refines_apply], to get something like
-    [refines (R1 ==> R2 ==> R3) f f'], solve this by tc (needs an instance)
-    and try to solve the remainings (refines R1 a c) and (refines R2 b d). *)
-Ltac refines_apply_tc :=
-  (by tc) || (eapply refines_apply; first refines_apply_tc;
-              try by tc; try by rewrite refinesE).
-
 (** ** Part 3: Parametricity *)
 
 (** *** 3.1 Data refinement *)
@@ -1128,7 +1120,8 @@ move=> T T' RT.
 rewrite refinesE => j j' [Hj' Hj] f f' rf x x' rx; rewrite -Hj'.
 have := nat_R_eq rn; case =><-.
 apply (iteri_ord_ind2 (M := T) (M' := T') (j := j) (n := n1)) => // i i' s s' Hi Hi' Hs.
-apply refinesP; refines_apply_tc.
+apply refinesP; refines_apply.
+by rewrite refinesE.
 Qed.
 
 Global Instance refine_iteri_ord' :
@@ -1144,10 +1137,8 @@ rewrite -(proj1 ref_j).
 apply (iteri_ord_ind2 (M := T) (M' := T') (j := j)) =>//.
 exact: (proj2 ref_j).
 intros.
-apply refinesP; refines_apply_tc.
-(* rewrite refinesE.
-suff_eq nat_Rxx.
-by rewrite /nat_of /nat_of_instN in H0. *)
+apply refinesP; refines_apply.
+by rewrite refinesE.
 Qed.
 
 (*
@@ -1195,8 +1186,11 @@ Global Instance refine_outer_loop :
 Proof.
 rewrite refinesE=> a a' ra r r' rr.
 rewrite /outer_loop_ssr /outer_loop_seqmx /outer_loop.
-apply refinesP; refines_apply_tc.
-{ by rewrite refinesE; split; [rewrite (nat_R_eq rn)|]. }
+apply refinesP.
+refines_apply1.
+refines_apply1.
+refines_apply1.
+by rewrite refinesE /Rordn; split; rewrite (nat_R_eq rn).
 rewrite refinesE=> i i' ri s s' rs.
 eapply refinesP.
 refines_apply.
@@ -1613,7 +1607,7 @@ ref_abstr => f f' ref_f.
 ref_abstr => a a' ref_a.
 ref_abstr => b b' ref_b.
 rewrite /foldl_diag.
-refines_apply_tc. (*!*)
+refines_apply1; first refines_apply1; first refines_apply1.
 { by rewrite -(nat_R_eq rn) refinesE. }
 rewrite refinesE=> i i' ref_i x x' ref_x.
 apply refinesP; refines_apply.
@@ -2052,7 +2046,8 @@ Global Instance refine_map_diag :
        (@I0_instN n2) (@succ0_instN n2)).
 Proof.
 rewrite refinesE=> f f' rf a a' ra; rewrite /map_diag.
-apply refinesP; refines_apply_tc; [by rewrite -(nat_R_eq rn) refinesE|].
+apply refinesP; refines_apply1; first refines_apply1; first refines_apply1.
+by rewrite -(nat_R_eq rn) refinesE.
 rewrite refinesE=> i i' ri b b' rb.
 exact: refinesP.
 Unshelve.
@@ -2090,7 +2085,7 @@ by rewrite refinesE.
 refines_apply1.
 refines_apply1.
 by rewrite refinesE. }
-by do 2 refines_apply_tc; rewrite refinesE=> f _ <-.
+by refines_apply; rewrite refinesE=> f _ <-.
 Qed.
 
 Lemma refine_posdef_check_itv_aux :

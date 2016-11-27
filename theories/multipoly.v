@@ -24,29 +24,26 @@ Arguments refines A%type B%type R%rel _ _. (* Fix a scope issue with refines *)
 
 Hint Resolve list_R_nil_R.
 
-Ltac refines_apply_tc :=
-  (by tc) || (eapply refines_apply; first refines_apply_tc;
-              try by tc; try by rewrite refinesE).
-
-Ltac refinesP_apply_tc := eapply refinesP; refines_apply_tc.
-
 Lemma Rnat_eqE (c d : binnat.N) : (c == d)%C = (spec_N c == spec_N d).
 Proof.
 symmetry; eapply refines_eq.
-refines_apply_tc.
+refines_apply.
+refines_abstr.
 Qed.
 
 Lemma Rnat_ltE (c d : binnat.N) : (c < d)%C = (spec_N c < spec_N d).
 Proof.
 symmetry; eapply refines_eq.
 change (spec_N c < spec_N d) with (ltn (spec_N c) (spec_N d)).
-refines_apply_tc.
+refines_apply1; first refines_apply1.
+refines_abstr.
 Qed.
 
 Lemma Rnat_leE (c d : binnat.N) : (c <= d)%C = (spec_N c <= spec_N d).
 Proof.
 symmetry; eapply refines_eq.
-refines_apply_tc.
+refines_apply.
+refines_abstr.
 Qed.
 
 Lemma Rnat_eqxx (c : binnat.N) : (c == c)%C.
@@ -456,8 +453,8 @@ Lemma implem_NK : cancel implem_N spec_N.
 Proof.
 move=> n; symmetry; apply refinesP.
 have{1}->: n = spec_id (implem_id n) by [].
-refines_apply_tc.
-refines_apply_tc.
+refines_apply.
+by rewrite refinesE.
 Qed.
 
 Lemma spec_NK : cancel spec_N implem_N.
@@ -588,7 +585,7 @@ case: ifP.
   move/eqP <-; move/Rord0E: ref_i <-.
   rewrite subnn /=.
   have->: j = spec_id j by [].
-  symmetry; eapply refinesP; refines_apply_tc.
+  symmetry; eapply refinesP; refines_apply.
 move/negbT/eqP => Hneq.
 move/Rord0E in ref_i; rewrite -ref_i in Hi *.
 case: (ltnP i k) => Hci.
@@ -1555,10 +1552,10 @@ have{ref_k}->: k' = implem_N k by rewrite ref_k spec_NK.
 rewrite /implem_N bin_of_natE.
 elim: k => [|k IHk]; first by rewrite GRing.expr0; apply refine_mp1_eff.
 case Ek: k => [|k0].
-  by rewrite GRing.expr1 /= -[p]GRing.mulr1; refines_apply_tc.
+  by rewrite GRing.expr1 /= -[p]GRing.mulr1; refines_apply.
 rewrite GRing.exprS -Ek /= -Pos.succ_of_nat ?Ek //.
 rewrite Pos.iter_succ.
-refines_apply_tc.
+refines_apply1.
 by rewrite Ek /= Pos.of_nat_succ in IHk.
 Qed.
 
@@ -1584,7 +1581,7 @@ move: (@refine_size _ _ _ ref_m); case_eq m' => //= m0 mt' Hm' sz_m'.
 rewrite /foldr /= -/(foldr _ _) /mmap1 bigop.big_ord_recl.
 eapply refines_apply; [eapply refines_apply; [by apply refine_mpoly_mul_eff|]|].
 { move: (@refine_nth _ _ _ ord0 ref_m); rewrite Hm' /= => <-.
-  refines_apply_tc.
+  refines_apply.
   replace (tnth _ _) with (lq`_O); [|by case lq, tval].
   change q0 with (nth mp0_eff (q0 :: lqt') O); rewrite -Hlq'; apply ref_lq. }
 injection sz_lq => {sz_lq} sz_lq; injection sz_m' => {sz_m'} sz_m'.
@@ -1919,11 +1916,9 @@ move=> h' t' i i' ref_i Hyp.
 eapply inv_list_R; last exact: Hyp; try done.
 move=> H a c sa sc Heq Heqs [H1 H2] [H3 H4].
 eapply IHt.
-- refines_apply_tc.
-    rewrite !refinesE -H1 -H3.
-    by case: Heq.
-    rewrite -H1 -H3.
-    by refines_apply1.
+- refines_apply1; first refines_apply1; first refines_apply1.
+  { rewrite !refinesE -H1 -H3; by case: Heq. }
+  { rewrite -H1 -H3; by refines_apply1. }
 - rewrite -H2 -H4; exact: Heqs.
 Qed.
 
@@ -2066,7 +2061,7 @@ move=> k e e'; move=>/MProps.map_mapsto_iff_dec [a [Ha1 Ha2]].
 move=>/MProps.map_mapsto_iff_dec [c [Hc1 Hc2]].
 rewrite Ha1 Hc1.
 rewrite {1}/mul_op.
-eapply refinesP; refines_apply_tc; rewrite refinesE.
+eapply refinesP; refines_apply; rewrite refinesE.
 by eapply (Hp2 _ _ _ Ha2 Hc2).
 Qed.
 
@@ -2084,7 +2079,7 @@ eapply refines_apply; first eapply refine_M_hrel_map2.
 rewrite refinesE => a a' ref_a b b' ref_b.
 case: a ref_a; case: a'; case: b ref_b; case: b' =>// a' a ref_a b' b ref_b.
 red in ref_a, ref_b |- *.
-by eapply refinesP; refines_apply_tc.
+by eapply refinesP; refines_apply.
 Qed.
 
 Global Instance ReffmpolyC_mpoly_add_eff (n : nat) :
@@ -2101,8 +2096,8 @@ eapply refines_apply; first eapply refine_M_hrel_map2.
 rewrite refinesE => a a' ref_a b b' ref_b.
 case: a ref_a; case: a'; case: b ref_b; case: b' =>//.
 { move => a' a ref_a b' b ref_b; red in ref_a, ref_b |- *.
-  refinesP_apply_tc. }
-move=> a' a ref_a _; red in ref_a |- *; refinesP_apply_tc.
+  eapply refinesP; refines_apply. }
+move=> a' a ref_a _; red in ref_a |- *; eapply refinesP; refines_apply.
 Qed.
 
 Global Instance ReffmpolyC_mpoly_sub_eff (n : nat) :
@@ -2126,13 +2121,12 @@ clear e e' ref_e.
 eapply refines_abstr => e e' ref_e.
 eapply refines_abstr => f f' ref_f.
 eapply refines_abstr => g g' ref_g.
-Fail refines_apply_tc. (* fixme *)
-eapply refines_apply.
+eapply refines_apply. (* FIXME: Use refines_apply *)
 eapply refines_apply.
 eapply refines_apply.
 eapply refine_M_hrel_add.
 by rewrite (refines_eq ref_k) (refines_eq ref_e) refinesE.
-refines_apply_tc.
+refines_apply.
 done.
 done.
 exact: refine_M_hrel_empty.
@@ -2155,7 +2149,7 @@ eapply refine_M_hrel_fold.
 eapply refines_abstr => k k' ref_k.
 eapply refines_abstr => d d' ref_d.
 eapply refines_abstr => e e' ref_e.
-refines_apply_tc.
+refines_apply.
 done.
 by tc.
 Qed.
@@ -2230,7 +2224,7 @@ eapply refine_M_hrel_fold.
 eapply refines_abstr => k k' ref_k.
 eapply refines_abstr => d d' ref_d.
 eapply refines_abstr => e e' ref_e.
-refines_apply_tc.
+refines_apply.
 done.
 by tc.
 Qed.

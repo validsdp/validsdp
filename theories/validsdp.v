@@ -1131,7 +1131,9 @@ apply/idP/idP.
     suff: (m == mm) = (m' == mm'); [by move=>->|].
     apply Rseqmultinom_eq; [by rewrite refinesE|].
     rewrite /mm /mm' /mul_monom_op /mul_monom_ssr /mul_monom_eff.
-    refines_apply_tc; refines_apply_tc. (* (* nat_Rxx *)*) }
+    refines_apply1; first refines_apply1; first refines_apply1;
+      first refines_apply1; try by rewrite refinesE.
+    refines_apply1; first refines_apply1; by rewrite refinesE. }
   by move/S.mem_2=> H; apply S.mem_1, S.add_2. }
 move/S.mem_2.
 set mm := mul_monom_op _ _; case Em' : (m' == mm).
@@ -1139,7 +1141,9 @@ set mm := mul_monom_op _ _; case Em' : (m' == mm).
   move: HIn; apply S.add_3=>_; apply /Hm /eqP.
   rewrite /is_true -Em'; apply Rseqmultinom_eq.
   { by rewrite refinesE. }
-  refines_apply_tc; refines_apply_tc. (* (* nat_Rxx *)  *)}
+  refines_apply1; first refines_apply1; first refines_apply1;
+    first refines_apply1; try by rewrite refinesE.
+  refines_apply1; first refines_apply1; by rewrite refinesE. }
 move/S.add_3=>H; apply/orP; right; apply S.mem_1, H.
   by move/mnmc_eq_seqP; rewrite eq_sym Em'.
 Qed.
@@ -1159,7 +1163,7 @@ elim: s' s'' rs' z z' rz=> [|h t IH] s'' rs' z z' rz.
 { case: s'' rs'=> [//|h' t'] rs'; inversion rs'. }
 case: s'' rs'=> [|h' t'] rs' /=; [by inversion rs'|].
 apply IH; [by inversion rs'|].
-by apply refinesP; refines_apply_tc; rewrite refinesE; inversion rs'.
+by apply refinesP; refines_apply; rewrite refinesE; inversion rs'.
 Qed.
 
 Instance refine_max_coeff :
