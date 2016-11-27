@@ -31,23 +31,26 @@ LOGS_NLCNOCOQ = $(EXSML:.ml=_nlcnocoq_${TIMEOUT}s.log)
 LOGS_NLCCOQ = $(EXSML:.ml=_nlccoq_${TIMEOUT}s.log)
 LOGS_TAYLOR = $(EXSML:.ml=_Taylor_${TIMEOUT}s.log)
 
-all: logs
+# Disable parallel build
+.NOTPARALLEL:
 
-logs: logs_osdp logs_coq logs_bernstein logc_MC11 logs_nlcnocoq logs_nlccoq logs_taylor
+all:: logs
 
-logs_osdp: $(LOGS_OSDP)
+logs:: logs_osdp logs_coq logs_bernstein logs_MC11 logs_nlcnocoq logs_nlccoq logs_taylor
 
-logs_coq: $(LOGS_COQ)
+logs_osdp:: $(LOGS_OSDP)
 
-logs_bernstein: $(LOGS_BERNSTEIN)
+logs_coq:: $(LOGS_COQ)
 
-logs_MC11: $(LOGS_MC11)
+logs_bernstein:: $(LOGS_BERNSTEIN)
 
-logs_nlcnocoq: $(LOGS_NLCNOCOQ)
+logs_MC11:: $(LOGS_MC11)
 
-logs_nlccoq: $(LOGS_NLCCOQ)
+logs_nlcnocoq:: $(LOGS_NLCNOCOQ)
 
-logs_taylor: $(LOGS_TAYLOR)
+logs_nlccoq:: $(LOGS_NLCCOQ)
+
+logs_taylor:: $(LOGS_TAYLOR)
 
 %_${NAME}_${TIMEOUT}s.log: %.ml
 	rm -f $@
@@ -81,7 +84,5 @@ logs_taylor: $(LOGS_TAYLOR)
 	rm -f $@
 	runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k $(HLCOMMAND) < $< > $@ 2>&1 || true
 
-clean:
+clean::
 	rm -rf _build *~ *.native *.cmi *.cmx *.o *.vo *.glob sdp_problem.dat-s sdp_problem.result *.log pvsbin .*.aux *.prf *.summary
-
-.PHONY: clean
