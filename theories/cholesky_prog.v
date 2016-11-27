@@ -1021,19 +1021,6 @@ Context {n1 n2 : nat} {rn : nat_R n1.+1 n2.+1}.
 
 Let r1 := nat_R_S_R nat_R_O_R.
 
-(*
-Section WrtEquivalence.
-
-Variable eqC : C -> C -> Prop.
-Context `{!Equivalence eqC}.
-
-Context `{!refines (eqC ==> eqC ==> eqC) add_op add_op}.
-Context `{!refines (eqC ==> eqC ==> eqC) div_op div_op}.
-Context `{!refines (eqC ==> eqC) sqrt_op sqrt_op}.
-
-End WrtEquivalence.
- *)
-
 Global Instance refine_dotmulB0 :
   refines (Rord rn ==> eq ==> Rseqmx r1 rn ==> Rseqmx r1 rn ==> eq)
     (@dotmulB0_ssr _ _ _ _ n1.+1) (@dotmulB0_seqmx C _ _ _ n2.+1).
@@ -1716,37 +1703,6 @@ eapply refinesP, refines_bool_eq.
 refines_apply.
 Qed.
 
-(*
-Global Instance refine_foldl_diag_seqmx n1 :
-  forall T' (eqf : T' -> T' -> Type),
-  refines ((eqf ==> eqFIS ==> eqf) ==> eqf ==> list_R (list_R eqFIS) ==> eqf)
-    (@foldl_diag _ _ (@hseqmx) (@fun_of_seqmx (FIS fs) (FIS0 fs)) n1.+1
-       (@I0_instN n1) (@succ0_instN n1) T')
-  (@foldl_diag _ _ (@hseqmx) (@fun_of_seqmx (FIS fs) (FIS0 fs)) n1.+1
-       (@I0_instN n1) (@succ0_instN n1) T').
-Proof.
-move=> T' eqf.
-refines_abstr.
-  rewrite /foldl_diag.
-  refines_apply1.
-  refines_apply1.
-  eapply refines_apply.
-  eapply refine_iteri_ord'.
-  by rewrite refinesE.
-  rewrite /fun_of_op /fun_of_seqmx.
-  refines_abstr.
-  refines_apply1.
-  rewrite refinesE.
-  apply nth_R.
-  3: exact: refinesP.
-  reflexivity.
-  apply: nth_R.
-  done.
-  exact: refinesP.
-  exact: refinesP.
-Qed.
- *)
-
 Global Instance refine_all_diag' :
   refines ((eqFIS ==> bool_R) ==> RseqmxC eqFIS rn rn ==> bool_R)
     (@all_diag _ _ _ (@fun_of_ssr _) n1.+1 (@I0_ssr n1) (@succ0_ssr n1))
@@ -1848,51 +1804,6 @@ tc.
 apply trivial_refines; reflexivity.
 tc.
 Qed.
-
-(*
-rewrite !refinesE in ref_b *.
-rewrite ref_b.
-reflexivity.
-refines_apply1.
-refines_apply1. (*!*)
-
-eapply refines_apply.
-2: rewrite refinesE; reflexivity.
-eapply refines_apply.
-2: rewrite refinesE; reflexivity.
-rewrite refinesE =>??-> ??->.
-reflexivity.
-refines_apply1.
-rewrite /tr_up.
-refines_apply1.
-refines_apply1.
-refines_apply1.
-eapply refines_apply.
-2: rewrite refinesE; reflexivity.
-eapply refines_apply.
-2: rewrite refinesE; reflexivity.
-refines_abstr.
-refines_apply.
-ref_abstr => ???.
-ref_abstr => ???.
-eapply refines_apply. tc.
-change mulup with mulup_instFIS.
-ref_abstr => ???.
-refines_apply.
-rewrite refinesE =>??-> ??-> ?? H.
-eapply refinesP.
-refines_apply1.
-rewrite refinesE =>?? H'.
-reflexivity.
-eapply refines_apply. (*!*)
-rewrite /mulup.
-reflexivity.
-eapply refines_apply.
-2: tc.
-eapply refines_apply.
-tc.
-rewrite refinesE; reflexivity.
-*)
 
 Global Instance refine_compute_c_aux' :
   refines (RseqmxC eqFIS rn rn ==> eqFIS ==> eqFIS)
