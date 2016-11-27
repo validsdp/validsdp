@@ -7,7 +7,7 @@ Dependencies
 - Coq 8.5 (http://coq.inria.fr, tested with 8.5pl2)
 - mathcomp (https://math-comp.github.io/math-comp/, tested with version 1.6)
 - paramcoq (https://github.com/drouhling/paramcoq, tested with git revision 0b907692515d7428a049e04e4290482d560ea8c9)
-- CoqEAL (https://github.com/CoqEAL/CoqEAL, tested with git revision a786274400fa9917b6ec75e37cb344ed6ae499f6)
+- CoqEAL (https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev, tested with git revision a786274400fa9917b6ec75e37cb344ed6ae499f6 ; later versions may not compile out-of-the-box due to https://github.com/math-comp/math-comp/issues/62)
 - multinomials (https://github.com/math-comp/multinomials, tested with git revision f82a244877991f814568861dcfe0d626fe55c538)
 - Flocq (http://flocq.gforge.inria.fr/, tested with version 2.5.1)
 - Coquelicot (http://coquelicot.saclay.inria.fr/, tested with version 2.1.1)
