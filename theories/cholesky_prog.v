@@ -1523,15 +1523,13 @@ apply: nseq_R =>//.
 exact: nat_Rxx.
 Qed.
 
+Existing Instance Rseqmx_trseqmx.
+
 Global Instance refine_is_sym :
  refines (Rseqmx rn rn ==> bool_R)
     (@is_sym _ _ n1.+1 (@heq_ssr (FIS fs) (@fieq fs)) (@trmx _))
     (@is_sym _ _ n2.+1 _ trmx_seqmx).
-Proof.
-rewrite refinesE=> a a' ra; rewrite /is_sym /trmx_op /heq_op.
-suff_eq bool_Rxx.
-exact: refinesP.
-Qed.
+Proof. rewrite refinesE=> a a' ra; rewrite /is_sym; exact: refinesP. Qed.
 
 Global Instance refine_heq_seqmx m n :
   refines (list_R (list_R eqFIS) ==> list_R (list_R eqFIS) ==> bool_R)
