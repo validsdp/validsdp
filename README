@@ -69,5 +69,5 @@ To generate documentation from the Coq code:
 % cd theories
 % make doc
 
-The documentation can then be browsed from from html/toc.html with
+The documentation can then be browsed from html/toc.html with
 your favorite browser.
