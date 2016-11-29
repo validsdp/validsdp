@@ -1,5 +1,4 @@
-(** * A refinement of Mathcomp's rationals [rat] with [bigQ]
-      from Coq standard library. *)
+(** * A refinement of Mathcomp's rationals [rat] with [bigQ] from Coq standard library. *)
 
 Require Import ZArith QArith BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat.

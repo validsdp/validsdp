@@ -265,7 +265,11 @@ rewrite /heq_ssr /heq_seqmx.
 rewrite eq_seqE; [|by rewrite ha1 hb1].
 have SzAs : seq.size (zip a' b') = m2.
 { by rewrite size1_zip ha1 // hb1. }
-suff_eq bool_Rxx.
+match goal with
+ | [ |- ?R ?a ?b ] =>
+   let H := fresh in
+   suff H : a = b; first (rewrite H; eapply bool_Rxx =>//)
+end.
 apply/idP/idP.
 { move/forallP=> H1; apply/all_nthP=> i; rewrite SzAs=> Hi.
   rewrite (nth_zip [::] [::]) ?hb1 //= eq_seqE ?ha2 ?hb2 //.
