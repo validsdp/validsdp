@@ -685,130 +685,74 @@ Global Instance refine_mnmc_lt n :
     (@mnmc_lt n) (mnmc_lt_seq).
 Proof.
 rewrite refinesE=> m1 m1' rm1 m2 m2' rm2.
-apply trivial_refines in rm1; apply trivial_refines in rm2.
-rewrite /mnmc_lt.
-case: (boolP (m1 == m2)) => /=.
-{ move=> E.
-  suff: mnmc_eq_seq m1' m2'.
-  { move=> E'.
-    symmetry; apply negbTE; apply /negP => K.
+apply trivial_refines in rm1; apply trivial_refines in rm2; rewrite /mnmc_lt.
+case: (boolP (m1 == m2)) => /= [E|].
+{ suff: mnmc_eq_seq m1' m2'.
+  { move=> E'; symmetry; apply negbTE; apply /negP => K.
     by apply (M.E.lt_not_eq K). }
-  Search "" mnmc_eq_seq.
-  apply /mnmc_eq_seqP.
-  by rewrite -Rseqmultinom_eq. }
-move=> nE.
-rewrite /mnmc_le -leEmnm.
-rewrite order.Order.POrderTheory.le_eqVlt.
-rewrite (negbTE nE) /=.
-rewrite /mnmc_lt_seq.
-rewrite /order.Order.POrderDef.lt /=.
-rewrite /mnmc_le /= nE /=.
+  by apply /mnmc_eq_seqP; rewrite -Rseqmultinom_eq. }
+move=> nE; rewrite /mnmc_le -leEmnm order.Order.POrderTheory.le_eqVlt.
+rewrite (negbTE nE) /mnmc_lt_seq /order.Order.POrderDef.lt /mnmc_le /= nE /=.
 have rmdeg := refine_mdeg n; rewrite refinesE in rmdeg.
 rewrite /eq_op /eq_N /lt_op /lt_N.
-rewrite /order.Order.POrderDef.lt /order.Order.POrder.lt /=.
+rewrite /order.Order.POrderDef.lt /order.Order.POrder.lt /mnmc_le /=.
 rewrite (rmdeg _ _ (refinesP rm1)) (rmdeg _ _ (refinesP rm2)) => {rmdeg}.
 rewrite (_ : order.Order.SeqLexPOrder.lexi _ _ = mnmc_lt_seq_aux m1' m2').
 { apply/idP/idP.
-  { case eqP => //= He; move/orP=> [].
-  { move=> H; apply /orP; left.
-    by rewrite /is_true N.ltb_lt Nlt_lt. }
-  move=> H; apply /orP; right; rewrite H andbC /=.
-rewrite /is_true N.eqb_eq.
-move: He.
-by rewrite -{2}(nat_of_binK (mdeg_eff m1'))
-        -{2}(nat_of_binK (mdeg_eff m2')).
-; apply /andP.
- => [] /eqP He1 /orP [].
-  { by move /eqP => He2; move: He; rewrite He1 He2. }
-  move=>->; apply/orP; right; rewrite andb_true_r /is_true N.eqb_eq.
-  by move: He1 => /=; rewrite -Nat2N.inj_iff !nat_of_binK. }
-move/orP => [].
-{ rewrite {1}/is_true N.ltb_lt Nlt_lt poset.ltnP => H.
-  rewrite H /= andb_true_r; apply/eqP => H'; move: H.
-  by injection H'=> _ ->; rewrite ltnn. }
-move/andP => []; rewrite {1}/is_true N.eqb_eq =>-> He.
-rewrite eqxx /= He !orb_true_r andb_true_r.
-apply /eqP; injection; move: He; rewrite -Hb /b /poset.ltx.
-by move/andP=>[] /eqP.
-
-
-Check order.Order.POrderTheory.le_eqVlt.
-Search "" order.Order.POrderDef.le order.Order.POrderDef.lt.
-
-rewrite (rmdeg _ _ (refinesP rm1)) (rmdeg _ _ (refinesP rm2)) => {rmdeg}.
-Check leEmnm.
-rewrite -leEmnm.
-/=.
-Search "" order.Order.SeqLexPOrder.lexi.
-
-rewrite /order.Order.SeqLexPOrder.lexi.
-
-rewrite /poset.ltx /= poset.lex_eqVlt /eq_op /eq_N /lt_op /lt_N.
-set b := poset.ltx _ _.
-have Hb : b = mnmc_lt_seq_aux m1' m2'; [|rewrite Hb].
-{ rewrite {}/b.
-  elim: n m1 m1' rm1 m2 m2' rm2 => [|n IH] m1 m1' rm1 m2 m2' rm2.
-  { move: rm1=> /(@refine_size _) /size0nil ->.
-    move: rm2=> /(@refine_size _) /size0nil ->.
-    by rewrite tuple0 /= tuple0. }
-  case: m1' rm1 => [|h1 t1 rm1]; [by move/(@refine_size _)|].
-  case: m2' rm2 => [|h2 t2 rm2]; [by move/(@refine_size _)|].
-  case: m1 rm1 => m1; case: m1 => m1; case: m1 => [//|h1' t1'] sm1 /= rm1.
-  case: m2 rm2 => m2; case: m2 => m2; case: m2 => [//|h2' t2'] sm2 /= rm2.
-  have st1 : size t1' == n; [by rewrite -eqSS|].
-  have st2 : size t2' == n; [by rewrite -eqSS|].
-  have rt1 : refines Rseqmultinom [multinom Tuple st1] t1.
-  { apply refine_seqmultinomP.
-    { by move: (@refine_size _ _ _ rm1)=> /= /eqP; rewrite eqSS=> /eqP. }
-    move=> i; move: (refine_nth (fintype.lift ord0 i) rm1).
-    by rewrite /= =>->; rewrite !multinomE !(tnth_nth 0%N) /=. }
-  have rt2 : refines Rseqmultinom [multinom Tuple st2] t2.
-  { apply refine_seqmultinomP.
-    { by move: (@refine_size _ _ _ rm2)=> /= /eqP; rewrite eqSS=> /eqP. }
-    move=> i; move: (refine_nth (fintype.lift ord0 i) rm2).
-    by rewrite /= =>->; rewrite !multinomE !(tnth_nth 0%N) /=. }
-  rewrite /= -(IH _ _ rt1 _ _ rt2).
-  rewrite /poset.ltx /= poset.lex_eqVlt /eq_op /eq_N /lt_op /lt_N.
-  move: (@refine_nth _ _ _ ord0 rm1) => /=.
-  rewrite multinomE /spec_N (tnth_nth 0%N) /= => Hh1.
-  move: (@refine_nth _ _ _ ord0 rm2) => /=.
-  rewrite multinomE /spec_N (tnth_nth 0%N) /= => Hh2.
-  apply/idP/idP.
-  { case eqP => //= He; move/orP=> [].
-    { rewrite poset.ltnP=> H; apply orb_true_intro; left.
-      by rewrite N.ltb_lt Nlt_lt Hh1 Hh2. }
-    move /andP => [] /eqP He1 /orP [].
-    { by move /eqP => He2; exfalso; move: He; rewrite He1 He2. }
-    move=>->; apply/orP; right; rewrite orb_true_r andb_true_r.
-    apply/andP=> []; split.
-    { rewrite /is_true N.eqb_eq; move: He1.
-      by rewrite -Nat2N.inj_iff -Hh1 -Hh2 !nat_of_binK. }
-    by apply/eqP=> H; apply He; rewrite He1 H. }
+  { case eqP => //= He; move/orP=> [] //.
+    { by move=> H; apply /orP; left; rewrite /is_true N.ltb_lt Nlt_lt. }
+    { move=> H; apply /orP; right; rewrite H andbC /= /is_true N.eqb_eq.
+      by move: He; rewrite -Nat2N.inj_iff !nat_of_binK. }
+    by move=> H; apply /orP; left; rewrite /is_true N.ltb_lt Nlt_lt. }
   move/orP => [].
-  { rewrite {1}/is_true N.ltb_lt Nlt_lt poset.ltnP => H.
-    rewrite -Hh1 -Hh2 H /= andb_true_r; apply/eqP => H'; move: H.
-    by injection H'=> _ ->; rewrite ltnn. }
-  move/andP => []; rewrite {1}/is_true N.eqb_eq -Hh1 -Hh2=>-> He.
-  rewrite eqxx /=; move: He => /andP [] He /orP [].
-  { by move=> H; exfalso; move: He => /eqP; move: H => /eqP ->. }
-  move=>->; rewrite !orb_true_r andb_true_r; apply /eqP => H.
-  by move: He => /eqP; injection H. }
+  { by rewrite {1}/is_true N.ltb_lt Nlt_lt=> H; apply /orP; left. }
+  move=> /andP [H H']; apply /orP; right; rewrite H' andbC /=.
+  by apply /eqP=> /=; rewrite -Nat2N.inj_iff !nat_of_binK -N.eqb_eq. }
+elim: n m1 m1' rm1 m2 m2' rm2 nE => [|n IH] m1 m1' rm1 m2 m2' rm2 nE.
+{ move: rm1=> /(@refine_size _) /size0nil ->.
+  move: rm2=> /(@refine_size _) /size0nil -> /=.
+  apply/negbTE/negP=> H; move: nE => /eqP; apply.
+  by case m1, m2; rewrite tuple0; symmetry; rewrite tuple0. }
+case: m1' rm1 => [|h1 t1 rm1]; [by move/(@refine_size _)|].
+case: m2' rm2 => [|h2 t2 rm2]; [by move/(@refine_size _)|].
+move: nE; case: m1 rm1=> m1; case: m1 => m1; case: m1=> [//|h1' t1'] sm1 /= rm1.
+case: m2 rm2 => m2; case: m2 => m2; case: m2 => [//|h2' t2'] sm2 /= rm2 => nE.
+have st1 : size t1' == n; [by rewrite -eqSS|].
+have st2 : size t2' == n; [by rewrite -eqSS|].
+have rt1 : refines Rseqmultinom [multinom Tuple st1] t1.
+{ apply refine_seqmultinomP.
+  { by move: (@refine_size _ _ _ rm1)=> /= /eqP; rewrite eqSS=> /eqP. }
+  move=> i; move: (refine_nth (fintype.lift ord0 i) rm1).
+  by rewrite /= =>->; rewrite !multinomE !(tnth_nth 0%N) /=. }
+have rt2 : refines Rseqmultinom [multinom Tuple st2] t2.
+{ apply refine_seqmultinomP.
+  { by move: (@refine_size _ _ _ rm2)=> /= /eqP; rewrite eqSS=> /eqP. }
+  move=> i; move: (refine_nth (fintype.lift ord0 i) rm2).
+  by rewrite /= =>->; rewrite !multinomE !(tnth_nth 0%N) /=. }
+rewrite /order.Order.POrderDef.lt /= /eq_op /eq_N /lt_op /lt_N.
+move: (@refine_nth _ _ _ ord0 rm1) => /=.
+rewrite multinomE /spec_N (tnth_nth 0%N) /= => <-.
+move: (@refine_nth _ _ _ ord0 rm2) => /=.
+rewrite multinomE /spec_N (tnth_nth 0%N) /= => <-.
 apply/idP/idP.
-{ case eqP => //= He; move/orP=> [].
-  { rewrite poset.ltnP=> H; apply orb_true_intro; left.
-    by rewrite N.ltb_lt Nlt_lt. }
-  move /andP => [] /eqP He1 /orP [].
-  { by move /eqP => He2; move: He; rewrite He1 He2. }
-  move=>->; apply/orP; right; rewrite andb_true_r /is_true N.eqb_eq.
-  by move: He1 => /=; rewrite -Nat2N.inj_iff !nat_of_binK. }
+{ case eqP => //= He; move/orP=> [] //.
+  { by move=> H; apply /orP; left; rewrite /is_true N.ltb_lt Nlt_lt. }
+  { have Hh : h1 = h2; [by move: He; rewrite -Nat2N.inj_iff !nat_of_binK|].
+    move=> H; apply /orP; right; rewrite /= -(IH _ _ rt1 _ _ rt2).
+    { by rewrite H andbC /= /is_true N.eqb_eq. }
+    apply /negP; move: nE=> /negP H'' H'; apply H''=>{H''}.
+    rewrite (Rseqmultinom_eq rm1 rm2) Hh.
+    suff: t1 = t2 => [-> //|].
+    by apply /eqP; rewrite -(Rseqmultinom_eq rt1 rt2). }
+  by move=> H; apply /orP; left; move: H; rewrite /is_true N.ltb_lt Nlt_lt. }
 move/orP => [].
-{ rewrite {1}/is_true N.ltb_lt Nlt_lt poset.ltnP => H.
-  rewrite H /= andb_true_r; apply/eqP => H'; move: H.
-  by injection H'=> _ ->; rewrite ltnn. }
-move/andP => []; rewrite {1}/is_true N.eqb_eq =>-> He.
-rewrite eqxx /= He !orb_true_r andb_true_r.
-apply /eqP; injection; move: He; rewrite -Hb /b /poset.ltx.
-by move/andP=>[] /eqP.
+{ by move=> H; apply /orP; left; move: H; rewrite /is_true N.ltb_lt Nlt_lt. }
+move/andP => []; rewrite {1}/is_true N.eqb_eq => Hh He; rewrite Hh eqxx /=.
+apply /orP; right; rewrite (IH _ _ rt1 _ _ rt2) //.
+apply /negP; move: nE=> /negP H'' H'; apply H''=>{H''}.
+rewrite (Rseqmultinom_eq rm1 rm2) Hh.
+suff: t1 = t2 => [-> //|].
+by apply /eqP; rewrite -(Rseqmultinom_eq rt1 rt2).
 Qed.
 
 (** Multivariate polynomials *)
@@ -1050,8 +994,8 @@ suff : path.sort mnmc_le (msupp p)
   apply refine_multinom_of_seqmultinom_val; move: Hs; move/allP; apply.
   rewrite -/l' /mc; apply (mem_nth (mnm0_seq, 0%Ri) Hi'). }
 apply (path.eq_sorted (leT:=mnmc_le)).
-{ apply lemc_trans. }
-{ apply lemc_antisym. }
+{ apply mpoly.lemc_trans. }
+{ apply mpoly.lemc_anti. }
 { apply path.sort_sorted, lemc_total. }
 { have Se := M.elements_3 p'.
   pose lef := fun x y : _ * T => mnmc_lt_seq x.1 y.1.
@@ -1065,7 +1009,7 @@ apply (path.eq_sorted (leT:=mnmc_le)).
     by rewrite -/(path.sorted _ (h' :: t')) -Ht'; apply IH. }
   case_eq l=> [//|h t Hl] /= /(path.pathP (@mnm0_seq n, 0%Ri)) H.
   apply/(path.pathP 0%MM)=> i; rewrite size_map=> Hi.
-  rewrite /mnmc_le poset.lex_eqVlt -/(mnmc_lt _ _); apply/orP; right.
+  rewrite /mnmc_le -leEmnm order.Order.POrderTheory.le_eqVlt; apply/orP; right.
   rewrite (nth_map (@mnm0_seq n, 0%Ri)) //; move/allP in Hs.
   move: (H _ Hi); rewrite /lef/is_true=><-; apply refinesP.
   eapply refines_apply; [eapply refines_apply; [by apply refine_mnmc_lt|]|].
@@ -1195,8 +1139,7 @@ Lemma MapsTo_mcoeff {n} m m' p p' a :
   M.MapsTo m' a p' -> p@_m = a.
 (** the converse may be wrong if [a = 0] *)
 Proof.
-move=> Hp Hm HMT.
-move/MFacts.find_mapsto_iff in HMT.
+move=> Hp Hm HMT; move/MFacts.find_mapsto_iff in HMT.
 by rewrite (refine_find_mpoly Hp Hm) /odflt /oapp HMT.
 Qed.
 
@@ -1205,8 +1148,7 @@ Lemma not_In_mcoeff {n} m m' p p' :
   refines Rseqmultinom m m' ->
   ~ M.In m' p' -> p@_m = 0%Ri.
 Proof.
-move=> Hp Hm Hin.
-rewrite (refine_find_mpoly Hp Hm).
+move=> Hp Hm Hin; rewrite (refine_find_mpoly Hp Hm).
 by move/MFacts.not_find_in_iff: Hin ->.
 Qed.
 
@@ -2251,7 +2193,7 @@ elim=> [|hlq tlq IH]; case=> [|hlq' tlq']; rewrite refinesE //=.
   eapply refines_apply; [apply refine_M_hrel_singleton|by apply trivial_refines]. }
 by move=> K; inversion K.
 by move=> K; inversion K.
-move=> K; inversion K. (* [|Hhlq Htlq] *)
+move=> K; inversion K.
  case=> [|hm tm] /=.
 { rewrite /mp1_eff; eapply refines_apply; [|by tc].
   eapply refines_apply; [apply refine_M_hrel_singleton|by apply trivial_refines]. }
