@@ -50,8 +50,6 @@ Ltac get_positive t :=
     end in
   aux t.
 
-Locate Rdiv.
-
 Ltac get_real_cst t :=
   let rec aux t :=
     match t with
