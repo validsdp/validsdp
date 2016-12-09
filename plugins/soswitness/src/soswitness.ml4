@@ -235,57 +235,112 @@ let mkFloat f =
                            
 (* The actual tactic. *)
        
-let soswitness env c =
+(* [psatz (q, [p1;...; pn])] calls OSDP to retrieve witnesses for
+   p1 >= 0 -> ... -> pn >= 0 -> q >= 0. Returns [nb_vars, (z, Q),
+   [(z1, Q1);...; (zn, Qn)]] where [nb_vars] is the number of variables
+   appearing in [p1,..., pn, q], [z, Q] (z : vector of monomials,
+   Q : float matrix) is a witness for q - \sum_i sigma_i pi >= 0
+   with sigma_i := zi^T Qi zi (Qi should be positive definite
+   so that zi^T Qi zi >= 0). *)
+let psatz q pl =
+  let module Sos = Osdp.Sos.Q in
+  let module SosP = Sos.Poly in
+  let nb_vars = List.map SosP.nb_vars (q :: pl) |> List.fold_left max 0 in
+  let sum, sigmas =
+    let degs = List.map SosP.degree (q :: pl) in
+    let max_deg = List.fold_left max 0 degs in
+    let max_deg_list =
+      (q :: pl) |> List.map SosP.degree_list
+      |> List.map Osdp.Monomial.of_list
+      |> List.fold_left Osdp.Monomial.lcm Osdp.Monomial.one in
+    let rup n = (n + 1) / 2 * 2 in
+    let rup_monomial m =
+      Osdp.Monomial.of_list (List.map rup (Osdp.Monomial.to_list m)) in
+    List.fold_left
+      (fun (sum, sigmas) p ->
+        let s =
+          let _, l =
+            Sos.var_poly "s" nb_vars (rup (max_deg - SosP.degree p)) in
+          let l =
+            let lim =
+              let p_list = Osdp.Monomial.of_list (SosP.degree_list p) in
+              rup_monomial (Osdp.Monomial.div max_deg_list p_list) in
+            List.filter (fun (m, _) -> Osdp.Monomial.divide m lim) l in
+          List.fold_left
+            (fun p (m, v) -> Sos.(add p (mult (monomial m) v)))
+            Sos.(!!Poly.zero) l in
+        Sos.(sum - s * !!p), s :: sigmas)
+      (Sos.(!!q), []) pl in
+  let ret, _, _, wl =
+    let options =
+      (* { *) Sos.default (* with *)
+        (* Sos.verbose = 3 ; *)
+        (* Sos.sdp = { Osdp.Sdp.default with Osdp.Sdp.verbose = 1 } } *) in
+    Sos.solve ~options ~solver:Osdp.Sdp.Sdpa Sos.Purefeas
+              (sum :: List.rev sigmas) in
+  let w =
+    if ret <> Osdp.SdpRet.Success then None
+    else match wl with [] -> assert false | zQ :: zQl -> Some (zQ, zQl) in
+  match w with
+  | None -> Errors.error "soswitness: OSDP found no witnesses."
+  | Some (zQ, zQl) ->
+     let array_to_list (z, q) =
+       Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
+     nb_vars, array_to_list zQ, List.map array_to_list zQl
+
+let soswitness c =
   let ty_N = Lazy.force coq_N_ind in
   let ty_seqmultinom = tyList ty_N in
   (* Deconstruct the input (translate it from Coq to OCaml). *)
-  let p =
+  let q, pl =
+    let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofN c) in
+    let ofPoly c =
+      Osdp.Sos.Q.Poly.of_list (ofList (ofPair ofSeqmultinom ofBigQ) c) in
     try
-      let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofN c) in
-      Osdp.Sos.Q.Poly.of_list (ofList (ofPair ofSeqmultinom ofBigQ) c)
+      ofPair ofPoly (ofList ofPoly) c
     with Parse_error ->
       let ty_bigQ = Lazy.force coq_bigQ_ind in
-      let ty_input = tyList (tyPair ty_seqmultinom ty_bigQ) in
+      let ty_poly = tyList (tyPair ty_seqmultinom ty_bigQ) in
+      let ty_input = tyPair ty_poly (tyList ty_poly) in
       Errors.errorlabstrm
         ""
         Pp.(str "soswitness: wrong input type (expected "
             ++ Printer.pr_constr ty_input ++ str ").") in
-  let () =
-    if Osdp.Sos.Q.Poly.is_const p <> None then
+  let () =  (* TODO: try to fix that *)
+    if Osdp.Sos.Q.Poly.is_const q <> None then
       Errors.error "soswitness: expects a closed term representing \
                     a non constant polynomial." in
-  (* Call OSDP to retrieve a witness for p >= 0. *)
-  let z, q =
-    let _, _, _, wl =
-      Osdp.Sos.Q.solve ~solver:Osdp.Sdp.Sdpa Osdp.Sos.Q.Purefeas
-                       [Osdp.Sos.Q.Const p] in
-    match wl with
-    | [] -> Errors.error "soswitness: OSDP found no witness."
-    | [z, q] ->
-       Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q))
-    | _ -> assert false in
+  (* Call OSDP to retrieve witnesses *)
+  let nb_vars, zq, zql = psatz q pl in
   (* Add trailing zeros to multinoms in z so that they all have same length. *)
-  let z =
+  let add_zeros (z, q) =
     let rec add_tr_0 n l = match l with
       | [] -> if n <= 0 then [] else 0 :: add_tr_0 (n - 1) []
       | h :: t -> h :: add_tr_0 (n - 1) t in
-    let nb_vars = List.fold_left (fun n m -> max n (List.length m)) 0 z in
-    List.map (add_tr_0 nb_vars) z in
+    List.map (add_tr_0 nb_vars) z, q in
+  let zq, zql = add_zeros zq, List.map add_zeros zql in
   (* Reconstruct the output (translate it from OCaml to Coq). *)
   let ty_seqmultinom_list = tyList ty_seqmultinom in
   let ty_bigZ = Lazy.force coq_bigZ_ind in
   let ty_float = Term.mkApp (Lazy.force coq_float_ind, [|ty_bigZ; ty_bigZ|]) in
   let ty_float_list = tyList ty_float in
   let ty_float_matrix = tyList ty_float_list in
+  let ty_witness = tyPair ty_seqmultinom_list ty_float_matrix in
+  let mk_witness (zQ : int list list * float list list) : Term.constr =
+    mkPair
+      ty_seqmultinom_list ty_float_matrix
+      (mkList ty_seqmultinom (mkList ty_N mkN))
+      (mkList ty_float_list (mkList ty_float mkFloat))
+      zQ in
   mkPair
-    ty_seqmultinom_list ty_float_matrix
-    (mkList ty_seqmultinom (mkList ty_N mkN))
-    (mkList ty_float_list (mkList ty_float mkFloat))
-    (z, q),
-  tyPair ty_seqmultinom_list ty_float_matrix
+    ty_witness (tyList ty_witness)
+    mk_witness
+    (mkList ty_witness mk_witness)
+    (zq, zql),
+  tyPair ty_witness (tyList ty_witness)
 
 let soswitness gl c id = 
-  let v, t = soswitness (Proofview.Goal.env gl) c in
+  let v, t = soswitness c in
   let nowhere = Locus.({ onhyps = Some []; concl_occs = NoOccurrences }) in
   Tactics.letin_tac None (Names.Name id) v (Some t) nowhere
 

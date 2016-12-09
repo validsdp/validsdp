@@ -1440,9 +1440,10 @@ Ltac validsdp :=
         let ap := constr:(abstr_poly_of_p_abstr_poly pap) in
         let bp := constr:(interp_poly_eff n' ap) in
         let l := eval vm_compute in (M.elements bp) in
+        let l' := eval vm_compute in (l, ([::] : seq (seq (seq BinNums.N * BigQ.t_)))) in
         let zQ := fresh "zQ" in
-        (soswitness of l as zQ);
-        apply (@soscheck_eff_wrapup_correct vm pap zQ);
+        (soswitness of l' as zQ);
+        apply (@soscheck_eff_wrapup_correct vm pap (fst zQ));
         (vm_cast_no_check (erefl true))
       )
     end
