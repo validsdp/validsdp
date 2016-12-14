@@ -635,113 +635,8 @@ Qed.
 Require Import bigop_tactics.
 
 Lemma soscheck_correct p z Q : soscheck_ssr p z Q ->
-  forall x, 0%R <= (map_mpoly T2R p).@[x].
-Proof.
-rewrite /soscheck_ssr /soscheck /fun_of_op /fun_of_ssr /map_mx2_op /map_mx_ssr.
-set zp := matrix.map_mx _ z.
-set Q' := matrix.map_mx _ _.
-set p' := _ (_ *m _) _ _.
-set pmp' := poly_sub_op _ _.
-set r := max_coeff _.
-pose zpr := matrix.map_mx [eta mpolyX real_ringType] z.
-pose Q'r := matrix.map_mx (map_mpoly T2R) Q'.
-pose mpolyC_R := fun c : R => mpolyC n c.
-pose map_mpolyC_R := fun m : 'M_s.+1 => matrix.map_mx mpolyC_R m.
-move/andP=> [Hbase Hpcheck].
-have : exists E : 'M_s.+1,
-  Mabs E <=m: matrix.const_mx (T2R r)
-  /\ map_mpoly T2R p = (zpr^T *m (Q'r + map_mpolyC_R E) *m zpr) ord0 ord0.
-{ pose zij := fun i j => (z i ord0 + z j ord0)%MM.
-  pose I_sp1_2 := prod_finType (ordinal_finType s.+1) (ordinal_finType s.+1).
-  pose nbij := fun i j => size [seq ij <- index_enum I_sp1_2 |
-                                zij ij.2 ij.1 == zij i j].
-  pose E := (\matrix_(i, j) (T2R pmp'@_(zij i j) / INR (nbij i j))%Re).
-  exists E.
-  have Pnbij : forall i j, (0 < nbij i j)%N.
-  { move=> i j; rewrite /nbij filter_index_enum; rewrite <-cardE.
-    by apply/card_gt0P; exists (j, i); rewrite /in_mem /=. }
-  have Pr := max_coeff_pos _ : 0%R <= T2R r.
-  split.
-  { move=> i j; rewrite !mxE Rabs_mult.
-    have NZnbij : INR (nbij i j) <> 0%Re.
-    { by change 0%Re with (INR 0); move/INR_eq; move: (Pnbij i j); case nbij. }
-    rewrite Rabs_Rinv // (Rabs_pos_eq _ (pos_INR _)).
-    apply (Rmult_le_reg_r (INR (nbij i j))).
-    { apply Rnot_ge_lt=> H; apply NZnbij.
-      by apply Rle_antisym; [apply Rge_le|apply pos_INR]. }
-    rewrite Rmult_assoc Rinv_l // Rmult_1_r.
-    have nbij_ge_1 : 1 <= INR (nbij i j).
-    { move: NZnbij; case nbij=>// nb _; rewrite S_INR -{1}(Rplus_0_l 1).
-      apply Rplus_le_compat_r, pos_INR. }
-    apply (Rle_trans _ (T2R r)); [by apply max_coeff_correct|].
-    rewrite -{1}(Rmult_1_r (T2R r)); apply Rmult_le_compat_l=>//. }
-  apply/mpolyP => m; rewrite mcoeff_map_mpoly /= mxE.
-  set M := (Q'r + _)%R.
-  under big ? _ rewrite mxE big_distrl /=; under big ? _ rewrite mxE.
-  rewrite pair_bigA /= (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
-  have -> : M = map_mpolyC_R (matrix.map_mx (T2R \o F2T) Q + E)%R.
-  { apply/matrixP=> i j; rewrite /map_mpolyC_R /mpolyC_R.
-    by rewrite !mxE mpolyCD (map_mpolyC (GRing.raddf0 _)). }
-  move {M}; set M := map_mpolyC_R _.
-  under big ? _ rewrite (GRing.mulrC (zpr _ _)) -GRing.mulrA mxE mcoeffCM.
-  under big ? _ rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX.
-  rewrite (bigID (fun ij => zij ij.2 ij.1 == m)) /= GRing.addrC.
-  rewrite big1 ?GRing.add0r; last first.
-  { by move=> ij; move/negbTE=> ->; rewrite GRing.mul0r. }
-  under big ? Hi rewrite Hi GRing.mul1r 2!mxE.
-  rewrite big_split /= GRing.addrC.
-  pose nbm := size [seq ij <- index_enum I_sp1_2 | zij ij.2 ij.1 == m].
-  under big ? Hi
-    (move/eqP in Hi; rewrite mxE /nbij Hi -/nbm mcoeffB GRing.raddfB /=).
-  rewrite misc.big_sum_pred_const -/nbm /Rdiv !unfoldR.
-  rewrite mulrDl mulrDr -addrA.
-  rewrite -{1}(GRing.addr0 (T2R _)); f_equal.
-  { rewrite GRing.mulrC -GRing.mulrA; case_eq (m \in msupp p).
-    { move=> Hm; move: (check_base_correct Hbase Hm).
-      move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
-      apply Rgt_not_eq, Rlt_gt.
-      rewrite -unfoldR; change R0 with (INR 0); apply lt_INR.
-      rewrite /nbm filter_index_enum; rewrite <-cardE.
-      by apply/ltP/card_gt0P; exists (j, i); rewrite /in_mem /=. }
-    by rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 GRing.mul0r. }
-  rewrite /p' mxE.
-  under big ? _ (rewrite mxE big_distrl /=; under big ? _ rewrite mxE).
-  rewrite pair_bigA /= (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
-  under big ? _ rewrite (GRing.mulrC (zp _ _)) -GRing.mulrA mxE mcoeffCM.
-  under big ? _ rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX.
-  rewrite GRing.raddf_sum /= (bigID (fun ij => zij ij.2 ij.1 == m)) /=.
-  under big ? Hi rewrite Hi GRing.mul1r.
-  set b := bigop _ _ _; rewrite big1; last first; [|rewrite {}/b GRing.addr0].
-  { by move=> ij; move/negbTE => ->; rewrite GRing.mul0r GRing.raddf0. }
-  rewrite -big_filter /nbm /I_sp1_2; case [seq i <- _ | _].
-  { by rewrite big_nil GRing.addr0 GRing.oppr0 GRing.mul0r. }
-  move=> h t; rewrite GRing.mulrC -GRing.mulrA /GRing.mul /= Rinv_l.
-  { by rewrite Rmult_1_r GRing.addNr. }
-  case size; [exact R1_neq_R0|].
-  move=> n'; apply Rgt_not_eq, Rlt_gt.
-  by apply/RltP; rewrite unfoldR ltr0Sn. }
-move=> [E [HE ->]] x.
-set M := _ *m _.
-replace (meval _ _)
-with ((matrix.map_mx (meval x) M) ord0 ord0); [|by rewrite mxE].
-replace 0%R with ((@matrix.const_mx _ 1 1 R0) ord0 ord0); [|by rewrite mxE].
-rewrite /M !map_mxM -map_trmx map_mxD.
-apply /Mle_scalar /posdef_semipos.
-replace (matrix.map_mx _ (map_mpolyC_R E)) with E;
-  [|by apply/matrixP => i j; rewrite !mxE /= mevalC].
-replace (matrix.map_mx _ _) with (matrix.map_mx (T2R \o F2T) Q);
-  [|by apply/matrixP => i j;
-    rewrite !mxE /= (map_mpolyC (GRing.raddf0 _)) mevalC].
-apply (posdef_check_itv_correct Hpcheck).
-apply Mle_trans with (Mabs E).
-{ by right; rewrite !mxE /=; f_equal; rewrite T2R_F2T GRing.addrC GRing.addKr. }
-apply (Mle_trans HE) => i j; rewrite !mxE.
-by apply T2F_correct; move: Hpcheck; move/andP; elim.
-Qed.
-
-(* TODO: factorize with above proof *)
-Lemma soscheck_correct_strict p z Q : has_const_ssr z -> soscheck_ssr p z Q ->
-  forall x, 0%R < (map_mpoly T2R p).@[x].
+  forall x, 0%R <= (map_mpoly T2R p).@[x]
+            /\ (has_const_ssr z -> 0%R < (map_mpoly T2R p).@[x]).
 Proof.
 rewrite /has_const_ssr /has_const /eq_op /monom_eq_ssr /zero_op /monom0_ssr.
 rewrite /soscheck_ssr /soscheck /fun_of_op /fun_of_ssr /map_mx2_op /map_mx_ssr.
@@ -754,7 +649,6 @@ pose zpr := matrix.map_mx [eta mpolyX real_ringType] z.
 pose Q'r := matrix.map_mx (map_mpoly T2R) Q'.
 pose mpolyC_R := fun c : R => mpolyC n c.
 pose map_mpolyC_R := fun m : 'M_s.+1 => matrix.map_mx mpolyC_R m.
-move=> /eqP z0.
 move/andP=> [Hbase Hpcheck].
 have : exists E : 'M_s.+1,
   Mabs E <=m: matrix.const_mx (T2R r)
@@ -834,23 +728,23 @@ replace (meval _ _)
 with ((matrix.map_mx (meval x) M) ord0 ord0); [|by rewrite mxE].
 replace 0%R with ((@matrix.const_mx _ 1 1 R0) ord0 ord0); [|by rewrite mxE].
 rewrite /M !map_mxM -map_trmx map_mxD.
-apply /Mlt_scalar.
 replace (matrix.map_mx _ (map_mpolyC_R E)) with E;
   [|by apply/matrixP => i j; rewrite !mxE /= mevalC].
 replace (matrix.map_mx _ _) with (matrix.map_mx (T2R \o F2T) Q);
   [|by apply/matrixP => i j;
     rewrite !mxE /= (map_mpolyC (GRing.raddf0 _)) mevalC].
-apply (posdef_check_itv_correct Hpcheck).
-{ apply Mle_trans with (Mabs E).
+have Hposdef : posdef (map_mx (T2R \o F2T) Q + E).
+{ apply (posdef_check_itv_correct Hpcheck).
+  apply Mle_trans with (Mabs E).
   { right; rewrite !mxE /=; f_equal.
     by rewrite T2R_F2T GRing.addrC GRing.addKr. }
   apply (Mle_trans HE) => i j; rewrite !mxE.
   by apply T2F_correct; move: Hpcheck; move/andP; elim. }
-(* begin of new part *)
+split; [by apply /Mle_scalar /posdef_semipos|].
+move=> /eqP z0; apply /Mlt_scalar /Hposdef.
 move/matrixP => H; move: {H}(H ord0 ord0).
 rewrite /GRing.zero /= /const_mx /map_mx !mxE.
 by rewrite z0 mpolyX0 meval1 => /eqP; rewrite GRing.oner_eq0.
-(* end of new part *)
 Qed.
 
 End theory_soscheck.
@@ -1511,22 +1405,40 @@ Ltac op202 tac lem1 lem2 := let H1 := fresh in let H2 := fresh in
 Theorem soscheck_eff_wrapup_correct
   (vm : seq R) (pap : p_abstr_poly)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
-  soscheck_eff_wrapup vm pap zQ ->
-  (0 <= interp_p_abstr_poly vm pap)%Re.
+  (soscheck_eff_wrapup vm pap zQ ->
+   (0 <= interp_p_abstr_poly vm pap)%Re)
+  /\ (soscheck_eff_wrapup_strict vm pap zQ ->
+      (0 < interp_p_abstr_poly vm pap)%Re).
 Proof.
-rewrite /soscheck_eff_wrapup.
-case/and5P => Hn Hz Hs HzQ /and3P [HzQ' Hltn Hsos].
-pose n := size vm.
-pose n' := n.-1.
-set ap := abstr_poly_of_p_abstr_poly pap in Hsos *.
-rewrite (_: size vm = n'.+1) in Hsos; last by rewrite prednK // lt0n Hn.
-set bp := interp_poly_eff n' ap in Hsos *.
-set za := (map (fun x => [:: x]) zQ.1) in Hsos *.
-set Qa := map (map F2FI) zQ.2 in Hsos *.
+rewrite /soscheck_eff_wrapup_strict /soscheck_eff_wrapup.
+set n := size vm.
+set n' := n.-1.
+set ap := abstr_poly_of_p_abstr_poly pap.
+set bp := interp_poly_eff n' ap.
+set za := (map (fun x => [:: x]) zQ.1).
+set Qa := map (map F2FI) zQ.2.
 pose s := (size zQ.1).-1.
 pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s.+1 1 za.
 pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s.+1 s.+1 Qa.
-rewrite interp_correct; last by rewrite ?lt0n.
+set hyps := andb _ _.
+set hconst := has_const_eff _.
+suff : hyps -> (0 <= interp_p_abstr_poly vm pap /\
+                (hconst -> 0 < interp_p_abstr_poly vm pap)).
+{ by move=> H; split; [|move/andP=> [? ?]]; apply H. }
+rewrite /hyps.
+case/and5P => Hn Hz Hs HzQ /and3P [HzQ' Hltn Hsos].
+have Hn' : n'.+1 = n by rewrite prednK // lt0n Hn.
+rewrite interp_correct; [|by move: Hn; rewrite -/n; case n|by rewrite ?lt0n].
+have -> : hconst = has_const_ssr zb.
+{ rewrite /hconst -/s -Hn'.
+  apply esym, refines_eq, refines_bool_eq; refines_apply1.
+  { apply refine_has_const. }
+  rewrite /zb /za.
+  rewrite refinesE; apply RseqmxC_spec_seqmx.
+  { apply /andP; split.
+    { by rewrite size_map prednK //; move: Hs; case (size _). }
+    by apply /allP => x /mapP [] x' _ ->. }
+  by apply listR_seqmultinom_map; rewrite Hn'. }
 apply soscheck_correct with
   (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
   (2 := rat2FIS_correct)
@@ -1538,7 +1450,7 @@ apply soscheck_correct with
 apply (etrans (y := @soscheck_eff n'.+1 _
   zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs
   (F2bigQ \o FI_val) (F2FI \o bigQ2F') bp za Qa)); last first.
-{ by rewrite -/n' /n in Hsos; apply Hsos. }
+{ by rewrite Hn' Hsos. }
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1; first refines_apply1.
 { eapply (refine_soscheck (eq_F := eqFIS) (rAC := r_ratBigQ)). (* 17 evars *)
@@ -1554,90 +1466,6 @@ rewrite refinesE; eapply Rseqmx_spec_seqmx.
 { rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
 { by rewrite refinesE; apply: list_Rxx => x; apply: list_Rxx => y. }
-  by rewrite lt0n.
-Unshelve.
-{ split =>//.
-  by move=> x y z Hxy Hyz; red; rewrite Hxy. }
-{ by rewrite refinesE. }
-{ by rewrite refinesE. }
-{ by op1 F.neg_correct. }
-{ by op1 F.sqrt_correct. }
-{ by op2 F.add_correct. }
-{ by op2 F.mul_correct. }
-{ by op2 F.div_correct. }
-{ op1 F.real_correct; exact: bool_Rxx. }
-{ by op202 ltac:(rewrite /leq_instFIS /file /= /ficompare /=; suff_eq bool_Rxx)
-  F.cmp_correct F.real_correct. }
-{ by op202 ltac:(rewrite /lt_instFIS /filt /= /ficompare /=; suff_eq bool_Rxx)
-  F.cmp_correct F.real_correct. }
-{ by op2 F.add_correct. }
-{ by op22 F.neg_correct F.add_correct. }
-{ by op2 F.mul_correct. }
-{ by op2 F.div_correct. }
-by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
-Qed.
-
-(* TODO: factorize with previous theorem *)
-Theorem soscheck_eff_wrapup_strict_correct
-  (vm : seq R) (pap : p_abstr_poly)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
-  soscheck_eff_wrapup_strict vm pap zQ ->
-  (0 < interp_p_abstr_poly vm pap)%Re.
-Proof.
-rewrite /soscheck_eff_wrapup_strict => /andP [] H_const.
-case/and5P => Hn Hz Hs HzQ /and3P [HzQ' Hltn Hsos].
-pose n := size vm.
-pose n' := n.-1.
-set ap := abstr_poly_of_p_abstr_poly pap in Hsos *.
-rewrite (_: size vm = n'.+1) in Hsos; last by rewrite prednK // lt0n Hn.
-set bp := interp_poly_eff n' ap in Hsos *.
-set za := (map (fun x => [:: x]) zQ.1) in Hsos *.
-set Qa := map (map F2FI) zQ.2 in Hsos *.
-pose s := (size zQ.1).-1.
-pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s.+1 1 za.
-pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s.+1 s.+1 Qa.
-rewrite interp_correct; last by rewrite ?lt0n.
-apply soscheck_correct_strict with
-  (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
-  (2 := rat2FIS_correct)
-  (3 := rat2R_FIS2rat)
-  (4 := max_l)
-  (5 := max_r)
-  (z := zb)
-  (Q := Qb).
-(* begin of new part *)
-{ move: H_const; apply etrans.
-  have Hn' : n'.+1 = n.
-  { by apply prednK; move: Hn; rewrite -/n; case n. }
-  apply refines_eq, refines_bool_eq; refines_apply1.
-  { rewrite -/n -Hn'; apply refine_has_const. }
-  rewrite /zb /za.
-  rewrite refinesE; apply RseqmxC_spec_seqmx.
-  { apply /andP; split.
-    { by rewrite size_map prednK //; move: Hs; case (size _). }
-    by apply /allP => x /mapP [] x' _ ->. }
-  by apply listR_seqmultinom_map; rewrite Hn'. }
-(* end of new part *)
-apply (etrans (y := @soscheck_eff n'.+1 _
-  zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs
-  (F2bigQ \o FI_val) (F2FI \o bigQ2F') bp za Qa)); last first.
-{ by rewrite -/n' /n in Hsos; apply Hsos. }
-apply refines_eq, refines_bool_eq.
-refines_apply1; first refines_apply1; first refines_apply1.
-{ eapply (refine_soscheck (eq_F := eqFIS) (rAC := r_ratBigQ)). (* 17 evars *)
-  exact: eqFIS_P. }
-{ by apply refine_interp_poly; rewrite prednK ?lt0n. }
-{ rewrite refinesE; eapply RseqmxC_spec_seqmx.
-  { rewrite prednK ?lt0n // size_map eqxx /= /za.
-    by apply/allP => x /mapP [y Hy] ->. }
-  apply: listR_seqmultinom_map.
-  by rewrite prednK ?lt0n // size_map eqxx /= /za. }
-refines_trans.
-rewrite refinesE; eapply Rseqmx_spec_seqmx.
-{ rewrite !size_map in HzQ.
-  by rewrite prednK ?lt0n // !size_map HzQ. }
-{ by rewrite refinesE; apply: list_Rxx => x; apply: list_Rxx => y. }
-  by rewrite lt0n.
 Unshelve.
 { split =>//.
   by move=> x y z Hxy Hyz; red; rewrite Hxy. }
@@ -1668,38 +1496,26 @@ Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
 
 (** *** The main tactic. *)
 
+Ltac validsdp_core r :=
+  match get_poly r (@Datatypes.nil R) with
+    (?pap, ?vm) =>
+    abstract (
+      let n' := constr:((size vm).-1) in
+      let ap := constr:(abstr_poly_of_p_abstr_poly pap) in
+      let bp := constr:(interp_poly_eff n' ap) in
+      let l := eval vm_compute in (M.elements bp) in
+      let l' := eval vm_compute in (l, ([::] : seq (seq (seq BinNums.N * BigQ.t_)))) in
+      let zQ := fresh "zQ" in
+      (soswitness of l' as zQ);
+      apply (@soscheck_eff_wrapup_correct vm pap (fst zQ));
+      (vm_cast_no_check (erefl true))
+    )
+  end.
+
 Ltac validsdp :=
   lazymatch goal with
-  | [ |- (0 <= ?r)%Re ] =>
-    match get_poly r (@Datatypes.nil R) with
-      (?pap, ?vm) =>
-      abstract (
-        let n' := constr:((size vm).-1) in
-        let ap := constr:(abstr_poly_of_p_abstr_poly pap) in
-        let bp := constr:(interp_poly_eff n' ap) in
-        let l := eval vm_compute in (M.elements bp) in
-        let l' := eval vm_compute in (l, ([::] : seq (seq (seq BinNums.N * BigQ.t_)))) in
-        let zQ := fresh "zQ" in
-        (soswitness of l' as zQ);
-        apply (@soscheck_eff_wrapup_correct vm pap (fst zQ));
-        (vm_cast_no_check (erefl true))
-      )
-    end
-  | [ |- (0 < ?r)%Re ] =>
-    match get_poly r (@Datatypes.nil R) with
-      (?pap, ?vm) =>
-      abstract (
-        let n' := constr:((size vm).-1) in
-        let ap := constr:(abstr_poly_of_p_abstr_poly pap) in
-        let bp := constr:(interp_poly_eff n' ap) in
-        let l := eval vm_compute in (M.elements bp) in
-        let l' := eval vm_compute in (l, ([::] : seq (seq (seq BinNums.N * BigQ.t_)))) in
-        let zQ := fresh "zQ" in
-        (soswitness of l' as zQ);
-        apply (@soscheck_eff_wrapup_strict_correct vm pap (fst zQ));
-        (vm_cast_no_check (erefl true))
-      )
-    end
+  | [ |- (0 <= ?r)%Re ] => validsdp_core r
+  | [ |- (0 < ?r)%Re ] => validsdp_core r
   | [ |- (?a <= ?b)%Re ] =>
     match a with
     | R0 => fail 100 "validsdp: assert false"
@@ -1710,10 +1526,8 @@ Ltac validsdp :=
     | R0 => fail 100 "validsdp: assert false"
     | _ => apply Rlt_minus_lt; validsdp
     end
-  | [ |- (?a >= ?b)%Re ] =>
-    apply Rle_ge; validsdp
-  | [ |- (?a > ?b)%Re ] =>
-    apply Rlt_gt; validsdp
+  | [ |- (?a >= ?b)%Re ] => apply Rle_ge; validsdp
+  | [ |- (?a > ?b)%Re ] => apply Rlt_gt; validsdp
   end.
 
 (** Some quick tests. *)
