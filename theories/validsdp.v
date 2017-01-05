@@ -1488,15 +1488,62 @@ Unshelve.
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
 Qed.
 
+Theorem soscheck_eff_wrapup_large_correct
+  (vm : seq R) (pap : p_abstr_poly)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
+  (soscheck_eff_wrapup vm pap zQ ->
+   (0 <= interp_p_abstr_poly vm pap)%Re).
+Proof.
+apply soscheck_eff_wrapup_correct.
+Qed.
+
+Theorem soscheck_eff_wrapup_strict_correct
+  (vm : seq R) (pap : p_abstr_poly)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
+  (soscheck_eff_wrapup_strict vm pap zQ ->
+      (0 < interp_p_abstr_poly vm pap)%Re).
+Proof.
+apply soscheck_eff_wrapup_correct.
+Qed.
+
 Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.
 Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
 
 Lemma Rlt_minus_lt r1 r2 : (0 < r2 - r1)%Re -> (r1 < r2)%Re.
 Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
 
+Notation zQt := (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))%type (only parsing).
+
+Definition validsdp_check
+  (vm : seq R) (p_pi : p_abstr_poly * seq p_abstr_poly)
+  (zQ_zQi : zQt * seq zQt) : bool :=
+  false. (* FIXME *)
+
+(* TODO: Implement a similar function for arrows. *)
+Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
+  match s with
+  | [::] => True
+  | [:: x] => a x
+  | x :: s' => a x /\ all_prop a s'
+  end.
+
+(* Goal all_prop (fun n => nth R0 [:: R0; R0; R0; R0; R1] n > 0)%R (iota 0 5). *)
+
+Theorem validsdp_strict_correct
+  (vm : seq R) (p_pi : p_abstr_poly * seq p_abstr_poly)
+  (zQ_zQi : zQt * seq zQt) :
+  validsdp_check vm p_pi zQ_zQi ->
+  let q := p_pi.1 in
+  let P := p_pi.2 in
+  let n := size P in
+  all_prop (fun n => interp_p_abstr_poly vm (nth (PConst PConstR0) P n) > 0)%Re (iota 0 n) ->
+  interp_p_abstr_poly vm q > 0.
+Proof.
+Admitted.
+
 (** *** The main tactic. *)
 
-Ltac validsdp_core r :=
+Ltac validsdp_core lem r :=
   match get_poly r (@Datatypes.nil R) with
     (?pap, ?vm) =>
     abstract (
@@ -1505,17 +1552,17 @@ Ltac validsdp_core r :=
       let bp := constr:(interp_poly_eff n' ap) in
       let l := eval vm_compute in (M.elements bp) in
       let l' := eval vm_compute in (l, ([::] : seq (seq (seq BinNums.N * BigQ.t_)))) in
-      let zQ := fresh "zQ" in
-      (soswitness of l' as zQ);
-      apply (@soscheck_eff_wrapup_correct vm pap (fst zQ));
+      let zQ_zQi := fresh "zQ_zQi" in
+      (soswitness of l' as zQ_zQi);
+      apply (@lem vm pap (fst zQ_zQi));
       (vm_cast_no_check (erefl true))
     )
   end.
 
 Ltac validsdp :=
   lazymatch goal with
-  | [ |- (0 <= ?r)%Re ] => validsdp_core r
-  | [ |- (0 < ?r)%Re ] => validsdp_core r
+  | [ |- (0 <= ?r)%Re ] => validsdp_core soscheck_eff_wrapup_large_correct r
+  | [ |- (0 < ?r)%Re ] => validsdp_core soscheck_eff_wrapup_strict_correct r
   | [ |- (?a <= ?b)%Re ] =>
     match a with
     | R0 => fail 100 "validsdp: assert false"
