@@ -13,9 +13,9 @@ Makefile.coq: Makefile $(MODULES)
 	@ocamlfind query osdp >/dev/null
 #	@ocamlfind query glpk >/dev/null
 	coq_makefile -I src \
-	  -I "$(shell ocamlfind query zarith)" -I "$(shell ocamlfind query osdp)" \
+	  -I "$(shell ocamlfind query zarith)" -I "$(shell ocamlfind query ocplib-simplex)" -I "$(shell ocamlfind query osdp)" \
 	  -Q theories $(NAME) $(MODULES) -o $@
-	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa osdp.cmxa $$</' -i $@
+	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
 #	& glpk.cmxa
 
 install: Makefile.coq
