@@ -1,0 +1,4 @@
+let schwefel =
+  `((((-- &10) <= x1) /\ ((x1 <= &10) /\ (((-- &10) <= x2) /\ ((x2 <= &10) /\ (((-- &10) <= x3) /\ (x3 <= &10)))))) ==> (((-- &1) / &10000) < (((((x1 - (x2 pow 2)) pow 2) + ((x2 - &1) pow 2)) + ((x1 - (x3 pow 2)) pow 2)) + ((x3 - &1) pow 2))))`;;
+
+let th_schwefel, st_schwefel = verify_ineq default_params 5 schwefel;;

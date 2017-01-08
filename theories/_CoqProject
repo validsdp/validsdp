@@ -22,9 +22,7 @@ seqmx_complements.v
 seqmx.v
 validsdp.v
 zulp.v
-# fdotprod.v
-# ellipsoid_error_infnan.v
-# ellipsoid_error.v
+binrat.v
 # profile.v
 # computation.v
 

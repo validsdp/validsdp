@@ -17,15 +17,18 @@ LOGS_OSDP = $(EXSML:.ml=_${NAME}_${TIMEOUT}s.log)
 LOGS_COQ = $(EXSML:.ml=_Coq_${TIMEOUT}s.log)
 LOGS_MC11 = $(EXSML:.ml=_MC11_${TIMEOUT}s.log)
 
-all: logs
+# Disable parallel build
+.NOTPARALLEL:
 
-logs: logs_osdp logs_coq logc_MC11
+all:: logs
 
-logs_osdp: $(LOGS_OSDP)
+logs:: logs_osdp logs_coq logs_MC11
 
-logs_coq: $(LOGS_COQ)
+logs_osdp:: $(LOGS_OSDP)
 
-logs_MC11: $(LOGS_MC11)
+logs_coq:: $(LOGS_COQ)
+
+logs_MC11:: $(LOGS_MC11)
 
 %_${NAME}_${TIMEOUT}s.log: %.ml
 	rm -f $@
@@ -41,7 +44,5 @@ logs_MC11: $(LOGS_MC11)
 	rm -f $@
 	runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k sage $< > $@ 2>&1 || true
 
-clean:
+clean::
 	rm -rf _build *~ *.native *.cmi *.cmx *.o *.vo *.glob sdp_problem.dat-s sdp_problem.result *.log .*.aux
-
-.PHONY: clean

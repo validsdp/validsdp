@@ -6,6 +6,7 @@ From Interval Require Import Interval_definitions Interval_xreal.
 From Interval Require Import Interval_missing.
 From CoqEAL.refinements Require Import hrel refinements param (*seqmx*) binint rational.
 Require Import seqmx.
+Require Import binrat.
 Require Import Reals Flocq.Core.Fcore_Raux QArith BigZ BigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
@@ -263,14 +264,6 @@ Definition interp_poly_ssr n (ap : abstr_poly) : {mpoly rat[n.+1]} :=
     end in
   aux ap.
 
-Global Instance zero_bigQ : zero_of bigQ := 0%bigQ.
-Global Instance one_bigQ : one_of bigQ := 1%bigQ.
-Global Instance opp_bigQ : opp_of bigQ := BigQ.opp.
-Global Instance add_bigQ : add_of bigQ := BigQ.add.
-Global Instance sub_bigQ : sub_of bigQ := BigQ.sub.
-Global Instance mul_bigQ : mul_of bigQ := BigQ.mul.
-Global Instance eq_bigQ : eq_of bigQ := BigQ.eq_bool.
-
 Definition interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
   let fix aux ap :=
     match ap with
@@ -282,8 +275,6 @@ Definition interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
     | PowN p m => mpoly_exp_eff (n := n.+1) (aux p) m
     end in
   aux ap.
-
-Definition r_ratBigQ := fun_hrel bigQ2rat.
 
 Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
   match ap with
@@ -365,13 +356,8 @@ Class polyX_of monom polyT := polyX_op : monom -> polyT.
 
 Class poly_sub_of polyT := poly_sub_op : polyT -> polyT -> polyT.
 
-(* TODO: regarder si pas déjà dans Coq_EAL *)
-Class max_of T := max_op : T -> T -> T.
-
 Class map_mx2_of B := map_mx2_op :
   forall {T T'} {m n : nat}, (T -> T') -> B T m n -> B T' m n.
-
-Global Instance max_bigQ : max_of bigQ := BigQ.max.
 
 (** ** Part 1: Generic programs *)
 
@@ -422,7 +408,7 @@ Context `{!nat_of_class ord s}.
 
 Context `{!map_mx2_of mx}.
 
-Program Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
+Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
   check_base p z &&
   let r :=
     let p' :=
@@ -438,6 +424,10 @@ Program Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool
     max_coeff pmp' in
   posdef_check_itv (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
                    (@float_infnan_spec.finite fs) Q (T2F r).
+
+Context `{!eq_of monom, !zero_of monom}.
+
+Definition has_const (z : mx monom s 1) := (fun_of_op z I0 I0 == (0:monom))%C.
 
 End generic_soscheck.
 
@@ -507,6 +497,11 @@ Global Instance map_seqmx' : map_mx2_of mx := fun T T' _ _ => map_seqmx (B := T'
 Definition soscheck_eff : polyT -> mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
   soscheck (F2T:=F2T) (T2F:=T2F).
 
+Global Instance monom_eq_eff : eq_of monom := mnmc_eq_seq.
+
+Definition has_const_eff {n : nat} : mx monom s.+1 1 -> bool :=
+  has_const (zero_of1 := @mnm0_seq n).
+
 End eff_soscheck.
 
 (** ** Part 2: Correctness proofs for proof-oriented types and programs *)
@@ -569,6 +564,11 @@ Global Instance map_mx_ssr : map_mx2_of mx := fun T T' m n f => @map_mx T T' f m
 
 Definition soscheck_ssr : polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
   soscheck (F2T:=F2T) (T2F:=T2F).
+
+Global Instance monom_eq_ssr : eq_of monom := eqtype.eq_op.
+Global Instance monom0_ssr : zero_of monom := mnm0.
+
+Definition has_const_ssr : 'cV[monom]_s.+1 -> bool := has_const.
 
 (** *** Proofs *)
 
@@ -635,14 +635,16 @@ Qed.
 Require Import bigop_tactics.
 
 Lemma soscheck_correct p z Q : soscheck_ssr p z Q ->
-  forall x, 0%R <= (map_mpoly T2R p).@[x].
+  forall x, 0%R <= (map_mpoly T2R p).@[x]
+            /\ (has_const_ssr z -> 0%R < (map_mpoly T2R p).@[x]).
 Proof.
+rewrite /has_const_ssr /has_const /eq_op /monom_eq_ssr /zero_op /monom0_ssr.
 rewrite /soscheck_ssr /soscheck /fun_of_op /fun_of_ssr /map_mx2_op /map_mx_ssr.
 set zp := matrix.map_mx _ z.
 set Q' := matrix.map_mx _ _.
 set p' := _ (_ *m _) _ _.
 set pmp' := poly_sub_op _ _.
-set r := max_coeff _ .
+set r := max_coeff _.
 pose zpr := matrix.map_mx [eta mpolyX real_ringType] z.
 pose Q'r := matrix.map_mx (map_mpoly T2R) Q'.
 pose mpolyC_R := fun c : R => mpolyC n c.
@@ -726,17 +728,23 @@ replace (meval _ _)
 with ((matrix.map_mx (meval x) M) ord0 ord0); [|by rewrite mxE].
 replace 0%R with ((@matrix.const_mx _ 1 1 R0) ord0 ord0); [|by rewrite mxE].
 rewrite /M !map_mxM -map_trmx map_mxD.
-apply /Mle_scalar /posdef_semipos.
 replace (matrix.map_mx _ (map_mpolyC_R E)) with E;
   [|by apply/matrixP => i j; rewrite !mxE /= mevalC].
 replace (matrix.map_mx _ _) with (matrix.map_mx (T2R \o F2T) Q);
   [|by apply/matrixP => i j;
     rewrite !mxE /= (map_mpolyC (GRing.raddf0 _)) mevalC].
-apply (posdef_check_itv_correct Hpcheck).
-apply Mle_trans with (Mabs E).
-{ by right; rewrite !mxE /=; f_equal; rewrite T2R_F2T GRing.addrC GRing.addKr. }
-apply (Mle_trans HE) => i j; rewrite !mxE.
-by apply T2F_correct; move: Hpcheck; move/andP; elim.
+have Hposdef : posdef (map_mx (T2R \o F2T) Q + E).
+{ apply (posdef_check_itv_correct Hpcheck).
+  apply Mle_trans with (Mabs E).
+  { right; rewrite !mxE /=; f_equal.
+    by rewrite T2R_F2T GRing.addrC GRing.addKr. }
+  apply (Mle_trans HE) => i j; rewrite !mxE.
+  by apply T2F_correct; move: Hpcheck; move/andP; elim. }
+split; [by apply /Mle_scalar /posdef_semipos|].
+move=> /eqP z0; apply /Mlt_scalar /Hposdef.
+move/matrixP => H; move: {H}(H ord0 ord0).
+rewrite /GRing.zero /= /const_mx /map_mx !mxE.
+by rewrite z0 mpolyX0 meval1 => /eqP; rewrite GRing.oner_eq0.
 Qed.
 
 End theory_soscheck.
@@ -789,10 +797,7 @@ Local Notation fs := coqinterval_infnan.coqinterval_round_up_infnan (only parsin
 
 Delimit Scope Z_scope with coq_Z.  (* should be unnecessary *)
 
-Definition rat2bigQ (q : rat) : bigQ :=
-  let n := BigZ.of_Z (int2Z (numq q)) in
-  let d := BigN.N_of_Z (int2Z (denq q)) in
-  (n # d)%bigQ.
+(* pris ici rat2bigQ *)
 
 Definition bigQ2F' := snd \o bigQ2F.
 Definition bigQ2FIS := FI2FIS \o F2FI \o bigQ2F'.
@@ -1131,7 +1136,9 @@ apply/idP/idP.
     suff: (m == mm) = (m' == mm'); [by move=>->|].
     apply Rseqmultinom_eq; [by rewrite refinesE|].
     rewrite /mm /mm' /mul_monom_op /mul_monom_ssr /mul_monom_eff.
-    refines_apply_tc; refines_apply_tc. (* (* nat_Rxx *)*) }
+    refines_apply1; first refines_apply1; first refines_apply1;
+      first refines_apply1; try by rewrite refinesE.
+    refines_apply1; first refines_apply1; by rewrite refinesE. }
   by move/S.mem_2=> H; apply S.mem_1, S.add_2. }
 move/S.mem_2.
 set mm := mul_monom_op _ _; case Em' : (m' == mm).
@@ -1139,7 +1146,9 @@ set mm := mul_monom_op _ _; case Em' : (m' == mm).
   move: HIn; apply S.add_3=>_; apply /Hm /eqP.
   rewrite /is_true -Em'; apply Rseqmultinom_eq.
   { by rewrite refinesE. }
-  refines_apply_tc; refines_apply_tc. (* (* nat_Rxx *)  *)}
+  refines_apply1; first refines_apply1; first refines_apply1;
+    first refines_apply1; try by rewrite refinesE.
+  refines_apply1; first refines_apply1; by rewrite refinesE. }
 move/S.add_3=>H; apply/orP; right; apply S.mem_1, H.
   by move/mnmc_eq_seqP; rewrite eq_sym Em'.
 Qed.
@@ -1159,7 +1168,7 @@ elim: s' s'' rs' z z' rz=> [|h t IH] s'' rs' z z' rz.
 { case: s'' rs'=> [//|h' t'] rs'; inversion rs'. }
 case: s'' rs'=> [|h' t'] rs' /=; [by inversion rs'|].
 apply IH; [by inversion rs'|].
-by apply refinesP; refines_apply_tc; rewrite refinesE; inversion rs'.
+by apply refinesP; refines_apply; rewrite refinesE; inversion rs'.
 Qed.
 
 Instance refine_max_coeff :
@@ -1242,200 +1251,28 @@ by rewrite refinesE /Rord.
 by rewrite refinesE /Rord.
 Qed.
 
+Lemma refine_has_const :
+  refines (RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> bool_R)
+    has_const_ssr (has_const_eff (n:=n)).
+Proof.
+rewrite refinesE=> z z' rz.
+rewrite /has_const_ssr /has_const_eff /has_const.
+rewrite /eq_op /monom_eq_ssr /monom_eq_eff.
+suff_eq bool_Rxx.
+set z00 := fun_of_op z _ _; set z'00 := fun_of_op z' _ _.
+suff : z00 == monom0_ssr = (z'00 == @mnm0_seq n).
+{ by move->; apply/idP/idP; [apply/mnmc_eq_seqP|move/mnmc_eq_seqP]. }
+apply Rseqmultinom_eq.
+{ eapply refines_apply; [eapply refines_apply|].
+  { eapply refines_apply; tc. }
+  { by rewrite refinesE. }
+  by rewrite refinesE. }
+apply refine_mnm0.
+Qed.
+
 End refinement_soscheck.
 
 Section refinement_interp_poly.
-
-Global Instance refine_ratBigQ_zero : refines r_ratBigQ 0%R 0%C.
-Proof. rewrite refinesE /r_ratBigQ /bigQ2rat; red; exact: val_inj. Qed.
-
-Global Instance refine_ratBigQ_one : refines r_ratBigQ 1%R 1%C.
-Proof. rewrite refinesE /r_ratBigQ /bigQ2rat; red; exact: val_inj. Qed.
-
-Global Instance refine_ratBigQ_opp : refines (r_ratBigQ ==> r_ratBigQ) -%R -%C.
-Proof.
-apply refines_abstr=> a b.
-rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rab.
-rewrite /GRing.opp /= /oppq /opp_op /opp_bigQ /BigQ.opp.
-move: rab; case b.
-{ move=> n <-; rewrite /GRing.opp /=; apply val_inj=>/=.
-  rewrite !Z_ggcd_1_r /= gcdn1 !divn1 BigZ.spec_opp Z2int_opp.
-  by rewrite expN1r mulz_sign_abs. }
-rewrite -oppq_frac.
-move=> n d <-; apply val_inj=>/=.
-set n' := Qnum _.
-set d' := Qden _.
-set n'' := Qnum _.
-set d'' := Qden _.
-set g := gcdn _ _.
-have Hg: g = 1%N; [|rewrite Hg divn1].
-{ apply Nat2Z.inj; rewrite /g -ZgcdE /=.
-  apply Qcanon.Qred_iff, Qcanon.Qred_involutive. }
-rewrite !Posz_nat_of_pos_neq0 divn1 expN1r mulz_sign_abs abszN -/g Hg !divn1.
-rewrite !absz_nat.
-have ->: (Posz (nat_of_pos d'') < 0)%Ri = false.
-{ by rewrite -(absz_nat (nat_of_pos d'')) normr_lt0. }
-rewrite /= -(abszN (Z2int n'')) mulz_sign_abs; f_equal.
-{ rewrite -Z2int_opp; f_equal.
-  rewrite /n' /n''; case (_ =? _)%bigN=>//.
-  rewrite BigZ.spec_opp /= Z.ggcd_opp /=.
-  by case (Z.ggcd _)=> ? p; case p. }
-rewrite /d' /d''; case (_ =? _)%bigN=>//=.
-rewrite BigZ.spec_opp /= Z.ggcd_opp /=.
-by case (Z.ggcd _)=> ? p; case p.
-Qed.
-
-Global Instance refine_ratBigQ_add :
-  refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) +%R +%C.
-Proof.
-apply refines_abstr2=> a b rab c d rcd.
-rewrite /GRing.add /= /addq /add_op /add_bigQ.
-case Ea: ((valq a).2 == 0%Ri).
-{ exfalso; move: rab Ea; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=><-/=;
-  by rewrite Posz_nat_of_pos_neq0. }
-case Ec: ((valq c).2 == 0%Ri).
-{ exfalso; move: rcd Ec; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=><-/=;
-  by rewrite Posz_nat_of_pos_neq0. }
-rewrite -addq_frac ?Ea ?Ec // !valqK.
-rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel; apply val_inj=>/=.
-have ->: Qred [b + d]%bigQ = Qred (Qred [b]%bigQ + Qred [d]%bigQ)%Qrat.
-{ by apply Qred_complete; rewrite BigQ.spec_add !Qred_correct. }
-move: rab rcd.
-rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=><-<-/=.
-set nb := Qnum (Qred _).
-set db := Qden (Qred _).
-set nd := Qnum (Qred _).
-set dd := Qden (Qred _).
-rewrite /GRing.add /GRing.mul /=.
-rewrite -!binnat.to_natE -multE -Pos2Nat.inj_mul !binnat.to_natE.
-rewrite Posz_nat_of_pos_neq0.
-case E: ((Z.ggcd _ _).2)=>/=; move: E.
-rewrite (surjective_pairing (_.2))=>[] [] <- <-.
-set nr := (_ + _)%coq_Z.
-set dr := (' _)%coq_Z.
-move: (Z.ggcd_gcd nr dr) (Z.ggcd_correct_divisors nr dr) (Z_ggcd_coprime nr dr).
-case (Z.ggcd _ _)=>g ab /= Hg; case ab=> a' b' [] /= Ha' Hb' CPab'.
-rewrite -[intRing.mulz (Z2int nb) _]/(Z2int nb * nat_of_pos db)%Ri.
-rewrite -[intRing.mulz (Z2int nd) _]/(Z2int nd * nat_of_pos dd)%Ri.
-rewrite -[intZmod.addz _ _]/(Z2int nb * nat_of_pos db + Z2int nd * nat_of_pos dd)%Ri.
-rewrite !Z2int_mul_nat_of_pos -Z2int_add -/nr !nat_of_pos_Z_to_pos -/dr.
-rewrite Ha' Hb' !Z2int_mul !abszM.
-have Pg' : (0 < Z2int g)%Ri.
-{ rewrite Hg; case E: (Z.gcd _ _).
-  { by exfalso; move: E; rewrite /Z.gcd; case nr. }
-  { by rewrite /Z2int /Num.Def.ltr /GRing.zero /= nat_of_pos_gt0. }
-  by exfalso; move: E; rewrite /Z.gcd; case nr. }
-have Pg : (0 < `|Z2int g|)%N.
-{ rewrite absz_gt0; apply/eqP=>H; move: Pg'; rewrite H.
-  by rewrite /GRing.zero /Num.Def.ltr /= ltnn. }
-rewrite -muln_gcdr !divnMl //.
-have ->: gcdn `|Z2int a'| `|Z2int b'| = 1%N; [|rewrite !divn1].
-{ by move: CPab'; rewrite /coprime=>H; apply/eqP/H=>{H}H; move: Pg'; rewrite H. }
-suff ->: (Z2int g * Z2int a' < 0 = (Z2int a' < 0))%Ri.
-{ rewrite -[_ (_ ^ _)%Ri _]/((-1) ^ (Z2int a' < 0)%Ri * Posz `|Z2int a'|%N)%Ri.
-  rewrite expN1r mulz_sign_abs /Z.to_pos.
-  move: Hb'; case b'=>//.
-  { by rewrite Z.mul_0_r=>[]. }
-  move=> p; move: Pg'; case g=>// p'.
-  by rewrite /Z2int=>/= H; exfalso; move: H; rewrite oppr_gt0. }
-by apply pmulr_rlt0.
-Qed.
-
-Global Instance refine_ratBigQ_sub :
-  refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) (fun x y => x - y)%R sub_op.
-Proof.
-apply refines_abstr2=> a b rab c d rcd.
-rewrite /sub_op /sub_bigQ /BigQ.sub; eapply refines_apply; tc.
-Qed.
-
-Global Instance refine_ratBigQ_mul :
-  refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) *%R *%C.
-Proof.
-apply refines_abstr2=> a b rab c d rcd.
-rewrite /GRing.mul /= /mulq -mulq_frac !valqK /mul_op /mul_bigQ.
-rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel; apply val_inj=>/=.
-have ->: Qred [b * d]%bigQ = Qred (Qred [b]%bigQ * Qred [d]%bigQ)%Qrat.
-{ by apply Qred_complete; rewrite BigQ.spec_mul !Qred_correct. }
-move: rab rcd.
-rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=><-<-/=.
-set nb := Qnum (Qred _).
-set db := Qden (Qred _).
-set nd := Qnum (Qred _).
-set dd := Qden (Qred _).
-rewrite /GRing.mul /= -!binnat.to_natE -multE -Pos2Nat.inj_mul !binnat.to_natE.
-rewrite Posz_nat_of_pos_neq0.
-case E: ((Z.ggcd _ _).2)=>/=; move: E.
-rewrite (surjective_pairing (_.2))=>[] [] <- <-.
-move: (Z_ggcd_coprime (nb * nd) (' (db * dd))).
-move: (Z.ggcd_correct_divisors (nb * nd) (' (db * dd))).
-move: (Z.ggcd_gcd (nb * nd) (' (db * dd))).
-case (Z.ggcd _ _)=>g ab /= Hg; case ab=> a' b' [] /= Ha' Hb' CPab'.
-have ->: intRing.mulz (Z2int nb) (Z2int nd) = Z2int (nb * nd).
-{ by rewrite Z2int_mul. }
-rewrite Ha' !nat_of_pos_Z_to_pos Hb' !Z2int_mul !abszM.
-have Pg' : (0 < Z2int g)%Ri.
-{ rewrite Hg; case E: (Z.gcd _ _).
-  { by exfalso; move: E; rewrite /Z.gcd; case (_ * _)%coq_Z. }
-  { by rewrite /Z2int /Num.Def.ltr /GRing.zero /= nat_of_pos_gt0. }
-  by exfalso; move: E; rewrite /Z.gcd; case (_ * _)%coq_Z. }
-have Pg : (0 < `|Z2int g|)%N.
-{ rewrite absz_gt0; apply/eqP=>H; move: Pg'; rewrite H.
-  by rewrite /GRing.zero /Num.Def.ltr /= ltnn. }
-rewrite -muln_gcdr !divnMl //.
-have ->: gcdn `|Z2int a'| `|Z2int b'| = 1%N; [|rewrite !divn1].
-{ by move: CPab'; rewrite /coprime=>H; apply/eqP/H=>{H}H; move: Pg'; rewrite H. }
-suff ->: (Z2int g * Z2int a' < 0 = (Z2int a' < 0))%Ri.
-{ rewrite -[_ (_ ^ _)%Ri _]/((-1) ^ (Z2int a' < 0)%Ri * Posz `|Z2int a'|%N)%Ri.
-  rewrite expN1r mulz_sign_abs /Z.to_pos.
-  move: Hb'; case b'=>//.
-  { by rewrite Z.mul_0_r=>[]. }
-  move=> p; move: Pg'; case g=>// p'.
-  by rewrite /Z2int=>/= H; exfalso; move: H; rewrite oppr_gt0. }
-by apply pmulr_rlt0.
-Qed.
-
-Global Instance refine_ratBigQ_eq :
-  refines (r_ratBigQ ==> r_ratBigQ ==> eq) eqtype.eq_op eq_op.
-Proof.
-apply refines_abstr2=> a b rab c d rcd.
-rewrite /eq_op /eq_bigQ /BigQ.eq_bool.
-case E: (_ == _); case E': (_ ?= _)%bigQ=>//; rewrite ?refinesE //; exfalso.
-{ move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
-  move: E; rewrite -rba -rdc=> /eqP [] /Z2int_inj Hn /nat_of_pos_inj Hd.
-  move: E'; rewrite BigQ.spec_compare Qred_compare -Qlt_alt /Qlt Hn Hd.
-  apply Z.lt_irrefl. }
-{ move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
-  move: E; rewrite -rba -rdc=> /eqP [] /Z2int_inj Hn /nat_of_pos_inj Hd.
-  move: E'; rewrite BigQ.spec_compare Qred_compare -Qgt_alt /Qlt Hn Hd.
-  apply Z.lt_irrefl. }
-move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
-move: E; rewrite -rba -rdc=> /eqP H; apply H, val_inj=>/={H}.
-by move: E'; rewrite BigQ.spec_compare -Qeq_alt=>/Qred_complete ->.
-Qed.
-
-Global Instance refine_ratBigQ_max :
-  refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) Num.max max_op.
-Proof.
-apply refines_abstr2=> a b rab c d rcd.
-rewrite /max_op /max_bigQ /BigQ.max /Num.max.
-case E: (_ <= _)%Ri; case E': (_ ?= _)%bigQ=>//; exfalso.
-{ move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
-  move: E; rewrite -rba -rdc.
-  rewrite /Num.Def.ler /= /le_rat /numq /denq /=.
-  move: E'; rewrite BigQ.spec_compare Qred_compare -Qlt_alt /Qlt.
-  by rewrite !Z2int_mul_nat_of_pos=>H; move/Z2int_le; apply Zlt_not_le. }
-{ move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
-  move: E; rewrite -rba -rdc.
-  rewrite /Num.Def.ler /= /le_rat /numq /denq /=.
-  move: E'; rewrite BigQ.spec_compare Qred_compare -Qeq_alt /Qeq.
-  by rewrite !Z2int_mul_nat_of_pos=>->; rewrite lerr. }
-move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
-move: E; rewrite -rba -rdc.
-rewrite /Num.Def.ler /= /le_rat /numq /denq /=.
-move: E'; rewrite BigQ.spec_compare Qred_compare -Qgt_alt /Qlt.
-rewrite !Z2int_mul_nat_of_pos=>H.
-by move/negP /Z2int_le=>H'; apply H', Z.lt_le_incl.
-Qed.
 
 Lemma refine_interp_poly n ap : vars_ltn n.+1 ap ->
   refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
@@ -1502,6 +1339,13 @@ Definition soscheck_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
      (T2F := F2FI \o bigQ2F')
      bp z Q].
 
+Definition soscheck_eff_wrapup_strict (vm : seq R) (pap : p_abstr_poly)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
+  let n := size vm in
+  let s := size zQ.1 in
+  let z := map (fun x => [:: x]) zQ.1 in
+  has_const_eff (s:=s.-1) (n:=n) z && soscheck_eff_wrapup vm pap zQ.
+
 Lemma map_R_nth (T1 T2 : Type) (x0 : T2) (T_R : T1 -> T2 -> Type) (f : T2 -> T1) l :
   (forall i, (i < size l)%N -> T_R (f (nth x0 l i)) (nth x0 l i)) ->
   list_R T_R [seq f x | x <- l] l.
@@ -1561,22 +1405,40 @@ Ltac op202 tac lem1 lem2 := let H1 := fresh in let H2 := fresh in
 Theorem soscheck_eff_wrapup_correct
   (vm : seq R) (pap : p_abstr_poly)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
-  soscheck_eff_wrapup vm pap zQ ->
-  (0 <= interp_p_abstr_poly vm pap)%Re.
+  (soscheck_eff_wrapup vm pap zQ ->
+   (0 <= interp_p_abstr_poly vm pap)%Re)
+  /\ (soscheck_eff_wrapup_strict vm pap zQ ->
+      (0 < interp_p_abstr_poly vm pap)%Re).
 Proof.
-rewrite /soscheck_eff_wrapup.
-case/and5P => Hn Hz Hs HzQ /and3P [HzQ' Hltn Hsos].
-pose n := size vm.
-pose n' := n.-1.
-set ap := abstr_poly_of_p_abstr_poly pap in Hsos *.
-rewrite (_: size vm = n'.+1) in Hsos; last by rewrite prednK // lt0n Hn.
-set bp := interp_poly_eff n' ap in Hsos *.
-set za := (map (fun x => [:: x]) zQ.1) in Hsos *.
-set Qa := map (map F2FI) zQ.2 in Hsos *.
+rewrite /soscheck_eff_wrapup_strict /soscheck_eff_wrapup.
+set n := size vm.
+set n' := n.-1.
+set ap := abstr_poly_of_p_abstr_poly pap.
+set bp := interp_poly_eff n' ap.
+set za := (map (fun x => [:: x]) zQ.1).
+set Qa := map (map F2FI) zQ.2.
 pose s := (size zQ.1).-1.
 pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s.+1 1 za.
 pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s.+1 s.+1 Qa.
-rewrite interp_correct; last by rewrite ?lt0n.
+set hyps := andb _ _.
+set hconst := has_const_eff _.
+suff : hyps -> (0 <= interp_p_abstr_poly vm pap /\
+                (hconst -> 0 < interp_p_abstr_poly vm pap)).
+{ by move=> H; split; [|move/andP=> [? ?]]; apply H. }
+rewrite /hyps.
+case/and5P => Hn Hz Hs HzQ /and3P [HzQ' Hltn Hsos].
+have Hn' : n'.+1 = n by rewrite prednK // lt0n Hn.
+rewrite interp_correct; [|by move: Hn; rewrite -/n; case n|by rewrite ?lt0n].
+have -> : hconst = has_const_ssr zb.
+{ rewrite /hconst -/s -Hn'.
+  apply esym, refines_eq, refines_bool_eq; refines_apply1.
+  { apply refine_has_const. }
+  rewrite /zb /za.
+  rewrite refinesE; apply RseqmxC_spec_seqmx.
+  { apply /andP; split.
+    { by rewrite size_map prednK //; move: Hs; case (size _). }
+    by apply /allP => x /mapP [] x' _ ->. }
+  by apply listR_seqmultinom_map; rewrite Hn'. }
 apply soscheck_correct with
   (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
   (2 := rat2FIS_correct)
@@ -1588,7 +1450,7 @@ apply soscheck_correct with
 apply (etrans (y := @soscheck_eff n'.+1 _
   zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs
   (F2bigQ \o FI_val) (F2FI \o bigQ2F') bp za Qa)); last first.
-{ by rewrite -/n' /n in Hsos; apply Hsos. }
+{ by rewrite Hn' Hsos. }
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1; first refines_apply1.
 { eapply (refine_soscheck (eq_F := eqFIS) (rAC := r_ratBigQ)). (* 17 evars *)
@@ -1604,7 +1466,6 @@ rewrite refinesE; eapply Rseqmx_spec_seqmx.
 { rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
 { by rewrite refinesE; apply: list_Rxx => x; apply: list_Rxx => y. }
-  by rewrite lt0n.
 Unshelve.
 { split =>//.
   by move=> x y z Hxy Hyz; red; rewrite Hxy. }
@@ -1627,40 +1488,103 @@ Unshelve.
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
 Qed.
 
+Theorem soscheck_eff_wrapup_large_correct
+  (vm : seq R) (pap : p_abstr_poly)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
+  (soscheck_eff_wrapup vm pap zQ ->
+   (0 <= interp_p_abstr_poly vm pap)%Re).
+Proof.
+apply soscheck_eff_wrapup_correct.
+Qed.
+
+Theorem soscheck_eff_wrapup_strict_correct
+  (vm : seq R) (pap : p_abstr_poly)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
+  (soscheck_eff_wrapup_strict vm pap zQ ->
+      (0 < interp_p_abstr_poly vm pap)%Re).
+Proof.
+apply soscheck_eff_wrapup_correct.
+Qed.
+
 Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.
 Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
 
+Lemma Rlt_minus_lt r1 r2 : (0 < r2 - r1)%Re -> (r1 < r2)%Re.
+Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
+
+Notation zQt := (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))%type (only parsing).
+
+Definition validsdp_check
+  (vm : seq R) (p_pi : p_abstr_poly * seq p_abstr_poly)
+  (zQ_zQi : zQt * seq zQt) : bool :=
+  false. (* FIXME *)
+
+(* TODO: Implement a similar function for arrows. *)
+Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
+  match s with
+  | [::] => True
+  | [:: x] => a x
+  | x :: s' => a x /\ all_prop a s'
+  end.
+
+(* Goal all_prop (fun n => nth R0 [:: R0; R0; R0; R0; R1] n > 0)%R (iota 0 5). *)
+
+Theorem validsdp_strict_correct
+  (vm : seq R) (p_pi : p_abstr_poly * seq p_abstr_poly)
+  (zQ_zQi : zQt * seq zQt) :
+  validsdp_check vm p_pi zQ_zQi ->
+  let q := p_pi.1 in
+  let P := p_pi.2 in
+  let n := size P in
+  all_prop (fun n => interp_p_abstr_poly vm (nth (PConst PConstR0) P n) > 0)%Re (iota 0 n) ->
+  interp_p_abstr_poly vm q > 0.
+Proof.
+Admitted.
+
 (** *** The main tactic. *)
 
-Ltac do_sdp :=
+Ltac validsdp_core lem r :=
+  match get_poly r (@Datatypes.nil R) with
+    (?pap, ?vm) =>
+    abstract (
+      let n' := constr:((size vm).-1) in
+      let ap := constr:(abstr_poly_of_p_abstr_poly pap) in
+      let bp := constr:(interp_poly_eff n' ap) in
+      let l := eval vm_compute in (M.elements bp) in
+      let l' := eval vm_compute in (l, ([::] : seq (seq (seq BinNums.N * BigQ.t_)))) in
+      let zQ_zQi := fresh "zQ_zQi" in
+      (soswitness of l' as zQ_zQi);
+      apply (@lem vm pap (fst zQ_zQi));
+      (vm_cast_no_check (erefl true))
+    )
+  end.
+
+Ltac validsdp :=
   lazymatch goal with
-  | [ |- (0 <= ?r)%Re ] =>
-    match get_poly r (@Datatypes.nil R) with
-      (?pap, ?vm) =>
-      abstract (
-        let n' := constr:((size vm).-1) in
-        let ap := constr:(abstr_poly_of_p_abstr_poly pap) in
-        let bp := constr:(interp_poly_eff n' ap) in
-        let l := eval vm_compute in (M.elements bp) in
-        let zQ := fresh "zQ" in
-        (soswitness of l as zQ);
-        apply (@soscheck_eff_wrapup_correct vm pap zQ);
-        (vm_cast_no_check (erefl true))
-      )
-    end
+  | [ |- (0 <= ?r)%Re ] => validsdp_core soscheck_eff_wrapup_large_correct r
+  | [ |- (0 < ?r)%Re ] => validsdp_core soscheck_eff_wrapup_strict_correct r
   | [ |- (?a <= ?b)%Re ] =>
     match a with
-    | R0 => fail 100 "do_sdp: assert false"
-    | _ => apply Rle_minus_le; do_sdp
+    | R0 => fail 100 "validsdp: assert false"
+    | _ => apply Rle_minus_le; validsdp
     end
-  | [ |- (?a >= ?b)%Re ] =>
-    apply Rle_ge; do_sdp
+  | [ |- (?a < ?b)%Re ] =>
+    match a with
+    | R0 => fail 100 "validsdp: assert false"
+    | _ => apply Rlt_minus_lt; validsdp
+    end
+  | [ |- (?a >= ?b)%Re ] => apply Rle_ge; validsdp
+  | [ |- (?a > ?b)%Re ] => apply Rlt_gt; validsdp
   end.
 
 (** Some quick tests. *)
 
-Lemma test_do_sdp (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
-Time do_sdp.
+Lemma test_validsdp (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
+Time validsdp.
+Time Qed.
+
+Lemma test_validsdp' (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 + 1 > 0)%Re.
+Time validsdp.
 Time Qed.
 
 Let sigma x0 x1 x2 : R := 6444365281246187/9007199254740992
@@ -1823,12 +1747,12 @@ Let p x0 x1 x2 : R :=
 
 Lemma sigma_pos (x0 x1 x2 : R) : (sigma x0 x1 x2 >= 0)%Re.
 rewrite /sigma.
-Time do_sdp.
+Time validsdp.
 Time Qed.
 
 Lemma sigma1_pos (x0 x1 x2 : R) : (sigma1 x0 x1 x2 >= 0)%Re.
 rewrite /sigma1.
-Time do_sdp.
+Time validsdp.
 Time Qed.
 
 Lemma p_ind (x0 x1 x2 : R) :
@@ -1838,5 +1762,5 @@ Lemma p_ind (x0 x1 x2 : R) :
    - (sigma x0 x1 x2) * (p x0 x1 x2)
    - (sigma1 x0 x1 x2) * (x0^2 + x1^2 + x2^2 - 1) >= 0)%Re.
 rewrite /p /sigma /sigma1.
-Time do_sdp.
+Time validsdp.
 Time Qed.

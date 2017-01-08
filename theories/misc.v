@@ -7,9 +7,9 @@ Require Import Psatz.
 
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
 Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.algebra.ssralg mathcomp.algebra.matrix mathcomp.ssreflect.bigop.
-From mathcomp Require Import ssrnum ssrint rat div.
+From mathcomp Require Import ssrnum ssrint rat.
 
-From CoqEAL.refinements Require Import binnat.
+Require Import binrat.
 Require Import Rstruct.
 
 Set Implicit Arguments.
@@ -305,7 +305,7 @@ Qed.
 
 End Map2.
 
-(** ** Lemmas about [BigQ] *)
+(** ** Lemmas about [BigQ] and [R] *)
 Definition Q2R (x : Q) : R :=
   (Z2R (Qnum x) / Z2R (Z.pos (Qden x)))%Re.
 
@@ -364,6 +364,8 @@ rewrite /Rdiv in Hxy.
 rewrite Rmult_assoc [(_ * / _)%Re]Rmult_comm -Rmult_assoc Hxy.
 field; split; simpl; pos_P2R.
 Qed.
+
+(** ** Lemmas about [BigQ.check_int], [BigQ.norm] and [BigQ.red] *)
 
 Local Open Scope Z_scope.
 
@@ -431,197 +433,7 @@ Lemma BigQ_red_den_neq0 q :
   end.
 Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0. Qed.
 
-(** ** Lemmas about [int] and [rat] *)
-
-Lemma nat_of_pos_gt0 p : (0 < nat_of_pos p)%N.
-Proof. by elim: p =>//= p IHp; rewrite NatTrec.doubleE double_gt0. Qed.
-
-Lemma nat_of_pos_inj x y : nat_of_pos x = nat_of_pos y -> x = y.
-Proof. rewrite -!binnat.to_natE; apply Pos2Nat.inj. Qed.
-
-Lemma Posz_nat_of_pos_neq0 p : Posz (nat_of_pos p) == 0%Ri = false.
-Proof.
-rewrite -binnat.to_natE.
-case E: (Pos.to_nat _)=>//; exfalso; move: E.
-by move: (binnat.to_nat_gt0 p); case (Pos.to_nat _).
-Qed.
-
-Definition Z2int (z : BinNums.Z) :=
-  match z with
-  | Z0 => 0%:Z
-  | Z.pos p => (nat_of_pos p)%:Z
-  | Z.neg n => (- (nat_of_pos n)%:Z)%R
-  end.
-
-Lemma Z2int_inj x y : Z2int x = Z2int y -> x = y.
-Proof.
-rewrite /Z2int.
-case x, y=>//.
-{ move=>[] H.
-  by rewrite -[Z0]/(Z.of_nat 0%N) H -binnat.to_natE positive_nat_Z. }
-{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
-  case E: (Pos.to_nat _)=>//=.
-  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
-{ rewrite -binnat.to_natE; case E: (Pos.to_nat _)=>//=.
-  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
-{ by move=>[] /nat_of_pos_inj ->. }
-{ rewrite -!binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
-  case (Pos.to_nat p0)=>//=.
-  by move=>[] H; move: (binnat.to_nat_gt0 p); rewrite H ltnn. }
-{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
-  case E: (Pos.to_nat _)=>//=.
-  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
-{ rewrite -!binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
-  case E: (Pos.to_nat p)=>//=.
-  by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
-rewrite -!binnat.to_natE /GRing.opp /= /intZmod.oppz /=.
-case E: (Pos.to_nat p)=>//=.
-{ by move: (binnat.to_nat_gt0 p); rewrite -E ltnn. }
-case E': (Pos.to_nat p0)=>//= [] [] H.
-by move: E'; rewrite -H -E=>/Pos2Nat.inj ->.
-Qed.
-
-Lemma Z2int_opp n : Z2int (- n) = (- (Z2int n))%Ri.
-Proof. by case n=>// p /=; rewrite GRing.opprK. Qed.
-
-Lemma Z2int_add x y : Z2int (x + y) = (Z2int x + Z2int y)%Ri.
-Proof.
-rewrite /Z2int /GRing.add /= /intZmod.addz /Z.add; case x, y=>//.
-{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz.
-  by case (Pos.to_nat p)=>// n; rewrite subn0. }
-{ by rewrite addn0. }
-{ by rewrite nat_of_addn_gt0. }
-{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz.
-  move: (Z.pos_sub_discr p p0); case (Z.pos_sub _ _).
-  { move<-; rewrite -binnat.to_natE; case (Pos.to_nat _)=>// n.
-    by rewrite ltnSn subnn. }
-  { move=> p' ->; rewrite -!binnat.to_natE Pos2Nat.inj_add.
-    case (Pos.to_nat p0); [by rewrite Nat.add_0_l addn0|move=> n].
-    rewrite ifT; [by rewrite plusE addKn|].
-    by rewrite plusE; apply ltn_addr; rewrite ltnSn. }
-  move=> p' ->; rewrite -!binnat.to_natE Pos2Nat.inj_add.
-  case (Pos.to_nat p').
-  { rewrite Nat.add_0_r; case (Pos.to_nat p)=>// n.
-    by rewrite ltnSn subnn. }
-  move=> n.
-  case E: (Pos.to_nat p)=>/=; [by rewrite subn0|].
-  rewrite ifF.
-  { by rewrite plusE addnS -addSn addKn. }
-  by rewrite plusE addnS -addSn -ltn_subRL subnn ltn0. }
-{ rewrite /GRing.opp /= /intZmod.oppz -binnat.to_natE.
-  by case (Pos.to_nat p); [rewrite addn0|move=>n; rewrite subn0]. }
-{ rewrite -binnat.to_natE /GRing.opp /= /intZmod.oppz.
-  move: (Z.pos_sub_discr p p0); case E': (Z.pos_sub _ _).
-  { move<-; rewrite -binnat.to_natE Z.pos_sub_diag; case (Pos.to_nat _)=>// n.
-    by rewrite ltnSn subnn. }
-  { move=> ->.
-    rewrite -!binnat.to_natE Pos2Nat.inj_add Z.pos_sub_lt; last first.
-    { by apply Pos.lt_add_diag_r. }
-    rewrite -binnat.to_natE Pos2Nat.inj_sub ?Pos2Nat.inj_add; last first.
-    { by apply Pos.lt_add_diag_r. }
-    rewrite plusE minusE addKn; case (Pos.to_nat _).
-    { by rewrite addn0; case (Pos.to_nat p0)=>// n; rewrite ltnSn subnn. }
-    move=> n.
-    case E: (Pos.to_nat p0 + n.+1)%N.
-    { by exfalso; move: E; rewrite addnS. }
-    rewrite -E ifF.
-    { f_equal.
-      have H: (Pos.to_nat p0 + n.+1 - n.+1 = Pos.to_nat p0 + n.+1 - n.+1)%N.
-      { done. }
-      move: H; rewrite {2}E addnK=>->.
-      by rewrite subnS subSn /= ?subKn //; move: E;
-        rewrite addnS=>[] [] <-; rewrite leq_addl. }
-    by rewrite addnS -ltn_subRL subnn ltn0. }
-  move=> ->; rewrite Z.pos_sub_gt; [|by apply Pos.lt_add_diag_r].
-  rewrite -!binnat.to_natE !Pos2Nat.inj_sub; [|by apply Pos.lt_add_diag_r].
-  rewrite Pos2Nat.inj_add; case (Pos.to_nat p).
-  { by rewrite plusE minusE !add0n subn0. }
-  by move=> n; rewrite plusE minusE addKn ifT // leq_addr. }
-rewrite -!binnat.to_natE Pos2Nat.inj_add /GRing.opp /= /intZmod.oppz plusE.
-case (Pos.to_nat p).
-{ by rewrite add0n; case (Pos.to_nat p0)=>// n; rewrite ltn0 subn0. }
-move=> n; case (Pos.to_nat p0); [by rewrite addn0 ltn0 subn0|].
-by move=> n'; rewrite addSn -addnS.
-Qed.
-
-Lemma Z2int_mul_nat_of_pos (x : BinNums.Z) (y : positive) :
-  (Z2int x * nat_of_pos y)%Ri = Z2int (Z.mul x (BinNums.Zpos y)).
-Proof.
-rewrite /Z2int; case Ex: x.
-{ by rewrite mul0r Z.mul_0_l. }
-{ by rewrite /= -!binnat.to_natE Pos2Nat.inj_mul. }
-by rewrite /= mulNr  -!binnat.to_natE Pos2Nat.inj_mul.
-Qed.
-
-Lemma Z2int_mul x y : Z2int (x * y) = (Z2int x * Z2int y)%Ri.
-Proof.
-case y=>/=.
-{ by rewrite GRing.mulr0 Z.mul_0_r. }
-{ by move=> p; rewrite Z2int_mul_nat_of_pos. }
-move=> p.
-by rewrite GRing.mulrN Z2int_mul_nat_of_pos -Z2int_opp Zopp_mult_distr_r.
-Qed.
-
-Lemma Z2int_le x y : (Z2int x <= Z2int y)%Ri <-> Z.le x y.
-Proof.
-rewrite /Z2int; case Ex: x; case Ey: y=> //.
-{ rewrite oppr_ge0; split; move=> H; exfalso; move: H; [|by rewrite /Z.le].
-  apply/negP; rewrite -ltrNge; apply nat_of_pos_gt0. }
-{ split; move=> H; exfalso; move: H; [|by rewrite /Z.le].
-  apply/negP; rewrite -ltrNge; apply nat_of_pos_gt0. }
-{ rewrite -!binnat.to_natE /Num.Def.ler /=.
-  by rewrite -!positive_nat_Z -Nat2Z.inj_le; split; [apply/leP|move/leP]. }
-{ split; move=> H; exfalso; move: H; [|by rewrite /Z.le].
-  apply /negP; rewrite -ltrNge.
-  apply (@ltr_trans _ 0%Ri); rewrite ?oppr_lt0; apply nat_of_pos_gt0. }
-{ rewrite oppr_le0; split; by rewrite /Z.le. }
-{ split=>_; [by rewrite /Z.le|].
-  by apply (@ler_trans _ 0%Ri); [apply oppr_le0|apply ltrW, nat_of_pos_gt0]. }
-rewrite ler_opp2; split.
-{ rewrite /Z.le /Z.compare -!binnat.to_natE /Num.Def.ler /= => /leP.
-  by rewrite -Pos.compare_antisym -Pos2Nat.inj_le -Pos.compare_le_iff. }
-rewrite /Z.le /Z.compare -!binnat.to_natE /Num.Def.ler /=.
-rewrite -Pos.compare_antisym=>H; apply/leP.
-by rewrite -Pos2Nat.inj_le -Pos.compare_le_iff.
-Qed.
-
-Lemma nat_of_pos_Z_to_pos x : nat_of_pos x = `|Z2int (' x)|%N.
-Proof. by rewrite /absz /Z2int. Qed.
-
-Lemma Zabs_natE n : Z.abs_nat n = `|Z2int n|%N.
-Proof.
-case: n => //= p; first by rewrite binnat.to_natE.
-by rewrite abszN absz_nat binnat.to_natE.
-Qed.
-
-Definition int2Z (n : int) : BinNums.Z :=
-  match n with
-  | Posz O => Z0
-  | Posz n => Z.pos (Pos.of_nat n)
-  | Negz n => Z.neg (Pos.of_nat n.+1)
-  end.
-
-Lemma int2Z_K : cancel int2Z Z2int.
-Proof.
-case => [n|n]; case: n => [|n] //=.
-case: n => [//|n].
-{ by rewrite -binnat.to_natE -Nat2Pos.inj_succ // Nat2Pos.id. }
-case: n => [//|n].
-{ by rewrite -binnat.to_natE -!Nat2Pos.inj_succ // Nat2Pos.id. }
-Qed.
-
-Lemma Z2intK : cancel Z2int int2Z.
-Proof.
-case => [|p|p] //=.
-{ have Pp := nat_of_pos_gt0 p.
-  by rewrite /= -(prednK Pp) (prednK Pp) -binnat.to_natE Pos2Nat.id. }
-rewrite /int2Z.
-have Pp := nat_of_pos_gt0 p.
-rewrite -(prednK Pp) {Pp} /= -!binnat.to_natE.
-rewrite -[in RHS](Pos2Nat.id p).
-set n := Pos.to_nat p.
-by case: n.
-Qed.
+(** ** Lemmas about [int], [rat] and [R] *)
 
 Lemma Z2R_int2Z_nat (n : nat) : Z2R (int2Z n) = n%:~R.
 Proof.
@@ -654,81 +466,6 @@ Proof.
 rewrite -(ltr_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
 { by move/Z.ltb_lt/Z2R_lt/RltP. }
 by move/RltP/lt_Z2R/Z.ltb_lt.
-Qed.
-
-Lemma dvdnP m n : reflect (Z.divide (Z.of_nat m) (Z.of_nat n)) (m %| n).
-Proof.
-apply: (iffP idP) => H.
-{ rewrite dvdn_eq in H; rewrite -(eqP H) /Z.divide; exists (Z.of_nat (n %/ m)).
-  by rewrite Nat2Z.inj_mul. }
-{ have [q Hq] := H; apply/dvdnP; exists `|Z2int q|%N; apply/Nat2Z.inj.
-  have [Zq|NZq] := Z_zerop q.
-  { by rewrite Zq /= in Hq *. }
-  case: m Hq H => [|m] Hq H.
-  { by rewrite Zmult_comm /= in Hq; rewrite mulnC /=. }
-  rewrite Nat2Z.inj_mul -Zabs_natE Zabs2Nat.id_abs Z.abs_eq //.
-  have H0 : (0 <= q * Z.of_nat m.+1) by rewrite -Hq; apply Zle_0_nat.
-  by apply: Zmult_le_0_reg_r H0. }
-Qed.
-
-Lemma ZgcdE n d : Z.gcd n (' d) = Z.of_nat (div.gcdn `|Z2int n| (nat_of_pos d)).
-Proof.
-apply: Z.gcd_unique.
-{ exact: Zle_0_nat. }
-{ apply/Z.divide_abs_r; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
-  by rewrite Zabs_natE dvdn_gcdl. }
-{ apply/Z.divide_abs_r; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
-  by rewrite Zabs_natE /= dvdn_gcdr. }
-move=> q Hn Hd; apply/Z.divide_abs_l; rewrite -Zabs2Nat.id_abs; apply/dvdnP.
-rewrite Zabs_natE dvdn_gcd.
-apply/andP; split; apply/dvdnP; rewrite -!Zabs_natE !Zabs2Nat.id_abs.
-{ by apply/Z.divide_abs_l/Z.divide_abs_r. }
-{ by apply/Z.divide_abs_l; rewrite -binnat.to_natE positive_nat_Z. }
-Qed.
-
-Lemma ZgcdE' n m : Z.gcd n m = Z.of_nat (gcdn `|Z2int n| `|Z2int m|).
-Proof.
-case m.
-{ rewrite Z.gcd_0_r {2}/absz {2}/Z2int /= gcdn0 -Zabs2Nat.id_abs; f_equal.
-  rewrite /Z.abs_nat /absz /Z2int.
-  case n=>// p; rewrite -!binnat.to_natE //.
-  case (Pos.to_nat _); [by rewrite GRing.oppr0|move=> n'].
-  by rewrite /GRing.opp /=. }
-{ by move=> p; rewrite ZgcdE nat_of_pos_Z_to_pos. }
-by move=> p; rewrite -Z.gcd_opp_r /= ZgcdE abszN /absz.
-Qed.
-
-Lemma Z_ggcd_coprime a b :
-  let '(g, (a', b')) := Z.ggcd a b in
-  g <> 0%Z -> coprime `|Z2int a'| `|Z2int b'|.
-Proof.
-move: (Z.ggcd_gcd a b) (Z.ggcd_correct_divisors a b).
-case (Z.ggcd _ _)=> g ab; case ab=> a' b' /= Hg [] Ha Hb Pg.
-rewrite /coprime; apply/eqP /Nat2Z.inj; rewrite -ZgcdE' /=.
-suff ->: a' = (a / g)%Z.
-{ suff ->: b' = (b / g)%Z; [by apply Z.gcd_div_gcd|].
-  by rewrite Hb Z.mul_comm Z_div_mult_full. }
-by rewrite Ha Z.mul_comm Z_div_mult_full.
-Qed.
-
-Lemma Z_ggcd_1_r n : Z.ggcd n 1 = (1, (n, 1))%Z.
-Proof.
-move: (Z.ggcd_gcd n 1) (Z.ggcd_correct_divisors n 1); rewrite Z.gcd_1_r.
-case (Z.ggcd _ _)=> g ab /= ->; case ab=> a b [].
-by rewrite !Z.mul_1_l => <- <-.
-Qed.
-
-Program Definition bigQ2rat (bq : bigQ) :=
-  let q := Qred [bq]%bigQ in
-  @Rat (Z2int (Qnum q), Z2int (Z.pos (Qden q))) _.
-Next Obligation.
-rewrite ltz_nat nat_of_pos_gt0 /=.
-set q := [bq]%bigQ.
-have /Qcanon.Qred_iff HQ := Qcanon.Qred_involutive q.
-set n := Qnum (Qred q) in HQ *.
-set d := Qden (Qred q) in HQ *.
-rewrite ZgcdE in HQ.
-by rewrite /div.coprime; apply/eqP/Nat2Z.inj; rewrite HQ.
 Qed.
 
 Lemma bigQ2R_redE (c : bigQ) : bigQ2R (BigQ.red c) = bigQ2R c.

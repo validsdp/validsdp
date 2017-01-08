@@ -23,18 +23,18 @@ A set of global optimization problems consisting in proving bounds for
 polynomials on given hyperboxes. These problems are taken from
 
   Cesar Munoz and Anthony Narkawicz
-  Formalization of {B}ernstein Polynomials and Applications to Global Optimization
+  Formalization of Bernstein Polynomials and Applications to Global Optimization
   J. Autom. Reasoning, 2013
 
 flyspeck
 --------
 
-A set of problems on 6 variable polynomials coming from some
+A set of problems on 6-variable polynomials coming from some
 inequalities of the Flyspeck project. Most of them require to prove
-that a given polynomial is positive on a given hyperbox while some
-require to prove that at least one of two (fs868, fs884 and fs890) or
-three (fs260 and fs491) polynomials is positive on any point of a
-given hyperbox.
+that a given polynomial is positive on a given hyperbox. Some
+require to prove that at least one of two or three polynomials is
+positive on any point of a given hyperbox (two polynomials in
+fs868, fs884 and fs890, three polynomials in fs260 and fs491).
 
 prog_invs
 ---------
@@ -48,36 +48,38 @@ A set of problems about loop invariants of programs, from
 They require to prove that a given polynomial $p$ is non negative when
 some initial conditions are met and that whenever $p$ is non negative,
 then $p\circ f$ also is, for a given polynomial $f$ (representing the
-loop body asignments).
+loop body assignments).
 
 Content of each subdirectory
 ----------------------------
 
 Makefile: to run the benchmarks (c.f., below)
-descr: list og benchmarks with number of variables and degrees
+descr: list of benchmarks with number of variables and degrees
 
 For each benchmark <test>:
 
 <test>.ml: benchmark with OSDP
 <test>.v: benchmark with ValidSDP
 <test>.pvs: benchmark with PVS/Bernstein
+<test>.hl: benchmark with HOL Light/Formal_ineqs
 <test>.sage: benchmark with MC11
 
 input.ineq: due to NLCertify's input format, all benchmarks for this tool are gathered here
 lexer.mll parser.mly parse.ml parse.ml: files needed for OSDP benchmarks
-*.sage: other Sage files corresponding to MC11 code (c.f., test_MC11.sage)
+*.sage: other Sage files corresponding to MC11 code (e.g., test_MC11.sage)
 param.transc.coq param.transc.nocoq: parameters for NLCertify
 
-Remark: PVS and NLCertify are not applicable to prog_invs benchmarks.
+Remark: PVS, HOL Light and NLCertify are not applicable to prog_invs benchmarks.
 
 Dependencies
 ============
 
-- runlim (http://fmv.jku.at/runlim/, Debian package rulim)
+- runlim (http://fmv.jku.at/runlim/, Debian package runlim)
 - ValidSDP
-- PVS 5.0 with nasalib
-- SageMath (for MC11, www.sagemath.org, tested with version 7.3, te sage executable must be in the path)
-- NLCertify
+- SageMath (for MC11, www.sagemath.org, tested with version 7.3, the sage executable must be in the path)
+- PVS 5.0 with nasalib (see below)
+- NLCertify (see below)
+- HOL Light (see below)
 
 Installing PVS 5.0 and nasalib
 ------------------------------
@@ -127,7 +129,7 @@ Install BLAS/LAPACK shared libraries (for lacaml)
 
 Install NLCertify's dependencies (including SDPA)
 
-% opam install ocamlfind ocamlgraph zarith lacaml
+% opam install ocamlfind ocamlgraph zarith lacaml.7.2.6
 
 % apt-get install sdpa  # adapt to your distro if not Debian based
 
@@ -139,9 +141,60 @@ Checkout NLCertify (as of 2014-11-04 12:07:04)
 % cd nl-certify
 % git checkout --detach 9e8540429eb984c56ffa5ad74547de796250383b
 % make
+% cd coq && make #(see remark below)
 
-Remark: to compile with Coq 8.5, a few "From mathcomp " may have to be
-added in front of the Require Imports related to mathcomp.
+Remark: to compile with Coq 8.5, a few "From mathcomp " must be added
+before the "Require Import"s related to mathcomp. See nl-certify.patch
+
+Installing HOL Light & Formal_ineqs
+-----------------------------------
+
+### Install Camlp5 (tested with OCaml 4.02.3, using OPAM)
+
+% opam install camlp5
+
+% camlp5 -v # Camlp5 version 6.16 (ocaml 4.02.3)
+
+% camlp5 -pmode # should output "strict"
+  # if not, see https://github.com/jrh13/hol-light/blob/master/README
+
+### Reuse CSDP 6.1.1 (that has been installed for OSDP)
+
+### Checkout HOL Light
+
+% mkdir -p ~/forge/git-anon && cd ~/forge/git-anon
+% git clone https://github.com/jrh13/hol-light.git
+% cd hol-light
+% git checkout --detach 970121cabace1f59d72b5e55fdb9678c99264bce
+% make
+
+### Install dmtcp-1.2.8 (NOT dmtcp-2.x):
+
+% mkdir -p ~/forge/git-anon && cd ~/forge/git-anon
+% git clone -b 1.2.8 https://github.com/dmtcp/dmtcp.git
+% cd dmtcp
+% ./configure && make && sudo make install
+
+### Create checkpoints using DMTCP
+
+Note: this procedure may not work within an SSH session.
+
+% export HOLLIGHT_DIR=~/forge/git-anon/hol-light
+
+% cd $HOLLIGHT_DIR
+% mkdir dmtcp-multi && cd dmtcp-multi
+% dmtcp_checkpoint -n ocaml -I +../camlp5 # then type this, including the '#':
+  #use "../hol.ml";;
+  #use "../Multivariate/realanalysis.ml";;
+% dmtcp_command --checkpoint # from another terminal (when computation is over)
+  # and finally close the OCaml top-level (with Ctrl+D)
+
+% cd $HOLLIGHT_DIR
+% mkdir dmtcp-multi-ineqs && cd dmtcp-multi-ineqs
+% ../dmtcp-multi/dmtcp_restart_script.sh --ckptdir ./ # restarts the top-level
+  #use "../Formal_ineqs/make.ml";;
+% dmtcp_command --checkpoint # from another terminal (when computation is over)
+  # and finally close the OCaml top-level (with Ctrl+D)
 
 Running the benchmarks
 ======================
@@ -149,7 +202,7 @@ Running the benchmarks
 First, parameters at the beginning of each global/Makefile,
 flyspeck/Makefile and prog_invs/Makefile have to be adjusted.
 
-The, for running all tools
+Then, for running all tools
 
 % make
 
@@ -161,6 +214,7 @@ Or independently
 % make logs_MC11
 % make logs_nlcnocoq
 % make logs_nlccoq
+% make logs_taylor
 
 Collecting the results
 ----------------------

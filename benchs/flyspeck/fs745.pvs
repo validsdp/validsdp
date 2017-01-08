@@ -19,7 +19,7 @@ BEGIN
     4<=x3 AND x3<=6.3504 AND
     4<=x4 AND x4<=6.3504 AND
     4<=x5 AND x5<=6.3504 AND
-    4<=x6 AND x6<=6.3504 AND
+    4<=x6 AND x6<=6.3504 IMPLIES
     P(x1,x2,x3,x4,x5,x6) > 0
 
 END benchmarks

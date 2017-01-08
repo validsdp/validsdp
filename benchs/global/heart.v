@@ -683,35 +683,35 @@ Lemma lb_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) :
 Proof.
 rewrite /p /lb /lb_sigma /lb_sigma1 /b1 /lb_sigma2 /b2 /lb_sigma3 /b3
         /lb_sigma4 /b4 /lb_sigma5 /b5 /lb_sigma6 /b6 /lb_sigma7 /b7 /lb_sigma8 /b8.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma lb_sigma_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : lb_sigma x0 x1 x2 x3 x4 x5 x6 x7 > 0.
 Proof. rewrite /lb_sigma. interval. Qed.
 
 Lemma lb_sigma1_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : lb_sigma1 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /lb_sigma1. do_sdp. Qed.
+Proof. rewrite /lb_sigma1. validsdp. Qed.
 
 Lemma lb_sigma2_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : lb_sigma2 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /lb_sigma2. do_sdp. Qed.
+Proof. rewrite /lb_sigma2. validsdp. Qed.
 
 Lemma lb_sigma3_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : lb_sigma3 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /lb_sigma3. do_sdp. Qed.
+Proof. rewrite /lb_sigma3. validsdp. Qed.
 
 Lemma lb_sigma4_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : lb_sigma4 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /lb_sigma4. do_sdp. Qed.
+Proof. rewrite /lb_sigma4. validsdp. Qed.
 
 Lemma lb_sigma5_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : lb_sigma5 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /lb_sigma5. do_sdp. Qed.
+Proof. rewrite /lb_sigma5. validsdp. Qed.
 
 Lemma lb_sigma6_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : lb_sigma6 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /lb_sigma6. do_sdp. Qed.
+Proof. rewrite /lb_sigma6. validsdp. Qed.
 
 Lemma lb_sigma7_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : lb_sigma7 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /lb_sigma7. do_sdp. Qed.
+Proof. rewrite /lb_sigma7. validsdp. Qed.
 
 Lemma lb_sigma8_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : lb_sigma8 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /lb_sigma8. do_sdp. Qed.
+Proof. rewrite /lb_sigma8. validsdp. Qed.
 
 Lemma ub_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) :
   ub_sigma x0 x1 x2 x3 x4 x5 x6 x7 * (ub - p x0 x1 x2 x3 x4 x5 x6 x7)
@@ -726,35 +726,35 @@ Lemma ub_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) :
 Proof.
 rewrite /p /ub /ub_sigma /ub_sigma1 /b1 /ub_sigma2 /b2 /ub_sigma3 /b3
         /ub_sigma4 /b4 /ub_sigma5 /b5 /ub_sigma6 /b6 /ub_sigma7 /b7 /ub_sigma8 /b8.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma ub_sigma_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : ub_sigma x0 x1 x2 x3 x4 x5 x6 x7 > 0.
 Proof. rewrite /ub_sigma. interval. Qed.
 
 Lemma ub_sigma1_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : ub_sigma1 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /ub_sigma1. do_sdp. Qed.
+Proof. rewrite /ub_sigma1. validsdp. Qed.
 
 Lemma ub_sigma2_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : ub_sigma2 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /ub_sigma2. do_sdp. Qed.
+Proof. rewrite /ub_sigma2. validsdp. Qed.
 
 Lemma ub_sigma3_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : ub_sigma3 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /ub_sigma3. do_sdp. Qed.
+Proof. rewrite /ub_sigma3. validsdp. Qed.
 
 Lemma ub_sigma4_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : ub_sigma4 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /ub_sigma4. do_sdp. Qed.
+Proof. rewrite /ub_sigma4. validsdp. Qed.
 
 Lemma ub_sigma5_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : ub_sigma5 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /ub_sigma5. do_sdp. Qed.
+Proof. rewrite /ub_sigma5. validsdp. Qed.
 
 Lemma ub_sigma6_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : ub_sigma6 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /ub_sigma6. do_sdp. Qed.
+Proof. rewrite /ub_sigma6. validsdp. Qed.
 
 Lemma ub_sigma7_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : ub_sigma7 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /ub_sigma7. do_sdp. Qed.
+Proof. rewrite /ub_sigma7. validsdp. Qed.
 
 Lemma ub_sigma8_pos (x0 x1 x2 x3 x4 x5 x6 x7 : R) : ub_sigma8 x0 x1 x2 x3 x4 x5 x6 x7 >= 0.
-Proof. rewrite /ub_sigma8. do_sdp. Qed.
+Proof. rewrite /ub_sigma8. validsdp. Qed.
 
 Lemma var_bounds (x l u : R) : l <= x <= u -> (x - l) * (u - x) >= 0.
 Proof.

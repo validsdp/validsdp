@@ -4,8 +4,7 @@
 values. Floating-point arithmetic does not have a ring structure
 (addition is not even associative). Nevertheless, the ring structure
 on the coefficients is definitely overkill for all non arithmetic
-operations over matrices. TODO: make this perfectly tidy and submit a
-pull request to CoqEAL. *)
+operations over matrices. *)
 
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq ssralg.
 From mathcomp Require Import path choice fintype tuple finset bigop poly matrix mxpoly.
@@ -314,7 +313,7 @@ CoInductive Rseqmx {m1 m2} (rm : nat_R m1 m2) {n1 n2} (rn : nat_R n1 n2) :
 Lemma ord_enum_eqE p : ord_enum_eq p = enum 'I_p.
 Proof. by rewrite enumT unlock; apply:eq_pmap ; exact:insub_eqE. Qed.
 
-Global Instance Rseqmx_seqmx_of_fun m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2)
+Instance Rseqmx_seqmx_of_fun m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2)
          f g :
   refines (eq ==> eq ==> eq) f g ->
   refines (Rseqmx rm rn) (\matrix_(i, j) f i j)
@@ -335,7 +334,7 @@ Proof.
   by rewrite refinesE.
 Qed.
 
-Global Instance Rseqmx_mkseqmx_ord m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+Instance Rseqmx_mkseqmx_ord m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
   refines (eq ==> Rseqmx rm rn) (matrix_of_fun matrix_key)
           (@mkseqmx_ord R m1 n1).
 Proof.
@@ -349,7 +348,7 @@ by rewrite mxE (nth_map i) ?ord_enum_eqE ?size_enum_ord // (nth_map j)
            ?size_enum_ord // !nth_ord_enum.
 Qed.
 
-Global Instance Rseqmx_const_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+Instance Rseqmx_const_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
   refines (eq ==> Rseqmx rm rn) matrix.const_mx (const_seqmx m2 n2).
 Proof.
   rewrite refinesE=> _ x ->; constructor=> [|i ltim|i j].
@@ -360,237 +359,15 @@ Proof.
 Qed.
 
 Instance Rseqmx_0 m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (Rseqmx rm rn) (const_mx 0%C) (seqmx0 m2 n2) | 1.
+  refines (Rseqmx rm rn) (const_mx 0%C) (seqmx0 m2 n2).
 Proof.
 rewrite refinesE; constructor=>[|i|i j]; first by rewrite size_nseq.
   by rewrite nth_nseq => ->; rewrite size_nseq.
 by rewrite mxE nth_nseq -(nat_R_eq rm) ltn_ord nth_nseq -(nat_R_eq rn) ltn_ord.
 Qed.
 
-Lemma minSS (p q : nat) : minn p.+1 q.+1 = (minn p q).+1.
-Proof. by rewrite /minn ltnS; case:ifP. Qed.
-
-Lemma size_fold (s : seq (seq R)) k
-      (hs : forall i : nat, i < size s -> size (nth [::] s i) = k) :
-  size (foldr (zipwith cons) (nseq k [::]) s) = k.
-Proof.
-  elim: s hs=> [_|a s ihs hs] /=; first by rewrite size_nseq.
-  rewrite zipwithE size_map size1_zip ?ihs; have /= ha := hs 0%N;
-    rewrite ?ha //.
-  by move=> q hq; rewrite -(hs q.+1).
-Qed.
-
-Lemma size_nth_fold (s : seq (seq R)) j k (ltkj : k < j)
-      (hs : forall l : nat, l < size s -> size (nth [::] s l) = j) :
-  size (nth [::] (foldr (zipwith cons) (nseq j [::]) s) k) = size s.
-Proof.
-  elim: s hs=> [_|a s ihs hs] /=.
-    by rewrite nth_nseq if_same.
-  rewrite zipwithE (nth_map (0%C, [::])) ?nth_zip /= ?ihs // ?size1_zip
-          ?size_fold; have /= ha := hs 0%N; rewrite ?ha //;
-    by move=> l hl; rewrite -(hs l.+1).
-Qed.
-
-Lemma nth_fold (s : seq (seq R)) j k l (ltks : k < size s) (ltlj : l < j)
-      (hs : forall l : nat, l < size s -> size (nth [::] s l) = j) :
-  nth 0%C (nth [::] (foldr (zipwith cons) (nseq j [::]) s) l) k
-  = nth 0%C (nth [::] s k) l.
-Proof.
-  elim: s k ltks hs=> [_ _ _|a s ihs k ltks hs] //=.
-  rewrite zipwithE (nth_map (0%C, [::])) ?nth_zip /= ?size1_zip ?size_fold;
-    have /= ha := hs 0%N; rewrite ?ha //;
-    first (case: k ltks=> [|k' ltk's] //=; rewrite ?ihs //);
-    by move=> q hq; rewrite -(hs q.+1).
-Qed.
-
-Global Instance Rseqmx_trseqmx m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (Rseqmx rm rn ==> Rseqmx rn rm) trmx (@trseqmx R m2 n2).
-Proof.
-  rewrite /trseqmx.
-  case: rm=> [|k1 k2 rk] /=;
-    rewrite refinesE=> _ _ [M sM h1 h2 h3];
-    constructor=> [|i ltim|i j].
-            by rewrite size_nseq.
-          by rewrite nth_nseq ltim.
-        by rewrite -(nat_R_eq rn) nth_nseq ltn_ord mxE h3 (size0nil h1)
-                   !nth_nil.
-      by rewrite size_fold ?h1.
-    by rewrite size_nth_fold ?h1.
-  by rewrite mxE h3 nth_fold ?h1 // -?(nat_R_eq rn) -?(nat_R_eq rk).
-Qed.
-
-End seqmx.
-
-Section seqmx_ring.
-
-Variable R : ringType.
-
-Local Instance zeroR : zero_of R := 0%R.
-Local Instance oneR  : one_of R := 1%R.
-Local Instance oppR  : opp_of R := -%R.
-Local Instance addR  : add_of R := +%R.
-Local Instance mulR  : mul_of R := *%R.
-Local Instance eqR   : eq_of R   := eqtype.eq_op.
-Local Instance specRr : spec_of R R := spec_id.
-
-Local Instance implem_ordr : forall n, (implem_of 'I_n 'I_n) :=
-  fun _ => implem_id.
-
-Local Open Scope rel_scope.
-
-Instance Rseqmx_diag_seqmx m1 m2 (rm : nat_R m1 m2) :
-  refines (Rseqmx (nat_R_S_R nat_R_O_R) rm ==> Rseqmx rm rm)
-          diag_mx (diag_seqmx (A:=R)).
-Proof.
-  rewrite refinesE=> _ _ [M sM h1 h2 h3].
-  constructor=> [|i ltim|i j].
-      by rewrite size_map ord_enum_eqE size_enum_ord h2.
-    by rewrite /diag_seqmx /mkseqmx_ord ord_enum_eqE h2 //
-               (nth_map (Ordinal ltim)) ?size_enum_ord //
-               size_map size_enum_ord.
-  rewrite mxE h3 /diag_seqmx /mkseqmx_ord ord_enum_eqE h2 // -(nat_R_eq rm)
-          (nth_map i) ?size_enum_ord // (nth_map j) ?size_enum_ord //
-          !nth_ord_enum.
-  by case: (i == j).
-Qed.
-
-Instance Rseqmx_scalar_seqmx m1 m2 (rm : nat_R m1 m2) :
-  refines (eq ==> Rseqmx rm rm) scalar_mx (scalar_seqmx (A:=R) m2).
-Proof.
-  rewrite refinesE=> x y rxy.
-  rewrite /scalar_seqmx -diag_const_mx.
-  exact: refinesP.
-Qed.
-
-Instance Rseqmx_1 m1 m2 (rm : nat_R m1 m2) :
-  refines (Rseqmx rm rm) 1%:M (seqmx1 (A:=R) m2).
-Proof.
-  rewrite /seqmx1.
-  eapply refines_apply; first exact: Rseqmx_scalar_seqmx.
-  by rewrite refinesE.
-Qed.
-
-Instance Rseqmx_opp m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (Rseqmx (R:=R) rm rn ==> Rseqmx rm rn) -%R -%C.
-Proof.
-rewrite refinesE=> ? ? [A M h1 h2 h3].
-constructor=> [|i ltim|i j]; first by rewrite size_map h1.
-  rewrite (nth_map [::]); last by rewrite h1.
-  by rewrite size_map h2.
-rewrite mxE (nth_map [::]); last by rewrite h1 -(nat_R_eq rm) ltn_ord.
-rewrite (nth_map 0); first by rewrite h3.
-by rewrite h2 -?(nat_R_eq rm) -?(nat_R_eq rn) ltn_ord.
-Qed.
-
-
-Instance Rseqmx_add m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (Rseqmx (R:=R) rm rn ==> Rseqmx rm rn ==> Rseqmx rm rn) +%R +%C.
-Proof.
-  rewrite refinesE=> _ _ [M sM h1 h2 h3] _ _ [N sN h'1 h'2 h'3].
-  constructor=> [|i ltim|i j]; rewrite [(_ + _)%C]zipwithE.
-      by rewrite size_map size1_zip h1 ?h'1.
-    by rewrite (nth_map ([::], [::])) ?nth_zip ?zipwithE ?size_map ?size1_zip /=
-               ?h1 ?h'1 ?h2 ?h'2 ?ltim.
-  by rewrite (nth_map ([::], [::])) ?nth_zip /= ?size1_zip ?h1 ?h'1
-             -?(nat_R_eq rm) ?ltn_ord // mxE h3 h'3 zipwithE
-             -[[seq _ | _ <- _]](mkseq_nth 0%C) nth_mkseq /=
-             ?(nth_map (0%C, 0%C)) ?nth_zip ?size_map /= ?size1_zip ?h2 ?h'2
-             -?(nat_R_eq rm) -?(nat_R_eq rn) ?ltn_ord.
-Qed.
-
-Instance Rseqmx_sub m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (Rseqmx (R:=R) rm rn ==> Rseqmx rm rn ==> Rseqmx rm rn)
-          (fun M N => M - N) sub_op.
-Proof.
-  rewrite refinesE=> _ _ [M sM h1 h2 h3] _ _ [N sN h'1 h'2 h'3].
-  constructor=> [|i ltim|i j]; rewrite [(_ - _)%C]zipwithE.
-      by rewrite size_map size1_zip ?size_map h1 ?h'1.
-    by rewrite (nth_map ([::], [::])) ?nth_zip ?zipwithE ?size_map ?size1_zip /=
-               ?(nth_map [::]) ?size_map ?h1 ?h'1 ?h2 ?h'2 ?ltim.
-  by rewrite !mxE h3 h'3 (nth_map ([::], [::])) ?zipwithE ?(nth_map (0%C, 0%C))
-             ?nth_zip /= ?(nth_map [::]) ?size1_zip ?size_map ?(nth_map 0%C)
-             ?h1 ?h'1 ?h2 ?h'2 -?(nat_R_eq rm) -?(nat_R_eq rn) ?ltn_ord.
-Qed.
-
-Instance Rseqmx_mul m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2)
-         p1 p2 (rp : nat_R p1 p2) :
-  refines (Rseqmx (R:=R) rm rn ==> Rseqmx rn rp ==> Rseqmx rm rp)
-          mulmx (@hmul_op _ _ _  m2 n2 p2).
-Proof.
-  case: rn=> [|k1 k2 rk];
-    rewrite refinesE=> _ _ [M sM h1 h2 h3] _ _ [N sN h'1 h'2 h'3].
-    constructor=> [|i ltim|i j]; rewrite /hmul_op /mul_seqmx /seqmx0.
-        by rewrite size_nseq.
-      by rewrite nth_nseq h1 ltim size_nseq.
-    by rewrite nth_nseq h1 -(nat_R_eq rm) ltn_ord nth_nseq -(nat_R_eq rp)
-               ltn_ord mxE big_ord0.
-  constructor=> [|i ltim|i j]; rewrite /hmul_op /mul_seqmx.
-      by rewrite size_map.
-    by rewrite (nth_map [::]) ?h1 // size_map /trseqmx /= size_fold ?h'1.
-  rewrite (nth_map [::]) ?h1 -?(nat_R_eq rm) // (nth_map [::]) /trseqmx
-          ?size_fold ?h'1 ?h'2 // -?(nat_R_eq rp) //.
-  set F := (fun z x y => _).
-  have ->: forall s1 s2 (t : R), (foldl2 F t s1 s2) =
-    (t + \sum_(0 <= k < minn (size s1) (size s2)) s1`_k * s2`_k).
-    elim=>[s2 t|t1 s1 IHs s2 t].
-      by rewrite min0n big_mkord big_ord0 GRing.addr0.
-    case:s2=>[|t2 s2]; first by rewrite minn0 big_mkord big_ord0 GRing.addr0.
-    by rewrite /= IHs minSS big_nat_recl // /F [(_ + t)%C]addrC addrA.
-  rewrite add0r big_mkord size_nth_fold ?h'1 ?h2 -?(nat_R_eq rm) //
-          ?(nat_R_eq rp) // /minn if_same mxE -(nat_R_eq rk).
-  apply: eq_bigr=> k _.
-  by rewrite h3 h'3 nth_fold ?h'1 ?(nat_R_eq rp) // -(nat_R_eq rk).
-Qed.
-
-Instance Rseqmx_scale m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (eq ==> Rseqmx (R:=R) rm rn ==> Rseqmx rm rn) *:%R *:%C.
-Proof.
-  rewrite refinesE=> _ x -> _ _ [M sM h1 h2 h3].
-  constructor=> [|i ltim|i j]; rewrite [(_ *: _)%C]/scale_seqmx.
-      by rewrite size_map.
-    by rewrite (nth_map [::]) ?size_map ?h1 ?h2.
-  by rewrite mxE (nth_map [::]) ?(nth_map 0%C) ?h1 ?h2 ?h3 -?(nat_R_eq rm)
-             -?(nat_R_eq rn).
-Qed.
-
-Lemma eq_seqE (T : Type) (f : T -> T -> bool) s1 s2 : size s1 = size s2 ->
-  eq_seq f s1 s2 = all (fun xy => f xy.1 xy.2) (zip s1 s2).
-Proof.
-elim: s1 s2 => [|x1 s1 IHs] [] //= x2 s2 /eqP eq_sz.
-by rewrite IHs //; apply/eqP.
-Qed.
-
-Instance Rseqmx_eq m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (Rseqmx (R:=R) rm rn ==> Rseqmx rm rn ==> bool_R) eqtype.eq_op eq_op.
-Proof.
-  rewrite refinesE=> _ _ [M sM h1 h2 h3] _ _ [N sN h'1 h'2 h'3].
-  suff ->: (M == N) = (eq_seq (eq_seq eqR) sM sN).
-    exact: bool_Rxx.
-  apply/eqP/idP=> [/matrixP heq|].
-    rewrite eq_seqE ?h1 ?h'1 //.
-    apply/(all_nthP ([::], [::]))=> i.
-    rewrite size1_zip ?nth_zip ?h1 ?h'1 //=; move=> ltim.
-    rewrite eq_seqE ?h2 ?h'2 //.
-    apply/(all_nthP (0, 0))=> j.
-    rewrite size1_zip ?nth_zip ?h2 ?h'2 //= -(nat_R_eq rn); move=> ltjn.
-    rewrite -(nat_R_eq rm) in ltim.
-    have := heq (Ordinal ltim) (Ordinal ltjn); rewrite h3 h'3=> ->.
-    by apply/eqP.
-  rewrite eq_seqE ?h1 ?h'1 //.
-  move/(all_nthP ([::], [::])).
-  rewrite size1_zip ?h1 ?h'1 //; move=> heq.
-  apply/matrixP=> i j.
-  have := heq i; rewrite -(nat_R_eq rm) ltn_ord; move/implyP; rewrite implyTb.
-  rewrite nth_zip ?h1 ?h'1 //= eq_seqE ?h2 ?h'2 -?(nat_R_eq rm) //.
-  move/(all_nthP (0, 0))=> /(_ j).
-  rewrite nth_zip ?size1_zip ?h2 ?h'2 -?(nat_R_eq rm) //= h3 h'3 -?(nat_R_eq rn)
-          (ltn_ord _) /eqR.
-  move=> he.
-  by apply/eqP; rewrite he.
-Qed.
-
 Instance Rseqmx_top_left_seqmx m1 m2 (rm : nat_R m1 m2) :
-  refines (Rseqmx (R:=R) (nat_R_S_R rm) (nat_R_S_R rm) ==> eq)
+  refines (Rseqmx (nat_R_S_R rm) (nat_R_S_R rm) ==> eq)
           (fun M => M ord0 ord0) top_left_op.
 Proof.
   rewrite refinesE=> _ _ [M sM h1 h2 h3].
@@ -781,6 +558,493 @@ Proof.
   by rewrite addnC -addnBA ?subnn ?addn0 -?addnBA ?subnn ?addn0.
 Qed.
 
+Lemma minSS (p q : nat) : minn p.+1 q.+1 = (minn p q).+1.
+Proof. by rewrite /minn ltnS; case:ifP. Qed.
+
+Lemma size_fold (s : seq (seq R)) k
+      (hs : forall i : nat, i < size s -> size (nth [::] s i) = k) :
+  size (foldr (zipwith cons) (nseq k [::]) s) = k.
+Proof.
+  elim: s hs=> [_|a s ihs hs] /=; first by rewrite size_nseq.
+  rewrite zipwithE size_map size1_zip ?ihs; have /= ha := hs 0%N;
+    rewrite ?ha //.
+  by move=> q hq; rewrite -(hs q.+1).
+Qed.
+
+Lemma size_nth_fold (s : seq (seq R)) j k (ltkj : k < j)
+      (hs : forall l : nat, l < size s -> size (nth [::] s l) = j) :
+  size (nth [::] (foldr (zipwith cons) (nseq j [::]) s) k) = size s.
+Proof.
+  elim: s hs=> [_|a s ihs hs] /=.
+    by rewrite nth_nseq if_same.
+  rewrite zipwithE (nth_map (0%C, [::])) ?nth_zip /= ?ihs // ?size1_zip
+          ?size_fold; have /= ha := hs 0%N; rewrite ?ha //;
+    by move=> l hl; rewrite -(hs l.+1).
+Qed.
+
+Lemma nth_fold (s : seq (seq R)) j k l (ltks : k < size s) (ltlj : l < j)
+      (hs : forall l : nat, l < size s -> size (nth [::] s l) = j) :
+  nth 0%C (nth [::] (foldr (zipwith cons) (nseq j [::]) s) l) k
+  = nth 0%C (nth [::] s k) l.
+Proof.
+  elim: s k ltks hs=> [_ _ _|a s ihs k ltks hs] //=.
+  rewrite zipwithE (nth_map (0%C, [::])) ?nth_zip /= ?size1_zip ?size_fold;
+    have /= ha := hs 0%N; rewrite ?ha //;
+    first (case: k ltks=> [|k' ltk's] //=; rewrite ?ihs //);
+    by move=> q hq; rewrite -(hs q.+1).
+Qed.
+
+Instance Rseqmx_trseqmx m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+  refines (Rseqmx rm rn ==> Rseqmx rn rm) trmx (@trseqmx R m2 n2).
+Proof.
+  rewrite /trseqmx.
+  case: rm=> [|k1 k2 rk] /=;
+    rewrite refinesE=> _ _ [M sM h1 h2 h3];
+    constructor=> [|i ltim|i j].
+            by rewrite size_nseq.
+          by rewrite nth_nseq ltim.
+        by rewrite -(nat_R_eq rn) nth_nseq ltn_ord mxE h3 (size0nil h1)
+                   !nth_nil.
+      by rewrite size_fold ?h1.
+    by rewrite size_nth_fold ?h1.
+  by rewrite mxE h3 nth_fold ?h1 // -?(nat_R_eq rn) -?(nat_R_eq rk).
+Qed.
+
+Section seqmx_param.
+
+Context (C : Type) (rAC : R -> C -> Type).
+Context (I : nat -> Type)
+        (rI : forall n1 n2, nat_R n1 n2 -> 'I_n1 -> I n2 -> Type).
+Context `{zero_of C, one_of C, opp_of C, add_of C, mul_of C, eq_of C}.
+Context `{spec_of C R}.
+Context `{forall n, implem_of 'I_n (I n)}.
+Context `{!refines rAC 0%C 0%C, !refines rAC 1%C 1%C}.
+Context `{!refines (rAC ==> rAC) -%C -%C}.
+Context `{!refines (rAC ==> rAC ==> rAC) +%C +%C}.
+Context `{!refines (rAC ==> rAC ==> rAC) *%C *%C}.
+Context `{!refines (rAC ==> rAC ==> bool_R) eq_op eq_op}.
+Context `{!refines (rAC ==> Logic.eq) spec_id spec}.
+Context `{forall n1 n2 (rn : nat_R n1 n2),
+             refines (ordinal_R rn ==> rI rn) implem_id implem}.
+
+Definition RseqmxC {m1 m2} (rm : nat_R m1 m2) {n1 n2} (rn : nat_R n1 n2) :
+  'M[R]_(m1, n1) -> hseqmx m2 n2 -> Type :=
+  (Rseqmx rm rn \o (list_R (list_R rAC)))%rel.
+
+Local Instance refines_refl_nat : forall m, refines nat_R m m | 999.
+Proof. by rewrite refinesE; apply: nat_Rxx. Qed.
+
+(* Local Instance refines_refl_ord : forall m (i : 'I_m), refines nat_R i i | 999. *)
+(* Proof. rewrite refinesE; elim=> *; exact: nat_Rxx. Qed. *)
+
+(* Local Instance refines_eq_refl_nat : forall (m : nat), refines eq m m | 999.  *)
+(* Proof. by rewrite refinesE. Qed. *)
+
+Local Instance refines_ordinal_eq (m : nat) (i j : 'I_m) :
+  refines (ordinal_R (nat_Rxx m)) i j -> refines eq i j.
+Proof.
+rewrite !refinesE=> [[m0 m1 mR i0 i1 _]].
+apply: ord_inj; exact: nat_R_eq.
+Qed.
+
+Local Instance refines_fun_refl m n (f : 'I_m -> 'I_n -> R) :
+  refines (eq ==> eq ==> eq) f f.
+Proof.
+  by rewrite refinesE=> _ x -> _ y ->.
+Qed.
+
+Global Instance RseqmxC_seqmx_of_fun m1 m2 (rm : nat_R m1 m2) n1 n2
+       (rn : nat_R n1 n2) f g
+       `{forall x y, refines (rI rm) x y ->
+         forall z t, refines (rI rn) z t ->
+         refines (rAC \o (@unify _)) (f x z) (g y t)} :
+  refines (RseqmxC rm rn)
+          (\matrix_(i, j) f i j) (seqmx_of_fun (I:=I) g).
+Proof.
+  eapply refines_trans; tc.
+  rewrite refinesE.
+  eapply (seqmx_of_fun_R (I_R:=rI))=> // *; apply refinesP.
+    eapply refines_apply; tc.
+  eapply refines_comp_unify; tc.
+Qed.
+
+Global Instance refine_seqmx_of_fun m n f g
+       `{forall x y, refines (rI (nat_Rxx m)) x y ->
+         forall z t, refines (rI (nat_Rxx n)) z t ->
+         refines (rAC \o (@unify _)) (f x z) (g y t)} :
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n))
+          (\matrix_(i, j) f i j) (seqmx_of_fun (I:=I) g).
+Proof. exact: RseqmxC_seqmx_of_fun. Qed.
+
+Global Instance RseqmxC_mkseqmx_ord m1 m2 (rm : nat_R m1 m2) n1 n2
+       (rn : nat_R n1 n2) :
+  refines ((eq ==> eq ==> rAC) ==> RseqmxC rm rn)
+          (matrix_of_fun matrix_key) (@mkseqmx_ord C m1 n1).
+Proof. param_comp mkseqmx_ord_R. Qed.
+
+Global Instance refine_mkseqmx_ord m n :
+  refines ((eq ==> eq ==> rAC) ==> RseqmxC (nat_Rxx m) (nat_Rxx n))
+          (matrix_of_fun matrix_key) (@mkseqmx_ord C m n).
+Proof. exact: RseqmxC_mkseqmx_ord. Qed.
+
+Global Instance RseqmxC_const_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2
+       (rn : nat_R n1 n2) :
+  refines (rAC ==> RseqmxC rm rn) (@matrix.const_mx R m1 n1)
+          (const_seqmx m2 n2).
+Proof. param_comp const_seqmx_R. Qed.
+
+Global Instance refine_const_seqmx m n :
+  refines (rAC ==> RseqmxC (nat_Rxx m) (nat_Rxx n)) (@matrix.const_mx R m n)
+          (const_seqmx m n).
+Proof. exact: RseqmxC_const_seqmx. Qed.
+
+Global Instance RseqmxC_0 m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+  refines (RseqmxC rm rn) (const_mx 0%C) (@hzero_op _ _ _ m2 n2).
+Proof. param_comp seqmx0_R. Qed.
+
+Global Instance refine_0_seqmx m n :
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n)) (const_mx 0%C) (@hzero_op _ _ _ m n).
+Proof. exact: RseqmxC_0. Qed.
+
+Global Instance RseqmxC_top_left_seqmx m1 m2 (rm : nat_R m1 m2) :
+  refines (RseqmxC (nat_R_S_R rm) (nat_R_S_R rm) ==> rAC)
+          (fun M => M ord0 ord0)
+          (@top_left_seqmx C _).
+Proof. param_comp top_left_seqmx_R. Qed.
+
+Global Instance refine_top_left_seqmx m :
+  refines (RseqmxC (nat_R_S_R (nat_Rxx m)) (nat_R_S_R (nat_Rxx m)) ==> rAC)
+          (fun M => M ord0 ord0)
+          (@top_left_seqmx C _).
+Proof. exact: RseqmxC_top_left_seqmx. Qed.
+
+Global Instance RseqmxC_usubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
+       (rm2 : nat_R m21 m22) n1 n2 (rn : nat_R n1 n2) :
+  refines (RseqmxC (addn_R rm1 rm2) rn ==> RseqmxC rm1 rn)
+          (@matrix.usubmx R m11 m21 n1) (@usubseqmx C m12 m22 n2).
+Proof. param_comp usubseqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_usubseqmx m1 m2 n :
+  refines (RseqmxC (addn_R (nat_Rxx m1) (nat_Rxx m2)) (nat_Rxx n) ==>
+                   RseqmxC (nat_Rxx m1) (nat_Rxx n))
+          (@matrix.usubmx R m1 m2 n) (@usubseqmx C m1 m2 n).
+Proof. exact: RseqmxC_usubseqmx. Qed.
+
+Global Instance RseqmxC_dsubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
+       (rm2 : nat_R m21 m22) n1 n2 (rn : nat_R n1 n2) :
+  refines (RseqmxC (addn_R rm1 rm2) rn ==> RseqmxC rm2 rn)
+          (@matrix.dsubmx R m11 m21 n1) (@dsubseqmx C m12 m22 n2).
+Proof. param_comp dsubseqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_dsubseqmx m1 m2 n :
+  refines (RseqmxC (addn_R (nat_Rxx m1) (nat_Rxx m2)) (nat_Rxx n) ==>
+                   RseqmxC (nat_Rxx m2) (nat_Rxx n))
+          (@matrix.dsubmx R m1 m2 n) (@dsubseqmx C m1 m2 n).
+Proof. exact: RseqmxC_dsubseqmx. Qed.
+
+Global Instance RseqmxC_lsubseqmx m1 m2 (rm : nat_R m1 m2) n11 n12
+       (rn1 : nat_R n11 n12) n21 n22 (rn2 : nat_R n21 n22) :
+  refines (RseqmxC rm (addn_R rn1 rn2) ==> RseqmxC rm rn1)
+          (@matrix.lsubmx R m1 n11 n21) (@lsubseqmx C m2 n12 n22).
+Proof. param_comp lsubseqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_lsubseqmx m n1 n2 :
+  refines (RseqmxC (nat_Rxx m) (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
+                   RseqmxC (nat_Rxx m) (nat_Rxx n1))
+          (@matrix.lsubmx R m n1 n2) (@lsubseqmx C m n1 n2).
+Proof. exact: RseqmxC_lsubseqmx. Qed.
+
+Global Instance RseqmxC_rsubseqmx m1 m2 (rm : nat_R m1 m2) n11 n12
+       (rn1 : nat_R n11 n12) n21 n22 (rn2 : nat_R n21 n22) :
+  refines (RseqmxC rm (addn_R rn1 rn2) ==> RseqmxC rm rn2)
+          (@matrix.rsubmx R m1 n11 n21) (@rsubseqmx C m2 n12 n22).
+Proof. param_comp rsubseqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_rsubseqmx m n1 n2 :
+  refines (RseqmxC (nat_Rxx m) (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
+                   RseqmxC (nat_Rxx m) (nat_Rxx n2))
+          (@matrix.rsubmx R m n1 n2) (@rsubseqmx C m n1 n2).
+Proof. exact: RseqmxC_rsubseqmx. Qed.
+
+Global Instance RseqmxC_ulsubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
+       (rm2 : nat_R m21 m22) n11 n12 (rn1 : nat_R n11 n12) n21 n22
+       (rn2 : nat_R n21 n22) :
+  refines (RseqmxC (addn_R rm1 rm2) (addn_R rn1 rn2) ==> RseqmxC rm1 rn1)
+          (@matrix.ulsubmx R m11 m21 n11 n21) (@ulsubseqmx C m12 m22 n12 n22).
+Proof. param_comp ulsubseqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_ulsubseqmx m1 m2 n1 n2 :
+  refines (RseqmxC (addn_R (nat_Rxx m1) (nat_Rxx m2))
+                   (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
+                   RseqmxC (nat_Rxx m1) (nat_Rxx n1))
+          (@matrix.ulsubmx R m1 m2 n1 n2) (@ulsubseqmx C m1 m2 n1 n2).
+Proof. exact: RseqmxC_ulsubseqmx. Qed.
+
+Global Instance RseqmxC_ursubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
+       (rm2 : nat_R m21 m22) n11 n12 (rn1 : nat_R n11 n12) n21 n22
+       (rn2 : nat_R n21 n22) :
+  refines (RseqmxC (addn_R rm1 rm2) (addn_R rn1 rn2) ==> RseqmxC rm1 rn2)
+          (@matrix.ursubmx R m11 m21 n11 n21) (@ursubseqmx C m12 m22 n12 n22).
+Proof. param_comp ursubseqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_ursubseqmx m1 m2 n1 n2 :
+  refines (RseqmxC (addn_R (nat_Rxx m1) (nat_Rxx m2))
+                   (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
+                   RseqmxC (nat_Rxx m1) (nat_Rxx n2))
+          (@matrix.ursubmx R m1 m2 n1 n2) (@ursubseqmx C m1 m2 n1 n2).
+Proof. exact: RseqmxC_ursubseqmx. Qed.
+
+Global Instance RseqmxC_dlsubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
+       (rm2 : nat_R m21 m22) n11 n12 (rn1 : nat_R n11 n12) n21 n22
+       (rn2 : nat_R n21 n22) :
+  refines (RseqmxC (addn_R rm1 rm2) (addn_R rn1 rn2) ==> RseqmxC rm2 rn1)
+          (@matrix.dlsubmx R m11 m21 n11 n21) (@dlsubseqmx C m12 m22 n12 n22).
+Proof. param_comp dlsubseqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_dlsubseqmx m1 m2 n1 n2 :
+  refines (RseqmxC (addn_R (nat_Rxx m1) (nat_Rxx m2))
+                   (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
+                   RseqmxC (nat_Rxx m2) (nat_Rxx n1))
+          (@matrix.dlsubmx R m1 m2 n1 n2) (@dlsubseqmx C m1 m2 n1 n2).
+Proof. exact: RseqmxC_dlsubseqmx. Qed.
+
+Global Instance RseqmxC_drsubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
+       (rm2 : nat_R m21 m22) n11 n12 (rn1 : nat_R n11 n12) n21 n22
+       (rn2 : nat_R n21 n22) :
+  refines (RseqmxC (addn_R rm1 rm2) (addn_R rn1 rn2) ==> RseqmxC rm2 rn2)
+          (@matrix.drsubmx R m11 m21 n11 n21) (@drsubseqmx C m12 m22 n12 n22).
+Proof. param_comp drsubseqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_drsubseqmx m1 m2 n1 n2 :
+  refines (RseqmxC (addn_R (nat_Rxx m1) (nat_Rxx m2))
+                   (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
+                   RseqmxC (nat_Rxx m2) (nat_Rxx n2))
+          (@matrix.drsubmx R m1 m2 n1 n2) (@drsubseqmx C m1 m2 n1 n2).
+Proof. exact: RseqmxC_drsubseqmx. Qed.
+
+Global Instance RseqmxC_row_seqmx m1 m2 (rm : nat_R m1 m2) n11 n12
+       (rn1 : nat_R n11 n12) n21 n22 (rn2 : nat_R n21 n22) :
+  refines (RseqmxC rm rn1 ==> RseqmxC rm rn2 ==> RseqmxC rm (addn_R rn1 rn2))
+          (@matrix.row_mx R m1 n11 n21) (@row_seqmx C m2 n12 n22).
+Proof. param_comp row_seqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_row_seqmx m n1 n2 :
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n1) ==> RseqmxC (nat_Rxx m) (nat_Rxx n2)
+                   ==> RseqmxC (nat_Rxx m) (addn_R (nat_Rxx n1) (nat_Rxx n2)))
+          (@matrix.row_mx R m n1 n2) (@row_seqmx C m n1 n2).
+Proof. exact: RseqmxC_row_seqmx. Qed.
+
+Global Instance RseqmxC_col_seqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
+       (rm2 : nat_R m21 m22) n1 n2 (rn : nat_R n1 n2) :
+  refines (RseqmxC rm1 rn ==> RseqmxC rm2 rn ==> RseqmxC (addn_R rm1 rm2) rn)
+          (@matrix.col_mx R m11 m21 n1) (@col_seqmx C m12 m22 n2).
+Proof. param_comp col_seqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_col_seqmx m1 m2 n :
+  refines (RseqmxC (nat_Rxx m1) (nat_Rxx n) ==> RseqmxC (nat_Rxx m2) (nat_Rxx n)
+                   ==> RseqmxC (addn_R (nat_Rxx m1) (nat_Rxx m2)) (nat_Rxx n))
+          (@matrix.col_mx R m1 m2 n) (@col_seqmx C m1 m2 n).
+Proof. exact: RseqmxC_col_seqmx. Qed.
+
+Global Instance RseqmxC_block_seqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
+       (rm2 : nat_R m21 m22) n11 n12 (rn1 : nat_R n11 n12) n21 n22
+       (rn2 : nat_R n21 n22) :
+  refines (RseqmxC rm1 rn1 ==> RseqmxC rm1 rn2 ==> RseqmxC rm2 rn1 ==>
+           RseqmxC rm2 rn2 ==> RseqmxC (addn_R rm1 rm2) (addn_R rn1 rn2))
+    (@matrix.block_mx R m11 m21 n11 n21) (@block_seqmx C m12 m22 n12 n22).
+Proof. param_comp block_seqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
+
+Global Instance refine_block_seqmx m1 m2 n1 n2 :
+  refines (RseqmxC (nat_Rxx m1) (nat_Rxx n1) ==>
+           RseqmxC (nat_Rxx m1) (nat_Rxx n2) ==>
+           RseqmxC (nat_Rxx m2) (nat_Rxx n1) ==>
+           RseqmxC (nat_Rxx m2) (nat_Rxx n2) ==>
+           RseqmxC (addn_R (nat_Rxx m1) (nat_Rxx m2))
+                   (addn_R (nat_Rxx n1) (nat_Rxx n2)))
+    (@matrix.block_mx R m1 m2 n1 n2) (@block_seqmx C m1 m2 n1 n2).
+Proof. exact: RseqmxC_block_seqmx. Qed.
+
+Global Instance RseqmxC_tr m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+  refines (RseqmxC rm rn ==> RseqmxC rn rm) trmx (@trseqmx C m2 n2).
+Proof. param_comp trseqmx_R. Qed.
+
+Global Instance refine_trseqmx m n :
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC (nat_Rxx n) (nat_Rxx m))
+          trmx (@trseqmx C m n).
+Proof. exact: RseqmxC_tr. Qed.
+
+End seqmx_param.
+End seqmx.
+
+Section seqmx_ring.
+
+Variable R : ringType.
+
+Local Instance zeroR : zero_of R := 0%R.
+Local Instance oneR  : one_of R := 1%R.
+Local Instance oppR  : opp_of R := -%R.
+Local Instance addR  : add_of R := +%R.
+Local Instance mulR  : mul_of R := *%R.
+Local Instance eqR   : eq_of R   := eqtype.eq_op.
+Local Instance specR_ring : spec_of R R := spec_id.
+
+Local Instance implem_ord_ring : forall n, (implem_of 'I_n 'I_n) :=
+  fun _ => implem_id.
+
+Local Open Scope rel_scope.
+
+Instance Rseqmx_diag_seqmx m1 m2 (rm : nat_R m1 m2) :
+  refines (Rseqmx (nat_R_S_R nat_R_O_R) rm ==> Rseqmx rm rm)
+          diag_mx (diag_seqmx (A:=R)).
+Proof.
+  rewrite refinesE=> _ _ [M sM h1 h2 h3].
+  constructor=> [|i ltim|i j].
+      by rewrite size_map ord_enum_eqE size_enum_ord h2.
+    by rewrite /diag_seqmx /mkseqmx_ord ord_enum_eqE h2 //
+               (nth_map (Ordinal ltim)) ?size_enum_ord //
+               size_map size_enum_ord.
+  rewrite mxE h3 /diag_seqmx /mkseqmx_ord ord_enum_eqE h2 // -(nat_R_eq rm)
+          (nth_map i) ?size_enum_ord // (nth_map j) ?size_enum_ord //
+          !nth_ord_enum.
+  by case: (i == j).
+Qed.
+
+Existing Instance Rseqmx_const_seqmx.
+
+Instance Rseqmx_scalar_seqmx m1 m2 (rm : nat_R m1 m2) :
+  refines (eq ==> Rseqmx rm rm) scalar_mx (scalar_seqmx (A:=R) m2).
+Proof.
+  rewrite refinesE=> x y rxy.
+  rewrite /scalar_seqmx -diag_const_mx.
+  exact: refinesP.
+Qed.
+
+Instance Rseqmx_1 m1 m2 (rm : nat_R m1 m2) :
+  refines (Rseqmx rm rm) 1%:M (seqmx1 (A:=R) m2).
+Proof.
+  rewrite /seqmx1.
+  eapply refines_apply; first exact: Rseqmx_scalar_seqmx.
+  by rewrite refinesE.
+Qed.
+
+Instance Rseqmx_opp m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+  refines (Rseqmx (R:=R) rm rn ==> Rseqmx rm rn) -%R -%C.
+Proof.
+rewrite refinesE=> ? ? [A M h1 h2 h3].
+constructor=> [|i ltim|i j]; first by rewrite size_map h1.
+  rewrite (nth_map [::]); last by rewrite h1.
+  by rewrite size_map h2.
+rewrite mxE (nth_map [::]); last by rewrite h1 -(nat_R_eq rm) ltn_ord.
+rewrite (nth_map 0); first by rewrite h3.
+by rewrite h2 -?(nat_R_eq rm) -?(nat_R_eq rn) ltn_ord.
+Qed.
+
+Instance Rseqmx_add m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+  refines (Rseqmx (R:=R) rm rn ==> Rseqmx rm rn ==> Rseqmx rm rn) +%R +%C.
+Proof.
+  rewrite refinesE=> _ _ [M sM h1 h2 h3] _ _ [N sN h'1 h'2 h'3].
+  constructor=> [|i ltim|i j]; rewrite [(_ + _)%C]zipwithE.
+      by rewrite size_map size1_zip h1 ?h'1.
+    by rewrite (nth_map ([::], [::])) ?nth_zip ?zipwithE ?size_map ?size1_zip /=
+               ?h1 ?h'1 ?h2 ?h'2 ?ltim.
+  by rewrite (nth_map ([::], [::])) ?nth_zip /= ?size1_zip ?h1 ?h'1
+             -?(nat_R_eq rm) ?ltn_ord // mxE h3 h'3 zipwithE
+             -[[seq _ | _ <- _]](mkseq_nth 0%C) nth_mkseq /=
+             ?(nth_map (0%C, 0%C)) ?nth_zip ?size_map /= ?size1_zip ?h2 ?h'2
+             -?(nat_R_eq rm) -?(nat_R_eq rn) ?ltn_ord.
+Qed.
+
+Instance Rseqmx_sub m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+  refines (Rseqmx (R:=R) rm rn ==> Rseqmx rm rn ==> Rseqmx rm rn)
+          (fun M N => M - N) sub_op.
+Proof.
+  rewrite refinesE=> _ _ [M sM h1 h2 h3] _ _ [N sN h'1 h'2 h'3].
+  constructor=> [|i ltim|i j]; rewrite [(_ - _)%C]zipwithE.
+      by rewrite size_map size1_zip ?size_map h1 ?h'1.
+    by rewrite (nth_map ([::], [::])) ?nth_zip ?zipwithE ?size_map ?size1_zip /=
+               ?(nth_map [::]) ?size_map ?h1 ?h'1 ?h2 ?h'2 ?ltim.
+  by rewrite !mxE h3 h'3 (nth_map ([::], [::])) ?zipwithE ?(nth_map (0%C, 0%C))
+             ?nth_zip /= ?(nth_map [::]) ?size1_zip ?size_map ?(nth_map 0%C)
+             ?h1 ?h'1 ?h2 ?h'2 -?(nat_R_eq rm) -?(nat_R_eq rn) ?ltn_ord.
+Qed.
+
+Instance Rseqmx_mul m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2)
+         p1 p2 (rp : nat_R p1 p2) :
+  refines (Rseqmx (R:=R) rm rn ==> Rseqmx rn rp ==> Rseqmx rm rp)
+          mulmx (@hmul_op _ _ _  m2 n2 p2).
+Proof.
+  case: rn=> [|k1 k2 rk];
+    rewrite refinesE=> _ _ [M sM h1 h2 h3] _ _ [N sN h'1 h'2 h'3].
+    constructor=> [|i ltim|i j]; rewrite /hmul_op /mul_seqmx /seqmx0.
+        by rewrite size_nseq.
+      by rewrite nth_nseq h1 ltim size_nseq.
+    by rewrite nth_nseq h1 -(nat_R_eq rm) ltn_ord nth_nseq -(nat_R_eq rp)
+               ltn_ord mxE big_ord0.
+  constructor=> [|i ltim|i j]; rewrite /hmul_op /mul_seqmx.
+      by rewrite size_map.
+    by rewrite (nth_map [::]) ?h1 // size_map /trseqmx /= size_fold ?h'1.
+  rewrite (nth_map [::]) ?h1 -?(nat_R_eq rm) // (nth_map [::]) /trseqmx
+          ?size_fold ?h'1 ?h'2 // -?(nat_R_eq rp) //.
+  set F := (fun z x y => _).
+  have ->: forall s1 s2 (t : R), (foldl2 F t s1 s2) =
+    (t + \sum_(0 <= k < minn (size s1) (size s2)) s1`_k * s2`_k).
+    elim=>[s2 t|t1 s1 IHs s2 t].
+      by rewrite min0n big_mkord big_ord0 GRing.addr0.
+    case:s2=>[|t2 s2]; first by rewrite minn0 big_mkord big_ord0 GRing.addr0.
+    by rewrite /= IHs minSS big_nat_recl // /F [(_ + t)%C]addrC addrA.
+  rewrite add0r big_mkord size_nth_fold ?h'1 ?h2 -?(nat_R_eq rm) //
+          ?(nat_R_eq rp) // /minn if_same mxE -(nat_R_eq rk).
+  apply: eq_bigr=> k _.
+  by rewrite h3 h'3 nth_fold ?h'1 ?(nat_R_eq rp) // -(nat_R_eq rk).
+Qed.
+
+Instance Rseqmx_scale m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+  refines (eq ==> Rseqmx (R:=R) rm rn ==> Rseqmx rm rn) *:%R *:%C.
+Proof.
+  rewrite refinesE=> _ x -> _ _ [M sM h1 h2 h3].
+  constructor=> [|i ltim|i j]; rewrite [(_ *: _)%C]/scale_seqmx.
+      by rewrite size_map.
+    by rewrite (nth_map [::]) ?size_map ?h1 ?h2.
+  by rewrite mxE (nth_map [::]) ?(nth_map 0%C) ?h1 ?h2 ?h3 -?(nat_R_eq rm)
+             -?(nat_R_eq rn).
+Qed.
+
+Lemma eq_seqE (T : Type) (f : T -> T -> bool) s1 s2 : size s1 = size s2 ->
+  eq_seq f s1 s2 = all (fun xy => f xy.1 xy.2) (zip s1 s2).
+Proof.
+elim: s1 s2 => [|x1 s1 IHs] [] //= x2 s2 /eqP eq_sz.
+by rewrite IHs //; apply/eqP.
+Qed.
+
+Instance Rseqmx_eq m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
+  refines (Rseqmx (R:=R) rm rn ==> Rseqmx rm rn ==> bool_R) eqtype.eq_op eq_op.
+Proof.
+  rewrite refinesE=> _ _ [M sM h1 h2 h3] _ _ [N sN h'1 h'2 h'3].
+  suff ->: (M == N) = (eq_seq (eq_seq eqR) sM sN).
+    exact: bool_Rxx.
+  apply/eqP/idP=> [/matrixP heq|].
+    rewrite eq_seqE ?h1 ?h'1 //.
+    apply/(all_nthP ([::], [::]))=> i.
+    rewrite size1_zip ?nth_zip ?h1 ?h'1 //=; move=> ltim.
+    rewrite eq_seqE ?h2 ?h'2 //.
+    apply/(all_nthP (0, 0))=> j.
+    rewrite size1_zip ?nth_zip ?h2 ?h'2 //= -(nat_R_eq rn); move=> ltjn.
+    rewrite -(nat_R_eq rm) in ltim.
+    have := heq (Ordinal ltim) (Ordinal ltjn); rewrite h3 h'3=> ->.
+    by apply/eqP.
+  rewrite eq_seqE ?h1 ?h'1 //.
+  move/(all_nthP ([::], [::])).
+  rewrite size1_zip ?h1 ?h'1 //; move=> heq.
+  apply/matrixP=> i j.
+  have := heq i; rewrite -(nat_R_eq rm) ltn_ord; move/implyP; rewrite implyTb.
+  rewrite nth_zip ?h1 ?h'1 //= eq_seqE ?h2 ?h'2 -?(nat_R_eq rm) //.
+  move/(all_nthP (0, 0))=> /(_ j).
+  rewrite nth_zip ?size1_zip ?h2 ?h'2 -?(nat_R_eq rm) //= h3 h'3 -?(nat_R_eq rn)
+          (ltn_ord _) /eqR.
+  move=> he.
+  by apply/eqP; rewrite he.
+Qed.
+
 Instance Rseqmx_delta_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2)
          (i1 : 'I_m1) (i2 : 'I_m2) (ri : nat_R i1 i2) (j1 : 'I_n1) (j2 : 'I_n2)
          (rj : nat_R j1 j2) :
@@ -853,36 +1117,7 @@ Proof.
   by apply/matrixP=> i j; rewrite h3 mxE.
 Qed.
 
-End seqmx_ring.
-
-Section seqmx_param.
-
-Section seqmx.
-
-Variable R : Type.
-Context `{zero_of R, one_of R, opp_of R, add_of R, mul_of R, eq_of R}.
-
-Context (C : Type) (rAC : R -> C -> Type).
-
-Definition RseqmxC {m1 m2} (rm : nat_R m1 m2) {n1 n2} (rn : nat_R n1 n2) :
-  'M[R]_(m1, n1) -> hseqmx m2 n2 -> Type :=
-  (Rseqmx (R:=R) rm rn \o (list_R (list_R rAC)))%rel.
-
-End seqmx.
-
-Section seqmx_ring.
-
-Variable R : ringType.
-Existing Instance zeroR.
-Existing Instance oneR.
-Existing Instance oppR.
-Existing Instance addR.
-Existing Instance mulR.
-Existing Instance eqR.
-Existing Instance specRr.
-Existing Instance implem_ordr.
-
-Local Open Scope rel_scope.
+Section seqmx_ring_param.
 
 Context (C : Type) (rAC : R -> C -> Type).
 Context (I : nat -> Type)
@@ -899,437 +1134,148 @@ Context `{!refines (rAC ==> Logic.eq) spec_id spec}.
 Context `{forall n1 n2 (rn : nat_R n1 n2),
              refines (ordinal_R rn ==> rI rn) implem_id implem}.
 
-Local Instance refines_refl_nat : forall m, refines nat_R m m | 999.
-Proof. by rewrite refinesE; apply: nat_Rxx. Qed.
-
-(* Local Instance refines_refl_ord : forall m (i : 'I_m), refines nat_R i i | 999. *)
-(* Proof. rewrite refinesE; elim=> *; exact: nat_Rxx. Qed. *)
-
-(* Local Instance refines_eq_refl_nat : forall (m : nat), refines eq m m | 999.  *)
-(* Proof. by rewrite refinesE. Qed. *)
-
-Local Instance refines_ordinal_eq (m : nat) (i j : 'I_m) :
-  refines (ordinal_R (nat_Rxx m)) i j -> refines eq i j.
-Proof.
-rewrite !refinesE=> [[m0 m1 mR i0 i1 _]].
-apply: ord_inj; exact: nat_R_eq.
-Qed.
-
-Local Instance refines_fun_refl m n (f : 'I_m -> 'I_n -> R) :
-  refines (eq ==> eq ==> eq) f f.
-Proof.
-  by rewrite refinesE=> _ x -> _ y ->.
-Qed.
-
-Global Instance RseqmxC_seqmx_of_fun m1 m2 (rm : nat_R m1 m2) n1 n2
-       (rn : nat_R n1 n2) f g
-       `{forall x y, refines (rI rm) x y ->
-         forall z t, refines (rI rn) z t ->
-         refines (rAC \o (@unify _)) (f x z) (g y t)} :
-  refines (RseqmxC rAC rm rn)
-          (\matrix_(i, j) f i j) (seqmx_of_fun (I:=I) g).
-Proof.
-  eapply refines_trans; tc.
-  rewrite refinesE.
-  eapply (seqmx_of_fun_R (I_R:=rI))=> // *; apply refinesP.
-    eapply refines_apply; tc.
-  eapply refines_comp_unify; tc.
-Qed.
-
-Global Instance refine_seqmx_of_fun m n f g
-       `{forall x y, refines (rI (nat_Rxx m)) x y ->
-         forall z t, refines (rI (nat_Rxx n)) z t ->
-         refines (rAC \o (@unify _)) (f x z) (g y t)} :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n))
-          (\matrix_(i, j) f i j) (seqmx_of_fun (I:=I) g).
-Proof. exact: RseqmxC_seqmx_of_fun. Qed.
-
-Global Instance RseqmxC_mkseqmx_ord m1 m2 (rm : nat_R m1 m2) n1 n2
-       (rn : nat_R n1 n2) :
-  refines ((eq ==> eq ==> rAC) ==> RseqmxC rAC rm rn)
-          (matrix_of_fun matrix_key) (@mkseqmx_ord C m1 n1).
-Proof. param_comp mkseqmx_ord_R. Qed.
-
-Global Instance refine_mkseqmx_ord m n :
-  refines ((eq ==> eq ==> rAC) ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx n))
-          (matrix_of_fun matrix_key) (@mkseqmx_ord C m n).
-Proof. exact: RseqmxC_mkseqmx_ord. Qed.
-
-Global Instance RseqmxC_const_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2
-       (rn : nat_R n1 n2) :
-  refines (rAC ==> RseqmxC rAC rm rn) (@matrix.const_mx R m1 n1)
-          (const_seqmx m2 n2).
-Proof. param_comp const_seqmx_R. Qed.
-
-Global Instance refine_const_seqmx m n :
-  refines (rAC ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx n)) (@matrix.const_mx R m n)
-          (const_seqmx m n).
-Proof. exact: RseqmxC_const_seqmx. Qed.
-
-Existing Instance Rseqmx_0.
-
-Global Instance RseqmxC_0 m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC rm rn) 0 (@hzero_op _ _ _ m2 n2).
-Proof. param_comp seqmx0_R. Qed.
-
-Global Instance refine_0_seqmx m n :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n)) 0 (@hzero_op _ _ _ m n).
-Proof. exact: RseqmxC_0. Qed.
-
-Existing Instance Rseqmx_diag_seqmx.
+Notation RseqmxC := (RseqmxC rAC).
 
 Global Instance RseqmxC_diag_seqmx m1 m2 (rm : nat_R m1 m2) :
-  refines (RseqmxC rAC (nat_R_S_R nat_R_O_R) rm ==> RseqmxC rAC rm rm)
+  refines (RseqmxC (nat_R_S_R nat_R_O_R) rm ==> RseqmxC rm rm)
           diag_mx (diag_seqmx (A:=C)).
 Proof. param_comp diag_seqmx_R. Qed.
 
 Global Instance refine_diag_seqmx m :
-  refines (RseqmxC rAC (nat_R_S_R nat_R_O_R) (nat_Rxx m) ==>
-           RseqmxC rAC (nat_Rxx m) (nat_Rxx m))
+  refines (RseqmxC (nat_R_S_R nat_R_O_R) (nat_Rxx m) ==>
+           RseqmxC (nat_Rxx m) (nat_Rxx m))
           diag_mx (diag_seqmx (A:=C)).
 Proof. exact: RseqmxC_diag_seqmx. Qed.
 
-Existing Instance Rseqmx_scalar_seqmx.
-
 Global Instance RseqmxC_scalar_seqmx m1 m2 (rm : nat_R m1 m2) :
-  refines (rAC ==> RseqmxC rAC rm rm) scalar_mx (scalar_seqmx m2).
-Proof. param_comp scalar_seqmx_R. Qed.
+  refines (rAC ==> RseqmxC rm rm) scalar_mx (scalar_seqmx m2).
+Proof. param_comp scalar_seqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
 
 Global Instance refine_scalar_seqmx m :
-  refines (rAC ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx m)) scalar_mx (scalar_seqmx m).
+  refines (rAC ==> RseqmxC (nat_Rxx m) (nat_Rxx m)) scalar_mx (scalar_seqmx m).
 Proof. exact: RseqmxC_scalar_seqmx. Qed.
 
-Existing Instance Rseqmx_1.
-
 Global Instance RseqmxC_1 m1 m2 (rm : nat_R m1 m2) :
-  refines (RseqmxC rAC rm rm) 1%:M (seqmx1 m2).
-Proof. param_comp seqmx1_R. Qed.
+  refines (RseqmxC rm rm) 1%:M (seqmx1 m2).
+Proof. param_comp seqmx1_R; rewrite refinesE; apply nat_Rxx. Qed.
 
 Global Instance refine_1_seqmx m :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx m)) 1%:M (seqmx1 m).
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx m)) 1%:M (seqmx1 m).
 Proof. exact: RseqmxC_1. Qed.
 
-Existing Instance Rseqmx_opp.
-
 Global Instance RseqmxC_opp m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC rm rn ==> RseqmxC rAC rm rn) -%R -%C.
+  refines (RseqmxC rm rn ==> RseqmxC rm rn) -%R -%C.
 Proof. param_comp opp_seqmx_R. Qed.
 
 Global Instance refine_opp_seqmx m n :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx n))
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC (nat_Rxx m) (nat_Rxx n))
           -%R -%C.
 Proof. exact: RseqmxC_opp. Qed.
 
-Existing Instance Rseqmx_add.
-
 Global Instance RseqmxC_add m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC rm rn ==> RseqmxC rAC rm rn ==> RseqmxC rAC rm rn) +%R +%C.
+  refines (RseqmxC rm rn ==> RseqmxC rm rn ==> RseqmxC rm rn) +%R +%C.
 Proof. param_comp add_seqmx_R. Qed.
 
 Global Instance refine_add_seqmx m n :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx n)
-                   ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx n)) +%R +%C.
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC (nat_Rxx m) (nat_Rxx n)
+                   ==> RseqmxC (nat_Rxx m) (nat_Rxx n)) +%R +%C.
 Proof. exact: RseqmxC_add. Qed.
 
-Existing Instance Rseqmx_sub.
-
 Global Instance RseqmxC_sub m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC rm rn ==> RseqmxC rAC rm rn ==> RseqmxC rAC rm rn)
+  refines (RseqmxC rm rn ==> RseqmxC rm rn ==> RseqmxC rm rn)
           (fun M N => M - N) sub_op.
 Proof. param_comp sub_seqmx_R. Qed.
 
 Global Instance refine_sub_seqmx m n :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx n)
-                   ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx n))
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC (nat_Rxx m) (nat_Rxx n)
+                   ==> RseqmxC (nat_Rxx m) (nat_Rxx n))
           (fun M N => M - N) sub_op.
 Proof. exact: RseqmxC_sub. Qed.
 
-Global Instance RseqmxC_tr m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC rm rn ==> RseqmxC rAC rn rm) trmx (@trseqmx C m2 n2).
-Proof. param_comp trseqmx_R. Qed.
-
-Global Instance refine_trseqmx m n :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC rAC (nat_Rxx n) (nat_Rxx m))
-          trmx (@trseqmx C m n).
-Proof. exact: RseqmxC_tr. Qed.
-
-Existing Instance Rseqmx_mul.
-
 Global Instance RseqmxC_mul m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2)
        p1 p2 (rp : nat_R p1 p2) :
-  refines (RseqmxC rAC rm rn ==> RseqmxC rAC rn rp ==> RseqmxC rAC rm rp)
+  refines (RseqmxC rm rn ==> RseqmxC rn rp ==> RseqmxC rm rp)
           mulmx (@hmul_op _ _ _  m2 n2 p2).
-Proof. param_comp mul_seqmx_R. Qed.
+Proof. param_comp mul_seqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
 
 Global Instance refine_mul_seqmx m n p :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC rAC (nat_Rxx n) (nat_Rxx p)
-                   ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx p))
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC (nat_Rxx n) (nat_Rxx p)
+                   ==> RseqmxC (nat_Rxx m) (nat_Rxx p))
           mulmx (@hmul_op _ _ _  m n p).
 Proof. exact: RseqmxC_mul. Qed.
 
-Existing Instance Rseqmx_scale.
-
 Global Instance RseqmxC_scale m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2)
-  : refines (rAC ==> RseqmxC rAC rm rn ==> RseqmxC rAC rm rn) *:%R *:%C.
+  : refines (rAC ==> RseqmxC rm rn ==> RseqmxC rm rn) *:%R *:%C.
 Proof. param_comp scale_seqmx_R. Qed.
 
 Global Instance refine_scale_seqmx m n :
-  refines (rAC ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx n) ==>
-               RseqmxC rAC (nat_Rxx m) (nat_Rxx n)) *:%R *:%C.
+  refines (rAC ==> RseqmxC (nat_Rxx m) (nat_Rxx n) ==>
+               RseqmxC (nat_Rxx m) (nat_Rxx n)) *:%R *:%C.
 Proof. exact: RseqmxC_scale. Qed.
 
-Existing Instance Rseqmx_eq.
-
 Global Instance RseqmxC_eq m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC rm rn ==> RseqmxC rAC rm rn ==> bool_R)
+  refines (RseqmxC rm rn ==> RseqmxC rm rn ==> bool_R)
           eqtype.eq_op eq_op.
 Proof. param_comp eq_seqmx_R. Qed.
 
 Global Instance refine_eq_seqmx m n :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx n)
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n) ==> RseqmxC (nat_Rxx m) (nat_Rxx n)
                    ==> bool_R) eqtype.eq_op eq_op.
 Proof. exact: RseqmxC_eq. Qed.
-
-Existing Instance Rseqmx_top_left_seqmx.
-
-Global Instance RseqmxC_top_left_seqmx m1 m2 (rm : nat_R m1 m2) :
-  refines (RseqmxC rAC (nat_R_S_R rm) (nat_R_S_R rm) ==> rAC)
-          (fun M => M ord0 ord0)
-          (@top_left_seqmx C _).
-Proof. param_comp top_left_seqmx_R. Qed.
-
-Global Instance refine_top_left_seqmx m :
-  refines (RseqmxC rAC (nat_R_S_R (nat_Rxx m)) (nat_R_S_R (nat_Rxx m)) ==> rAC)
-          (fun M => M ord0 ord0)
-          (@top_left_seqmx C _).
-Proof. exact: RseqmxC_top_left_seqmx. Qed.
-
-Existing Instance Rseqmx_usubseqmx.
-
-Global Instance RseqmxC_usubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
-       (rm2 : nat_R m21 m22) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC (addn_R rm1 rm2) rn ==> RseqmxC rAC rm1 rn)
-          (@matrix.usubmx R m11 m21 n1) (@usubseqmx C m12 m22 n2).
-Proof. param_comp usubseqmx_R. Qed.
-
-Global Instance refine_usubseqmx m1 m2 n :
-  refines (RseqmxC rAC (addn_R (nat_Rxx m1) (nat_Rxx m2)) (nat_Rxx n) ==>
-                   RseqmxC rAC (nat_Rxx m1) (nat_Rxx n))
-          (@matrix.usubmx R m1 m2 n) (@usubseqmx C m1 m2 n).
-Proof. exact: RseqmxC_usubseqmx. Qed.
-
-Existing Instance Rseqmx_dsubseqmx.
-
-Global Instance RseqmxC_dsubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
-       (rm2 : nat_R m21 m22) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC (addn_R rm1 rm2) rn ==> RseqmxC rAC rm2 rn)
-          (@matrix.dsubmx R m11 m21 n1) (@dsubseqmx C m12 m22 n2).
-Proof. param_comp dsubseqmx_R. Qed.
-
-Global Instance refine_dsubseqmx m1 m2 n :
-  refines (RseqmxC rAC (addn_R (nat_Rxx m1) (nat_Rxx m2)) (nat_Rxx n) ==>
-                   RseqmxC rAC (nat_Rxx m2) (nat_Rxx n))
-          (@matrix.dsubmx R m1 m2 n) (@dsubseqmx C m1 m2 n).
-Proof. exact: RseqmxC_dsubseqmx. Qed.
-
-Existing Instance Rseqmx_lsubseqmx.
-
-Global Instance RseqmxC_lsubseqmx m1 m2 (rm : nat_R m1 m2) n11 n12
-       (rn1 : nat_R n11 n12) n21 n22 (rn2 : nat_R n21 n22) :
-  refines (RseqmxC rAC rm (addn_R rn1 rn2) ==> RseqmxC rAC rm rn1)
-          (@matrix.lsubmx R m1 n11 n21) (@lsubseqmx C m2 n12 n22).
-Proof. param_comp lsubseqmx_R. Qed.
-
-Global Instance refine_lsubseqmx m n1 n2 :
-  refines (RseqmxC rAC (nat_Rxx m) (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
-                   RseqmxC rAC (nat_Rxx m) (nat_Rxx n1))
-          (@matrix.lsubmx R m n1 n2) (@lsubseqmx C m n1 n2).
-Proof. exact: RseqmxC_lsubseqmx. Qed.
-
-Existing Instance Rseqmx_rsubseqmx.
-
-Global Instance RseqmxC_rsubseqmx m1 m2 (rm : nat_R m1 m2) n11 n12
-       (rn1 : nat_R n11 n12) n21 n22 (rn2 : nat_R n21 n22) :
-  refines (RseqmxC rAC rm (addn_R rn1 rn2) ==> RseqmxC rAC rm rn2)
-          (@matrix.rsubmx R m1 n11 n21) (@rsubseqmx C m2 n12 n22).
-Proof. param_comp rsubseqmx_R. Qed.
-
-Global Instance refine_rsubseqmx m n1 n2 :
-  refines (RseqmxC rAC (nat_Rxx m) (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
-                   RseqmxC rAC (nat_Rxx m) (nat_Rxx n2))
-          (@matrix.rsubmx R m n1 n2) (@rsubseqmx C m n1 n2).
-Proof. exact: RseqmxC_rsubseqmx. Qed.
-
-Existing Instance Rseqmx_ulsubseqmx.
-
-Global Instance RseqmxC_ulsubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
-       (rm2 : nat_R m21 m22) n11 n12 (rn1 : nat_R n11 n12) n21 n22
-       (rn2 : nat_R n21 n22) :
-  refines (RseqmxC rAC (addn_R rm1 rm2) (addn_R rn1 rn2) ==> RseqmxC rAC rm1 rn1)
-          (@matrix.ulsubmx R m11 m21 n11 n21) (@ulsubseqmx C m12 m22 n12 n22).
-Proof. param_comp ulsubseqmx_R. Qed.
-
-Global Instance refine_ulsubseqmx m1 m2 n1 n2 :
-  refines (RseqmxC rAC (addn_R (nat_Rxx m1) (nat_Rxx m2))
-                   (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
-                   RseqmxC rAC (nat_Rxx m1) (nat_Rxx n1))
-          (@matrix.ulsubmx R m1 m2 n1 n2) (@ulsubseqmx C m1 m2 n1 n2).
-Proof. exact: RseqmxC_ulsubseqmx. Qed.
-
-Existing Instance Rseqmx_ursubseqmx.
-
-Global Instance RseqmxC_ursubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
-       (rm2 : nat_R m21 m22) n11 n12 (rn1 : nat_R n11 n12) n21 n22
-       (rn2 : nat_R n21 n22) :
-  refines (RseqmxC rAC (addn_R rm1 rm2) (addn_R rn1 rn2) ==> RseqmxC rAC rm1 rn2)
-          (@matrix.ursubmx R m11 m21 n11 n21) (@ursubseqmx C m12 m22 n12 n22).
-Proof. param_comp ursubseqmx_R. Qed.
-
-Global Instance refine_ursubseqmx m1 m2 n1 n2 :
-  refines (RseqmxC rAC (addn_R (nat_Rxx m1) (nat_Rxx m2))
-                   (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
-                   RseqmxC rAC (nat_Rxx m1) (nat_Rxx n2))
-          (@matrix.ursubmx R m1 m2 n1 n2) (@ursubseqmx C m1 m2 n1 n2).
-Proof. exact: RseqmxC_ursubseqmx. Qed.
-
-Existing Instance Rseqmx_dlsubseqmx.
-
-Global Instance RseqmxC_dlsubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
-       (rm2 : nat_R m21 m22) n11 n12 (rn1 : nat_R n11 n12) n21 n22
-       (rn2 : nat_R n21 n22) :
-  refines (RseqmxC rAC (addn_R rm1 rm2) (addn_R rn1 rn2) ==> RseqmxC rAC rm2 rn1)
-          (@matrix.dlsubmx R m11 m21 n11 n21) (@dlsubseqmx C m12 m22 n12 n22).
-Proof. param_comp dlsubseqmx_R. Qed.
-
-Global Instance refine_dlsubseqmx m1 m2 n1 n2 :
-  refines (RseqmxC rAC (addn_R (nat_Rxx m1) (nat_Rxx m2))
-                   (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
-                   RseqmxC rAC (nat_Rxx m2) (nat_Rxx n1))
-          (@matrix.dlsubmx R m1 m2 n1 n2) (@dlsubseqmx C m1 m2 n1 n2).
-Proof. exact: RseqmxC_dlsubseqmx. Qed.
-
-Existing Instance Rseqmx_drsubseqmx.
-
-Global Instance RseqmxC_drsubseqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
-       (rm2 : nat_R m21 m22) n11 n12 (rn1 : nat_R n11 n12) n21 n22
-       (rn2 : nat_R n21 n22) :
-  refines (RseqmxC rAC (addn_R rm1 rm2) (addn_R rn1 rn2) ==> RseqmxC rAC rm2 rn2)
-          (@matrix.drsubmx R m11 m21 n11 n21) (@drsubseqmx C m12 m22 n12 n22).
-Proof. param_comp drsubseqmx_R. Qed.
-
-Global Instance refine_drsubseqmx m1 m2 n1 n2 :
-  refines (RseqmxC rAC (addn_R (nat_Rxx m1) (nat_Rxx m2))
-                   (addn_R (nat_Rxx n1) (nat_Rxx n2)) ==>
-                   RseqmxC rAC (nat_Rxx m2) (nat_Rxx n2))
-          (@matrix.drsubmx R m1 m2 n1 n2) (@drsubseqmx C m1 m2 n1 n2).
-Proof. exact: RseqmxC_drsubseqmx. Qed.
-
-Existing Instance Rseqmx_row_seqmx.
-
-Global Instance RseqmxC_row_seqmx m1 m2 (rm : nat_R m1 m2) n11 n12
-       (rn1 : nat_R n11 n12) n21 n22 (rn2 : nat_R n21 n22) :
-  refines (RseqmxC rAC rm rn1 ==> RseqmxC rAC rm rn2 ==> RseqmxC rAC rm (addn_R rn1 rn2))
-          (@matrix.row_mx R m1 n11 n21) (@row_seqmx C m2 n12 n22).
-Proof. param_comp row_seqmx_R. Qed.
-
-Global Instance refine_row_seqmx m n1 n2 :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n1) ==> RseqmxC rAC (nat_Rxx m) (nat_Rxx n2)
-                   ==> RseqmxC rAC (nat_Rxx m) (addn_R (nat_Rxx n1) (nat_Rxx n2)))
-          (@matrix.row_mx R m n1 n2) (@row_seqmx C m n1 n2).
-Proof. exact: RseqmxC_row_seqmx. Qed.
-
-Existing Instance Rseqmx_col_seqmx.
-
-Global Instance RseqmxC_col_seqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
-       (rm2 : nat_R m21 m22) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC rm1 rn ==> RseqmxC rAC rm2 rn ==> RseqmxC rAC (addn_R rm1 rm2) rn)
-          (@matrix.col_mx R m11 m21 n1) (@col_seqmx C m12 m22 n2).
-Proof. param_comp col_seqmx_R. Qed.
-
-Global Instance refine_col_seqmx m1 m2 n :
-  refines (RseqmxC rAC (nat_Rxx m1) (nat_Rxx n) ==> RseqmxC rAC (nat_Rxx m2) (nat_Rxx n)
-                   ==> RseqmxC rAC (addn_R (nat_Rxx m1) (nat_Rxx m2)) (nat_Rxx n))
-          (@matrix.col_mx R m1 m2 n) (@col_seqmx C m1 m2 n).
-Proof. exact: RseqmxC_col_seqmx. Qed.
-
-Existing Instance Rseqmx_block_seqmx.
-
-Global Instance RseqmxC_block_seqmx m11 m12 (rm1 : nat_R m11 m12) m21 m22
-       (rm2 : nat_R m21 m22) n11 n12 (rn1 : nat_R n11 n12) n21 n22
-       (rn2 : nat_R n21 n22) :
-  refines (RseqmxC rAC rm1 rn1 ==> RseqmxC rAC rm1 rn2 ==> RseqmxC rAC rm2 rn1 ==>
-           RseqmxC rAC rm2 rn2 ==> RseqmxC rAC (addn_R rm1 rm2) (addn_R rn1 rn2))
-    (@matrix.block_mx R m11 m21 n11 n21) (@block_seqmx C m12 m22 n12 n22).
-Proof. param_comp block_seqmx_R. Qed.
-
-Global Instance refine_block_seqmx m1 m2 n1 n2 :
-  refines (RseqmxC rAC (nat_Rxx m1) (nat_Rxx n1) ==>
-           RseqmxC rAC (nat_Rxx m1) (nat_Rxx n2) ==>
-           RseqmxC rAC (nat_Rxx m2) (nat_Rxx n1) ==>
-           RseqmxC rAC (nat_Rxx m2) (nat_Rxx n2) ==>
-           RseqmxC rAC (addn_R (nat_Rxx m1) (nat_Rxx m2))
-                   (addn_R (nat_Rxx n1) (nat_Rxx n2)))
-    (@matrix.block_mx R m1 m2 n1 n2) (@block_seqmx C m1 m2 n1 n2).
-Proof. exact: RseqmxC_block_seqmx. Qed.
 
 Global Instance RseqmxC_delta_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2
        (rn : nat_R n1 n2) (i1 : 'I_m1) (i2 : 'I_m2) (ri : nat_R i1 i2)
        (j1 : 'I_n1) (j2 : 'I_n2) (rj : nat_R j1 j2) :
-  refines (RseqmxC rAC rm rn) (delta_mx i1 j1) (delta_seqmx m2 n2 i2 j2).
+  refines (RseqmxC rm rn) (delta_mx i1 j1) (delta_seqmx (A:=C) m2 n2 i2 j2).
 Proof.
   eapply refines_trans; tc.
     eapply Rseqmx_delta_seqmx; eassumption.
-  rewrite refinesE; eapply delta_seqmx_R; exact: refinesP.
+  rewrite refinesE; eapply delta_seqmx_R; try exact: refinesP; apply nat_Rxx.
 Qed.
 
 Global Instance refine_delta_seqmx m n i j :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n))
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n))
           (delta_mx i j) (delta_seqmx m n i j).
 Proof. apply RseqmxC_delta_seqmx; exact: nat_Rxx. Qed.
 
-Existing Instance Rseqmx_trace_seqmx.
-
 Global Instance RseqmxC_trace_seqmx m1 m2 (rm : nat_R m1 m2) :
-  refines (RseqmxC rAC rm rm ==> rAC) mxtrace (trace_seqmx (A:=C) (m:=m2)).
-Proof. param_comp trace_seqmx_R. Qed.
+  refines (RseqmxC rm rm ==> rAC) mxtrace (trace_seqmx (A:=C) (m:=m2)).
+Proof. param_comp trace_seqmx_R; rewrite refinesE; apply nat_Rxx. Qed.
 
 Global Instance refine_trace_seqmx m :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx m) ==> rAC)
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx m) ==> rAC)
           mxtrace (trace_seqmx (A:=C) (m:=m)).
 Proof. exact: RseqmxC_trace_seqmx. Qed.
 
-Existing Instance Rseqmx_pid_seqmx.
-
 Global Instance RseqmxC_pid_seqmx m1 m2 (rm : nat_R m1 m2) n1 n2
        (rn : nat_R n1 n2) r1 r2 (rr : nat_R r1 r2) :
-  refines (RseqmxC rAC rm rn) (pid_mx r1) (pid_seqmx m2 n2 r2).
+  refines (RseqmxC rm rn) (pid_mx r1) (pid_seqmx m2 n2 r2).
 Proof.
   eapply refines_trans; tc.
     eapply Rseqmx_pid_seqmx; eassumption.
-  rewrite refinesE; eapply pid_seqmx_R; exact: refinesP.
+  rewrite refinesE; eapply pid_seqmx_R; try exact: refinesP; apply nat_Rxx.
 Qed.
 
 Global Instance refine_pid_seqmx m n r :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n)) (pid_mx r) (pid_seqmx m n r).
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n)) (pid_mx r) (pid_seqmx m n r).
 Proof. apply RseqmxC_pid_seqmx; exact: nat_Rxx. Qed.
 
 Global Instance RseqmxC_copid_seqmx m1 m2 (rm : nat_R m1 m2) r1 r2
        (rr : nat_R r1 r2) :
-  refines (RseqmxC rAC rm rm) (copid_mx r1) (copid_seqmx m2 r2).
+  refines (RseqmxC rm rm) (copid_mx r1) (copid_seqmx m2 r2).
 Proof.
   eapply refines_trans; tc.
     eapply Rseqmx_copid_seqmx; eassumption.
-  rewrite refinesE; eapply copid_seqmx_R=> *; exact: refinesP.
+  rewrite refinesE.
+  eapply copid_seqmx_R=> *; try exact: refinesP; apply nat_Rxx.
 Qed.
 
 Global Instance refine_copid_seqmx m r :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx m)) (copid_mx r) (copid_seqmx m r).
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx m)) (copid_mx r) (copid_seqmx m r).
 Proof. apply RseqmxC_copid_seqmx; exact: nat_Rxx. Qed.
 
-Existing Instance Rseqmx_spec_l.
-
 Global Instance RseqmxC_spec m1 m2 (rm : nat_R m1 m2) n1 n2 (rn : nat_R n1 n2) :
-  refines (RseqmxC rAC rm rn ==> Logic.eq) spec_id spec.
+  refines (RseqmxC rm rn ==> Logic.eq) spec_id spec.
 Proof.
   eapply refines_trans; tc.
   rewrite refinesE /spec /spec_seqmx /spec /specR=> l l' rl.
@@ -1338,16 +1284,16 @@ Proof.
     rewrite ih.
     apply: congr2=> //.
     elim: ra=> [|x y rxy s t rst ihs] //=.
-    by rewrite ihs [specRr _]refines_eq.
+    by rewrite ihs [specR_ring _]refines_eq.
   by [].
 Qed.
 
 Global Instance refine_spec_seqmx m n :
-  refines (RseqmxC rAC (nat_Rxx m) (nat_Rxx n) ==> Logic.eq) spec_id spec.
+  refines (RseqmxC (nat_Rxx m) (nat_Rxx n) ==> Logic.eq) spec_id spec.
 Proof. exact: RseqmxC_spec. Qed.
 
+End seqmx_ring_param.
 End seqmx_ring.
-End seqmx_param.
 
 Section seqmx2.
 
@@ -1394,13 +1340,6 @@ Local Open Scope rel_scope.
 
 Variable R : ringType.
 Existing Instance zeroR.
-Existing Instance oneR.
-Existing Instance oppR.
-Existing Instance addR.
-Existing Instance mulR.
-Existing Instance eqR.
-Existing Instance specRr.
-Existing Instance implem_ordr.
 Context (C : Type) (rAC : R -> C -> Type).
 Context (polyC : Type) (RpolyC : {poly R} -> polyC -> Type).
 Variable polyX : polyC.
@@ -1445,37 +1384,37 @@ From mathcomp Require Import ssrint poly.
 From CoqEAL Require Import binint seqpoly binord.
 
 Goal ((0 : 'M[int]_(2,2)) == 0).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal (1 : 'M[int]_(2)) == 1.
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal ((- 0 : 'M[int]_(2,2)) == - - - 0).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal ((- 0 : 'M[{poly int}]_(2,2)) == - - - 0).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal (\tr (1 : 'M[{poly int}]_(10)) == 10%:Z%:P).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal (pid_mx 3 + copid_mx 3 == 1 :> 'M[int]_(10)).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal (pid_mx 4 * copid_mx 4 == 0 :> 'M[{poly {poly int}}]_(5)).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Definition Maddm : 'M[int]_(2) := \matrix_(i, j < 2) (i + j * i)%:Z.
 
 Goal (Maddm == Maddm).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Definition M3 : 'M[int]_(2,2) := \matrix_(i,j < 2) 3%:Z.
@@ -1485,40 +1424,40 @@ Definition M6 : 'M[int]_(2,2) := \matrix_(i,j < 2) 6%:Z.
 Definition V : 'rV[int]_(3) := \matrix_(i < 1, j < 3) 3%:Z.
 
 Goal (diag_mx V == 2%:Z *: diag_mx V - diag_mx V).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal (delta_mx ord0 ord0 + delta_mx (Ordinal (ltnSn 1)) (Ordinal (ltnSn 1)) ==
       1 :> 'M[{poly int}]_(2)).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal (- - M3 == M3).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal (- M3 == Mn3).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal (M3 - M3 == 0).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal (M3 + M3 == M6).
-(*rewrite -[X in X == _]/(spec_id _) [spec_id _]refines_eq /=.
-by coqeal. *)
+rewrite -[X in X == _]/(spec_id _) [spec_id _]refines_eq /=.
+by coqeal.
 Abort.
 
 Definition Mp : 'M[{poly {poly int}}]_(2,2) :=
   \matrix_(i,j < 2) (Poly [:: Poly [:: 3%:Z; 0; 1]; 0]).
 
 Goal (Mp + -Mp == 0).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Goal (Mp *m 0 == 0 :> 'M[_]_(2,2)).
-(* by coqeal. *)
+by coqeal.
 Abort.
 
 Definition M := \matrix_(i,j < 2) 1%num%:Z.
@@ -1531,7 +1470,7 @@ Goal (M + N + M + N + M + N + N + M + N) *m
    P *m M + P *m N + P *m N + P *m M + P *m N).
 Proof.
 apply/eqP.
-(* Time by coqeal. *)
+Time by coqeal.
 Abort.
 
 End testmx.

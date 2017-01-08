@@ -990,17 +990,17 @@ Lemma init_pos (x0 x1 x2 : R) :
   - init_sigma3 x0 x1 x2 * pI3 x0 x1 x2 >= 0.
 Proof.
 rewrite /p /init_sigma1 /pI1 /init_sigma2 /pI2 /init_sigma3 /pI3.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma init_sigma1_pos (x0 x1 x2 : R) : init_sigma1 x0 x1 x2 >= 0.
-Proof. rewrite /init_sigma1. do_sdp. Qed.
+Proof. rewrite /init_sigma1. validsdp. Qed.
 
 Lemma init_sigma2_pos (x0 x1 x2 : R) : init_sigma2 x0 x1 x2 >= 0.
-Proof. rewrite /init_sigma2. do_sdp. Qed.
+Proof. rewrite /init_sigma2. validsdp. Qed.
 
 Lemma init_sigma3_pos (x0 x1 x2 : R) : init_sigma3 x0 x1 x2 >= 0.
-Proof. rewrite /init_sigma3. do_sdp. Qed.
+Proof. rewrite /init_sigma3. validsdp. Qed.
 
 Lemma ind0_pos (x0 x1 x2 : R) :
   p (t0_x0 x0 x1 x2) (t0_x1 x0 x1 x2) (t0_x2 x0 x1 x2)
@@ -1008,14 +1008,14 @@ Lemma ind0_pos (x0 x1 x2 : R) :
   - ind0_sigma0 x0 x1 x2 * g0 x0 x1 x2 >= 0.
 Proof.
 rewrite /p /t0_x0 /t0_x1 /t0_x2 /ind0_sigma /ind0_sigma0 /g0.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma ind0_sigma_pos (x0 x1 x2 : R) : ind0_sigma x0 x1 x2 >= 0.
-Proof. rewrite /ind0_sigma. do_sdp. Qed.
+Proof. rewrite /ind0_sigma. validsdp. Qed.
 
 Lemma ind0_sigma0_pos (x0 x1 x2 : R) : ind0_sigma0 x0 x1 x2 >= 0.
-Proof. rewrite /ind0_sigma0. do_sdp. Qed.
+Proof. rewrite /ind0_sigma0. validsdp. Qed.
 
 Lemma ind1_pos (x0 x1 x2 : R) :
   p (t1_x0 x0 x1 x2) (t1_x1 x0 x1 x2) (t1_x2 x0 x1 x2)
@@ -1023,14 +1023,14 @@ Lemma ind1_pos (x0 x1 x2 : R) :
   - ind1_sigma1 x0 x1 x2 * g1 x0 x1 x2 >= 0.
 Proof.
 rewrite /p /t1_x0 /t1_x1 /t1_x2 /ind1_sigma /ind1_sigma1 /g1.
-do_sdp.
+validsdp.
 Qed.
 
 Lemma ind1_sigma_pos (x0 x1 x2 : R) : ind1_sigma x0 x1 x2 >= 0.
-Proof. rewrite /ind1_sigma. do_sdp. Qed.
+Proof. rewrite /ind1_sigma. validsdp. Qed.
 
 Lemma ind1_sigma1_pos (x0 x1 x2 : R) : ind1_sigma1 x0 x1 x2 >= 0.
-Proof. rewrite /ind1_sigma1. do_sdp. Qed.
+Proof. rewrite /ind1_sigma1. validsdp. Qed.
 
 Theorem init (x0 x1 x2 : R) :
   pI1 x0 x1 x2 >= 0 -> pI2 x0 x1 x2 >= 0 -> pI3 x0 x1 x2 >= 0 ->

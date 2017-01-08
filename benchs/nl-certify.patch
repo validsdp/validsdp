@@ -1,0 +1,123 @@
+From 92891021ad71c4d384e2c22da213c4a52447d381 Mon Sep 17 00:00:00 2001
+From: Erik Martin-Dorel <erik.martin-dorel@irit.fr>
+Date: Fri, 25 Nov 2016 21:57:40 +0100
+Subject: [PATCH] Fix compilation with Coq 8.5.
+
+---
+ coq/Iqr.v         | 2 +-
+ coq/Realslemmas.v | 2 +-
+ coq/fsa.v         | 4 ++--
+ coq/remainder.v   | 6 +++---
+ coq/sos_horner.v  | 2 +-
+ coq_fsa.ml        | 4 ++--
+ 6 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/coq/Iqr.v b/coq/Iqr.v
+index c8d63ab..a9a3300 100644
+--- a/coq/Iqr.v
++++ b/coq/Iqr.v
+@@ -2,7 +2,7 @@ Require Import sos_horner.
+ Require Import BigQ QArith.
+ (*****)
+ Require Import OrderedRing Bool Reals. 
+-Require Import ssreflect ssrbool.
++From mathcomp Require Import ssreflect ssrbool.
+ Import OrderedRingSyntax.
+ (*
+ Require Import Reals.
+diff --git a/coq/Realslemmas.v b/coq/Realslemmas.v
+index c432709..9695069 100644
+--- a/coq/Realslemmas.v
++++ b/coq/Realslemmas.v
+@@ -1,7 +1,7 @@
+ Require Import Raxioms RIneq Rpow_def DiscrR.
+ Require Import Reals.
+ Open Local Scope R_scope.
+-Require Import ssreflect.
++From mathcomp Require Import ssreflect.
+ 
+ Lemma Rmult_neutral : forall x:R , 0 * x = 0.
+ Proof.
+diff --git a/coq/fsa.v b/coq/fsa.v
+index e440bcd..4060120 100644
+--- a/coq/fsa.v
++++ b/coq/fsa.v
+@@ -1,4 +1,4 @@
+-Require Import ssreflect ssrbool eqtype ssrfun.
++From mathcomp Require Import ssreflect ssrbool eqtype ssrfun.
+ Require Import NArith.
+ Require Import Relation_Definitions.
+ Require Export Setoid.
+@@ -28,7 +28,7 @@ itv_sos : obtained with SOS certificate
+ itv_arith is mandatory to scale POP systems and bound the remainder eps_pop
+ **)
+ 
+-Require Import seq.
++From mathcomp Require Import seq.
+ Record cert_pop := mk_cert_pop {
+  remainder : PolC;
+  eigs : seq Iqr.C;
+diff --git a/coq/remainder.v b/coq/remainder.v
+index 4d222f2..ae05f25 100644
+--- a/coq/remainder.v
++++ b/coq/remainder.v
+@@ -1,4 +1,4 @@
+-Require Import ssreflect ssrbool eqtype ssrfun.
++From mathcomp Require Import ssreflect ssrbool eqtype ssrfun.
+ Require Import NArith.
+ Require Import Relation_Definitions.
+ Require Import Setoid.
+@@ -51,7 +51,7 @@ Definition cltb (x y : C) := (cleb x y) && (cneqb x y).
+ Notation "x [~=] y" := (cneqb x y).
+ Notation "x [<] y" := (cltb x y).
+ *)
+-Require Import seq.
++From mathcomp Require Import seq.
+ Definition seqpos := seq positive.
+ 
+ Lemma eqpositiveP : Equality.axiom Pos.eqb.
+@@ -190,7 +190,7 @@ Fixpoint lower_bound_0_1 p := match p with
+   | PX p _ q => lower_bound_0_1 p +! lower_bound_0_1 q
+ end.
+ 
+-Require Import ssrnat.
++From mathcomp Require Import ssrnat.
+ Local Open Scope nat.
+ 
+ 
+diff --git a/coq/sos_horner.v b/coq/sos_horner.v
+index 304cd7d..d149b6b 100644
+--- a/coq/sos_horner.v
++++ b/coq/sos_horner.v
+@@ -1,5 +1,5 @@
+ 
+-Require Import ssreflect ssrbool eqtype ssrfun.
++From mathcomp Require Import ssreflect ssrbool eqtype ssrfun.
+ Set Implicit Arguments.
+ Require Import Setoid Morphisms Env BinPos BinNat BinInt.
+ Require Export Ring_theory.
+diff --git a/coq_fsa.ml b/coq_fsa.ml
+index 59d5060..fb517bd 100644
+--- a/coq_fsa.ml
++++ b/coq_fsa.ml
+@@ -179,7 +179,7 @@ module Make
+       let bnds : P.pol array = mk_bnds vars bounds in
+       let n = List.length vars in
+       let str_ineqs_bnds = str_of_coq_bnds bnds in
+-      let prelude = "Require Import sos_horner remainder fsa.\nRequire Export BigQ.\nNotation \"n # d\" := (n # d)%bigQ.\nDefinition PEX := sos_horner.PEX bigQ.\nRequire Import seq.\n" in
++      let prelude = "Require Import sos_horner remainder fsa.\nRequire Export BigQ.\nNotation \"n # d\" := (n # d)%bigQ.\nDefinition PEX := sos_horner.PEX bigQ.\nFrom mathcomp Require Import seq.\n" in
+         Printf.sprintf "%s%sDefinition obj_itv := %s.\n%s"
+           prelude str_ineqs_bnds 
+           (str_itv interval)
+@@ -202,7 +202,7 @@ Time Eval vm_compute in checker_pop bnds hyps obj0 cert%i.\n
+          let _ = if Config.Config.check_certif_coq then debug ("Proving non-negativity of " ^ P.string_of_pol_zarith obj ^ " inside Coq") else () in
+ 
+       let prelude = if Config.Config.coeff_type = "zarith" then
+-        "Require Import sos_horner remainder fsa.\nRequire Export BigQ.\nNotation \"n # d\" := (n # d)%bigQ.\nDefinition PEX := sos_horner.PEX bigQ.\nRequire Import seq.\n" 
++        "Require Import sos_horner remainder fsa.\nRequire Export BigQ.\nNotation \"n # d\" := (n # d)%bigQ.\nDefinition PEX := sos_horner.PEX bigQ.\nFrom mathcomp Require Import seq.\n" 
+       else "Require Import sos_horner Fremainder Ffsa Interval_float_sig Interval_generic Interval_xreal Interval_definitions seq.\nDefinition cO := Ifr.cO.\nReserved Notation \"m # e\" (at level 70, no associativity).\nNotation \"m # e\" := (Float Ifr.beta false m e).\nReserved Notation \"- m ## e\" (at level 70, no associativity).\nNotation \"- m ## e\" := (Float Ifr.beta true m e).\n"
+       in
+         Printf.sprintf "%s%s%sDefinition obj := %s.\nDefinition obj_bound := %s.\nDefinition obj0 := PEsub obj (PEc obj_bound).\nDefinition cert := %s.\nTime Eval vm_compute in checker_pop bnds hyps obj0 cert."
+-- 
+2.1.4
+
