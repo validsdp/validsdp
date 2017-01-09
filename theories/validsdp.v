@@ -431,8 +431,6 @@ Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
 
 Context `{!poly_mul_of polyT}.
 
-Typeclasses eauto := debug.
-
 (* Prove that /\_i pi >= 0 -> p >= 0 by proving that
    - p - \sum_i zi^T Qi zi pi >= 0 with z and Q as above
    - \forall i, Qi positive definite (i.e. zi^T Qi zi >= 0) *)
