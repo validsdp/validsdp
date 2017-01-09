@@ -15,7 +15,8 @@ From SsrMultinomials Require Import mpoly.
 Require Import Rstruct.
 Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog multipoly coqinterval_infnan.
+Require Import cholesky_prog coqinterval_infnan.
+Require Import multipoly. Import PolyAVL.
 From ValidSDP Require Import soswitness zulp.
 Require Import seqmx_complements misc.
 
