@@ -356,6 +356,8 @@ Class polyX_of monom polyT := polyX_op : monom -> polyT.
 
 Class poly_sub_of polyT := poly_sub_op : polyT -> polyT -> polyT.
 
+Class poly_mul_of polyT := poly_mul_op : polyT -> polyT -> polyT.
+
 Class map_mx2_of B := map_mx2_op :
   forall {T T'} {m n : nat}, (T -> T') -> B T m n -> B T' m n.
 
@@ -408,6 +410,8 @@ Context `{!nat_of_class ord s}.
 
 Context `{!map_mx2_of mx}.
 
+(* Prove that p >= 0 by proving that Q - s \delta I is a positive
+   definite matrix with \delta >= max_coeff(p - z^T Q z) *)
 Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
   check_base p z &&
   let r :=
@@ -424,6 +428,26 @@ Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
     max_coeff pmp' in
   posdef_check_itv (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
                    (@float_infnan_spec.finite fs) Q (T2F r).
+
+Context `{!poly_mul_of polyT}.
+
+Typeclasses eauto := debug.
+
+(* Prove that /\_i pi >= 0 -> p >= 0 by proving that
+   - p - \sum_i zi^T Qi zi pi >= 0 with z and Q as above
+   - \forall i, Qi positive definite (i.e. zi^T Qi zi >= 0) *)
+Definition soscheck_hyps
+    (p : polyT) (pzQi : seq (polyT * mx monom s 1 * mx F s s))
+    (z : mx monom s 1) (Q : mx F s s) : bool :=
+  let p' := foldl (fun p' (pzQ : polyT * mx monom s 1 * mx F s s) =>
+    let zp := map_mx2_op polyX_op pzQ.1.2 in
+    let Q' := map_mx2_op (polyC_op \o F2T) pzQ.2 in
+    let p'm := (zp^T *m Q' *m zp)%HC in
+    poly_sub_op p' (poly_mul_op (fun_of_op p'm I0 I0) pzQ.1.1)) p pzQi in
+  soscheck p' z Q
+  && all (fun pzQ => posdef_check
+                       (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
+                       (@float_infnan_spec.finite fs) pzQ.2) pzQi.
 
 Context `{!eq_of monom, !zero_of monom}.
 
