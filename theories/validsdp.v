@@ -792,10 +792,53 @@ Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
   | x :: s' => a x /\ all_prop a s'
   end.
 
+Hypothesis T2R_multiplicative : multiplicative T2R.
+Canonical T2R_morphism_struct := AddRMorphism T2R_multiplicative.
+
 Lemma soscheck_hyps_correct p pzQi z Q : soscheck_hyps_ssr p pzQi z Q ->
   all_prop (fun pzQ => forall x, 0%R <= (map_mpoly T2R pzQ.1.1).@[x]) pzQi ->
   forall x, 0%R <= (map_mpoly T2R p).@[x].
 Proof.
+move: p z Q.
+elim: pzQi => [|pzQ0 pzQi Hind] p z Q;
+  rewrite /soscheck_hyps_ssr /soscheck_hyps /=.
+{ rewrite andbC /= => H _; apply (soscheck_correct H). }
+set zp0 := map_mx2_op polyX_op pzQ0.1.2.
+set Q'0 := map_mx2_op (polyC_op \o F2T) pzQ0.2.
+set p'm0 := (zp0^T *m Q'0 *m zp0)%HC.
+set p' := poly_sub_op p (poly_mul_op (fun_of_op p'm0 I0 I0) pzQ0.1.1).
+move=> H1 H2.
+suff: forall x, 0 <= (map_mpoly T2R p').@[x].
+{ move=> H x; move: (H x).
+  rewrite !rmorphB !rmorphM /=.
+  rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_le_0.
+  apply Rle_trans, Rmult_le_pos; last first.
+  { move: H2; case pzQi => [H'|p0 l [H' _]]; apply H'. }
+  rewrite /p'm0.
+  rewrite /fun_of_op /fun_of_ssr.
+  set mp := map_mpoly _ _.
+  have -> : meval x mp =
+    (map_mx ((meval x) \o (map_mpoly T2R)) (zp0^T *m Q'0 *m zp0)%HC) I0 I0.
+  { by rewrite mxE. }
+  rewrite !map_mxM /=.
+  rewrite /Q'0 /map_mx2_op /map_mx_ssr.
+Search "" map_mx.
+Search "" T2R.
+Print FIS2FS.
+Check posdef_check_correct.
+Search "inj" map_mx.
+admit.
+(*rewrite !mxE.
+rewrite rmorph_sum /=.
+Search "" map_mx.
+Search "" fun_of_matrix.
+
+map_mxM*)
+
+}
+
+
+
 (* TODO *)
 Admitted.
 
