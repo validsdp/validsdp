@@ -807,40 +807,30 @@ set zp0 := map_mx2_op polyX_op pzQ0.1.2.
 set Q'0 := map_mx2_op (polyC_op \o F2T) pzQ0.2.
 set p'm0 := (zp0^T *m Q'0 *m zp0)%HC.
 set p' := poly_sub_op p (poly_mul_op (fun_of_op p'm0 I0 I0) pzQ0.1.1).
-move=> H1 H2.
-suff: forall x, 0 <= (map_mpoly T2R p').@[x].
-{ move=> H x; move: (H x).
-  rewrite !rmorphB !rmorphM /=.
-  rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_le_0.
-  apply Rle_trans, Rmult_le_pos; last first.
-  { move: H2; case pzQi => [H'|p0 l [H' _]]; apply H'. }
-  rewrite /p'm0.
-  rewrite /fun_of_op /fun_of_ssr.
-  set mp := map_mpoly _ _.
-  have -> : meval x mp =
-    (map_mx ((meval x) \o (map_mpoly T2R)) (zp0^T *m Q'0 *m zp0)%HC) I0 I0.
-  { by rewrite mxE. }
-  rewrite !map_mxM /=.
-  rewrite /Q'0 /map_mx2_op /map_mx_ssr.
-Search "" map_mx.
-Search "" T2R.
-Print FIS2FS.
-Check posdef_check_correct.
-Search "inj" map_mx.
-admit.
-(*rewrite !mxE.
-rewrite rmorph_sum /=.
-Search "" map_mx.
-Search "" fun_of_matrix.
-
-map_mxM*)
-
-}
-
-
-
-(* TODO *)
-Admitted.
+move=> /and3P [] Hsoscheck Hposdef Hall Hall_prop.
+have: forall x, 0 <= (map_mpoly T2R p').@[x].
+{ apply (Hind p' z Q); [by apply /andP; split|].
+  by move: Hall_prop; case pzQi => [//|p'' l [_ H]]. }
+move=> H x; move: (H x).
+rewrite !rmorphB !rmorphM /=.
+rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_le_0.
+apply Rle_trans, Rmult_le_pos; last first.
+{ move: Hall_prop; case pzQi => [H'|p0 l [H' _]]; apply H'. }
+rewrite /p'm0.
+rewrite /fun_of_op /fun_of_ssr.
+set mp := map_mpoly _ _.
+have -> : meval x mp =
+  (map_mx ((meval x) \o (map_mpoly T2R)) (zp0^T *m Q'0 *m zp0)%HC) I0 I0.
+{ by rewrite mxE. }
+rewrite !map_mxM /= -map_trmx.
+replace R0 with ((@matrix.const_mx _ 1 1 R0) ord0 ord0); [|by rewrite mxE].
+apply posdef_semipos.
+have -> : map_mx (meval x \o map_mpoly T2R) Q'0 =
+  cholesky.MF2R (cholesky_infnan.MFI2F pzQ0.2).
+{ rewrite -matrixP => i j; rewrite !mxE.
+  by rewrite /polyC_op /polyC_ssr /= map_mpolyC ?raddf0 // mevalC T2R_F2T. }
+by apply posdef_check_correct.
+Qed.
 
 End theory_soscheck.
 
