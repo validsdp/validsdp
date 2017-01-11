@@ -15,7 +15,8 @@ From SsrMultinomials Require Import mpoly.
 Require Import Rstruct.
 Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog multipoly coqinterval_infnan.
+Require Import cholesky_prog coqinterval_infnan.
+Require Import multipoly. Import PolyAVL.
 From ValidSDP Require Import soswitness zulp.
 Require Import seqmx_complements misc.
 
@@ -356,6 +357,8 @@ Class polyX_of monom polyT := polyX_op : monom -> polyT.
 
 Class poly_sub_of polyT := poly_sub_op : polyT -> polyT -> polyT.
 
+Class poly_mul_of polyT := poly_mul_op : polyT -> polyT -> polyT.
+
 Class map_mx2_of B := map_mx2_op :
   forall {T T'} {m n : nat}, (T -> T') -> B T m n -> B T' m n.
 
@@ -408,6 +411,8 @@ Context `{!nat_of_class ord s}.
 
 Context `{!map_mx2_of mx}.
 
+(* Prove that p >= 0 by proving that Q - s \delta I is a positive
+   definite matrix with \delta >= max_coeff(p - z^T Q z) *)
 Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
   check_base p z &&
   let r :=
@@ -424,6 +429,24 @@ Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
     max_coeff pmp' in
   posdef_check_itv (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
                    (@float_infnan_spec.finite fs) Q (T2F r).
+
+Context `{!poly_mul_of polyT}.
+
+(* Prove that /\_i pi >= 0 -> p >= 0 by proving that
+   - p - \sum_i zi^T Qi zi pi >= 0 with z and Q as above
+   - \forall i, Qi positive definite (i.e. zi^T Qi zi >= 0) *)
+Definition soscheck_hyps
+    (p : polyT) (pzQi : seq (polyT * mx monom s 1 * mx F s s))
+    (z : mx monom s 1) (Q : mx F s s) : bool :=
+  let p' := foldl (fun p' (pzQ : polyT * mx monom s 1 * mx F s s) =>
+    let zp := map_mx2_op polyX_op pzQ.1.2 in
+    let Q' := map_mx2_op (polyC_op \o F2T) pzQ.2 in
+    let p'm := (zp^T *m Q' *m zp)%HC in
+    poly_sub_op p' (poly_mul_op (fun_of_op p'm I0 I0) pzQ.1.1)) p pzQi in
+  soscheck p' z Q
+  && all (fun pzQ => posdef_check
+                       (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
+                       (@float_infnan_spec.finite fs) pzQ.2) pzQi.
 
 Context `{!eq_of monom, !zero_of monom}.
 
@@ -497,6 +520,13 @@ Global Instance map_seqmx' : map_mx2_of mx := fun T T' _ _ => map_seqmx (B := T'
 Definition soscheck_eff : polyT -> mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
   soscheck (F2T:=F2T) (T2F:=T2F).
 
+Global Instance poly_mul_eff : poly_mul_of polyT := mpoly_mul_eff.
+
+Definition soscheck_hyps_eff :
+  polyT -> seq (polyT * mx monom s.+1 1 * mx F s.+1 s.+1) ->
+  mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
+  soscheck_hyps (F2T:=F2T) (T2F:=T2F).
+
 Global Instance monom_eq_eff : eq_of monom := mnmc_eq_seq.
 
 Definition has_const_eff {n : nat} : mx monom s.+1 1 -> bool :=
@@ -564,6 +594,13 @@ Global Instance map_mx_ssr : map_mx2_of mx := fun T T' m n f => @map_mx T T' f m
 
 Definition soscheck_ssr : polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
   soscheck (F2T:=F2T) (T2F:=T2F).
+
+Global Instance poly_mul_ssr : poly_mul_of polyT := fun p q => (p * q)%R.
+
+Definition soscheck_hyps_ssr :
+  polyT -> seq (polyT * 'cV[monom]_s.+1 * 'M[F]_s.+1) ->
+  'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
+  soscheck_hyps (F2T:=F2T) (T2F:=T2F).
 
 Global Instance monom_eq_ssr : eq_of monom := eqtype.eq_op.
 Global Instance monom0_ssr : zero_of monom := mnm0.
@@ -746,6 +783,64 @@ move/matrixP => H; move: {H}(H ord0 ord0).
 rewrite /GRing.zero /= /const_mx /map_mx !mxE.
 by rewrite z0 mpolyX0 meval1 => /eqP; rewrite GRing.oner_eq0.
 Qed.
+
+(* TODO: Implement a similar function for arrows. *)
+Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
+  match s with
+  | [::] => True
+  | [:: x] => a x
+  | x :: s' => a x /\ all_prop a s'
+  end.
+
+Hypothesis T2R_multiplicative : multiplicative T2R.
+Canonical T2R_morphism_struct := AddRMorphism T2R_multiplicative.
+
+Lemma soscheck_hyps_correct p pzQi z Q : soscheck_hyps_ssr p pzQi z Q ->
+  all_prop (fun pzQ => forall x, 0%R <= (map_mpoly T2R pzQ.1.1).@[x]) pzQi ->
+  forall x, 0%R <= (map_mpoly T2R p).@[x].
+Proof.
+move: p z Q.
+elim: pzQi => [|pzQ0 pzQi Hind] p z Q;
+  rewrite /soscheck_hyps_ssr /soscheck_hyps /=.
+{ rewrite andbC /= => H _; apply (soscheck_correct H). }
+set zp0 := map_mx2_op polyX_op pzQ0.1.2.
+set Q'0 := map_mx2_op (polyC_op \o F2T) pzQ0.2.
+set p'm0 := (zp0^T *m Q'0 *m zp0)%HC.
+set p' := poly_sub_op p (poly_mul_op (fun_of_op p'm0 I0 I0) pzQ0.1.1).
+move=> H1 H2.
+suff: forall x, 0 <= (map_mpoly T2R p').@[x].
+{ move=> H x; move: (H x).
+  rewrite !rmorphB !rmorphM /=.
+  rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_le_0.
+  apply Rle_trans, Rmult_le_pos; last first.
+  { move: H2; case pzQi => [H'|p0 l [H' _]]; apply H'. }
+  rewrite /p'm0.
+  rewrite /fun_of_op /fun_of_ssr.
+  set mp := map_mpoly _ _.
+  have -> : meval x mp =
+    (map_mx ((meval x) \o (map_mpoly T2R)) (zp0^T *m Q'0 *m zp0)%HC) I0 I0.
+  { by rewrite mxE. }
+  rewrite !map_mxM /=.
+  rewrite /Q'0 /map_mx2_op /map_mx_ssr.
+Search "" map_mx.
+Search "" T2R.
+Print FIS2FS.
+Check posdef_check_correct.
+Search "inj" map_mx.
+admit.
+(*rewrite !mxE.
+rewrite rmorph_sum /=.
+Search "" map_mx.
+Search "" fun_of_matrix.
+
+map_mxM*)
+
+}
+
+
+
+(* TODO *)
+Admitted.
 
 End theory_soscheck.
 
@@ -1518,14 +1613,6 @@ Definition validsdp_check
   (vm : seq R) (p_pi : p_abstr_poly * seq p_abstr_poly)
   (zQ_zQi : zQt * seq zQt) : bool :=
   false. (* FIXME *)
-
-(* TODO: Implement a similar function for arrows. *)
-Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
-  match s with
-  | [::] => True
-  | [:: x] => a x
-  | x :: s' => a x /\ all_prop a s'
-  end.
 
 (* Goal all_prop (fun n => nth R0 [:: R0; R0; R0; R0; R1] n > 0)%R (iota 0 5). *)
 

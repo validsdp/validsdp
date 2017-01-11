@@ -2241,6 +2241,7 @@ End FMapMultipoly.
 
 (*
 Module M := FMapList.Make MultinomOrd.
+Module PolyList := FMapMultipoly M.
  *)
 Module M := FMapAVL.Make MultinomOrd.
-Module Export MP := FMapMultipoly M.
+Module PolyAVL := FMapMultipoly M.
