@@ -2256,6 +2256,12 @@ by rewrite refinesE.
   rewrite refinesE; reflexivity. }
 Qed.
 
+Global Instance refine_posdef_check' n :
+  refines (RseqmxC eqFIS (nat_Rxx n.+1) (nat_Rxx n.+1) ==> bool_R)
+    (@posdef_check_ssr fs n)
+    (posdef_check_seqmx (n:=n) (fieps fs) (fieta fs) (@finite fs)).
+Proof. refines_trans. Qed.
+
 Global Instance refine_posdef_check_itv' n :
   refines (RseqmxC eqFIS (nat_Rxx n.+1) (nat_Rxx n.+1) ==> eqFIS ==> bool_R)
     (@posdef_check_itv_ssr fs n)

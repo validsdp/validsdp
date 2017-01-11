@@ -1300,7 +1300,7 @@ Context `{!refines (nat_R ==> eqFIS) nat2Fup_instFIS nat2Fup_instFIS}.
 
 Hypothesis eqFIS_P : forall x y, reflect (eqFIS x y) (eq_instFIS x y).
 
-Lemma refine_soscheck :
+Local Instance refine_soscheck :
   refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==>
           RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==> bool_R)
     (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
@@ -1334,6 +1334,48 @@ by rewrite refinesE.
 all: tc.
 by rewrite refinesE /Rord.
 by rewrite refinesE /Rord.
+Qed.
+
+Lemma refine_soscheck_hyps :
+  refines (ReffmpolyC rAC ==>
+           list_R (prod_R (prod_R
+                     (ReffmpolyC rAC)
+                     (RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1)))
+                     (RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1))) ==>
+           RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==>
+           RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==>
+           bool_R)
+    (soscheck_hyps_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
+    (soscheck_hyps_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
+Proof.
+rewrite refinesE=> p p' rp pzQ pzQ' rpzQ z z' rz Q Q' rQ.
+rewrite /soscheck_hyps_ssr /soscheck_hyps_eff /soscheck_hyps.
+apply andb_R.
+{ apply refinesP; refines_apply.
+  rewrite refinesE => p'0 p'0' rp'0 pzQi pzQi' rpzQi.
+  apply refinesP.
+  eapply refines_apply; [by eapply refines_apply; tc|].
+  eapply refines_apply; [eapply refines_apply; [by tc|]|].
+  { eapply refines_apply; [eapply refines_apply|].
+    { eapply refines_apply; [by tc|].
+      eapply refines_apply; [eapply refines_apply; [by tc|]|by tc].
+      eapply refines_apply; [by tc|eapply refines_apply; [|by tc]].
+      eapply refines_apply; [by tc|eapply refines_apply; [|by tc]].
+      refines_abstr; simpl; eapply refines_apply; tc. }
+    { by rewrite refinesE /Rord. }
+    by rewrite refinesE /Rord. }
+  do 2 (eapply refines_apply; [by tc|]); tc. }
+apply refinesP; eapply refines_apply; [eapply refines_apply|by tc].
+{ rewrite refinesE=> f f' rf l l'.
+  set pp := prod_R _ _.
+  move=> rl.
+  apply (all_R (T_R:=pp))=> [x x' rx|//].
+  apply refinesP; eapply refines_apply; rewrite refinesE; [|exact rx].
+  apply rf. }
+rewrite refinesE => pr pr' rpr.
+apply refinesP; eapply refines_apply; last first.
+{ eapply refines_apply; [by tc|]; rewrite refinesE; exact rpr. }
+apply refine_posdef_check'; try tc; exact: eqFIS_P.
 Qed.
 
 Lemma refine_has_const :
@@ -1423,6 +1465,40 @@ Definition soscheck_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
      (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
      (T2F := F2FI \o bigQ2F')
      bp z Q].
+
+Definition soscheck_hyps_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
+  (papi : seq p_abstr_poly)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))
+  (zQi : seq (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))) :=
+  let n := size vm in
+  let n' := n.-1 in
+  let ap := abstr_poly_of_p_abstr_poly pap in
+  let bp := interp_poly_eff n' ap in
+  let apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi] in
+  let bpl := [seq interp_poly_eff n' p | p <- apl] in
+  let z := map (fun x => [:: x]) zQ.1 in
+  let s := size zQ.1 in
+  let Q := map (map F2FI) zQ.2 in
+  let zQl :=
+    [seq (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2) | zq <- zQi] in
+  [&&
+   size papi == size zQi,
+   (n != 0%N),
+   (all (fun m => size m == n) zQ.1),
+   (all (fun zQ => all (fun m => size m == n) zQ.1) zQi),
+   (s != 0%N),
+   (size Q == s),
+   (all (fun e => size e == s) Q),
+   (all (fun zQ => size zQ.2 == s) zQi),
+   (all (fun zQ => (all (fun e => size e == s) zQ.2)) zQi),
+   vars_ltn n ap,
+   all (vars_ltn n) apl &
+   soscheck_hyps_eff
+     (n := n) (s := s.-1)
+     (fs := coqinterval_infnan.coqinterval_round_up_infnan)
+     (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
+     (T2F := F2FI \o bigQ2F')
+     bp [seq (pzQ.1, pzQ.2.1, pzQ.2.2) | pzQ <- zip bpl zQl] z Q].
 
 Definition soscheck_eff_wrapup_strict (vm : seq R) (pap : p_abstr_poly)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
@@ -1573,6 +1649,19 @@ Unshelve.
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
 Qed.
 
+Theorem soscheck_hyps_eff_wrapup_correct
+  (vm : seq R) (pap : p_abstr_poly) (papi : seq p_abstr_poly)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))
+  (zQi : seq (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))) :
+  soscheck_hyps_eff_wrapup vm pap papi zQ zQi ->
+  all_prop
+    (fun n => 0 <= interp_p_abstr_poly vm (nth (PConst PConstR0) papi n))%Re
+    (iota 0 (size papi)) ->
+  0 <= interp_p_abstr_poly vm pap.
+Proof.
+(* FIXME *)
+Admitted.
+  
 Theorem soscheck_eff_wrapup_large_correct
   (vm : seq R) (pap : p_abstr_poly)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
@@ -1596,27 +1685,6 @@ Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
 
 Lemma Rlt_minus_lt r1 r2 : (0 < r2 - r1)%Re -> (r1 < r2)%Re.
 Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
-
-Notation zQt := (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))%type (only parsing).
-
-Definition validsdp_check
-  (vm : seq R) (p_pi : p_abstr_poly * seq p_abstr_poly)
-  (zQ_zQi : zQt * seq zQt) : bool :=
-  false. (* FIXME *)
-
-(* Goal all_prop (fun n => nth R0 [:: R0; R0; R0; R0; R1] n > 0)%R (iota 0 5). *)
-
-Theorem validsdp_strict_correct
-  (vm : seq R) (p_pi : p_abstr_poly * seq p_abstr_poly)
-  (zQ_zQi : zQt * seq zQt) :
-  validsdp_check vm p_pi zQ_zQi ->
-  let q := p_pi.1 in
-  let P := p_pi.2 in
-  let n := size P in
-  all_prop (fun n => interp_p_abstr_poly vm (nth (PConst PConstR0) P n) > 0)%Re (iota 0 n) ->
-  interp_p_abstr_poly vm q > 0.
-Proof.
-Admitted.
 
 (** *** The main tactic. *)
 
