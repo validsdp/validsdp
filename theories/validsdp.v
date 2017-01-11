@@ -788,7 +788,7 @@ Qed.
 Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
   match s with
   | [::] => True
-  | [:: x] => a x
+(*| [:: x] => a x *)(* unneeded *)
   | x :: s' => a x /\ all_prop a s'
   end.
 
@@ -1687,6 +1687,161 @@ Lemma Rlt_minus_lt r1 r2 : (0 < r2 - r1)%Re -> (r1 < r2)%Re.
 Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
 
 (** *** The main tactic. *)
+
+Inductive p_abstr_ineq :=
+| ILe of p_abstr_poly & p_abstr_poly
+| IGe of p_abstr_poly & p_abstr_poly
+| ILt of p_abstr_poly & p_abstr_poly
+| IGt of p_abstr_poly & p_abstr_poly
+.
+
+Inductive p_abstr_hyp :=
+| Hineq of p_abstr_ineq
+| Hand of p_abstr_ineq & p_abstr_ineq
+.
+
+Inductive p_abstr_goal :=
+  | Gineq of p_abstr_ineq
+(*| Gand of p_abstr_ineq & p_abstr_ineq *)
+  | Ghyp of p_abstr_hyp & p_abstr_goal
+  .
+
+Fixpoint interp_p_abstr_ineq (vm : seq R) (i : p_abstr_ineq) {struct i} : Prop :=
+  match i with
+  | ILe p q => Rle (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  | IGe p q => Rge (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  | ILt p q => Rlt (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  | IGt p q => Rgt (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  end.
+
+Definition interp_p_abstr_hyp (vm : seq R) (h : p_abstr_hyp) : Prop :=
+  match h with
+  | Hineq i => interp_p_abstr_ineq vm i
+  | Hand a b => interp_p_abstr_ineq vm a /\ interp_p_abstr_ineq vm b
+  end.
+
+Fixpoint interp_p_abstr_goal (vm : seq R) (g : p_abstr_goal) {struct g} : Prop :=
+  match g with
+  | Gineq i => interp_p_abstr_ineq vm i
+(*| Gand a b => interp_p_abstr_ineq vm a /\ interp_p_abstr_ineq vm b *)
+  | Ghyp h g => interp_p_abstr_hyp vm h -> interp_p_abstr_goal vm g
+  end.
+
+Inductive abstr_goal :=
+| Gstrict (l : seq p_abstr_poly) (p : p_abstr_poly) (* /\_i 0 <= li -> 0 < p *)
+| Glarge (l : seq p_abstr_poly) (p : p_abstr_poly) (* /\_i 0 <= li -> 0 <= p *)
+.
+
+(* Definition abstr_goals := seq abstr_goal. *)
+
+Definition sub_p_abstr_poly p q :=
+  match p, q with
+  | PConst PConstR0, q => POpp q
+  | p, PConst PConstR0 => p
+  | _, _ => PSub p q
+  end.
+
+Lemma sub_p_abstr_poly_correct vm p q :
+  interp_p_abstr_poly vm (sub_p_abstr_poly p q) =
+  interp_p_abstr_poly vm p - interp_p_abstr_poly vm q.
+Proof.
+Admitted.
+
+(*
+Definition aux_p_abstr_ineq {T : Type} (strict large : p_abstr_poly -> T) i :=
+  match i with
+  | ILt p q => strict (sub_p_abstr_poly q p)
+  | IGt p q => strict (sub_p_abstr_poly p q)
+  | ILe p q => large (sub_p_abstr_poly q p)
+  | IGe p q => large (sub_p_abstr_poly p q)
+  end.
+ *)
+
+Fixpoint abstr_goal_of_p_abstr_goal_aux
+  (accu : seq p_abstr_poly) (g : p_abstr_goal) {struct g} : abstr_goal :=
+  match g with
+(*| Gineq i => aux_p_abstr_ineq (Gstrict accu) (Glarge accu) i*)
+  | Gineq i =>
+    match i with
+    | ILt p q => Gstrict accu (sub_p_abstr_poly q p)
+    | IGt p q => Gstrict accu (sub_p_abstr_poly p q)
+    | ILe p q => Glarge accu (sub_p_abstr_poly q p)
+    | IGe p q => Glarge accu (sub_p_abstr_poly p q)
+    end
+  (* Note: strict hyps are weakened to large hyps *)
+  | Ghyp (Hineq i) g =>
+    match i with
+    | ILt p q | ILe p q => abstr_goal_of_p_abstr_goal_aux (sub_p_abstr_poly q p :: accu) g
+    | IGt p q | IGe p q => abstr_goal_of_p_abstr_goal_aux (sub_p_abstr_poly p q :: accu) g
+    end
+  | Ghyp (Hand a b) g =>
+    let accu1 :=
+    match b with
+    | ILt p q | ILe p q => sub_p_abstr_poly q p :: accu
+    | IGt p q | IGe p q => sub_p_abstr_poly p q :: accu
+    end in
+    match a with
+    | ILt p q | ILe p q => abstr_goal_of_p_abstr_goal_aux (sub_p_abstr_poly q p :: accu1) g
+    | IGt p q | IGe p q => abstr_goal_of_p_abstr_goal_aux (sub_p_abstr_poly p q :: accu1) g
+    end
+  end.
+
+Definition abstr_goal_of_p_abstr_goal := abstr_goal_of_p_abstr_goal_aux [::].
+
+Definition interp_abstr_goal (vm : seq R) (g : abstr_goal) : Prop :=
+  match g with
+  | Gstrict [::] p =>
+      0 < interp_p_abstr_poly vm p
+  | Glarge [::] p =>
+      0 <= interp_p_abstr_poly vm p
+  | Gstrict l p =>
+      all_prop
+      (fun n => 0 <= interp_p_abstr_poly vm (nth (PConst PConstR0) l n))%Re
+      (iota 0 (size l)) ->
+      0 < interp_p_abstr_poly vm p
+  | Glarge l p =>
+      all_prop
+      (fun n => 0 <= interp_p_abstr_poly vm (nth (PConst PConstR0) l n))%Re
+      (iota 0 (size l)) ->
+      0 <= interp_p_abstr_poly vm p
+  end.
+
+Ltac tac := rewrite /= !sub_p_abstr_poly_correct; psatzl R.
+
+Theorem abstr_goal_of_p_abstr_goal_correct vm (g : p_abstr_goal) :
+  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal g) ->
+  interp_p_abstr_goal vm g.
+Proof.
+elim: g => [p|h g IHg].
+{ case: p => p q; tac. }
+case: h => [i|a b] /=.
+{ rewrite /abstr_goal_of_p_abstr_goal /=.
+  case: i => r s /=.
+
+  { move=> top H.
+    have : all_prop (fun p => 0 <= interp_p_abstr_poly vm p) [:: sub_p_abstr_poly s r] by tac.
+    clear H.
+    (* have : (0 < size [:: sub_p_abstr_poly s r])%N by simpl.*)
+    move: top; elim: [:: sub_p_abstr_poly s r] => [|x l IHl] //=.
+    move=> *; exact: IHg.
+    move=> Hxl [Hx Hl]; apply: IHl =>//.
+    clear - Hxl.
+    admit. }
+
+  Ltac toc vm p IHg x y :=
+    let top := fresh in let H := fresh in let z := fresh in let IHl := fresh in
+    let Hxl := fresh in let Hx := fresh in let Hl := fresh in
+    move=> top H;
+    have : all_prop (fun p => 0 <= interp_p_abstr_poly vm p) [:: sub_p_abstr_poly x y] by tac;
+    clear H;
+    move: top; elim: [:: sub_p_abstr_poly x y] => [|z l IHl] //=;
+    move=> *; exact: IHg;
+    move=> Hxl [Hx Hl]; apply: IHl =>//;
+    clear - Hxl.
+  toc vm p IHg r s; admit.
+  toc vm p IHg s r; admit.
+  toc vm p IHg r s; admit. }
+Admitted.
 
 Ltac validsdp_core lem r :=
   match get_poly r (@Datatypes.nil R) with
