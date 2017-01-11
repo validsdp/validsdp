@@ -520,6 +520,13 @@ Global Instance map_seqmx' : map_mx2_of mx := fun T T' _ _ => map_seqmx (B := T'
 Definition soscheck_eff : polyT -> mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
   soscheck (F2T:=F2T) (T2F:=T2F).
 
+Global Instance poly_mul_eff : poly_mul_of polyT := mpoly_mul_eff.
+
+Definition soscheck_hyps_eff :
+  polyT -> seq (polyT * mx monom s.+1 1 * mx F s.+1 s.+1) ->
+  mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
+  soscheck_hyps (F2T:=F2T) (T2F:=T2F).
+
 Global Instance monom_eq_eff : eq_of monom := mnmc_eq_seq.
 
 Definition has_const_eff {n : nat} : mx monom s.+1 1 -> bool :=
@@ -587,6 +594,13 @@ Global Instance map_mx_ssr : map_mx2_of mx := fun T T' m n f => @map_mx T T' f m
 
 Definition soscheck_ssr : polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
   soscheck (F2T:=F2T) (T2F:=T2F).
+
+Global Instance poly_mul_ssr : poly_mul_of polyT := fun p q => (p * q)%R.
+
+Definition soscheck_hyps_ssr :
+  polyT -> seq (polyT * 'cV[monom]_s.+1 * 'M[F]_s.+1) ->
+  'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
+  soscheck_hyps (F2T:=F2T) (T2F:=T2F).
 
 Global Instance monom_eq_ssr : eq_of monom := eqtype.eq_op.
 Global Instance monom0_ssr : zero_of monom := mnm0.
@@ -769,6 +783,21 @@ move/matrixP => H; move: {H}(H ord0 ord0).
 rewrite /GRing.zero /= /const_mx /map_mx !mxE.
 by rewrite z0 mpolyX0 meval1 => /eqP; rewrite GRing.oner_eq0.
 Qed.
+
+(* TODO: Implement a similar function for arrows. *)
+Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
+  match s with
+  | [::] => True
+  | [:: x] => a x
+  | x :: s' => a x /\ all_prop a s'
+  end.
+
+Lemma soscheck_hyps_correct p pzQi z Q : soscheck_hyps_ssr p pzQi z Q ->
+  all_prop (fun pzQ => forall x, 0%R <= (map_mpoly T2R pzQ.1.1).@[x]) pzQi ->
+  forall x, 0%R <= (map_mpoly T2R p).@[x].
+Proof.
+(* TODO *)
+Admitted.
 
 End theory_soscheck.
 
@@ -1541,14 +1570,6 @@ Definition validsdp_check
   (vm : seq R) (p_pi : p_abstr_poly * seq p_abstr_poly)
   (zQ_zQi : zQt * seq zQt) : bool :=
   false. (* FIXME *)
-
-(* TODO: Implement a similar function for arrows. *)
-Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
-  match s with
-  | [::] => True
-  | [:: x] => a x
-  | x :: s' => a x /\ all_prop a s'
-  end.
 
 (* Goal all_prop (fun n => nth R0 [:: R0; R0; R0; R0; R1] n > 0)%R (iota 0 5). *)
 
