@@ -1466,47 +1466,6 @@ Definition soscheck_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
      (T2F := F2FI \o bigQ2F')
      bp z Q].
 
-Definition soscheck_hyps_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
-  (papi : seq p_abstr_poly)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))
-  (zQi : seq (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))) :=
-  let n := size vm in
-  let n' := n.-1 in
-  let ap := abstr_poly_of_p_abstr_poly pap in
-  let bp := interp_poly_eff n' ap in
-  let apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi] in
-  let bpl := [seq interp_poly_eff n' p | p <- apl] in
-  let z := map (fun x => [:: x]) zQ.1 in
-  let s := size zQ.1 in
-  let Q := map (map F2FI) zQ.2 in
-  let zQl :=
-    [seq (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2) | zq <- zQi] in
-  [&&
-   size papi == size zQi,
-   (n != 0%N),
-   (all (fun m => size m == n) zQ.1),
-   (all (fun zQ => all (fun m => size m == n) zQ.1) zQi),
-   (s != 0%N),
-   (size Q == s),
-   (all (fun e => size e == s) Q),
-   (all (fun zQ => size zQ.2 == s) zQi),
-   (all (fun zQ => (all (fun e => size e == s) zQ.2)) zQi),
-   vars_ltn n ap,
-   all (vars_ltn n) apl &
-   soscheck_hyps_eff
-     (n := n) (s := s.-1)
-     (fs := coqinterval_infnan.coqinterval_round_up_infnan)
-     (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
-     (T2F := F2FI \o bigQ2F')
-     bp [seq (pzQ.1, pzQ.2.1, pzQ.2.2) | pzQ <- zip bpl zQl] z Q].
-
-Definition soscheck_eff_wrapup_strict (vm : seq R) (pap : p_abstr_poly)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
-  let n := size vm in
-  let s := size zQ.1 in
-  let z := map (fun x => [:: x]) zQ.1 in
-  has_const_eff (s:=s.-1) (n:=n) z && soscheck_eff_wrapup vm pap zQ.
-
 Lemma map_R_nth (T1 T2 : Type) (x0 : T2) (T_R : T1 -> T2 -> Type) (f : T2 -> T1) l :
   (forall i, (i < size l)%N -> T_R (f (nth x0 l i)) (nth x0 l i)) ->
   list_R T_R [seq f x | x <- l] l.
@@ -1562,6 +1521,155 @@ Ltac op22 lem1 lem2 := let H1 := fresh in let H2 := fresh in
 
 Ltac op202 tac lem1 lem2 := let H1 := fresh in let H2 := fresh in
   rewrite refinesE /eqFIS => ?? H1 ?? H2 /=; tac; rewrite !(lem1, lem2) H1 H2.
+
+Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.
+Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
+
+Lemma Rlt_minus_lt r1 r2 : (0 < r2 - r1)%Re -> (r1 < r2)%Re.
+Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
+
+(** *** The main tactic. *)
+
+Inductive p_abstr_ineq :=
+| ILe of p_abstr_poly & p_abstr_poly
+| IGe of p_abstr_poly & p_abstr_poly
+| ILt of p_abstr_poly & p_abstr_poly
+| IGt of p_abstr_poly & p_abstr_poly
+.
+
+Inductive p_abstr_hyp :=
+| Hineq of p_abstr_ineq
+| Hand of p_abstr_hyp & p_abstr_hyp
+.
+
+Inductive p_abstr_goal :=
+  | Gineq of p_abstr_ineq
+(*| Gand of p_abstr_ineq & p_abstr_ineq *)
+  | Ghyp of p_abstr_hyp & p_abstr_goal
+  .
+
+Fixpoint interp_p_abstr_ineq (vm : seq R) (i : p_abstr_ineq) {struct i} : Prop :=
+  match i with
+  | ILe p q => Rle (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  | IGe p q => Rge (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  | ILt p q => Rlt (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  | IGt p q => Rgt (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
+  end.
+
+Fixpoint interp_p_abstr_hyp (vm : seq R) (h : p_abstr_hyp) : Prop :=
+  match h with
+  | Hineq i => interp_p_abstr_ineq vm i
+  | Hand a b => interp_p_abstr_hyp vm a /\ interp_p_abstr_hyp vm b
+  end.
+
+Fixpoint interp_p_abstr_goal (vm : seq R) (g : p_abstr_goal) {struct g} : Prop :=
+  match g with
+  | Gineq i => interp_p_abstr_ineq vm i
+(*| Gand a b => interp_p_abstr_ineq vm a /\ interp_p_abstr_ineq vm b *)
+  | Ghyp h g => interp_p_abstr_hyp vm h -> interp_p_abstr_goal vm g
+  end.
+
+(** (li, p, true) stands for /\_i 0 <= li -> 0 < p
+    (li, p, false) stands for /\_i 0 <= li -> 0 <= p *)
+Definition abstr_goal := (seq p_abstr_poly * p_abstr_poly * bool)%type.
+
+(* Definition abstr_goals := seq abstr_goal. *)
+
+Definition sub_p_abstr_poly p q :=
+  match p, q with
+  | PConst PConstR0, q => POpp q
+  | p, PConst PConstR0 => p
+  | _, _ => PSub p q
+  end.
+
+Lemma sub_p_abstr_poly_correct vm p q :
+  interp_p_abstr_poly vm (sub_p_abstr_poly p q) =
+  interp_p_abstr_poly vm p - interp_p_abstr_poly vm q.
+Proof.
+Admitted.
+
+(*
+Definition aux_p_abstr_ineq {T : Type} (strict large : p_abstr_poly -> T) i :=
+  match i with
+  | ILt p q => strict (sub_p_abstr_poly q p)
+  | IGt p q => strict (sub_p_abstr_poly p q)
+  | ILe p q => large (sub_p_abstr_poly q p)
+  | IGe p q => large (sub_p_abstr_poly p q)
+  end.
+ *)
+
+Fixpoint seq_p_abstr_poly_of_hyp h :=
+  match h with
+  | Hineq i =>
+    match i with
+    | ILt p q | ILe p q => [:: sub_p_abstr_poly q p]
+    | IGt p q | IGe p q => [:: sub_p_abstr_poly p q]
+    end
+  | Hand a b =>
+    seq_p_abstr_poly_of_hyp a ++ seq_p_abstr_poly_of_hyp b
+  end.
+
+Fixpoint abstr_goal_of_p_abstr_goal_aux
+  (accu : seq p_abstr_poly) (g : p_abstr_goal) {struct g} : abstr_goal :=
+  match g with
+(*| Gineq i => aux_p_abstr_ineq (Gstrict accu) (Glarge accu) i*)
+  | Gineq i =>
+    match i with
+    | ILt p q => (accu, (sub_p_abstr_poly q p), true)
+    | IGt p q => (accu, (sub_p_abstr_poly p q), true)
+    | ILe p q => (accu, (sub_p_abstr_poly q p), false)
+    | IGe p q => (accu, (sub_p_abstr_poly p q), false)
+    end
+  (* Note: strict hyps are weakened to large hyps *)
+  | Ghyp h g =>
+    abstr_goal_of_p_abstr_goal_aux (accu ++ seq_p_abstr_poly_of_hyp h) g
+  end.
+
+Definition abstr_goal_of_p_abstr_goal := abstr_goal_of_p_abstr_goal_aux [::].
+
+Definition interp_abstr_goal (vm : seq R) (g : abstr_goal) : Prop :=
+  match g with
+  | ([::], p, true) =>
+      0 < interp_p_abstr_poly vm p
+  | ([::], p, false) =>
+      0 <= interp_p_abstr_poly vm p
+  | (l, p, true) =>
+      all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re l ->
+      0 < interp_p_abstr_poly vm p
+  | (l, p, false) =>
+      all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re l ->
+      0 <= interp_p_abstr_poly vm p
+  end.
+
+Ltac tac := rewrite /= !sub_p_abstr_poly_correct; psatzl R.
+
+Lemma abstr_goal_of_p_abstr_goal_aux_correct vm p l g :
+  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal_aux (p :: l) g) ->
+  0 <= interp_p_abstr_poly vm p ->
+  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal_aux l g).
+Admitted.
+
+Theorem abstr_goal_of_p_abstr_goal_correct vm (g : p_abstr_goal) :
+  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal g) ->
+  interp_p_abstr_goal vm g.
+Proof.
+rewrite /abstr_goal_of_p_abstr_goal.
+have : all_prop (fun p => 0 <= interp_p_abstr_poly vm p) [::] by simpl.
+elim: g [::] => [p|h g IHg] l.
+{ case: p => p q /=; do [case: l => [|x l]; last move=> Hxl /(_ Hxl); tac]. }
+(* case: h => [i|a b] /=.
+{ case: i => c d Hl Hg Hi; apply: IHg Hl _;
+  apply: abstr_goal_of_p_abstr_goal_aux_correct Hg _; simpl in Hi; tac. } *)
+Admitted.
+
+(* TODO: move/refactor *)
+
+Definition soscheck_eff_wrapup_strict (vm : seq R) (pap : p_abstr_poly)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
+  let n := size vm in
+  let s := size zQ.1 in
+  let z := map (fun x => [:: x]) zQ.1 in
+  has_const_eff (s:=s.-1) (n:=n) z && soscheck_eff_wrapup vm pap zQ.
 
 Theorem soscheck_eff_wrapup_correct
   (vm : seq R) (pap : p_abstr_poly)
@@ -1649,17 +1757,6 @@ Unshelve.
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
 Qed.
 
-Theorem soscheck_hyps_eff_wrapup_correct
-  (vm : seq R) (pap : p_abstr_poly) (papi : seq p_abstr_poly)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))
-  (zQi : seq (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))) :
-  soscheck_hyps_eff_wrapup vm pap papi zQ zQi ->
-  all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re papi ->
-  0 <= interp_p_abstr_poly vm pap.
-Proof.
-(* FIXME *)
-Admitted.
-
 Theorem soscheck_eff_wrapup_large_correct
   (vm : seq R) (pap : p_abstr_poly)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
@@ -1678,147 +1775,64 @@ Proof.
 apply soscheck_eff_wrapup_correct.
 Qed.
 
-Lemma Rle_minus_le r1 r2 : (0 <= r2 - r1)%Re -> (r1 <= r2)%Re.
-Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
+(* Unneeded !
 
-Lemma Rlt_minus_lt r1 r2 : (0 < r2 - r1)%Re -> (r1 < r2)%Re.
-Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
-
-(** *** The main tactic. *)
-
-Inductive p_abstr_ineq :=
-| ILe of p_abstr_poly & p_abstr_poly
-| IGe of p_abstr_poly & p_abstr_poly
-| ILt of p_abstr_poly & p_abstr_poly
-| IGt of p_abstr_poly & p_abstr_poly
-.
-
-Inductive p_abstr_hyp :=
-| Hineq of p_abstr_ineq
-| Hand of p_abstr_ineq & p_abstr_ineq
-.
-
-Inductive p_abstr_goal :=
-  | Gineq of p_abstr_ineq
-(*| Gand of p_abstr_ineq & p_abstr_ineq *)
-  | Ghyp of p_abstr_hyp & p_abstr_goal
-  .
-
-Fixpoint interp_p_abstr_ineq (vm : seq R) (i : p_abstr_ineq) {struct i} : Prop :=
-  match i with
-  | ILe p q => Rle (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  | IGe p q => Rge (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  | ILt p q => Rlt (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  | IGt p q => Rgt (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  end.
-
-Definition interp_p_abstr_hyp (vm : seq R) (h : p_abstr_hyp) : Prop :=
-  match h with
-  | Hineq i => interp_p_abstr_ineq vm i
-  | Hand a b => interp_p_abstr_ineq vm a /\ interp_p_abstr_ineq vm b
-  end.
-
-Fixpoint interp_p_abstr_goal (vm : seq R) (g : p_abstr_goal) {struct g} : Prop :=
+Fixpoint p_abstr_poly_of_p_abstr_goal g :=
   match g with
-  | Gineq i => interp_p_abstr_ineq vm i
-(*| Gand a b => interp_p_abstr_ineq vm a /\ interp_p_abstr_ineq vm b *)
-  | Ghyp h g => interp_p_abstr_hyp vm h -> interp_p_abstr_goal vm g
+  | Gineq p => p
+  | Ghyp _ g => p_abstr_poly_of_p_abstr_goal g
   end.
 
-Inductive abstr_goal :=
-| Gstrict (l : seq p_abstr_poly) (p : p_abstr_poly) (* /\_i 0 <= li -> 0 < p *)
-| Glarge (l : seq p_abstr_poly) (p : p_abstr_poly) (* /\_i 0 <= li -> 0 <= p *)
-.
-
-(* Definition abstr_goals := seq abstr_goal. *)
-
-Definition sub_p_abstr_poly p q :=
-  match p, q with
-  | PConst PConstR0, q => POpp q
-  | p, PConst PConstR0 => p
-  | _, _ => PSub p q
-  end.
-
-Lemma sub_p_abstr_poly_correct vm p q :
-  interp_p_abstr_poly vm (sub_p_abstr_poly p q) =
-  interp_p_abstr_poly vm p - interp_p_abstr_poly vm q.
-Proof.
-Admitted.
-
-(*
-Definition aux_p_abstr_ineq {T : Type} (strict large : p_abstr_poly -> T) i :=
-  match i with
-  | ILt p q => strict (sub_p_abstr_poly q p)
-  | IGt p q => strict (sub_p_abstr_poly p q)
-  | ILe p q => large (sub_p_abstr_poly q p)
-  | IGe p q => large (sub_p_abstr_poly p q)
+Fixpoint seq_p_abstr_poly_of_p_abstr_goal g :=
+  match g with
+  | Gineq _ => [::]
+  | Ghyp h g => seq_p_abstr_poly_of_hyp h ++ seq_p_abstr_poly_of_p_abstr_goal g
   end.
  *)
 
-Fixpoint abstr_goal_of_p_abstr_goal_aux
-  (accu : seq p_abstr_poly) (g : p_abstr_goal) {struct g} : abstr_goal :=
-  match g with
-(*| Gineq i => aux_p_abstr_ineq (Gstrict accu) (Glarge accu) i*)
-  | Gineq i =>
-    match i with
-    | ILt p q => Gstrict accu (sub_p_abstr_poly q p)
-    | IGt p q => Gstrict accu (sub_p_abstr_poly p q)
-    | ILe p q => Glarge accu (sub_p_abstr_poly q p)
-    | IGe p q => Glarge accu (sub_p_abstr_poly p q)
-    end
-  (* Note: strict hyps are weakened to large hyps *)
-  | Ghyp (Hineq i) g =>
-    match i with
-    | ILt p q | ILe p q => abstr_goal_of_p_abstr_goal_aux (sub_p_abstr_poly q p :: accu) g
-    | IGt p q | IGe p q => abstr_goal_of_p_abstr_goal_aux (sub_p_abstr_poly p q :: accu) g
-    end
-  | Ghyp (Hand a b) g =>
-    let accu1 :=
-    match b with
-    | ILt p q | ILe p q => sub_p_abstr_poly q p :: accu
-    | IGt p q | IGe p q => sub_p_abstr_poly p q :: accu
-    end in
-    match a with
-    | ILt p q | ILe p q => abstr_goal_of_p_abstr_goal_aux (sub_p_abstr_poly q p :: accu1) g
-    | IGt p q | IGe p q => abstr_goal_of_p_abstr_goal_aux (sub_p_abstr_poly p q :: accu1) g
-    end
-  end.
+Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))
+  (zQi : seq (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))) :=
+  let '(papi, pap, strict) := abstr_goal_of_p_abstr_goal g in
+  (* FIXME: take strict into account *)
+  let n := size vm in
+  let n' := n.-1 in
+  let ap := abstr_poly_of_p_abstr_poly pap in
+  let bp := interp_poly_eff n' ap in
+  let apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi] in
+  let bpl := [seq interp_poly_eff n' p | p <- apl] in
+  let z := map (fun x => [:: x]) zQ.1 in
+  let s := size zQ.1 in
+  let Q := map (map F2FI) zQ.2 in
+  let zQl :=
+    [seq (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2) | zq <- zQi] in
+  [&&
+   size papi == size zQi,
+   (n != 0%N),
+   (all (fun m => size m == n) zQ.1),
+   (all (fun zQ => all (fun m => size m == n) zQ.1) zQi),
+   (s != 0%N),
+   (size Q == s),
+   (all (fun e => size e == s) Q),
+   (all (fun zQ => size zQ.2 == s) zQi),
+   (all (fun zQ => (all (fun e => size e == s) zQ.2)) zQi),
+   vars_ltn n ap,
+   all (vars_ltn n) apl &
+   soscheck_hyps_eff
+     (n := n) (s := s.-1)
+     (fs := coqinterval_infnan.coqinterval_round_up_infnan)
+     (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
+     (T2F := F2FI \o bigQ2F')
+     bp [seq (pzQ.1, pzQ.2.1, pzQ.2.2) | pzQ <- zip bpl zQl] z Q].
 
-Definition abstr_goal_of_p_abstr_goal := abstr_goal_of_p_abstr_goal_aux [::].
-
-Definition interp_abstr_goal (vm : seq R) (g : abstr_goal) : Prop :=
-  match g with
-  | Gstrict [::] p =>
-      0 < interp_p_abstr_poly vm p
-  | Glarge [::] p =>
-      0 <= interp_p_abstr_poly vm p
-  | Gstrict l p =>
-      all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re l ->
-      0 < interp_p_abstr_poly vm p
-  | Glarge l p =>
-      all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re l ->
-      0 <= interp_p_abstr_poly vm p
-  end.
-
-Ltac tac := rewrite /= !sub_p_abstr_poly_correct; psatzl R.
-
-Lemma abstr_goal_of_p_abstr_goal_aux_correct vm p l g :
-  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal_aux (p :: l) g) ->
-  0 <= interp_p_abstr_poly vm p ->
-  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal_aux l g).
-Admitted.
-
-Theorem abstr_goal_of_p_abstr_goal_correct vm (g : p_abstr_goal) :
-  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal g) ->
+Theorem soscheck_hyps_eff_wrapup_correct
+  (vm : seq R) (g : p_abstr_goal)
+  (zQ : (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))))
+  (zQi : seq (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))) :
+  soscheck_hyps_eff_wrapup vm g zQ zQi ->
   interp_p_abstr_goal vm g.
 Proof.
-rewrite /abstr_goal_of_p_abstr_goal.
-have : all_prop (fun p => 0 <= interp_p_abstr_poly vm p) [::] by simpl.
-elim: g [::] => [p|h g IHg] l.
-{ case: p => p q /=; do [case: l => [|x l]; last move=> Hxl /(_ Hxl); tac]. }
-case: h => [i|a b] /=.
-{ case: i => c d Hl Hg Hi; apply: IHg Hl _;
-  apply: abstr_goal_of_p_abstr_goal_aux_correct Hg _; simpl in Hi; tac. }
+(* FIXME *)
 Admitted.
 
 Ltac validsdp_core lem r :=
@@ -1837,22 +1851,99 @@ Ltac validsdp_core lem r :=
     )
   end.
 
-Ltac validsdp :=
+Ltac validsdp' :=
   lazymatch goal with
   | [ |- (0 <= ?r)%Re ] => validsdp_core soscheck_eff_wrapup_large_correct r
   | [ |- (0 < ?r)%Re ] => validsdp_core soscheck_eff_wrapup_strict_correct r
   | [ |- (?a <= ?b)%Re ] =>
     match a with
-    | R0 => fail 100 "validsdp: assert false"
-    | _ => apply Rle_minus_le; validsdp
+    | R0 => fail 100 "validsdp': assert false"
+    | _ => apply Rle_minus_le; validsdp'
     end
   | [ |- (?a < ?b)%Re ] =>
     match a with
-    | R0 => fail 100 "validsdp: assert false"
-    | _ => apply Rlt_minus_lt; validsdp
+    | R0 => fail 100 "validsdp': assert false"
+    | _ => apply Rlt_minus_lt; validsdp'
     end
-  | [ |- (?a >= ?b)%Re ] => apply Rle_ge; validsdp
-  | [ |- (?a > ?b)%Re ] => apply Rlt_gt; validsdp
+  | [ |- (?a >= ?b)%Re ] => apply Rle_ge; validsdp'
+  | [ |- (?a > ?b)%Re ] => apply Rlt_gt; validsdp'
+  end.
+
+Ltac get_ineq i l :=
+  let aux c x y :=
+      match get_poly x l with
+      | (?p, ?l) =>
+        match get_poly y l with
+        | (?q, ?l) =>
+          constr:(c p q, l)
+        end
+      end in
+  match i with
+  | Rle ?x ?y => aux ILe x y
+  | Rge ?x ?y => aux IGe x y
+  | Rlt ?x ?y => aux ILt x y
+  | Rgt ?x ?y => aux IGt x y
+  | _ => false
+  end.
+
+Ltac get_hyp h l :=
+  match h with
+  | and ?a ?b =>
+    match get_hyp a l with
+    | (?a, ?l) =>
+      match get_hyp b l with
+      | (?b, ?l) => constr:(Hand a b, l)
+      | false => false
+      end
+    | false => false
+    end
+  | _ => match get_ineq h l with
+        | (?i, ?l) => constr:(Hineq i, l)
+        | _ => false
+        end
+  end.
+
+Ltac get_goal g l :=
+  match g with
+  | (?h -> ?g) =>
+    match get_hyp h l with
+    | (?h, ?l) =>
+      match get_goal g l with
+      | (?g, ?l) => constr:(Ghyp h g, l)
+      | false => false
+      end
+    | false => false
+    end
+  | _ => match get_ineq g l with
+        | (?i, ?l) => constr:(Gineq i, l)
+        | false => false
+        end
+  end.
+
+Ltac validsdp :=
+  lazymatch goal with
+  | [ |- ?g ] =>
+    match get_goal g (@Datatypes.nil R) with
+    | (?g, ?vm) =>
+      abstract (
+      let n' := eval vm_compute in ((size vm).-1) in
+      let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
+      match lgb with
+      | (?l, ?p, ?b) =>
+        let pi := constr:(map (M.elements \o
+                               interp_poly_eff n' \o
+                               abstr_poly_of_p_abstr_poly) l) in
+        let p := constr:((M.elements \o
+                          interp_poly_eff n' \o
+                          abstr_poly_of_p_abstr_poly) p) in
+        let ppi := eval vm_compute in (p, pi) in
+        let zQ_zQi := fresh "zQ_zQi" in
+        (soswitness of ppi as zQ_zQi);
+        apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_zQi.1 zQ_zQi.2 (* FIXME: merge *));
+        (vm_cast_no_check (erefl true))
+      end)
+    | false => fail 100 "unsupported goal"
+    end
   end.
 
 (** Some quick tests. *)
