@@ -1654,14 +1654,12 @@ Theorem soscheck_hyps_eff_wrapup_correct
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))
   (zQi : seq (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))) :
   soscheck_hyps_eff_wrapup vm pap papi zQ zQi ->
-  all_prop
-    (fun n => 0 <= interp_p_abstr_poly vm (nth (PConst PConstR0) papi n))%Re
-    (iota 0 (size papi)) ->
+  all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re papi ->
   0 <= interp_p_abstr_poly vm pap.
 Proof.
 (* FIXME *)
 Admitted.
-  
+
 Theorem soscheck_eff_wrapup_large_correct
   (vm : seq R) (pap : p_abstr_poly)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
@@ -1795,52 +1793,32 @@ Definition interp_abstr_goal (vm : seq R) (g : abstr_goal) : Prop :=
   | Glarge [::] p =>
       0 <= interp_p_abstr_poly vm p
   | Gstrict l p =>
-      all_prop
-      (fun n => 0 <= interp_p_abstr_poly vm (nth (PConst PConstR0) l n))%Re
-      (iota 0 (size l)) ->
+      all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re l ->
       0 < interp_p_abstr_poly vm p
   | Glarge l p =>
-      all_prop
-      (fun n => 0 <= interp_p_abstr_poly vm (nth (PConst PConstR0) l n))%Re
-      (iota 0 (size l)) ->
+      all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re l ->
       0 <= interp_p_abstr_poly vm p
   end.
 
 Ltac tac := rewrite /= !sub_p_abstr_poly_correct; psatzl R.
 
+Lemma abstr_goal_of_p_abstr_goal_aux_correct vm p l g :
+  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal_aux (p :: l) g) ->
+  0 <= interp_p_abstr_poly vm p ->
+  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal_aux l g).
+Admitted.
+
 Theorem abstr_goal_of_p_abstr_goal_correct vm (g : p_abstr_goal) :
   interp_abstr_goal vm (abstr_goal_of_p_abstr_goal g) ->
   interp_p_abstr_goal vm g.
 Proof.
-elim: g => [p|h g IHg].
-{ case: p => p q; tac. }
+rewrite /abstr_goal_of_p_abstr_goal.
+have : all_prop (fun p => 0 <= interp_p_abstr_poly vm p) [::] by simpl.
+elim: g [::] => [p|h g IHg] l.
+{ case: p => p q /=; do [case: l => [|x l]; last move=> Hxl /(_ Hxl); tac]. }
 case: h => [i|a b] /=.
-{ rewrite /abstr_goal_of_p_abstr_goal /=.
-  case: i => r s /=.
-
-  { move=> top H.
-    have : all_prop (fun p => 0 <= interp_p_abstr_poly vm p) [:: sub_p_abstr_poly s r] by tac.
-    clear H.
-    (* have : (0 < size [:: sub_p_abstr_poly s r])%N by simpl.*)
-    move: top; elim: [:: sub_p_abstr_poly s r] => [|x l IHl] //=.
-    move=> *; exact: IHg.
-    move=> Hxl [Hx Hl]; apply: IHl =>//.
-    clear - Hxl.
-    admit. }
-
-  Ltac toc vm p IHg x y :=
-    let top := fresh in let H := fresh in let z := fresh in let IHl := fresh in
-    let Hxl := fresh in let Hx := fresh in let Hl := fresh in
-    move=> top H;
-    have : all_prop (fun p => 0 <= interp_p_abstr_poly vm p) [:: sub_p_abstr_poly x y] by tac;
-    clear H;
-    move: top; elim: [:: sub_p_abstr_poly x y] => [|z l IHl] //=;
-    move=> *; exact: IHg;
-    move=> Hxl [Hx Hl]; apply: IHl =>//;
-    clear - Hxl.
-  toc vm p IHg r s; admit.
-  toc vm p IHg s r; admit.
-  toc vm p IHg r s; admit. }
+{ case: i => c d Hl Hg Hi; apply: IHg Hl _;
+  apply: abstr_goal_of_p_abstr_goal_aux_correct Hg _; simpl in Hi; tac. }
 Admitted.
 
 Ltac validsdp_core lem r :=
