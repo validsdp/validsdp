@@ -803,7 +803,6 @@ Proof.
 move: p z Q.
 elim: pzQi => [|pzQ0 pzQi Hind] p z Q;
                rewrite /soscheck_hyps_ssr /soscheck_hyps /=.
-Admitted. (*
 { rewrite andbC /= => H _; apply (soscheck_correct H). }
 set zp0 := map_mx2_op polyX_op pzQ0.1.2.
 set Q'0 := map_mx2_op (polyC_op \o F2T) pzQ0.2.
@@ -833,7 +832,7 @@ have -> : map_mx (meval x \o map_mpoly T2R) Q'0 =
   by rewrite /polyC_op /polyC_ssr /= map_mpolyC ?raddf0 // mevalC T2R_F2T. }
 by apply posdef_check_correct.
 Qed.
-*)
+
 End theory_soscheck.
 
 (* Future definition of F2C *)
@@ -1356,7 +1355,6 @@ apply andb_R.
 { apply refinesP; refines_apply.
   rewrite refinesE => p'0 p'0' rp'0 pzQi pzQi' rpzQi.
   apply refinesP.
-  Admitted. (*
   eapply refines_apply; [by eapply refines_apply; tc|].
   eapply refines_apply; [eapply refines_apply; [by tc|]|].
   { eapply refines_apply; [eapply refines_apply|].
@@ -1380,7 +1378,7 @@ apply refinesP; eapply refines_apply; last first.
 { eapply refines_apply; [by tc|]; rewrite refinesE; exact rpr. }
 apply refine_posdef_check'; try tc; exact: eqFIS_P.
 Qed.
-*)
+
 Lemma refine_has_const :
   refines (RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> bool_R)
     has_const_ssr (has_const_eff (n:=n)).
@@ -1808,7 +1806,7 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
   let s := size zQ.1 in
   let Q := map (map F2FI) zQ.2 in
   let zQl :=
-    [seq (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2) | zq <- zQi] in
+    [seq (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2) | zQ <- zQi] in
   [&&
    size papi == size zQi,
    (n != 0%N),
@@ -1827,56 +1825,6 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
      (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
      (T2F := F2FI \o bigQ2F')
      bp [seq (pzQ.1, pzQ.2.1, pzQ.2.2) | pzQ <- zip bpl zQl] z Q].
-
-(*
-
-Goal forall x y : R, 0 <= x -> 0 <= y -> x + y + 1 >= 0.
-intros x y.
-(*Compute let           :
-         seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)) *
-         seq (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) in
-          is_true
-             (soscheck_hyps_eff_wrapup [:: x; y]
-                (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 0)))
-                   (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 1)))
-                      (Gineq
-                         (IGe (PAdd (PAdd (PVar 0) (PVar 1)) (PConst (PConstP2R 1)))
-                            (PConst PConstR0))))) zQ_zQi.1 zQ_zQi.2).
-*)
-
-Eval vm_compute in let F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val in
-        let (zQ, zQi) := 
-         ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599626846555%bigZ (-52)%bigZ]],
-         [:: ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599627366401%bigZ (-52)%bigZ]]);
-            ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599627366401%bigZ (-52)%bigZ]])]) in
-let vm := [:: x; y] in
-           let g := (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 0)))
-                   (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 1)))
-                      (Gineq
-                         (IGe (PAdd (PAdd (PVar 0) (PVar 1)) (PConst (PConstP2R 1)))
-                            (PConst PConstR0))))) in
-  let '(papi, pap, strict) := abstr_goal_of_p_abstr_goal g in
-  (* FIXME: take strict into account *)
-  let n := size vm in
-  let n' := n.-1 in
-  let ap := abstr_poly_of_p_abstr_poly pap in
-  let bp := interp_poly_eff n' ap in
-  let apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi] in
-  let bpl := [seq interp_poly_eff n' p | p <- apl] in
-  let z := map (fun x => [:: x]) zQ.1 in
-  let s := size zQ.1 in
-  let Q := map (map F2FI) zQ.2 in
-  let zQl :=
-      [seq (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2) | zq <- zQi] in
-  let pzQi := [seq (pzQ.1, pzQ.2.1, pzQ.2.2) | pzQ <- zip bpl zQl] in
-  M.elements (foldl (fun p' (pzQ : effmpoly bigQ * hseqmx 1 1 * hseqmx 1 1) =>
-    let zp := map_seqmx' (@polyX_eff bigQ one_bigQ) pzQ.1.2 in 
-    let Q' := map_seqmx' (@polyC_eff 2 bigQ \o F2T) pzQ.2 in
-    let p'm := (zp^T *m Q' *m zp)%HC in
-    poly_sub_eff p' (poly_mul_eff (@fun_of_seqmx (effmpoly bigQ) mp0_eff 1%N 1%N p'm (@I0_instN 1) (@I0_instN 1)) pzQ.1.1)) bp pzQi).
-  (* map (fun x => (M.elements x.1.1, x.1.2, x.2)) pzQi. *)
-
-*)
 
 Theorem soscheck_hyps_eff_wrapup_correct
   (vm : seq R) (g : p_abstr_goal)
@@ -1996,9 +1944,64 @@ Ltac validsdp :=
         (vm_cast_no_check (erefl true))
       end)
     | false => fail 100 "unsupported goal"
-    | _ => fail "validsdp failed to conclude"
+   (* | _ => fail "validsdp failed to conclude" *)
     end
   end.
+
+
+Goal forall x y : R, 0 <= x -> 0 <= y -> x + y + 1 >= 0.
+intros x y.
+(* Set Ltac Debug. *)
+
+Compute let zQ_zQi :=
+         ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599626846555%bigZ (-52)%bigZ]],
+         [:: ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599627366401%bigZ (-52)%bigZ]]);
+             ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599627366401%bigZ (-52)%bigZ]])]) :
+         seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)) *
+         seq (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))
+             in
+             (soscheck_hyps_eff_wrapup [:: x; y]
+                (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 0)))
+                   (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 1)))
+                      (Gineq
+                         (IGe (PAdd (PAdd (PVar 0) (PVar 1)) (PConst (PConstP2R 1)))
+                            (PConst PConstR0))))) zQ_zQi.1 zQ_zQi.2).
+
+Eval vm_compute in let F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val in
+        let (zQ, zQi) := 
+         ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599626846555%bigZ (-52)%bigZ]],
+         [:: ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599627366401%bigZ (-52)%bigZ]]);
+            ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599627366401%bigZ (-52)%bigZ]])]) in
+let vm := [:: x; y] in
+           let g := (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 0)))
+                   (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 1)))
+                      (Gineq
+                         (IGe (PAdd (PAdd (PVar 0) (PVar 1)) (PConst (PConstP2R 1)))
+                            (PConst PConstR0))))) in
+  let '(papi, pap, strict) := abstr_goal_of_p_abstr_goal g in
+  (* FIXME: take strict into account *)
+  let n := size vm in
+  let n' := n.-1 in
+  let ap := abstr_poly_of_p_abstr_poly pap in
+  let bp := interp_poly_eff n' ap in
+  let apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi] in
+  let bpl := [seq interp_poly_eff n' p | p <- apl] in
+  let z := map (fun x => [:: x]) zQ.1 in
+  let s := size zQ.1 in
+  let Q := map (map F2FI) zQ.2 in
+(*  let zQl :=
+      map (fun zQ : (seq (seq BinNums.N) * seq (seq (s_float BigZ.t_ BigZ.t_))) => (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2)) zQi in zQl. *)
+    let zQl :=
+    [seq (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2) | zQ : (seq (seq BinNums.N) * seq (seq (s_float BigZ.t_ BigZ.t_))) <- zQi] in
+    let pzQi := [seq (pzQ.1, pzQ.2.1, pzQ.2.2) | pzQ <- zip bpl zQl] in
+   M.elements (foldl (fun p' (pzQ : effmpoly bigQ * hseqmx 1 1 * hseqmx 1 1) =>
+    let zp := map_seqmx' (@polyX_eff bigQ one_bigQ) pzQ.1.2 in 
+    let Q' := map_seqmx' (@polyC_eff 2 bigQ \o F2T) pzQ.2 in
+    let p'm := (zp^T *m Q' *m zp)%HC in
+    poly_sub_eff p' (poly_mul_eff (@fun_of_seqmx (effmpoly bigQ) mp0_eff 1%N 1%N p'm (@I0_instN 1) (@I0_instN 1)) pzQ.1.1)) bp pzQi).
+(* map (fun x => (M.elements x.1.1, x.1.2, x.2)) pzQi.
+*)
+Abort.
 
 (** Some quick tests. *)
 
