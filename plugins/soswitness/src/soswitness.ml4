@@ -271,7 +271,7 @@ let psatz q pl =
             Sos.(!!Poly.zero) l in
         Sos.(sum - s * !!p), s :: sigmas)
       (Sos.(!!q), []) pl in
-  let ret, _, _, wl =
+  let ret, _, vals, wl =
     let options =
       (* { *) Sos.default (* with *)
         (* Sos.verbose = 3 ; *)
@@ -284,6 +284,19 @@ let psatz q pl =
   match w with
   | None -> Errors.error "soswitness: OSDP found no witnesses."
   | Some (zQ, zQl) ->
+     let unpad sigma (z, q) =
+       let m = Osdp.Monomial.mult z.(0) z.(0) in
+       let _, cm =
+         let is_m m' = Osdp.Monomial.compare m m' = 0 in
+         try List.find (fun (m', _) -> is_m m') (SosP.to_list sigma)
+         with Not_found -> Osdp.Monomial.one, SosP.Coeff.zero in
+       let pad = SosP.Coeff.sub cm (SosP.Coeff.of_float q.(0).(0)) in
+       for i = 0 to (Array.length q) - 1 do
+         let qii = SosP.Coeff.of_float q.(i).(i) in
+         q.(i).(i) <- SosP.Coeff.to_float (SosP.Coeff.add qii pad)
+       done in
+     let sigmas = List.rev_map (fun e -> Sos.value_poly e vals) sigmas in
+     List.iter2 unpad sigmas zQl;
      let array_to_list (z, q) =
        Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
      nb_vars, array_to_list zQ, List.map array_to_list zQl
