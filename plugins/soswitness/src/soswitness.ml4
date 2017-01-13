@@ -237,11 +237,10 @@ let mkFloat f =
        
 (* [psatz (q, [p1;...; pn])] calls OSDP to retrieve witnesses for
    p1 >= 0 -> ... -> pn >= 0 -> q >= 0. Returns [nb_vars, (z, Q),
-   [(z1, Q1);...; (zn, Qn)]] where [nb_vars] is the number of variables
-   appearing in [p1,..., pn, q], [z, Q] (z : vector of monomials,
-   Q : float matrix) is a witness for q - \sum_i sigma_i pi >= 0
-   with sigma_i := zi^T Qi zi (Qi should be positive definite
-   so that zi^T Qi zi >= 0). *)
+   [(s1, (z1, Q1));...; (sn, (zn, Qn))]] where [nb_vars] is the number
+   of variables appearing in [p1,..., pn, q], [z, Q] (z : vector of
+   monomials, Q : float matrix) is a witness for q - \sum_i si pi >= 0
+   and each (zi, Qi) is a witness for si >= 0. *)
 let psatz q pl =
   let module Sos = Osdp.Sos.Q in
   let module SosP = Sos.Poly in
@@ -284,26 +283,16 @@ let psatz q pl =
   match w with
   | None -> Errors.error "soswitness: OSDP found no witnesses."
   | Some (zQ, zQl) ->
-     let unpad sigma (z, q) =
-       let m = Osdp.Monomial.mult z.(0) z.(0) in
-       let _, cm =
-         let is_m m' = Osdp.Monomial.compare m m' = 0 in
-         try List.find (fun (m', _) -> is_m m') (SosP.to_list sigma)
-         with Not_found -> Osdp.Monomial.one, SosP.Coeff.zero in
-       let pad = SosP.Coeff.sub cm (SosP.Coeff.of_float q.(0).(0)) in
-       for i = 0 to (Array.length q) - 1 do
-         let qii = SosP.Coeff.of_float q.(i).(i) in
-         q.(i).(i) <- SosP.Coeff.to_float (SosP.Coeff.add qii pad)
-       done in
      let sigmas = List.rev_map (fun e -> Sos.value_poly e vals) sigmas in
-     List.iter2 unpad sigmas zQl;
      let array_to_list (z, q) =
        Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
-     nb_vars, array_to_list zQ, List.map array_to_list zQl
+     nb_vars, array_to_list zQ, List.combine sigmas (List.map array_to_list zQl)
 
 let soswitness c =
   let ty_N = Lazy.force coq_N_ind in
   let ty_seqmultinom = tyList ty_N in
+  let ty_bigQ = Lazy.force coq_bigQ_ind in
+  let ty_poly = tyList (tyPair ty_seqmultinom ty_bigQ) in
   (* Deconstruct the input (translate it from Coq to OCaml). *)
   let q, pl =
     let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofN c) in
@@ -312,8 +301,6 @@ let soswitness c =
     try
       ofPair ofPoly (ofList ofPoly) c
     with Parse_error ->
-      let ty_bigQ = Lazy.force coq_bigQ_ind in
-      let ty_poly = tyList (tyPair ty_seqmultinom ty_bigQ) in
       let ty_input = tyPair ty_poly (tyList ty_poly) in
       Errors.errorlabstrm
         ""
@@ -324,14 +311,13 @@ let soswitness c =
       Errors.error "soswitness: expects a closed term representing \
                     a non constant polynomial." in
   (* Call OSDP to retrieve witnesses *)
-  let nb_vars, zq, zql = psatz q pl in
+  let nb_vars, zq, szql = psatz q pl in
   (* Add trailing zeros to multinoms in z so that they all have same length. *)
-  let add_zeros (z, q) =
-    let rec add_tr_0 n l = match l with
-      | [] -> if n <= 0 then [] else 0 :: add_tr_0 (n - 1) []
-      | h :: t -> h :: add_tr_0 (n - 1) t in
-    List.map (add_tr_0 nb_vars) z, q in
-  let zq, zql = add_zeros zq, List.map add_zeros zql in
+  let rec add_tr_0 n l = match l with
+    | [] -> if n <= 0 then [] else 0 :: add_tr_0 (n - 1) []
+    | h :: t -> h :: add_tr_0 (n - 1) t in
+  let add_zeros (z, q) = List.map (add_tr_0 nb_vars) z, q in
+  let zq, szql = add_zeros zq, List.map (fun (s, zq) -> s, add_zeros zq) szql in
   (* Reconstruct the output (translate it from OCaml to Coq). *)
   let ty_seqmultinom_list = tyList ty_seqmultinom in
   let ty_bigZ = Lazy.force coq_bigZ_ind in
@@ -345,12 +331,21 @@ let soswitness c =
       (mkList ty_seqmultinom (mkList ty_N mkN))
       (mkList ty_float_list (mkList ty_float mkFloat))
       zQ in
+  let mk_s_witness =
+    let mkSeqmultinom m =
+      mkList ty_N mkN (add_tr_0 nb_vars (Osdp.Monomial.to_list m)) in
+    let mkPoly p =
+      mkList
+        (tyPair ty_seqmultinom ty_bigQ)
+        (mkPair ty_seqmultinom ty_bigQ mkSeqmultinom mkBigQ)
+        (Osdp.Sos.Q.Poly.to_list p) in
+    mkPair ty_poly ty_witness mkPoly mk_witness in
   mkPair
-    ty_witness (tyList ty_witness)
+    ty_witness (tyList (tyPair ty_poly ty_witness))
     mk_witness
-    (mkList ty_witness mk_witness)
-    (zq, zql),
-  tyPair ty_witness (tyList ty_witness)
+    (mkList (tyPair ty_poly ty_witness) mk_s_witness)
+    (zq, szql),
+  tyPair ty_witness (tyList (tyPair ty_poly ty_witness))
 
 let soswitness gl c id = 
   let v, t = soswitness c in

@@ -378,6 +378,9 @@ Context {n : nat}.
 Definition list_of_mpoly_eff (p : effmpoly T) : seq (seqmultinom * T) :=
   [seq mc <- M.elements p | negb (mc.2 == 0)%C].
 
+Definition mpoly_of_list_eff (l : seq (seqmultinom * T)) : effmpoly T :=
+  foldl (fun m mc => M.add mc.1 mc.2 m) M.empty l.
+
 Definition mp0_eff : effmpoly T := M.empty.
 
 Definition mp1_eff  := singleton (@mnm0_seq n) (1%C : T).
