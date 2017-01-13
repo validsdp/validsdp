@@ -381,6 +381,9 @@ Context {ord : nat -> Type} {mx : Type -> nat -> nat -> Type}.
 Context `{!fun_of_of monom ord (mx monom)}.
 Context `{!fun_of_of polyT ord (mx polyT)}.
 Context {s : nat}.
+Context {I0n : forall n, I0_class ord n.+1}.
+Context {succ0n : forall n, succ0_class ord n.+1}.
+Context {natof0n : forall n, nat_of_class ord n.+1}.
 Context `{!I0_class ord s, !I0_class ord 1, !succ0_class ord s}.
 
 Definition check_base (p : polyT) (z : mx monom s 1) : bool :=
@@ -432,22 +435,34 @@ Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
 
 Context `{!poly_mul_of polyT}.
 
+Inductive sz_witness :=
+  | Wit : forall n, mx monom n.+1 1 -> mx F n.+1 n.+1 -> sz_witness.
+
 (* Prove that /\_i pi >= 0 -> p >= 0 by proving that
    - p - \sum_i zi^T Qi zi pi >= 0 with z and Q as above
    - \forall i, Qi positive definite (i.e. zi^T Qi zi >= 0) *)
 Definition soscheck_hyps
    (* TODO: change the order of arguments ? *)
-    (p : polyT) (pzQi : seq (polyT * mx monom s 1 * mx F s s))
+    (p : polyT) (pzQi : seq (polyT * sz_witness))
     (z : mx monom s 1) (Q : mx F s s) : bool :=
-  let p' := foldl (fun p' (pzQ : polyT * mx monom s 1 * mx F s s) =>
-    let zp := map_mx2_op polyX_op pzQ.1.2 in
-    let Q' := map_mx2_op (polyC_op \o F2T) pzQ.2 in
-    let p'm := (zp^T *m Q' *m zp)%HC in
-    poly_sub_op p' (poly_mul_op (fun_of_op p'm I0 I0) pzQ.1.1)) p pzQi in
+  let p' := foldl (fun p' (pzQ : polyT * sz_witness) =>
+    match pzQ.2 with
+      | Wit s z Q =>
+        let zp := map_mx2_op polyX_op z in
+        let Q' := map_mx2_op (polyC_op \o F2T) Q in
+        let p'm := (zp^T *m Q' *m zp)%HC in
+        poly_sub_op p' (poly_mul_op (fun_of_op (m:=1) (n:=1) p'm I0 I0) pzQ.1)
+    end) p pzQi in
   soscheck p' z Q
-  && all (fun pzQ => posdef_check
-                       (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
-                       (@float_infnan_spec.finite fs) pzQ.2) pzQi.
+  && all (fun pzQ : polyT * sz_witness =>
+            match pzQ.2 with
+              | Wit s _ Q =>
+                posdef_check
+                  (I0_class0:=(I0n s)) (succ0_class0:=(@succ0n s))
+                  (nat_of_class0:=(@natof0n s))
+                  (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
+                  (@float_infnan_spec.finite fs) Q
+            end) pzQi.
 
 Context `{!eq_of monom, !zero_of monom}.
 
@@ -524,9 +539,10 @@ Definition soscheck_eff : polyT -> mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
 Global Instance poly_mul_eff : poly_mul_of polyT := mpoly_mul_eff.
 
 Definition soscheck_hyps_eff :
-  polyT -> seq (polyT * mx monom s.+1 1 * mx F s.+1 s.+1) ->
+  polyT -> seq (polyT * sz_witness) ->
   mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
-  soscheck_hyps (F2T:=F2T) (T2F:=T2F).
+  soscheck_hyps (set:=set) (F2T:=F2T) (T2F:=T2F)
+                (I0n:=fun n => O) (succ0n:=fun n => S) (natof0n:=fun _ => id).
 
 Global Instance monom_eq_eff : eq_of monom := mnmc_eq_seq.
 
@@ -599,7 +615,7 @@ Definition soscheck_ssr : polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
 Global Instance poly_mul_ssr : poly_mul_of polyT := fun p q => (p * q)%R.
 
 Definition soscheck_hyps_ssr :
-  polyT -> seq (polyT * 'cV[monom]_s.+1 * 'M[F]_s.+1) ->
+  polyT -> seq (polyT * sz_witness) ->
   'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
   soscheck_hyps (F2T:=F2T) (T2F:=T2F).
 
@@ -797,17 +813,19 @@ Hypothesis T2R_multiplicative : multiplicative T2R.
 Canonical T2R_morphism_struct := AddRMorphism T2R_multiplicative.
 
 Lemma soscheck_hyps_correct p pzQi z Q : soscheck_hyps_ssr p pzQi z Q ->
-  all_prop (fun pzQ => forall x, 0%R <= (map_mpoly T2R pzQ.1.1).@[x]) pzQi ->
+  all_prop (fun pzQ => forall x, 0%R <= (map_mpoly T2R pzQ.1).@[x]) pzQi ->
   forall x, 0%R <= (map_mpoly T2R p).@[x].
 Proof.
 move: p z Q.
 elim: pzQi => [|pzQ0 pzQi Hind] p z Q;
                rewrite /soscheck_hyps_ssr /soscheck_hyps /=.
 { rewrite andbC /= => H _; apply (soscheck_correct H). }
-set zp0 := map_mx2_op polyX_op pzQ0.1.2.
-set Q'0 := map_mx2_op (polyC_op \o F2T) pzQ0.2.
+case pzQ0 => p0 zQ0.
+case zQ0 => s0 z0 Q0 /=.
+set zp0 := map_mx2_op polyX_op z0.
+set Q'0 := map_mx2_op (polyC_op \o F2T) Q0.
 set p'm0 := (zp0^T *m Q'0 *m zp0)%HC.
-set p' := poly_sub_op p (poly_mul_op (fun_of_op p'm0 I0 I0) pzQ0.1.1).
+set p' := poly_sub_op p (poly_mul_op (fun_of_op p'm0 I0 I0) p0).
 move=> /and3P [] Hsoscheck Hposdef Hall Hall_prop.
 have: forall x, 0 <= (map_mpoly T2R p').@[x].
 { apply (Hind p' z Q); [by apply /andP; split|].
@@ -816,7 +834,7 @@ move=> H x; move: (H x).
 rewrite !rmorphB !rmorphM /=.
 rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_le_0.
 apply Rle_trans, Rmult_le_pos; last first.
-{ move: Hall_prop; case pzQi => [H'|p0 l [H' _]]; apply H'. }
+{ move: Hall_prop => [] H' _; apply H'. }
 rewrite /p'm0.
 rewrite /fun_of_op /fun_of_ssr.
 set mp := map_mpoly _ _.
@@ -827,7 +845,7 @@ rewrite !map_mxM /= -map_trmx.
 replace R0 with ((@matrix.const_mx _ 1 1 R0) ord0 ord0); [|by rewrite mxE].
 apply posdef_semipos.
 have -> : map_mx (meval x \o map_mpoly T2R) Q'0 =
-  cholesky.MF2R (cholesky_infnan.MFI2F pzQ0.2).
+  cholesky.MF2R (cholesky_infnan.MFI2F Q0).
 { rewrite -matrixP => i j; rewrite !mxE.
   by rewrite /polyC_op /polyC_ssr /= map_mpolyC ?raddf0 // mevalC T2R_F2T. }
 by apply posdef_check_correct.
@@ -1337,6 +1355,7 @@ by rewrite refinesE /Rord.
 by rewrite refinesE /Rord.
 Qed.
 
+(* TODO
 Lemma refine_soscheck_hyps :
   refines (ReffmpolyC rAC ==>
            list_R (prod_R (prod_R
@@ -1378,6 +1397,7 @@ apply refinesP; eapply refines_apply; last first.
 { eapply refines_apply; [by tc|]; rewrite refinesE; exact rpr. }
 apply refine_posdef_check'; try tc; exact: eqFIS_P.
 Qed.
+*)
 
 Lemma refine_has_const :
   refines (RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> bool_R)
@@ -1806,17 +1826,20 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
   let s := size zQ.1 in
   let Q := map (map F2FI) zQ.2 in
   let zQl :=
-    [seq (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2) | zQ <- zQi] in
+    map (fun zQ =>
+           let s := size zQ.1 in
+           Wit (n:=s.-1) (map (fun x => [:: x]) zQ.1) (map (map F2FI) zQ.2))
+        zQi in
   [&&
    size papi == size zQi,
-   (n != 0%N),
-   (all (fun m => size m == n) zQ.1),
-   (all (fun zQ => all (fun m => size m == n) zQ.1) zQi),
-   (s != 0%N),
-   (size Q == s),
-   (all (fun e => size e == s) Q),
-   (all (fun zQ => size zQ.2 == s) zQi),
-   (all (fun zQ => (all (fun e => size e == s) zQ.2)) zQi),
+   n != 0%N,
+   all (fun m => size m == n) zQ.1,
+   all (fun zQ => all (fun m => size m == n) zQ.1) zQi,
+   s != 0%N,
+   size Q == s,
+   all (fun e => size e == s) Q,
+   all (fun zQ => size zQ.2 == size zQ.1) zQi,
+   all (fun zQ => (all (fun e => size e == size zQ.1) zQ.2)) zQi,
    vars_ltn n ap,
    all (vars_ltn n) apl &
    soscheck_hyps_eff
@@ -1824,7 +1847,7 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
      (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
      (T2F := F2FI \o bigQ2F')
-     bp [seq (pzQ.1, pzQ.2.1, pzQ.2.2) | pzQ <- zip bpl zQl] z Q].
+     bp (zip bpl zQl) z Q].
 
 Theorem soscheck_hyps_eff_wrapup_correct
   (vm : seq R) (g : p_abstr_goal)
@@ -1948,60 +1971,15 @@ Ltac validsdp :=
     end
   end.
 
-
 Goal forall x y : R, 0 <= x -> 0 <= y -> x + y + 1 >= 0.
 intros x y.
-(* Set Ltac Debug. *)
+validsdp.
+Qed.
 
-Compute let zQ_zQi :=
-         ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599626846555%bigZ (-52)%bigZ]],
-         [:: ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599627366401%bigZ (-52)%bigZ]]);
-             ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599627366401%bigZ (-52)%bigZ]])]) :
-         seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)) *
-         seq (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))
-             in
-             (soscheck_hyps_eff_wrapup [:: x; y]
-                (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 0)))
-                   (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 1)))
-                      (Gineq
-                         (IGe (PAdd (PAdd (PVar 0) (PVar 1)) (PConst (PConstP2R 1)))
-                            (PConst PConstR0))))) zQ_zQi.1 zQ_zQi.2).
-
-Eval vm_compute in let F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val in
-        let (zQ, zQi) := 
-         ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599626846555%bigZ (-52)%bigZ]],
-         [:: ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599627366401%bigZ (-52)%bigZ]]);
-            ([:: [:: 0%num; 0%num]], [:: [:: Float 4503599627366401%bigZ (-52)%bigZ]])]) in
-let vm := [:: x; y] in
-           let g := (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 0)))
-                   (Ghyp (Hineq (ILe (PConst PConstR0) (PVar 1)))
-                      (Gineq
-                         (IGe (PAdd (PAdd (PVar 0) (PVar 1)) (PConst (PConstP2R 1)))
-                            (PConst PConstR0))))) in
-  let '(papi, pap, strict) := abstr_goal_of_p_abstr_goal g in
-  (* FIXME: take strict into account *)
-  let n := size vm in
-  let n' := n.-1 in
-  let ap := abstr_poly_of_p_abstr_poly pap in
-  let bp := interp_poly_eff n' ap in
-  let apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi] in
-  let bpl := [seq interp_poly_eff n' p | p <- apl] in
-  let z := map (fun x => [:: x]) zQ.1 in
-  let s := size zQ.1 in
-  let Q := map (map F2FI) zQ.2 in
-(*  let zQl :=
-      map (fun zQ : (seq (seq BinNums.N) * seq (seq (s_float BigZ.t_ BigZ.t_))) => (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2)) zQi in zQl. *)
-    let zQl :=
-    [seq (map (fun x => [:: x]) zQ.1, map (map F2FI) zQ.2) | zQ : (seq (seq BinNums.N) * seq (seq (s_float BigZ.t_ BigZ.t_))) <- zQi] in
-    let pzQi := [seq (pzQ.1, pzQ.2.1, pzQ.2.2) | pzQ <- zip bpl zQl] in
-   M.elements (foldl (fun p' (pzQ : effmpoly bigQ * hseqmx 1 1 * hseqmx 1 1) =>
-    let zp := map_seqmx' (@polyX_eff bigQ one_bigQ) pzQ.1.2 in 
-    let Q' := map_seqmx' (@polyC_eff 2 bigQ \o F2T) pzQ.2 in
-    let p'm := (zp^T *m Q' *m zp)%HC in
-    poly_sub_eff p' (poly_mul_eff (@fun_of_seqmx (effmpoly bigQ) mp0_eff 1%N 1%N p'm (@I0_instN 1) (@I0_instN 1)) pzQ.1.1)) bp pzQi).
-(* map (fun x => (M.elements x.1.1, x.1.2, x.2)) pzQi.
-*)
-Abort.
+Goal forall x y : R, x^2 + y^2 <= 2 -> x^2 + y^2 <= 4.
+intros x y.
+validsdp.
+Qed.
 
 (** Some quick tests. *)
 
