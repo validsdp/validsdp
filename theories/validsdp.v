@@ -455,9 +455,9 @@ Definition soscheck_hyps
     (z : mx monom s 1) (Q : mx F s s) : bool :=
   let p' :=
       foldl
-        (fun p' (pzQ : polyT * sz_witness) =>
-           match pzQ.2 with
-             | Wit s _ _ _ => poly_sub_op p' (poly_mul_op s pzQ.1)
+        (fun p' (pszQ : polyT * sz_witness) =>
+           match pszQ.2 with
+             | Wit s _ _ _ => poly_sub_op p' (poly_mul_op s pszQ.1)
            end) p pszQi in
   soscheck p' z Q
   && all
@@ -1184,7 +1184,7 @@ Instance zero_mpoly : zero_of (mpoly n A) := 0%R.
 
 (* Goal forall n, nat_R n.+1 n.+1 <=> nat_R_S_R (nat_Rxx n). *)
 
-Instance refine_check_base :
+Instance refine_check_base {s} :
   refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> eq)
     (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
 Proof.
@@ -1305,7 +1305,7 @@ Context `{!refines (nat_R ==> eqFIS) nat2Fup_instFIS nat2Fup_instFIS}.
 
 Hypothesis eqFIS_P : forall x y, reflect (eqFIS x y) (eq_instFIS x y).
 
-Local Instance refine_soscheck :
+Local Instance refine_soscheck {s} :
   refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==>
           RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==> bool_R)
     (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
@@ -1341,49 +1341,36 @@ by rewrite refinesE /Rord.
 by rewrite refinesE /Rord.
 Qed.
 
-(* TODO: Pierre
+CoInductive RWit (w : sz_witness) (w' : sz_witness) : Type :=
+| RWit_spec :
+    forall p s z Q (_ : w = Wit p z Q)
+           p' s' z' Q' (_ : w' = Wit p' z' Q')
+           (_ : ReffmpolyC (n:=n) rAC p p') (_ : s = s')
+           (_ : RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) z z')
+           (_ : RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) Q Q'),
+      RWit w w'.
+
 Lemma refine_soscheck_hyps :
-  refines (ReffmpolyC rAC ==>
-           list_R (prod_R (prod_R
-                     (ReffmpolyC rAC)
-                     (RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1)))
-                     (RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1))) ==>
+  refines (ReffmpolyC rAC ==> list_R (prod_R (ReffmpolyC rAC) RWit) ==>
            RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==>
            RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==>
            bool_R)
     (soscheck_hyps_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
     (soscheck_hyps_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
 Proof.
-rewrite refinesE=> p p' rp pzQ pzQ' rpzQ z z' rz Q Q' rQ.
+rewrite refinesE=> p p' rp pszQ pszQ' rpszQ z z' rz Q Q' rQ.
 rewrite /soscheck_hyps_ssr /soscheck_hyps_eff /soscheck_hyps.
 apply andb_R.
 { apply refinesP; refines_apply.
-  rewrite refinesE => p'0 p'0' rp'0 pzQi pzQi' rpzQi.
-  apply refinesP.
-  eapply refines_apply; [by eapply refines_apply; tc|].
-  eapply refines_apply; [eapply refines_apply; [by tc|]|].
-  { eapply refines_apply; [eapply refines_apply|].
-    { eapply refines_apply; [by tc|].
-      eapply refines_apply; [eapply refines_apply; [by tc|]|by tc].
-      eapply refines_apply; [by tc|eapply refines_apply; [|by tc]].
-      eapply refines_apply; [by tc|eapply refines_apply; [|by tc]].
-      refines_abstr; simpl; eapply refines_apply; tc. }
-    { by rewrite refinesE /Rord. }
-    by rewrite refinesE /Rord. }
-  do 2 (eapply refines_apply; [by tc|]); tc. }
-apply refinesP; eapply refines_apply; [eapply refines_apply|by tc].
-{ rewrite refinesE=> f f' rf l l'.
-  set pp := prod_R _ _.
-  move=> rl.
-  apply (all_R (T_R:=pp))=> [x x' rx|//].
-  apply refinesP; eapply refines_apply; rewrite refinesE; [|exact rx].
-  apply rf. }
-rewrite refinesE => pr pr' rpr.
-apply refinesP; eapply refines_apply; last first.
-{ eapply refines_apply; [by tc|]; rewrite refinesE; exact rpr. }
-apply refine_posdef_check'; try tc; exact: eqFIS_P.
+  rewrite refinesE => p'0 p'0' rp'0 pszQi pszQi' rpszQi.
+  move: rpszQi; case pszQi, pszQi' => /=; case s0, s1 => rpszQi.
+  apply refinesP; refines_apply; inversion rpszQi; rewrite refinesE //.
+  by inversion X4; inversion H2; inversion H4. }
+apply (all_R (T_R := prod_R (ReffmpolyC rAC) RWit)) => //.
+case=> p0 w; case=> p0' w' rpw /=.
+inversion rpw; inversion X4; rewrite H2 H4 /=.
+apply refinesP; refines_apply.
 Qed.
-*)
 
 Lemma refine_has_const :
   refines (RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> bool_R)
