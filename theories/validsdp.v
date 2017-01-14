@@ -814,27 +814,25 @@ Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
 Hypothesis T2R_multiplicative : multiplicative T2R.
 Canonical T2R_morphism_struct := AddRMorphism T2R_multiplicative.
 
-Lemma soscheck_hyps_correct s p pzQi z Q : @soscheck_hyps_ssr s p pzQi z Q ->
-  all_prop (fun pzQ => forall x, 0%R <= (map_mpoly T2R pzQ.1).@[x]) pzQi ->
-  forall x, 0%R <= (map_mpoly T2R p).@[x].
+Lemma soscheck_hyps_correct s p pzQi z Q :
+  @soscheck_hyps_ssr s p pzQi z Q ->
+  forall x,
+    all_prop (fun pzQ => 0%R <= (map_mpoly T2R pzQ.1).@[x]) pzQi ->
+    0%R <= (map_mpoly T2R p).@[x].
 Proof.
 move: p z Q.
 elim: pzQi => [|pzQ0 pzQi Hind] p z Q;
   rewrite /soscheck_hyps_ssr /soscheck_hyps /=.
-{ rewrite andbC /= => H _; apply (soscheck_correct H). }
+{ rewrite andbC /=  => H x _; apply (soscheck_correct H). }
 case pzQ0 => p0 zQ0.
 case zQ0 => s0 sz0 z0 Q0 /=.
 set p' := poly_sub_op p (poly_mul_op s0 p0).
-move=> /and3P [] Hsoscheck Hposdef Hall Hall_prop.
-have: forall x, 0 <= (map_mpoly T2R p').@[x].
-{ apply (Hind p' z Q); [by apply /andP; split|].
-  by move: Hall_prop; case pzQi => [//|p'' l [_ H]]. }
-move=> H x; move: (H x).
+move=> /and3P [] Hsoscheck Hsoscheck0 Hall x [] Hp0 Hall_prop.
+have : 0 <= (map_mpoly T2R p').@[x].
+{ by apply (Hind p' z Q); [by apply /andP; split|]. }
 rewrite !rmorphB !rmorphM /=.
 rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_le_0.
-apply Rle_trans, Rmult_le_pos.
-{ apply (soscheck_correct Hposdef). }
-move: Hall_prop => [] H' _; apply H'.
+by apply Rle_trans, Rmult_le_pos; [apply (soscheck_correct Hsoscheck0)|].
 Qed.
 
 End theory_soscheck.
@@ -1343,9 +1341,8 @@ Qed.
 
 CoInductive RWit (w : sz_witness) (w' : sz_witness) : Type :=
 | RWit_spec :
-    forall p s z Q (_ : w = Wit p z Q)
-           p' s' z' Q' (_ : w' = Wit p' z' Q')
-           (_ : ReffmpolyC (n:=n) rAC p p') (_ : s = s')
+    forall s p z Q p' z' Q' (_ : w = Wit p z Q) (_ : w' = Wit p' z' Q')
+           (_ : ReffmpolyC (n:=n) rAC p p')
            (_ : RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) z z')
            (_ : RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) Q Q'),
       RWit w w'.
@@ -1785,7 +1782,6 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
   (szQi : seq (seq (seq BinNums.N * bigQ)
                * (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))))) :=
   let '(papi, pap, strict) := abstr_goal_of_p_abstr_goal g in
-  (* FIXME: take strict into account *)
   let n := size vm in
   let n' := n.-1 in
   let ap := abstr_poly_of_p_abstr_poly pap in
@@ -1809,14 +1805,19 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
    n != 0%N,
    all (fun m => size m == n) zQ.1,
    all (fun szQ => all (fun m => size m == n) szQ.2.1) szQi,
+   all (fun szQ => match szQ with
+                     | Wit s _ _ _ => P.for_all (fun k _ => size k == n) s
+                   end) szQl,
    s != 0%N,
    size Q == s,
    all (fun e => size e == s) Q,
+   all (fun szQ => size szQ.2.1 != 0%N) szQi,
    all (fun szQ => size szQ.2.2 == size szQ.2.1) szQi,
    all (fun szQ => (all (fun e => size e == size szQ.2.1) szQ.2.2)) szQi,
    vars_ltn n ap,
    all (vars_ltn n) apl,
-   size bpl == size szQl &
+   size papi == size szQl,
+   strict == false &  (* FIXME: take strict into account *)
    soscheck_hyps_eff
      (n := n) (s := s')
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
@@ -1847,59 +1848,104 @@ set z := map (fun x => [:: x]) zQ.1.
 set Q := map (map F2FI) zQ.2.
 set szQl := map _ szQi.
 set pszQl := zip bpl szQl.
-pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s.+1 1 z.
-pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s.+1 s.+1 Q.
-case/and5P => Hn Hz HszQi_s Hs /and3P [HzQ HzQ'].
-case/and5P => HszQi_z HszQi_z' Hltn Hltn' /andP [Hsbpl Hsos_hyps].
+pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s'.+1 1 z.
+pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s'.+1 s'.+1 Q.
+pose szQlb :=
+  [seq
+     match szQ with
+       | Wit s sz z Q =>
+         let sb := mpoly_of_effmpoly_val n'.+1 (M.map bigQ2rat s) in
+         let zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) sz.+1 1 z in
+         let Qb := @spec_seqmx _ (FIS0 fs) _ (id) sz.+1 sz.+1 Q in
+         Wit sb zb Qb
+     end | szQ <- szQl].
+pose bplb := [seq interp_poly_ssr n' p | p <- apl].
+pose pszQlb := zip bplb szQlb.
+case/and5P => Hn Hz HszQi_s Hns /and5P [Hs HzQ HzQ' HszQi].
+case/and5P => HszQi_z HszQi_z' Hltn Hltn' /and3P [Hsbpl Hstrict Hsos_hyps].
 have Hn' : n'.+1 = n by rewrite prednK // lt0n Hn.
 have Hs' : s'.+1 = s by rewrite prednK // lt0n Hs.
 rewrite /interp_abstr_goal.
-Admitted.  (* WIP Pierre *)
-(*
-Check soscheck_hyps_correct.
-Check interp_correct.
-
+set apapi := all_prop _ _.
+suff: apapi -> if b then 0 < interp_p_abstr_poly vm pap
+               else 0 <= interp_p_abstr_poly vm pap by case b.
+rewrite {}/apapi => Hall_prop.
+move: Hstrict; case b => // _.  (* FIXME : handle strict *)
 rewrite interp_correct; [|by move: Hn; rewrite -/n; case n|by rewrite ?lt0n].
-have -> : hconst = has_const_ssr zb.
-{ rewrite /hconst -/s -Hn'.
-  apply esym, refines_eq, refines_bool_eq; refines_apply1.
-  { apply refine_has_const. }
-  rewrite /zb /za.
-  rewrite refinesE; apply RseqmxC_spec_seqmx.
-  { apply /andP; split.
-    { by rewrite size_map prednK //; move: Hs; case (size _). }
-    by apply /allP => x /mapP [] x' _ ->. }
-  by apply listR_seqmultinom_map; rewrite Hn'. }
-apply soscheck_correct with
+set x := fun _ => _.
+have Hall_prop' :
+  all_prop (fun pszQ => 0 <= (map_mpoly ratr pszQ.1).@[x]) pszQlb.
+{ move: Hsbpl Hltn' Hall_prop; rewrite /pszQlb /bplb /bpl /apl.
+  have -> : size szQl = size szQlb by rewrite /szQlb size_map.
+  move: szQlb {pszQlb}; elim papi => /= [|h t Hind]; [by case|].
+  case=> // szQlbh szQlbt /= /eqP [] HszQlbt /andP [] Hltnh Hltnt [] H1 H2.
+  split; [|by apply Hind; [apply/eqP| |]].
+  by rewrite -interp_correct; [|move: Hn; rewrite -/n; case n|]. }
+move: Hall_prop'.
+apply soscheck_hyps_correct with
   (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
   (2 := rat2FIS_correct)
   (3 := rat2R_FIS2rat)
   (4 := max_l)
   (5 := max_r)
-  (z := zb)
-  (Q := Qb).
-apply (etrans (y := @soscheck_eff n'.+1 _
-  zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs
-  (F2bigQ \o FI_val) (F2FI \o bigQ2F') bp za Qa)); last first.
-{ by rewrite Hn' Hsos. }
+  (6 := GRing.RMorphism.mixin (ratr_is_rmorphism _))
+  (z0 := zb)
+  (Q0 := Qb).
+move: Hsos_hyps; apply etrans.
 apply refines_eq, refines_bool_eq.
-refines_apply1; first refines_apply1; first refines_apply1.
-{ eapply (refine_soscheck (eq_F := eqFIS) (rAC := r_ratBigQ)). (* 17 evars *)
+refines_apply1; first refines_apply1;
+  first refines_apply1; first refines_apply1.
+{ rewrite -Hn'.
+  eapply (refine_soscheck_hyps (eq_F := eqFIS) (rAC := r_ratBigQ)).
   exact: eqFIS_P. }
 { by apply refine_interp_poly; rewrite prednK ?lt0n. }
+{ rewrite refinesE; apply zip_R.
+  { rewrite /bplb /bpl; move: Hltn'.
+    elim apl => [|h t Hind] //= /andP [] Hltnh Hltnt; apply list_R_cons_R.
+    { by apply refinesP, refine_interp_poly; rewrite Hn'. }
+    by apply Hind. }
+  move: Hns HszQi HszQi_s HszQi_z HszQi_z'; rewrite /szQlb /szQl.
+  elim szQi => [//=|h t Hind] /andP [hnsh Hnst].
+  move=> /andP [Hsh Hst] /andP [Hnh Hnt] /andP [Hsh' Hst'] /andP [Hsh'' Hst''].
+  apply list_R_cons_R; [|by apply Hind].
+  set s0' := mpoly_of_list_eff h.1; set s0 := mpoly_of_effmpoly_val _ _.
+  set z0' := map _ h.2.1; set z0 := spec_seqmx _ _ z0'.
+  set Q0' := map _ h.2.2; set Q0 := spec_seqmx _ _ Q0'.
+  apply (RWit_spec (p:=s0) (z:=z0) (Q:=Q0) (p':=s0') (z':=z0') (Q':=Q0')) => //.
+  { exists (M.map bigQ2rat s0'); split.
+    { rewrite /Reffmpoly /s0 /mpoly_of_effmpoly_val /ofun_hrel /mpoly_of_effmpoly.
+      rewrite ifT // /is_true (P.for_all_iff _) => k e.
+      { rewrite F.map_mapsto_iff => [] [] x' [] _ Hk.
+        move: hnsh; rewrite /is_true (P.for_all_iff _) -/s0' -Hn' => H.
+        { by move: (H _ _ Hk). }
+        by move=> y' /mnmc_eq_seqP /eqP ->. }
+      by move=> /mnmc_eq_seqP /eqP ->. }
+    split=> [k|k e e']; [by apply F.map_in_iff|].
+    move /(map_mapsto_iff_dec s0' k e bigQ2rat) => [] e'' [] He'' Hke'' Hke'.
+    by have <- : e'' = e'; [move: Hke'' Hke'; apply F.MapsTo_fun|]. }
+  { eapply RseqmxC_spec_seqmx.
+    { rewrite prednK ?lt0n // size_map eqxx /= /z.
+      by apply/allP => x' /mapP [y Hy] ->. }
+    apply: listR_seqmultinom_map.
+    by rewrite prednK ?lt0n // size_map eqxx. }
+  apply refinesP; refines_trans; rewrite refinesE.
+  { eapply Rseqmx_spec_seqmx.
+    rewrite size_map prednK ?lt0n // Hsh' /= all_map /is_true -Hsh''.
+    by apply eq_all => e /=; rewrite size_map. }
+  by apply list_Rxx => x'; apply list_Rxx. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
-  { rewrite prednK ?lt0n // size_map eqxx /= /za.
-    by apply/allP => x /mapP [y Hy] ->. }
+  { rewrite prednK ?lt0n // size_map eqxx /= /z.
+    by apply/allP => x' /mapP [y Hy] ->. }
   apply: listR_seqmultinom_map.
-  by rewrite prednK ?lt0n // size_map eqxx /= /za. }
+  by rewrite prednK ?lt0n // size_map eqxx. }
 refines_trans.
-rewrite refinesE; eapply Rseqmx_spec_seqmx.
-{ rewrite !size_map in HzQ.
+{ rewrite refinesE; eapply Rseqmx_spec_seqmx.
+  rewrite !size_map in HzQ.
   by rewrite prednK ?lt0n // !size_map HzQ. }
-{ by rewrite refinesE; apply: list_Rxx => x; apply: list_Rxx => y. }
+{ by rewrite refinesE; apply: list_Rxx => x'; apply: list_Rxx => y. }
 Unshelve.
 { split =>//.
-  by move=> x y z Hxy Hyz; red; rewrite Hxy. }
+  by move=> x' y z' Hxy Hyz; red; rewrite Hxy. }
 { by rewrite refinesE. }
 { by rewrite refinesE. }
 { by op1 F.neg_correct. }
@@ -1917,11 +1963,7 @@ Unshelve.
 { by op2 F.mul_correct. }
 { by op2 F.div_correct. }
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
-
-
-  (* FIXME: Pierre *)
-Admitted.
-*)
+Qed.
 
 Ltac validsdp_core lem r :=
   match get_poly r (@Datatypes.nil R) with
@@ -2051,9 +2093,11 @@ Lemma test_validsdp (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
 Time validsdp.
 Time Qed.
 
+(* Fixme : reimplement strict
 Lemma test_validsdp' (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 + 1 > 0)%Re.
 Time validsdp.
 Time Qed.
+*)
 
 Let sigma x0 x1 x2 : R := 6444365281246187/9007199254740992
          + 6312265263179769/576460752303423488 * x0

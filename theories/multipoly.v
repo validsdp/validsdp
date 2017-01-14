@@ -766,6 +766,9 @@ Definition mpoly_of_effmpoly (T : ringType) n (p' : effmpoly T) : option (mpoly 
                         a <- M.elements p']]]
   else None.
 
+Definition mpoly_of_effmpoly_val (T : ringType) n (p' : effmpoly T) : mpoly n T :=
+  odflt 0%R (mpoly_of_effmpoly n p').
+
 Definition Reffmpoly `{T : ringType, n : nat} :=
   ofun_hrel (@mpoly_of_effmpoly T n).
 
