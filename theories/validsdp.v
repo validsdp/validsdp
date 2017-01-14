@@ -1623,10 +1623,6 @@ Definition abstr_goal_of_p_abstr_goal := abstr_goal_of_p_abstr_goal_aux [::].
 
 Definition interp_abstr_goal (vm : seq R) (g : abstr_goal) : Prop :=
   match g with
-  | ([::], p, true) =>
-      0 < interp_p_abstr_poly vm p
-  | ([::], p, false) =>
-      0 <= interp_p_abstr_poly vm p
   | (l, p, true) =>
       all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re l ->
       0 < interp_p_abstr_poly vm p
@@ -1797,6 +1793,7 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
   let apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi] in
   let bpl := [seq interp_poly_eff n' p | p <- apl] in
   let s := size zQ.1 in
+  let s' := s.-1 in
   let z := map (fun x => [:: x]) zQ.1 in
   let Q := map (map F2FI) zQ.2 in
   let szQl :=
@@ -1807,11 +1804,10 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
            let Q := map (map F2FI) szQ.2.2 in
            Wit s (s:=sz.-1) z Q)
         szQi in
+  let pszQl := zip bpl szQl in
   [&&
-   size papi == size szQi,
    n != 0%N,
    all (fun m => size m == n) zQ.1,
-   all (fun szQ => all (fun mc => size mc.1 == n) szQ.1) szQi,
    all (fun szQ => all (fun m => size m == n) szQ.2.1) szQi,
    s != 0%N,
    size Q == s,
@@ -1819,13 +1815,14 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
    all (fun szQ => size szQ.2.2 == size szQ.2.1) szQi,
    all (fun szQ => (all (fun e => size e == size szQ.2.1) szQ.2.2)) szQi,
    vars_ltn n ap,
-   all (vars_ltn n) apl &
+   all (vars_ltn n) apl,
+   size bpl == size szQl &
    soscheck_hyps_eff
-     (n := n) (s := s.-1)
+     (n := n) (s := s')
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
      (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
      (T2F := F2FI \o bigQ2F')
-     bp (zip bpl szQl) z Q].
+     bp pszQl z Q].
 
 Theorem soscheck_hyps_eff_wrapup_correct
   (vm : seq R) (g : p_abstr_goal)
@@ -1835,8 +1832,96 @@ Theorem soscheck_hyps_eff_wrapup_correct
   soscheck_hyps_eff_wrapup vm g zQ szQi ->
   interp_p_abstr_goal vm g.
 Proof.
-(* FIXME: Pierre *)
+rewrite /soscheck_hyps_eff_wrapup => hyps.
+apply abstr_goal_of_p_abstr_goal_correct; move: hyps.
+set papipapb := _ g; case papipapb; case=> papi pap b {papipapb}.
+set n := size vm.
+set n' := n.-1.
+set ap := abstr_poly_of_p_abstr_poly pap.
+set bp := interp_poly_eff n' ap.
+set apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi].
+set bpl := [seq interp_poly_eff n' p | p <- apl].
+set s := size zQ.1.
+set s' := s.-1.
+set z := map (fun x => [:: x]) zQ.1.
+set Q := map (map F2FI) zQ.2.
+set szQl := map _ szQi.
+set pszQl := zip bpl szQl.
+pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s.+1 1 z.
+pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s.+1 s.+1 Q.
+case/and5P => Hn Hz HszQi_s Hs /and3P [HzQ HzQ'].
+case/and5P => HszQi_z HszQi_z' Hltn Hltn' /andP [Hsbpl Hsos_hyps].
+have Hn' : n'.+1 = n by rewrite prednK // lt0n Hn.
+have Hs' : s'.+1 = s by rewrite prednK // lt0n Hs.
+rewrite /interp_abstr_goal.
+Admitted.  (* WIP Pierre *)
+(*
+Check soscheck_hyps_correct.
+Check interp_correct.
+
+rewrite interp_correct; [|by move: Hn; rewrite -/n; case n|by rewrite ?lt0n].
+have -> : hconst = has_const_ssr zb.
+{ rewrite /hconst -/s -Hn'.
+  apply esym, refines_eq, refines_bool_eq; refines_apply1.
+  { apply refine_has_const. }
+  rewrite /zb /za.
+  rewrite refinesE; apply RseqmxC_spec_seqmx.
+  { apply /andP; split.
+    { by rewrite size_map prednK //; move: Hs; case (size _). }
+    by apply /allP => x /mapP [] x' _ ->. }
+  by apply listR_seqmultinom_map; rewrite Hn'. }
+apply soscheck_correct with
+  (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
+  (2 := rat2FIS_correct)
+  (3 := rat2R_FIS2rat)
+  (4 := max_l)
+  (5 := max_r)
+  (z := zb)
+  (Q := Qb).
+apply (etrans (y := @soscheck_eff n'.+1 _
+  zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs
+  (F2bigQ \o FI_val) (F2FI \o bigQ2F') bp za Qa)); last first.
+{ by rewrite Hn' Hsos. }
+apply refines_eq, refines_bool_eq.
+refines_apply1; first refines_apply1; first refines_apply1.
+{ eapply (refine_soscheck (eq_F := eqFIS) (rAC := r_ratBigQ)). (* 17 evars *)
+  exact: eqFIS_P. }
+{ by apply refine_interp_poly; rewrite prednK ?lt0n. }
+{ rewrite refinesE; eapply RseqmxC_spec_seqmx.
+  { rewrite prednK ?lt0n // size_map eqxx /= /za.
+    by apply/allP => x /mapP [y Hy] ->. }
+  apply: listR_seqmultinom_map.
+  by rewrite prednK ?lt0n // size_map eqxx /= /za. }
+refines_trans.
+rewrite refinesE; eapply Rseqmx_spec_seqmx.
+{ rewrite !size_map in HzQ.
+  by rewrite prednK ?lt0n // !size_map HzQ. }
+{ by rewrite refinesE; apply: list_Rxx => x; apply: list_Rxx => y. }
+Unshelve.
+{ split =>//.
+  by move=> x y z Hxy Hyz; red; rewrite Hxy. }
+{ by rewrite refinesE. }
+{ by rewrite refinesE. }
+{ by op1 F.neg_correct. }
+{ by op1 F.sqrt_correct. }
+{ by op2 F.add_correct. }
+{ by op2 F.mul_correct. }
+{ by op2 F.div_correct. }
+{ op1 F.real_correct; exact: bool_Rxx. }
+{ by op202 ltac:(rewrite /leq_instFIS /file /= /ficompare /=; suff_eq bool_Rxx)
+  F.cmp_correct F.real_correct. }
+{ by op202 ltac:(rewrite /lt_instFIS /filt /= /ficompare /=; suff_eq bool_Rxx)
+  F.cmp_correct F.real_correct. }
+{ by op2 F.add_correct. }
+{ by op22 F.neg_correct F.add_correct. }
+{ by op2 F.mul_correct. }
+{ by op2 F.div_correct. }
+by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
+
+
+  (* FIXME: Pierre *)
 Admitted.
+*)
 
 Ltac validsdp_core lem r :=
   match get_poly r (@Datatypes.nil R) with
