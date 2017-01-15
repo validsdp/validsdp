@@ -245,6 +245,7 @@ let psatz q pl =
   let module Sos = Osdp.Sos.Q in
   let module SosP = Sos.Poly in
   let nb_vars = List.map SosP.nb_vars (q :: pl) |> List.fold_left max 0 in
+  let coeff = Sos.make "c" in
   let sum, sigmas =
     let degs = List.map SosP.degree (q :: pl) in
     let max_deg = List.fold_left max 0 degs in
@@ -258,33 +259,39 @@ let psatz q pl =
     List.fold_left
       (fun (sum, sigmas) p ->
         let s =
-          let _, l =
-            Sos.var_poly "s" nb_vars (rup (max_deg - SosP.degree p)) in
+          let l =
+            let d = rup (max_deg - SosP.degree p) in
+            Sos.to_list (Sos.make ~n:nb_vars ~d "s") in
           let l =
             let lim =
               let p_list = Osdp.Monomial.of_list (SosP.degree_list p) in
               rup_monomial (Osdp.Monomial.div max_deg_list p_list) in
             List.filter (fun (m, _) -> Osdp.Monomial.divide m lim) l in
-          List.fold_left
-            (fun p (m, v) -> Sos.(add p (mult (monomial m) v)))
-            Sos.(!!Poly.zero) l in
+          Sos.of_list l in
         Sos.(sum - s * !!p), s :: sigmas)
-      (Sos.(!!q), []) pl in
+      (Sos.(coeff * !!q), []) pl in
   let ret, _, vals, wl =
     let options =
       (* { *) Sos.default (* with *)
         (* Sos.verbose = 3 ; *)
         (* Sos.sdp = { Osdp.Sdp.default with Osdp.Sdp.verbose = 1 } } *) in
     Sos.solve ~options ~solver:Osdp.Sdp.Sdpa Sos.Purefeas
-              (sum :: List.rev sigmas) in
+              (sum :: coeff :: List.rev sigmas) in
   let w =
     if ret <> Osdp.SdpRet.Success then None
-    else match wl with [] -> assert false | zQ :: zQl -> Some (zQ, zQl) in
+    else match wl with [] | [_] -> assert false | h :: _ :: t -> Some (h, t) in
   match w with
   | None -> Errors.error "soswitness: OSDP found no witnesses."
   | Some (zQ, zQl) ->
+     let coeff = Sos.value coeff vals in
+     if SosP.Coeff.equal coeff SosP.Coeff.zero then
+       Errors.error "soswitness: OSDP found no witnesses.";
+     let coeff = SosP.Coeff.inv coeff in
      let sigmas = List.rev_map (fun e -> Sos.value_poly e vals) sigmas in
+     let sigmas = List.map (SosP.mult_scalar coeff) sigmas in
+     let coeff = SosP.Coeff.to_float coeff in
      let array_to_list (z, q) =
+       let q = Array.map (Array.map (fun c -> coeff *. c)) q in
        Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
      nb_vars, array_to_list zQ, List.combine sigmas (List.map array_to_list zQl)
 
