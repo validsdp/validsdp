@@ -1635,11 +1635,9 @@ Definition interp_abstr_goal (vm : seq R) (g : abstr_goal) : Prop :=
 
 Ltac tac := rewrite /= !sub_p_abstr_poly_correct; psatzl R.
 
-Lemma abstr_goal_of_p_abstr_goal_aux_correct vm p l g :
-  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal_aux (p :: l) g) ->
-  0 <= interp_p_abstr_poly vm p ->
-  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal_aux l g).
-Admitted.
+Lemma all_prop_cat (T : Type) (a : T -> Prop) (s1 s2 : seq T) :
+  all_prop a (s1 ++ s2) <-> all_prop a s1 /\ all_prop a s2.
+Proof. by elim: s1 => [|x s1 IHs] //=; intuition. Qed.
 
 Theorem abstr_goal_of_p_abstr_goal_correct vm (g : p_abstr_goal) :
   interp_abstr_goal vm (abstr_goal_of_p_abstr_goal g) ->
@@ -1649,10 +1647,14 @@ rewrite /abstr_goal_of_p_abstr_goal.
 have : all_prop (fun p => 0 <= interp_p_abstr_poly vm p) [::] by simpl.
 elim: g [::] => [p|h g IHg] l.
 { case: p => p q /=; do [case: l => [|x l]; last move=> Hxl /(_ Hxl); tac]. }
-(* case: h => [i|a b] /=.
-{ case: i => c d Hl Hg Hi; apply: IHg Hl _;
-  apply: abstr_goal_of_p_abstr_goal_aux_correct Hg _; simpl in Hi; tac. } *)
-Admitted.
+move=> /= Hl Hlhg Hh.
+apply: IHg Hlhg.
+apply/all_prop_cat; split =>//; clear - Hh.
+elim: h Hh => [i Hi|a A b B H]  /=.
+{ by case: i Hi =>//= p q; tac. }
+have {H} [H1 H2] := H.
+by apply/all_prop_cat; split =>//=; auto.
+Qed.
 
 (* TODO: move/refactor *)
 
