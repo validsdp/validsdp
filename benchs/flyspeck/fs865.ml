@@ -28,19 +28,20 @@ let b5 = Sos.((x5 - 4 / 1) * (63504 / 10000 - x5))
 let b6 = Sos.((x6 - 4 / 1) * (4 / 1 - x6))
 
 (* prove that p > 0 on the above defined box *)
-let check_p_pos polys =
-  let sigma = List.assoc "sigma" polys in
-  let sigma1 = List.assoc "sigma1" polys in
-  let sigma2 = List.assoc "sigma2" polys in
-  let sigma3 = List.assoc "sigma3" polys in
-  let sigma4 = List.assoc "sigma4" polys in
-  let sigma5 = List.assoc "sigma5" polys in
-  let sigma6 = List.assoc "sigma6" polys in
-  let e = Sos.(!!sigma * p - !!sigma1 * b1 - !!sigma2 * b2 - !!sigma3 * b3 - !!sigma4 * b4 - !!sigma5 * b5 - !!sigma6 * b6) in
+let check_p_pos =
+  let sigma = Sos.make "s" in
+  let sigma1 = Sos.make "s1" in
+  let sigma2 = Sos.make "s2" in
+  let sigma3 = Sos.make "s3" in
+  let sigma4 = Sos.make "s4" in
+  let sigma5 = Sos.make "s5" in
+  let sigma6 = Sos.make "s6" in
+  let e = Sos.(sigma * p - sigma1 * b1 - sigma2 * b2 - sigma3 * b3 - sigma4 * b4 - sigma5 * b5 - sigma6 * b6) in
   let ret, _, vals, _ =
-    Sos.(solve ~options Purefeas [e; !!sigma; !!sigma1; !!sigma2; !!sigma3; !!sigma4; !!sigma5; !!sigma6]) in
-  ret = Osdp.SdpRet.Success
+    Sos.(solve ~options Purefeas [e; sigma; sigma1; sigma2; sigma3; sigma4; sigma5; sigma6]) in
+  ret = Osdp.SdpRet.Success &&
+    (let sigma = Sos.value sigma vals in
+     Sos.Poly.Coeff.(compare sigma zero) > 0)
 
 let _ =
-  let polys = Parse.file "fs865.v" in
-  Format.printf "Bounds proved: %B@." (check_p_pos polys)
+  Format.printf "Bounds proved: %B@." check_p_pos
