@@ -23,32 +23,20 @@ let b3 = Sos.((x3 + 1 / 2) * (1 / 2 - x3))
 let b4 = Sos.((x4 + 1 / 2) * (1 / 2 - x4))
 
 let lb = Sos.(-3181 / 1000)
-let ub = Sos.(4486 / 1000)
             
 (* chack that invariant lb <= p(x) <= ub when x satisfies bounds *)
-let check_bounds polys =
-  let check_lb =
-    let sigma = List.assoc "lb_sigma" polys in
-    let sigma1 = List.assoc "lb_sigma1" polys in
-    let sigma2 = List.assoc "lb_sigma2" polys in
-    let sigma3 = List.assoc "lb_sigma3" polys in
-    let sigma4 = List.assoc "lb_sigma4" polys in
-    let e = Sos.(!!sigma * (p - lb) - !!sigma1 * b1 - !!sigma2 * b2 - !!sigma3 * b3 - !!sigma4 * b4) in
-    let ret, _, _, _ =
-      Sos.(solve ~options Purefeas [e; !!sigma; !!sigma1; !!sigma2; !!sigma3; !!sigma4]) in
-    ret = Osdp.SdpRet.Success in
-  let check_ub =
-    let sigma = List.assoc "ub_sigma" polys in
-    let sigma1 = List.assoc "ub_sigma1" polys in
-    let sigma2 = List.assoc "ub_sigma2" polys in
-    let sigma3 = List.assoc "ub_sigma3" polys in
-    let sigma4 = List.assoc "ub_sigma4" polys in
-    let e = Sos.(!!sigma * (ub - p) - !!sigma1 * b1 - !!sigma2 * b2 - !!sigma3 * b3 - !!sigma4 * b4) in
-    let ret, _, _, _ =
-      Sos.(solve ~options Purefeas [e; !!sigma; !!sigma1; !!sigma2; !!sigma3; !!sigma4]) in
-    ret = Osdp.SdpRet.Success in
-  check_lb && check_ub
+let check_bounds =
+  let sigma = Sos.make "s" in
+  let sigma1 = Sos.make ~n:4 ~d:2 "s1" in
+  let sigma2 = Sos.make ~n:4 ~d:2 "s2" in
+  let sigma3 = Sos.make ~n:4 ~d:2 "s3" in
+  let sigma4 = Sos.make ~n:4 ~d:2 "s4" in
+  let e = Sos.(sigma * (p - lb) - sigma1 * b1 - sigma2 * b2 - sigma3 * b3 - sigma4 * b4) in
+  let ret, _, vals, _ =
+    Sos.(solve ~options Purefeas [e; sigma; sigma1; sigma2; sigma3; sigma4]) in
+  ret = Osdp.SdpRet.Success &&
+    (let sigma = Sos.value sigma vals in
+     Sos.Poly.Coeff.(compare sigma zero) > 0)
 
 let _ =
-  let polys = Parse.file "caprasse.v" in
-  Format.printf "Bounds proved: %B@." (check_bounds polys)
+  Format.printf "Bounds proved: %B@." check_bounds

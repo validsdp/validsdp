@@ -2,8 +2,3 @@ let AdaptiveLV_lb =
   `((((-- &2) <= x1) /\ ((x1 <= &2) /\ (((-- &2) <= x2) /\ ((x2 <= &2) /\ (((-- &2) <= x3) /\ ((x3 <= &2) /\ (((-- &2) <= x4) /\ (x4 <= &2)))))))) ==> (((-- &20802) / &1000) <= (((((x1 * (x2 pow 2)) + (x1 * (x3 pow 2))) + (x1 * (x4 pow 2))) - ((&11 / &10) * x1)) + &1)))`;;
 
 let th_AdaptiveLV_lb, st_AdaptiveLV_lb = verify_ineq default_params 5 AdaptiveLV_lb;;
-
-let AdaptiveLV_ub =
-  `((((-- &2) <= x1) /\ ((x1 <= &2) /\ (((-- &2) <= x2) /\ ((x2 <= &2) /\ (((-- &2) <= x3) /\ ((x3 <= &2) /\ (((-- &2) <= x4) /\ (x4 <= &2)))))))) ==> ((((((x1 * (x2 pow 2)) + (x1 * (x3 pow 2))) + (x1 * (x4 pow 2))) - ((&11 / &10) * x1)) + &1) < (&22802 / &1000)))`;;
-
-let th_AdaptiveLV_ub, st_AdaptiveLV_ub = verify_ineq default_params 5 AdaptiveLV_ub;;

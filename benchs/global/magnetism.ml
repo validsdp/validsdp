@@ -29,38 +29,23 @@ let b6 = Sos.((x6 + 1 / 1) * (1 / 1 - x6))
 let b7 = Sos.((x7 + 1 / 1) * (1 / 1 - x7))
 
 let lb = Sos.(-2501 / 10000)
-let ub = Sos.(140001 / 10000)
             
 (* chack that invariant lb <= p(x) <= ub when x satisfies bounds *)
-let check_bounds polys =
-  let check_lb =
-    let sigma = List.assoc "lb_sigma" polys in
-    let sigma1 = List.assoc "lb_sigma1" polys in
-    let sigma2 = List.assoc "lb_sigma2" polys in
-    let sigma3 = List.assoc "lb_sigma3" polys in
-    let sigma4 = List.assoc "lb_sigma3" polys in
-    let sigma5 = List.assoc "lb_sigma5" polys in
-    let sigma6 = List.assoc "lb_sigma6" polys in
-    let sigma7 = List.assoc "lb_sigma7" polys in
-    let e = Sos.(!!sigma * (p - lb) - !!sigma1 * b1 - !!sigma2 * b2 - !!sigma3 * b3 - !!sigma4 * b4 - !!sigma5 * b5 - !!sigma6 * b6 - !!sigma7 * b7) in
-    let ret, _, _, _ =
-      Sos.(solve ~options Purefeas [e; !!sigma; !!sigma1; !!sigma2; !!sigma3; !!sigma4; !!sigma5; !!sigma6; !!sigma7]) in
-    ret = Osdp.SdpRet.Success in
-  let check_ub =
-    let sigma = List.assoc "ub_sigma" polys in
-    let sigma1 = List.assoc "ub_sigma1" polys in
-    let sigma2 = List.assoc "ub_sigma2" polys in
-    let sigma3 = List.assoc "ub_sigma3" polys in
-    let sigma4 = List.assoc "ub_sigma3" polys in
-    let sigma5 = List.assoc "ub_sigma5" polys in
-    let sigma6 = List.assoc "ub_sigma6" polys in
-    let sigma7 = List.assoc "ub_sigma7" polys in
-    let e = Sos.(!!sigma * (ub - p) - !!sigma1 * b1 - !!sigma2 * b2 - !!sigma3 * b3 - !!sigma4 * b4 - !!sigma5 * b5 - !!sigma6 * b6 - !!sigma7 * b7) in
-    let ret, _, _, _ =
-      Sos.(solve ~options Purefeas [e; !!sigma; !!sigma1; !!sigma2; !!sigma3; !!sigma4; !!sigma5; !!sigma6; !!sigma7]) in
-    ret = Osdp.SdpRet.Success in
-  check_lb && check_ub
+let check_bounds =
+  let sigma = Sos.make "s" in
+  let sigma1 = Sos.make "s1" in
+  let sigma2 = Sos.make "s2" in
+  let sigma3 = Sos.make "s3" in
+  let sigma4 = Sos.make "s4" in
+  let sigma5 = Sos.make "s5" in
+  let sigma6 = Sos.make "s6" in
+  let sigma7 = Sos.make "s7" in
+  let e = Sos.(sigma * (p - lb) - sigma1 * b1 - sigma2 * b2 - sigma3 * b3 - sigma4 * b4 - sigma5 * b5 - sigma6 * b6 - sigma7 * b7) in
+  let ret, _, vals, _ =
+      Sos.(solve ~options Purefeas [e; sigma; sigma1; sigma2; sigma3; sigma4; sigma5; sigma6; sigma7]) in
+  ret = Osdp.SdpRet.Success &&
+    (let sigma = Sos.value sigma vals in
+     Sos.Poly.Coeff.(compare sigma zero) > 0)
 
 let _ =
-  let polys = Parse.file "magnetism.v" in
-  Format.printf "Bounds proved: %B@." (check_bounds polys)
+  Format.printf "Bounds proved: %B@." check_bounds

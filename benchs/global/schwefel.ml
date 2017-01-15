@@ -23,18 +23,17 @@ let b3 = Sos.((x3 + 10 / 1) * (10 / 1 - x3))
 let lb = Sos.(-1 / 10000)
             
 (* chack that invariant lb <= p(x) <= ub when x satisfies bounds *)
-let check_bounds polys =
-  let check_lb =
-    let sigma = List.assoc "lb_sigma" polys in
-    let sigma1 = List.assoc "lb_sigma1" polys in
-    let sigma2 = List.assoc "lb_sigma2" polys in
-    let sigma3 = List.assoc "lb_sigma3" polys in
-    let e = Sos.(!!sigma * (p - lb) - !!sigma1 * b1 - !!sigma2 * b2 - !!sigma3 * b3) in
-    let ret, _, _, _ =
-      Sos.(solve ~options Purefeas [e; !!sigma; !!sigma1; !!sigma2; !!sigma3]) in
-    ret = Osdp.SdpRet.Success in
-  check_lb
+let check_bounds =
+  let sigma = Sos.make "s" in
+  let sigma1 = Sos.make ~n:3 ~d:2 "s1" in
+  let sigma2 = Sos.make ~n:3 ~d:2 "s2" in
+  let sigma3 = Sos.make ~n:3 ~d:2 "s3" in
+  let e = Sos.(sigma * (p - lb) - sigma1 * b1 - sigma2 * b2 - sigma3 * b3) in
+  let ret, _, vals, _ =
+    Sos.(solve ~options Purefeas [e; sigma; sigma1; sigma2; sigma3]) in
+  ret = Osdp.SdpRet.Success &&
+    (let sigma = Sos.value sigma vals in
+     Sos.Poly.Coeff.(compare sigma zero) > 0)
 
 let _ =
-  let polys = Parse.file "schwefel.v" in
-  Format.printf "Bounds proved: %B@." (check_bounds polys)
+  Format.printf "Bounds proved: %B@." check_bounds

@@ -7,11 +7,7 @@ lhs = [polynomial_ring('(x1 + 2) * (2 - x1)'), polynomial_ring('(x2 + 2) * (2 - 
 
 check_lb = test_MC11(polynomial_ring, lhs, rhs)
 
-rhs = polynomial_ring('22802/1000 - (x1*x2^2+x1*x3^2+x1*x4^2-11/10*x1+1/1)')
-
-check_ub = test_MC11(polynomial_ring, lhs, rhs)
-
-if check_lb and check_ub:
+if check_lb:
   print 'proved: true'
 else:
   print 'proved: false'
