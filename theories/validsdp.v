@@ -1577,7 +1577,12 @@ Lemma sub_p_abstr_poly_correct vm p q :
   interp_p_abstr_poly vm (sub_p_abstr_poly p q) =
   interp_p_abstr_poly vm p - interp_p_abstr_poly vm q.
 Proof.
-Admitted.
+case: p=> [p|n|p|p p'|p p'|p p'|p n|p n];
+case: q=> [q|d|q|q q'|q q'|q q'|q d|q d] //;
+try (case: p =>//=; case: q =>//= *; ring).
+by case: p =>//= *; ring.
+by case: q =>//= *; ring.
+Qed.
 
 (*
 Definition aux_p_abstr_ineq {T : Type} (strict large : p_abstr_poly -> T) i :=
