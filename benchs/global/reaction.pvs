@@ -14,4 +14,8 @@ BEGIN
     -5<=x1 AND x1<=5 AND -5<=x2 AND x2<=5 AND -5<=x3 AND x3<=5 IMPLIES
     ReactionDiffusion(x1,x2,x3) >= -36.713
 
+  ReactionDiffusion_ub_: LEMMA
+    -5<=x1 AND x1<=5 AND -5<=x2 AND x2<=5 AND -5<=x3 AND x3<=5 IMPLIES
+    ReactionDiffusion(x1,x2,x3) <= 10.439
+
 END benchmarks

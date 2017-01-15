@@ -21,4 +21,15 @@ BEGIN
     -1.1 <= x8 AND x8 <= -0.3 IMPLIES 
     Heart(x1,x2,x3,x4,x5,x6,x7,x8) >= -1.744
 
+  Heart_ub_: LEMMA 
+    -0.1 <= x1 AND x1 <= 0.4 AND 
+    0.4 <= x2  AND x2 <= 1 AND 
+    -0.7 <= x3 AND x3 <= -0.4 AND 
+    -0.7 <= x4 AND x4 <= 0.4 AND 
+    0.1 <= x5  AND x5 <= 0.2 AND
+    -0.1 <= x6 AND x6 <= 0.2 AND 
+    -0.3 <= x7 AND x7 <= 1.1 AND 
+    -1.1 <= x8 AND x8 <= -0.3 IMPLIES 
+    Heart(x1,x2,x3,x4,x5,x6,x7,x8) <= 1.369
+
 END benchmarks

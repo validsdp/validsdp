@@ -15,4 +15,9 @@ BEGIN
     x3<=0.5 AND -0.5<=x4 AND x4<=0.5 IMPLIES
       Caprasse(x1,x2,x3,x4) >= -3.181
 
+  Caprasse_ub_: LEMMA
+    -0.5<=x1 AND x1<=0.5 AND -0.5<=x2 AND x2<=0.5 AND -0.5<=x3 AND 
+    x3<=0.5 AND -0.5<=x4 AND x4<=0.5 IMPLIES
+      Caprasse(x1,x2,x3,x4) <= 4.486
+
 END benchmarks

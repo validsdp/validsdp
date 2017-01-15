@@ -7,7 +7,11 @@ lhs = [polynomial_ring('(x1 + 1/10) * (4/10 - x1)'), polynomial_ring('(x2 - 4/10
 
 check_lb = test_MC11(polynomial_ring, lhs, rhs)
 
-if check_lb:
+rhs = polynomial_ring('1369/1000 - (-x1*x6**3+3/1*x1*x6*x7**2-x3*x7**3+3/1*x3*x7*x6**2-x2*x5**3+3/1*x2*x5*x8**2-x4*x8**3+3/1*x4*x8*x5**2-9563453/10000000)')
+
+check_ub = test_MC11(polynomial_ring, lhs, rhs)
+
+if check_lb and check_ub:
   print 'proved: true'
 else:
   print 'proved: false'

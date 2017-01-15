@@ -16,4 +16,10 @@ BEGIN
       IMPLIES
       Magnetism(x1,x2,x3,x4,x5,x6,x7) >=-0.2501
 
+  Magnetism_ub_: LEMMA
+      x1<=1 AND x2<=1 AND x3<=1 AND x4<=1 AND x5<=1 AND x6<=1 AND x7<=1 AND
+      -1<=x1 AND -1<=x2 AND -1<=x3 AND -1<=x4 AND -1<=x5 AND -1<=x6 AND -1<=x7
+      IMPLIES
+      Magnetism(x1,x2,x3,x4,x5,x6,x7) <=14.0001
+
 END benchmarks
