@@ -235,6 +235,9 @@ let mkFloat f =
                            
 (* The actual tactic. *)
        
+module Sos = Osdp.Sos.Q
+module SosP = Sos.Poly
+
 (* [psatz (q, [p1;...; pn])] calls OSDP to retrieve witnesses for
    p1 >= 0 -> ... -> pn >= 0 -> q >= 0. Returns [nb_vars, (z, Q),
    [(s1, (z1, Q1));...; (sn, (zn, Qn))]] where [nb_vars] is the number
@@ -242,47 +245,53 @@ let mkFloat f =
    monomials, Q : float matrix) is a witness for q - \sum_i si pi >= 0
    and each (zi, Qi) is a witness for si >= 0. *)
 let psatz q pl =
-  let module Sos = Osdp.Sos.Q in
-  let module SosP = Sos.Poly in
-  let nb_vars = List.map SosP.nb_vars (q :: pl) |> List.fold_left max 0 in
-  let coeff = Sos.make "c" in
-  let sum, sigmas =
-    let degs = List.map SosP.degree (q :: pl) in
-    let max_deg = List.fold_left max 0 degs in
-    let max_deg_list =
-      (q :: pl) |> List.map SosP.degree_list
-      |> List.map Osdp.Monomial.of_list
-      |> List.fold_left Osdp.Monomial.lcm Osdp.Monomial.one in
-    let rup n = (n + 1) / 2 * 2 in
-    let rup_monomial m =
-      Osdp.Monomial.of_list (List.map rup (Osdp.Monomial.to_list m)) in
-    List.fold_left
-      (fun (sum, sigmas) p ->
-        let s =
-          let l =
-            let d = rup (max_deg - SosP.degree p) in
-            Sos.to_list (Sos.make ~n:nb_vars ~d "s") in
-          let l =
-            let lim =
-              let p_list = Osdp.Monomial.of_list (SosP.degree_list p) in
-              rup_monomial (Osdp.Monomial.div max_deg_list p_list) in
-            List.filter (fun (m, _) -> Osdp.Monomial.divide m lim) l in
-          Sos.of_list l in
-        Sos.(sum - s * !!p), s :: sigmas)
-      (Sos.(coeff * !!q), []) pl in
-  let ret, _, vals, wl =
-    let options =
-      (* { *) Sos.default (* with *)
-        (* Sos.verbose = 3 ; *)
-        (* Sos.sdp = { Osdp.Sdp.default with Osdp.Sdp.verbose = 1 } } *) in
-    Sos.solve ~options ~solver:Osdp.Sdp.Sdpa Sos.Purefeas
-              (sum :: coeff :: List.rev sigmas) in
-  let w =
+  let get_wits keep =
+    let nb_vars = List.map SosP.nb_vars (q :: pl) |> List.fold_left max 0 in
+    let coeff = Sos.make "c" in
+    let sum, sigmas =
+      let degs = List.map SosP.degree (q :: pl) in
+      let max_deg = List.fold_left max 0 degs in
+      let max_deg_list =
+        (q :: pl) |> List.map SosP.degree_list
+        |> List.map Osdp.Monomial.of_list
+        |> List.fold_left Osdp.Monomial.lcm Osdp.Monomial.one in
+      let rup n = (n + 1) / 2 * 2 in
+      let rup_monomial m =
+        Osdp.Monomial.of_list (List.map rup (Osdp.Monomial.to_list m)) in
+      List.fold_left
+        (fun (sum, sigmas) p ->
+          let s =
+            let l =
+              let d = max_deg - SosP.degree p in
+              let d = if keep then d else rup d in
+              Sos.to_list (Sos.make ~n:nb_vars ~d "s") in
+            let l =
+              if keep then l else
+                let lim =
+                  let p_list = Osdp.Monomial.of_list (SosP.degree_list p) in
+                  rup_monomial (Osdp.Monomial.div max_deg_list p_list) in
+                List.filter (fun (m, _) -> Osdp.Monomial.divide m lim) l in
+            Sos.of_list l in
+          Sos.(sum - s * !!p), s :: sigmas)
+        (Sos.(coeff * !!q), []) pl in
+    let ret, _, vals, wl =
+      let options =
+        (* { *) Sos.default (* with *)
+                  (* Sos.verbose = 3 ; *)
+      (* Sos.sdp = { Osdp.Sdp.default with Osdp.Sdp.verbose = 1 } } *) in
+      Sos.solve ~options ~solver:Osdp.Sdp.Sdpa Sos.Purefeas
+                (sum :: coeff :: List.rev sigmas) in
     if ret <> Osdp.SdpRet.Success then None
-    else match wl with [] | [_] -> assert false | h :: _ :: t -> Some (h, t) in
+    else
+      match wl with
+      | [] | [_] -> assert false
+      | h :: _ :: t -> Some (nb_vars, coeff, sigmas, vals, h, t) in
+  let w = match get_wits false with
+    | (Some _) as w -> w
+    | None -> get_wits true in
   match w with
   | None -> Errors.error "soswitness: OSDP found no witnesses."
-  | Some (zQ, zQl) ->
+  | Some (nb_vars, coeff, sigmas, vals, zQ, zQl) ->
      let coeff = Sos.value coeff vals in
      if SosP.Coeff.equal coeff SosP.Coeff.zero then
        Errors.error "soswitness: OSDP found no witnesses.";
