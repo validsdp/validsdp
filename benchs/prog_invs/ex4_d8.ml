@@ -54,38 +54,47 @@ let t1 = Sos.([5 / 10 * x1**3 + 4 / 10 * x2**2;
                (-6) / 10 * x1**2 + 3 / 10 * x2**2])
 
 (* chack that invariant p >= 0 satisfy initial conditions and is inductive *)
-let check_inv p polys =
-  let sigma1 = List.assoc "init_sigma1" polys in
-  let sigma2 = List.assoc "init_sigma2" polys in
+let check_inv p =
+  let coeff = Sos.make "c" in
+  let sigma1 = Sos.make ~n:2 ~d:6 "s1" in
+  let sigma2 = Sos.make ~n:2 ~d:6 "s2" in
   let check_init, t_check_init =
     Osdp.Utils.profile
       (fun () ->
-       let init = Sos.(!!p - !!sigma1 * pI1 - !!sigma2 * pI2) in
-       let ret, _, _, _ =
-         Sos.(solve ~options Purefeas [init; !!sigma1; !!sigma2]) in
-       ret = Osdp.SdpRet.Success) in
+       let init = Sos.(coeff * !!p - sigma1 * pI1 - sigma2 * pI2) in
+       let ret, _, vals, _ =
+         Sos.(solve ~options Purefeas [init; coeff; sigma1; sigma2]) in
+       ret = Osdp.SdpRet.Success
+       && (let coeff = Sos.value coeff vals in
+           Sos.Poly.Coeff.(compare coeff zero) > 0)) in
   Format.printf "check_init: %B@." check_init;
   Format.printf "time check_init: %.2fs@." t_check_init;
-  let sigma = List.assoc "ind0_sigma" polys in
-  let sigma0 = List.assoc "ind0_sigma0" polys in
+  let coeff = Sos.make "c" in
+  let sigma = Sos.make ~n:2 ~d:16 "s" in
+  let sigma0 = Sos.make ~n:2 ~d:22 "s0" in
   let check_ind0, t_check_ind0 =
     Osdp.Utils.profile
       (fun () ->
-       let ind0 = Sos.(compose !!p t0 - !!sigma * !!p - !!sigma0 * g0) in
-       let ret, _, _, _ =
-         Sos.(solve ~options Purefeas [ind0; !!sigma; !!sigma0]) in
-       ret = Osdp.SdpRet.Success) in
+       let ind0 = Sos.(coeff * compose !!p t0 - sigma * !!p - sigma0 * g0) in
+       let ret, _, vals, _ =
+         Sos.(solve ~options Purefeas [ind0; coeff; sigma; sigma0]) in
+       ret = Osdp.SdpRet.Success
+       && (let coeff = Sos.value coeff vals in
+           Sos.Poly.Coeff.(compare coeff zero) > 0)) in
   Format.printf "check_ind0: %B@." check_ind0;
   Format.printf "time check_ind0: %.2fs@." t_check_ind0;
-  let sigma = List.assoc "ind1_sigma" polys in
-  let sigma1 = List.assoc "ind1_sigma1" polys in
+  let coeff = Sos.make "c" in
+  let sigma = Sos.make ~n:2 ~d:16 "s" in
+  let sigma1 = Sos.make ~n:2 ~d:22 "s1" in
   let check_ind1, t_check_ind1 =
     Osdp.Utils.profile
       (fun () ->
-       let ind1 = Sos.(compose !!p t1 - !!sigma * !!p - !!sigma1 * g1) in
-       let ret, _, _, _ =
-         Sos.(solve ~options Purefeas [ind1; !!sigma; !!sigma1]) in
-       ret = Osdp.SdpRet.Success) in
+       let ind1 = Sos.(coeff * compose !!p t1 - sigma * !!p - sigma1 * g1) in
+       let ret, _, vals, _ =
+         Sos.(solve ~options Purefeas [ind1; coeff; sigma; sigma1]) in
+       ret = Osdp.SdpRet.Success
+       && (let coeff = Sos.value coeff vals in
+           Sos.Poly.Coeff.(compare coeff zero) > 0)) in
   Format.printf "check_ind1: %B@." check_ind1;
   Format.printf "time check_ind1: %.2fs@." t_check_ind1;
   Format.printf "time check: %.2fs@."
@@ -123,5 +132,4 @@ let _ =
         x1**5 * x2**3 + "-5649078646047861"/"36028797018963968" * x1**4 * x2**4 + "1694311663061067"/"1125899906842624" * 
         x1**3 * x2**5 + "-6411409407138369"/"72057594037927936" * x1**2 * x2**6 + "-1516261991165219"/"281474976710656" * 
         x1 * x2**7 + "-2878544359045033"/"562949953421312" * x2**8) in
-  let polys = Parse.file "ex4_d8.v" in
-  Format.printf "Invariant p >= 0 proved: %B@." (check_inv p polys)
+  Format.printf "Invariant p >= 0 proved: %B@." (check_inv p)

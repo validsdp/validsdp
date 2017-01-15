@@ -1,5 +1,3 @@
-(* This one fails (but works with Csdp) *)
-
 module Sos = struct
   include Osdp.Sos.Q
   let ( / ) n m = Q.of_int n /. Q.of_int m
