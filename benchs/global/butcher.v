@@ -26,6 +26,8 @@ Let b6 (x0 x1 x2 x3 x4 x5 : R) :=
 
 Let lb := -14394/10000.
 
+Let ub := 2191/10000.
+
 Theorem p_ge_lb (x0 x1 x2 x3 x4 x5 : R) :
   b1 x0 x1 x2 x3 x4 x5 >= 0 ->
   b2 x0 x1 x2 x3 x4 x5 >= 0 ->
@@ -36,5 +38,18 @@ Theorem p_ge_lb (x0 x1 x2 x3 x4 x5 : R) :
   lb <= p x0 x1 x2 x3 x4 x5.
 Proof.
 unfold b1, b2, b3, b4, b5, b6, p, lb.
+validsdp.
+Qed.
+
+Theorem p_le_ub (x0 x1 x2 x3 x4 x5 : R) :
+  b1 x0 x1 x2 x3 x4 x5 >= 0 ->
+  b2 x0 x1 x2 x3 x4 x5 >= 0 ->
+  b3 x0 x1 x2 x3 x4 x5 >= 0 ->
+  b4 x0 x1 x2 x3 x4 x5 >= 0 ->
+  b5 x0 x1 x2 x3 x4 x5 >= 0 ->
+  b6 x0 x1 x2 x3 x4 x5 >= 0 ->
+  p x0 x1 x2 x3 x4 x5 <= ub.
+Proof.
+unfold b1, b2, b3, b4, b5, b6, p, ub.
 validsdp.
 Qed.

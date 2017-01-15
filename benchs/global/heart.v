@@ -33,6 +33,8 @@ Let b8 (x0 x1 x2 x3 x4 x5 x6 x7 : R) :=
 
 Let lb := -1744/1000.
 
+Let ub := 1369/1000.
+
 Theorem p_ge_lb (x0 x1 x2 x3 x4 x5 x6 x7 : R) :
   b1 x0 x1 x2 x3 x4 x5 x6 x7 >= 0 ->
   b2 x0 x1 x2 x3 x4 x5 x6 x7 >= 0 ->
@@ -45,5 +47,20 @@ Theorem p_ge_lb (x0 x1 x2 x3 x4 x5 x6 x7 : R) :
   lb <= p x0 x1 x2 x3 x4 x5 x6 x7.
 Proof.
 unfold b1, b2, b3, b4, b5, b6, b7, b8, p, lb.
+validsdp.
+Qed.
+
+Theorem p_le_ub (x0 x1 x2 x3 x4 x5 x6 x7 : R) :
+  b1 x0 x1 x2 x3 x4 x5 x6 x7 >= 0 ->
+  b2 x0 x1 x2 x3 x4 x5 x6 x7 >= 0 ->
+  b3 x0 x1 x2 x3 x4 x5 x6 x7 >= 0 ->
+  b4 x0 x1 x2 x3 x4 x5 x6 x7 >= 0 ->
+  b5 x0 x1 x2 x3 x4 x5 x6 x7 >= 0 ->
+  b6 x0 x1 x2 x3 x4 x5 x6 x7 >= 0 ->
+  b7 x0 x1 x2 x3 x4 x5 x6 x7 >= 0 ->
+  b8 x0 x1 x2 x3 x4 x5 x6 x7 >= 0 ->
+  p x0 x1 x2 x3 x4 x5 x6 x7 <= ub.
+Proof.
+unfold b1, b2, b3, b4, b5, b6, b7, b8, p, ub.
 validsdp.
 Qed.

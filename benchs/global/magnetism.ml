@@ -30,22 +30,41 @@ let b7 = Sos.((x7 + 1 / 1) * (1 / 1 - x7))
 
 let lb = Sos.(-2501 / 10000)
             
+let ub = Sos.(140001 / 10000)
+            
 (* chack that invariant lb <= p(x) <= ub when x satisfies bounds *)
 let check_bounds =
-  let sigma = Sos.make "s" in
-  let sigma1 = Sos.make "s1" in
-  let sigma2 = Sos.make "s2" in
-  let sigma3 = Sos.make "s3" in
-  let sigma4 = Sos.make "s4" in
-  let sigma5 = Sos.make "s5" in
-  let sigma6 = Sos.make "s6" in
-  let sigma7 = Sos.make "s7" in
-  let e = Sos.(sigma * (p - lb) - sigma1 * b1 - sigma2 * b2 - sigma3 * b3 - sigma4 * b4 - sigma5 * b5 - sigma6 * b6 - sigma7 * b7) in
-  let ret, _, vals, _ =
+  let check_lb =
+    let sigma = Sos.make "s" in
+    let sigma1 = Sos.make "s1" in
+    let sigma2 = Sos.make "s2" in
+    let sigma3 = Sos.make "s3" in
+    let sigma4 = Sos.make "s4" in
+    let sigma5 = Sos.make "s5" in
+    let sigma6 = Sos.make "s6" in
+    let sigma7 = Sos.make "s7" in
+    let e = Sos.(sigma * (p - lb) - sigma1 * b1 - sigma2 * b2 - sigma3 * b3 - sigma4 * b4 - sigma5 * b5 - sigma6 * b6 - sigma7 * b7) in
+    let ret, _, vals, _ =
       Sos.(solve ~options Purefeas [e; sigma; sigma1; sigma2; sigma3; sigma4; sigma5; sigma6; sigma7]) in
-  ret = Osdp.SdpRet.Success &&
-    (let sigma = Sos.value sigma vals in
-     Sos.Poly.Coeff.(compare sigma zero) > 0)
-
+    ret = Osdp.SdpRet.Success &&
+      (let sigma = Sos.value sigma vals in
+       Sos.Poly.Coeff.(compare sigma zero) > 0) in
+  let check_ub =
+    let sigma = Sos.make "s" in
+    let sigma1 = Sos.make "s1" in
+    let sigma2 = Sos.make "s2" in
+    let sigma3 = Sos.make "s3" in
+    let sigma4 = Sos.make "s4" in
+    let sigma5 = Sos.make "s5" in
+    let sigma6 = Sos.make "s6" in
+    let sigma7 = Sos.make "s7" in
+    let e = Sos.(sigma * (ub - p) - sigma1 * b1 - sigma2 * b2 - sigma3 * b3 - sigma4 * b4 - sigma5 * b5 - sigma6 * b6 - sigma7 * b7) in
+    let ret, _, vals, _ =
+      Sos.(solve ~options Purefeas [e; sigma; sigma1; sigma2; sigma3; sigma4; sigma5; sigma6; sigma7]) in
+    ret = Osdp.SdpRet.Success &&
+      (let sigma = Sos.value sigma vals in
+       Sos.Poly.Coeff.(compare sigma zero) > 0) in
+  check_lb && check_ub
+  
 let _ =
   Format.printf "Bounds proved: %B@." check_bounds

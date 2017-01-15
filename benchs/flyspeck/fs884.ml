@@ -46,51 +46,24 @@ let b6 = Sos.((x6 - 4 / 1) * (63504 / 10000 - x6))
 
 (* prove that p > 0 \/ p' > 0 on the above defined box *)
 let check_p_pos =
-  Format.printf "@[<v>@[<v 2>Let p (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@." Sos.pp p;
-  Format.printf "@[<v>@[<v 2>Let b1 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@." Sos.pp b1;
-  Format.printf "@[<v>@[<v 2>Let b2 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@." Sos.pp b2;
-  Format.printf "@[<v>@[<v 2>Let b3 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@." Sos.pp b3;
-  Format.printf "@[<v>@[<v 2>Let b4 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@." Sos.pp b4;
-  Format.printf "@[<v>@[<v 2>Let b5 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@." Sos.pp b5;
-  Format.printf "@[<v>@[<v 2>Let b6 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@." Sos.pp b6;
-  let deg = Sos.degree p in
-  let rup n = (n + 1) / 2 * 2 in
-  let sigma, _ = Sos.var_poly "s1" 6 0 in 
-  let sigma', _ = Sos.var_poly "s1" 6 0 in 
-  let sigma1, _ = Sos.var_poly "s1" 6 (rup (deg - 2)) in 
-  let sigma2, _ = Sos.var_poly "s1" 6 (rup (deg - 2)) in 
-  let sigma3, _ = Sos.var_poly "s1" 6 (rup (deg - 2)) in 
-  let sigma4, _ = Sos.var_poly "s1" 6 (rup (deg - 2)) in 
-  let sigma5, _ = Sos.var_poly "s1" 6 (rup (deg - 2)) in 
-  let sigma6, _ = Sos.var_poly "s1" 6 (rup (deg - 2)) in 
+  let sigma = Sos.make "s" in
+  let sigma' = Sos.make "s'" in
+  let sigma1 = Sos.make ~n:6 ~d:2 "s1" in
+  let sigma2 = Sos.make ~n:6 ~d:2 "s2" in
+  let sigma3 = Sos.make ~n:6 ~d:2 "s3" in
+  let sigma4 = Sos.make ~n:6 ~d:2 "s4" in
+  let sigma5 = Sos.make ~n:6 ~d:2 "s5" in
+  let sigma6 = Sos.make ~n:6 ~d:2 "s6" in
   let e = Sos.(sigma * p + sigma' * p' - sigma1 * b1 - sigma2 * b2 - sigma3 * b3 - sigma4 * b4 - sigma5 * b5 - sigma6 * b6) in
-  let ret, _, vals, _ =
-    Sos.solve ~options Sos.Purefeas [e; sigma; sigma'; sigma1; sigma2; sigma3; sigma4; sigma5; sigma6] in
-  let sigma = Sos.value_poly sigma vals in
-  Format.printf "@[<v>@[<v 2>Let sigma (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@."
-                Sos.Poly.pp sigma;
-  let sigma' = Sos.value_poly sigma' vals in
-  Format.printf "@[<v>@[<v 2>Let sigma' (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@."
-                Sos.Poly.pp sigma';
-  let sigma1 = Sos.value_poly sigma1 vals in
-  Format.printf "@[<v>@[<v 2>Let sigma1 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@."
-                Sos.Poly.pp sigma1;
-  let sigma2 = Sos.value_poly sigma2 vals in
-  Format.printf "@[<v>@[<v 2>Let sigma2 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@."
-                Sos.Poly.pp sigma2;
-  let sigma3 = Sos.value_poly sigma3 vals in
-  Format.printf "@[<v>@[<v 2>Let sigma3 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@."
-                Sos.Poly.pp sigma3;
-  let sigma4 = Sos.value_poly sigma4 vals in
-  Format.printf "@[<v>@[<v 2>Let sigma4 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@."
-                Sos.Poly.pp sigma4;
-  let sigma5 = Sos.value_poly sigma5 vals in
-  Format.printf "@[<v>@[<v 2>Let sigma5 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@."
-                Sos.Poly.pp sigma5;
-  let sigma6 = Sos.value_poly sigma6 vals in
-  Format.printf "@[<v>@[<v 2>Let sigma6 (x0 x1 x2 x3 x4 x5 : R) :=@ %a.@]@ @]@."
-                Sos.Poly.pp sigma6;
+  let ret, _, vals, wits =
+    Sos.(solve ~options Purefeas [e; sigma; sigma'; sigma1; sigma2; sigma3; sigma4; sigma5; sigma6]) in
   ret = Osdp.SdpRet.Success
+  && (let sigma = Sos.value sigma vals in
+     Sos.Poly.Coeff.(compare sigma zero) > 0)
+  && (match wits with
+      | [] -> false
+      | (z, _) :: _ ->
+         Array.length z > 0 && Osdp.Monomial.(compare z.(0) one) = 0)
 
 let _ =
   Format.printf "Bounds proved: %B@." check_p_pos

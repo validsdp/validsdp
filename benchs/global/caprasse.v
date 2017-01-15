@@ -21,6 +21,8 @@ Let b4 (x0 x1 x2 x3 : R) :=
 
 Let lb := -3181/1000.
 
+Let ub := 4486/1000.
+
 Theorem p_ge_lb (x0 x1 x2 x3 : R) :
   b1 x0 x1 x2 x3 >= 0 ->
   b2 x0 x1 x2 x3 >= 0 ->
@@ -29,5 +31,16 @@ Theorem p_ge_lb (x0 x1 x2 x3 : R) :
   lb <= p x0 x1 x2 x3.
 Proof.
 unfold b1, b2, b3, b4, p, lb.
+validsdp.
+Qed.
+
+Theorem p_le_ub (x0 x1 x2 x3 : R) :
+  b1 x0 x1 x2 x3 >= 0 ->
+  b2 x0 x1 x2 x3 >= 0 ->
+  b3 x0 x1 x2 x3 >= 0 ->
+  b4 x0 x1 x2 x3 >= 0 ->
+  p x0 x1 x2 x3 <= ub.
+Proof.
+unfold b1, b2, b3, b4, p, ub.
 validsdp.
 Qed.
