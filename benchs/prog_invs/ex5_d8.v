@@ -220,7 +220,7 @@ Theorem ind0 (x0 x1 x2 : R) :
   p x0 x1 x2 >= 0 -> g0 x0 x1 x2 >= 0 -> 
   p (t0_x0 x0 x1 x2) (t0_x1 x0 x1 x2) (t0_x2 x0 x1 x2) >= 0.
 Proof.
-rewrite p, g0, t0_x0, t0_x1, t0_x2.
+unfold p, g0, t0_x0, t0_x1, t0_x2.
 validsdp.
 Qed.
 
@@ -228,6 +228,6 @@ Theorem ind1 (x0 x1 x2 : R) :
   p x0 x1 x2 >= 0 -> g1 x0 x1 x2 >= 0 ->
   p (t1_x0 x0 x1 x2) (t1_x1 x0 x1 x2) (t1_x2 x0 x1 x2) >= 0.
 Proof.
-rewrite p, g1, t1_x0, t1_x1, t1_x2.
+unfold p, g1, t1_x0, t1_x1, t1_x2.
 validsdp.
 Qed.
