@@ -59,7 +59,7 @@ for fnd in ${DESCRS} ; do
         fi
         ;;
       Taylor)
-        if grep -q -e "^\[runlim\] status:[     ]*ok" "${LOG}" && ! grep -q -e "Error\|Exception\|Failure" "${LOG}" ; then
+        if grep -q -e "^\[runlim\] status:[ 	]*ok" "${LOG}" && ! grep -q -e "Error\|Exception\|Failure" "${LOG}" ; then
           OK=1
         fi
         ;;
