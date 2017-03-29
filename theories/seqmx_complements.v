@@ -272,9 +272,9 @@ match goal with
 end.
 apply/idP/idP.
 { move/forallP=> H1; apply/all_nthP=> i; rewrite SzAs=> Hi.
-  rewrite (nth_zip [::] [::]) ?hb1 //= eq_seqE ?ha2 ?hb2 //.
+  erewrite (nth_zip [::] [::]); rewrite ?hb1 //= eq_seqE ?ha2 ?hb2 //.
   apply/all_nthP=> j.
-  rewrite (nth_zip 0%C 0%C) ?ha2 ?hb2 //= size1_zip ?ha2 ?hb2 // => Hj.
+  erewrite (nth_zip 0%C 0%C); rewrite ?ha2 ?hb2 //= size1_zip ?ha2 ?hb2 // => Hj.
   rewrite -(nat_R_eq rm) in Hi; rewrite -(nat_R_eq rn) in Hj.
   move: (H1 (Ordinal Hi)); move/forallP => H2; move: (H2 (Ordinal Hj)).
   by rewrite ha3 hb3. }
@@ -287,8 +287,10 @@ move/all_nthP=>H3; move: (H3 (zero_of0, zero_of0) j).
 rewrite nth_zip ?ha2 ?hb2 //=; apply.
 by rewrite size1_zip ha2 ?hb2 // -(nat_R_eq rn).
 Unshelve.
+(*
 exact ([::], [::]).
 exact (zero_of0, zero_of0).
+ *)
 Qed.
 
 (** ** Parametricity *)
@@ -312,11 +314,12 @@ Lemma RseqmxC_spec_seqmx m n (M : @seqmx C) :
   RseqmxC rAC (nat_Rxx m) (nat_Rxx n) (spec_seqmx m n M) M.
 Proof.
 move=> /andP [] /eqP Hm /all_nthP Hn Hc; apply refinesP.
-eapply (refines_trans (b:=map_seqmx spec M)); [by tc| |by rewrite refinesE].
-rewrite refinesE; split; [by rewrite size_map| |].
-{ move=> i Hi; rewrite (nth_map 0%C) ?Hm // size_map.
-  by apply/eqP/Hn; rewrite Hm. }
-by move=> i j; rewrite mxE.
+eapply (refines_trans (b:=map_seqmx spec M)); [by tc| |].
+{  rewrite refinesE; split; [by rewrite size_map| |].
+  { move=> i Hi; rewrite (nth_map 0%C) ?Hm // size_map.
+    by apply/eqP/Hn; rewrite Hm. }
+  by move=> i j; rewrite mxE. }
+by rewrite refinesE.
 Qed.
 
 Lemma nth_R_lt (T1 T2 : Type) (T_R : T1 -> T2 -> Type) x01 x02 s1 s2 :

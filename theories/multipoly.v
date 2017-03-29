@@ -637,6 +637,8 @@ rewrite /s mdegE /mt; apply eq_bigr=> i _.
 by rewrite multinomE tnth_mktuple.
 Qed.
 
+(* FIXME: refactor *)
+Transparent nat_of_bin.
 (* Impossible de trouver quoi que ce soit de ce genre ?!? *)
 Lemma Nlt_lt x y : (x < y)%num <-> x < y.
 Proof.
@@ -646,6 +648,7 @@ case x => [|px]; case y => [|py] //.
 rewrite /N.lt Pos.compare_lt_iff /nat_of_bin -!to_natE Pos2Nat.inj_lt.
 by split; [move /ltP|apply /ltP].
 Qed.
+Opaque nat_of_bin.
 
 Lemma multinom_of_seqmultinom_inj n x y :
   size x = n -> size y = n ->
@@ -1531,6 +1534,8 @@ case: n => [|n]; last case: n => [|n]; last by rewrite IHm.
   by rewrite !(maxn_idPr _) // Nat2Pos_xO.
 Qed.
 
+(* FIXME: refactor *)
+Transparent bin_of_nat.
 Lemma bin_of_natE : bin_of_nat =1 N.of_nat.
 elim=> [//|n IHn]; rewrite Nat2N.inj_succ -{}IHn.
 rewrite /bin_of_nat.
@@ -1545,6 +1550,7 @@ have->: (n.*2.+1 - n = n.+1)%N.
   exact: leq_addr.
 by rewrite !(maxn_idPr _).
 Qed.
+Opaque bin_of_nat.
 
 Global Instance refine_mpoly_exp_eff n :
   refines (Reffmpoly ==> Rnat ==> Reffmpoly (T := T) (n := n))
