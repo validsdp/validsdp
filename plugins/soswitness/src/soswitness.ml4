@@ -1,17 +1,17 @@
-(*i camlp4deps: "parsing/grammar.cma" i*)
-(*i camlp4use: "pa_extend.cmo" i*)
+(*i camlp4deps: "grammar/grammar.cma" i*)
 
 DECLARE PLUGIN "soswitness"
 
 exception Parse_error
 
 (* Various constructors and destructors needed. *)
-       
+
 let find_constant contrib dir s =
   Universes.constr_of_global (Coqlib.find_reference contrib dir s)
 
 let contrib_name = "soswitness"
 let init_constant dir s = find_constant contrib_name dir s
+
 
 let eq_cst c constant = Constr.equal c (Lazy.force constant)
 
@@ -232,7 +232,7 @@ let mkFloat f =
      fl (Z.of_float m) (Z.of_int (-1074))
   | FP_zero -> fl Z.zero Z.zero
   | FP_infinite | FP_nan -> nan
-                           
+
 (* The actual tactic. *)
        
 module Sos = Osdp.Sos.Q
@@ -290,11 +290,11 @@ let psatz q pl =
     | (Some _) as w -> w
     | None -> get_wits true in
   match w with
-  | None -> Errors.error "soswitness: OSDP found no witnesses."
+  | None -> CErrors.error "soswitness: OSDP found no witnesses."
   | Some (nb_vars, coeff, sigmas, vals, zQ, zQl) ->
      let coeff = Sos.value coeff vals in
      if SosP.Coeff.equal coeff SosP.Coeff.zero then
-       Errors.error "soswitness: OSDP found no witnesses.";
+       CErrors.error "soswitness: OSDP found no witnesses.";
      let coeff = SosP.Coeff.inv coeff in
      let sigmas = List.rev_map (fun e -> Sos.value_poly e vals) sigmas in
      let sigmas = List.map (SosP.mult_scalar coeff) sigmas in
@@ -318,13 +318,13 @@ let soswitness c =
       ofPair ofPoly (ofList ofPoly) c
     with Parse_error ->
       let ty_input = tyPair ty_poly (tyList ty_poly) in
-      Errors.errorlabstrm
+      CErrors.errorlabstrm
         ""
         Pp.(str "soswitness: wrong input type (expected "
             ++ Printer.pr_constr ty_input ++ str ").") in
   let () =  (* TODO: try to fix that *)
     if Osdp.Sos.Q.Poly.is_const q <> None then
-      Errors.error "soswitness: expects a closed term representing \
+      CErrors.error "soswitness: expects a closed term representing \
                     a non constant polynomial." in
   (* Call OSDP to retrieve witnesses *)
   let nb_vars, zq, szql = psatz q pl in
@@ -363,15 +363,15 @@ let soswitness c =
     (zq, szql),
   tyPair ty_witness (tyList (tyPair ty_poly ty_witness))
 
-let soswitness gl c id = 
+let soswitness gl c id =
   let v, t = soswitness c in
-  let nowhere = Locus.({ onhyps = Some []; concl_occs = NoOccurrences }) in
-  Tactics.letin_tac None (Names.Name id) v (Some t) nowhere
+  Tactics.letin_tac None (Names.Name id) v (Some t) Locusops.nowhere
+
+open Constrarg
 
 TACTIC EXTEND soswitness_of_as
-| ["soswitness" "of" constr(c) "as" ident(id) ] -> 
-  [ Proofview.Goal.enter 
-      (fun gl ->
-       let gl = Proofview.Goal.assume gl in
-       soswitness gl c id) ]
+["soswitness" "of" constr(c) "as" ident(id) ] ->
+[ Proofview.Goal.enter { Proofview.Goal.enter = fun gl ->
+    let gl = Proofview.Goal.assume gl in
+    soswitness gl c id } ]
 END
