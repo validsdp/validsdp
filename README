@@ -4,14 +4,14 @@ ValidSDP
 Dependencies
 ------------
 
-- Coq 8.5 (http://coq.inria.fr, tested with 8.5pl2)
+- Coq 8.6 (http://coq.inria.fr)
 - mathcomp (https://math-comp.github.io/math-comp/, tested with version 1.6.1)
-- paramcoq (https://github.com/drouhling/paramcoq, tested with git revision 0b907692515d7428a049e04e4290482d560ea8c9)
-- CoqEAL (https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev, tested with git revision a786274400fa9917b6ec75e37cb344ed6ae499f6 ; later versions may not compile out-of-the-box due to https://github.com/math-comp/math-comp/issues/62)
-- multinomials (https://github.com/math-comp/multinomials, tested with git revision fca832a351c273431f1db93cfc4e4185006584d8)
-- Flocq (http://flocq.gforge.inria.fr/, tested with version 2.5.1)
-- Coquelicot (http://coquelicot.saclay.inria.fr/, tested with version 2.1.2)
-- CoqInterval (http://coq-interval.gforge.inria.fr/, tested with version 3.1.1)
+- paramcoq (https://github.com/CohenCyril/paramcoq.git, tested with git revision 8dbf3fc1a0a0e0177eb9d88f6b76b8eb0dc22889)
+- CoqEAL (https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev, tested with git revision 30aba7e7d00ee4efe907a073442034d91be16420)
+- multinomials (https://github.com/math-comp/multinomials, tested with git revision 5b46e50983ee68dd1b6932e7e4a3bfc1113e7360)
+- Flocq (http://flocq.gforge.inria.fr/, tested with version 2.5.2)
+- Coquelicot (http://coquelicot.saclay.inria.fr/, tested with version 3.0.0)
+- CoqInterval (http://coq-interval.gforge.inria.fr/, tested with version 3.2.0)
 - OSDP (https://cavale.enseeiht.fr/osdp, tested with version 0.5.2)
 
 Installation
@@ -22,12 +22,12 @@ CoqInterval) can be easily installed with OPAM
 (https://opam.ocaml.org). Once OPAM is installed, type
 
 % opam repo add coq-released https://coq.inria.fr/opam/released
-% opam install ocamlfind zarith coq.8.5.2 coq-interval
+% opam install ocamlfind zarith coq coq-interval
 
 Paramcoq, CoqEAL and multinomials have to be retrieved from their Git
 repository:
 
-% git clone https://github.com/drouhling/paramcoq.git
+% git clone https://github.com/CohenCyril/paramcoq.git
 % git clone https://github.com/CoqEAL/CoqEAL.git
 % git clone https://github.com/math-comp/multinomials.git
 
