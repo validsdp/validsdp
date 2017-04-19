@@ -12,7 +12,7 @@ Dependencies
 - Flocq (http://flocq.gforge.inria.fr/, tested with version 2.5.2)
 - Coquelicot (http://coquelicot.saclay.inria.fr/, tested with version 3.0.0)
 - CoqInterval (http://coq-interval.gforge.inria.fr/, tested with version 3.2.0)
-- OSDP (https://cavale.enseeiht.fr/osdp, tested with version 0.5.2)
+- OSDP (https://cavale.enseeiht.fr/osdp, tested with version 0.5.3)
 
 Installation
 ------------
