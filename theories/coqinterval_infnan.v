@@ -95,8 +95,7 @@ have {Hn} [Zn|NZn] := Hn.
   rewrite -Interval_generic_proof.digits_conversion.
   rewrite /Zdigits2; f_equal.
   rewrite /= /Bir.MtoP; simpl in NZn.
-  have := BigN.spec_pos n; case: [n]%bigN NZn => [p|p|] NZn; try done.
-    by move=> _ K; exfalso; auto. }
+  have := BigN.spec_pos n; case: [n]%bigN NZn => [p|p|] NZn; try done. }
 (* almost same proof *)
 have Hn : [n]%bigN = Z0 \/ [n]%bigN <> Z0.
 { case E: [n]%bigN => [|p|p]; [by left|by right|exfalso].
@@ -114,8 +113,7 @@ have {Hn} [Zn|NZn] := Hn.
   rewrite -Interval_generic_proof.digits_conversion.
   rewrite [RHS]Zdigits_opp /Zdigits2; f_equal.
   rewrite /= /Bir.MtoP; simpl in NZn.
-  have := BigN.spec_pos n; case: [n]%bigN NZn => [p|p|] NZn; try done.
-  by move=> _ K; exfalso; auto. }
+  have := BigN.spec_pos n; case: [n]%bigN NZn => [p|p|] NZn; try done. }
 Qed.
 
 Lemma digits_ge0 n :(0 <= digits n)%bigZ.

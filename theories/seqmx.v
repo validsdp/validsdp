@@ -285,7 +285,7 @@ Global Instance spec_seqmx m n : spec_of (@seqmx C) 'M[R]_(m, n) :=
 
 End seqmx_more_op.
 
-Arguments spec_seqmx / : assert.
+(*Arguments spec_seqmx / : assert.*)
 
 Section seqmx_theory.
 

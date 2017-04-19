@@ -109,11 +109,11 @@ Fixpoint interp_p_abstr_poly (vm : seq R) (ap : p_abstr_poly) {struct ap} : R :=
 Ltac list_add a l :=
   let rec aux a l n :=
     match l with
-    | Datatypes.nil        => constr:(n, Datatypes.cons a l)
-    | Datatypes.cons a _   => constr:(n, l)
+    | Datatypes.nil        => constr:((n, Datatypes.cons a l))
+    | Datatypes.cons a _   => constr:((n, l))
     | Datatypes.cons ?x ?l =>
       match aux a l (S n) with
-      | (?n, ?l) => constr:(n, Datatypes.cons x l)
+      | (?n, ?l) => constr:((n, Datatypes.cons x l))
       end
     end in
   aux a l O.
@@ -122,17 +122,17 @@ Ltac get_poly t l :=
   let rec aux t l :=
     let aux_u o a :=
       match aux a l with
-      | (?u, ?l) => constr:(o u, l)
+      | (?u, ?l) => constr:((o u, l))
       end in
     let aux_u' o a b :=
       match aux a l with
-      | (?u, ?l) => constr:(o u b, l)
+      | (?u, ?l) => constr:((o u b, l))
     end in
       let aux_b o a b :=
         match aux b l with
         | (?v, ?l) =>
           match aux a l with
-          | (?u, ?l) => constr:(o u v, l)
+          | (?u, ?l) => constr:((o u v, l))
           end
         end in
     match t with
@@ -151,9 +151,9 @@ Ltac get_poly t l :=
       match get_real_cst t with
       | false =>
         match list_add t l with
-        | (?n, ?l) => constr:(PVar n, l)
+        | (?n, ?l) => constr:((PVar n, l))
         end
-      | ?c => constr:(PConst c, l)
+      | ?c => constr:((PConst c, l))
       end
     end in
   aux t l.
@@ -2012,7 +2012,7 @@ Ltac get_ineq i l :=
       | (?p, ?l) =>
         match get_poly y l with
         | (?q, ?l) =>
-          constr:(c p q, l)
+          constr:((c p q, l))
         end
       end in
   match i with
@@ -2029,13 +2029,13 @@ Ltac get_hyp h l :=
     match get_hyp a l with
     | (?a, ?l) =>
       match get_hyp b l with
-      | (?b, ?l) => constr:(Hand a b, l)
+      | (?b, ?l) => constr:((Hand a b, l))
       | false => false
       end
     | false => false
     end
   | _ => match get_ineq h l with
-        | (?i, ?l) => constr:(Hineq i, l)
+        | (?i, ?l) => constr:((Hineq i, l))
         | _ => false
         end
   end.
@@ -2046,13 +2046,13 @@ Ltac get_goal g l :=
     match get_hyp h l with
     | (?h, ?l) =>
       match get_goal g l with
-      | (?g, ?l) => constr:(Ghyp h g, l)
+      | (?g, ?l) => constr:((Ghyp h g, l))
       | false => false
       end
     | false => false
     end
   | _ => match get_ineq g l with
-        | (?i, ?l) => constr:(Gineq i, l)
+        | (?i, ?l) => constr:((Gineq i, l))
         | false => false
         end
   end.
