@@ -24,7 +24,7 @@ validsdp.v
 zulp.v
 binrat.v
 
--extra test "testsuite.v" "$(HIDE)$(COQC) $(COQDEBUG) $(COQFLAGS) $<"
+-extra-phony test "testsuite.v validsdp.v" "$(COQC) $(COQDEBUG) $(COQFLAGS) $<"
 
 #COQFLAGS = "-debug"
 

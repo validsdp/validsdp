@@ -13,7 +13,7 @@ all install html gallinahtml deps.dot deps.png doc dist: $(COQ_MAKEFILE)
 	$(COQ_MAKE) $@
 
 %.vo: %.v
-	$(COQ_MAKE) -d $@
+	$(COQ_MAKE) $@
 
 test:
 	$(COQ_MAKE) $@
