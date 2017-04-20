@@ -1959,7 +1959,6 @@ apply refinesP; refines_apply1; first refines_apply1; first refines_apply1.
 by rewrite -(nat_R_eq rn) refinesE.
 rewrite refinesE=> i i' ri b b' rb.
 exact: refinesP.
-Unshelve.
 Grab Existential Variables.
 exact: rn.
 Qed.
