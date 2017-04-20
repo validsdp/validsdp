@@ -16,6 +16,11 @@ Unset Printing Implicit Defensive.
 
 (** * CoqEAL refinement for effective multivariate polynomials built on FMaps *)
 
+(** N.B.: Do not use {vm_,native_}compute directly on the various
+    *_eff functions as FMaps contain proof terms about balancing of binary
+    trees. Rather surround the polynomial expression with a call to
+    list_of_mpoly_eff. *)
+
 (** TODO: tidy and submit a pull request to CoqEAL *)
 
 Import Refinements.Op.
