@@ -359,8 +359,8 @@ Class poly_sub_of polyT := poly_sub_op : polyT -> polyT -> polyT.
 
 Class poly_mul_of polyT := poly_mul_op : polyT -> polyT -> polyT.
 
-Class map_mx2_of B := map_mx2_op :
-  forall {T T'} {m n : nat}, (T -> T') -> B T m n -> B T' m n.
+Notation map_mx2_of B :=
+  (forall {T T'} {m n : nat}, map_mx_of T T' (B T m n) (B T' m n)) (only parsing).
 
 (** ** Part 1: Generic programs *)
 
@@ -423,8 +423,8 @@ Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
   check_base p z &&
   let r :=
     let p' :=
-      let zp := map_mx2_op polyX_op z in
-      let Q' := map_mx2_op (polyC_op \o F2T) Q in
+      let zp := map_mx_op polyX_op z in
+      let Q' := map_mx_op (polyC_op \o F2T) Q in
       let p'm := (zp^T *m Q' *m zp)%HC in
       (* TODO: profiling pour voir si nécessaire d'améliorer la ligne
        * ci dessus (facteur 40 en Caml, mais peut être du même ordre de
@@ -532,8 +532,6 @@ Global Instance fun_of_seqmx_polyT : fun_of_of polyT ord (mx polyT) :=
 
 Global Instance mulseqmx_polyT : hmul_of (mx polyT) :=
   @mul_seqmx _ mp0_eff mpoly_add_eff mpoly_mul_eff.
-
-Global Instance map_seqmx' : map_mx2_of mx := fun T T' _ _ => map_seqmx (B := T').
 
 Definition soscheck_eff : polyT -> mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
   soscheck (F2T:=F2T) (T2F:=T2F).
@@ -695,7 +693,7 @@ Lemma soscheck_correct s p z Q : @soscheck_ssr s p z Q ->
             /\ (has_const_ssr z -> 0%R < (map_mpoly T2R p).@[x]).
 Proof.
 rewrite /has_const_ssr /has_const /eq_op /monom_eq_ssr /zero_op /monom0_ssr.
-rewrite /soscheck_ssr /soscheck /fun_of_op /fun_of_ssr /map_mx2_op /map_mx_ssr.
+rewrite /soscheck_ssr /soscheck /fun_of_op /fun_of_ssr /map_mx_ssr /map_mx_op.
 set zp := matrix.map_mx _ z.
 set Q' := matrix.map_mx _ _.
 set p' := _ (_ *m _) _ _.
