@@ -1163,8 +1163,7 @@ Proof. by apply: rat2R_le; rewrite ler_maxr lerr orbT. Qed.
 
 Section refinement_soscheck.
 
-Variables (A : comRingType) (C : Type) (rAC : A -> C -> Type) (C2A : C -> A).
-Hypothesis C2A_correct : forall c, rAC (C2A c) c.
+Variables (A : comRingType) (C : Type) (rAC : A -> C -> Type).
 Context `{!zero_of C, !one_of C, !opp_of C, !add_of C, !sub_of C, !mul_of C, !eq_of C}.
 Context {n s : nat}.
 

@@ -1669,10 +1669,6 @@ Context `{ref_sub : !refines (rAC ==> rAC ==> rAC) sub_instR sub_op}.
 Context `{ref_mul : !refines (rAC ==> rAC ==> rAC) *%R *%C}.
 Context `{!refines (rAC ==> rAC ==> eq) eqtype.eq_op eq_op}.
 
-Context (C2A : C -> A).
-
-Hypothesis C2A_correct : forall c : C, rAC (C2A c) c.
-
 Lemma refine_M_hrel_empty : refines M_hrel M.empty M.empty.
 Proof.
 rewrite refinesE; split.
