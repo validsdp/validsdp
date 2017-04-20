@@ -23,8 +23,8 @@ seqmx.v
 validsdp.v
 zulp.v
 binrat.v
-# profile.v
-# computation.v
+
+-extra test "testsuite.v" "$(HIDE)$(COQC) $(COQDEBUG) $(COQFLAGS) $<"
 
 #COQFLAGS = "-debug"
 

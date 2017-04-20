@@ -13,6 +13,9 @@ all install html gallinahtml deps.dot deps.png doc dist: $(COQ_MAKEFILE)
 	$(COQ_MAKE) $@
 
 %.vo: %.v
+	$(COQ_MAKE) -d $@
+
+test:
 	$(COQ_MAKE) $@
 
 clean:
@@ -22,4 +25,4 @@ clean:
 $(COQ_MAKEFILE): $(COQ_PROJ)
 	$(COQBIN)coq_makefile -f $< -o $@
 
-.PHONY: all clean install html gallinahtml doc dist
+.PHONY: all test clean install html gallinahtml doc dist
