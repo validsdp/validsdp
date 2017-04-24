@@ -816,7 +816,8 @@ Lemma soscheck_hyps_correct s p pzQi z Q :
   @soscheck_hyps_ssr s p pzQi z Q ->
   forall x,
     all_prop (fun pzQ => 0%R <= (map_mpoly T2R pzQ.1).@[x]) pzQi ->
-    0%R <= (map_mpoly T2R p).@[x].
+    (0%R <= (map_mpoly T2R p).@[x]
+     /\ (has_const_ssr z -> 0%R < (map_mpoly T2R p).@[x])).
 Proof.
 move: p z Q.
 elim: pzQi => [|pzQ0 pzQi Hind] p z Q;
@@ -826,11 +827,15 @@ case pzQ0 => p0 zQ0.
 case zQ0 => s0 sz0 z0 Q0 /=.
 set p' := poly_sub_op p (poly_mul_op s0 p0).
 move=> /and3P [] Hsoscheck Hsoscheck0 Hall x [] Hp0 Hall_prop.
-have : 0 <= (map_mpoly T2R p').@[x].
+have : 0 <= (map_mpoly T2R p').@[x]
+       /\ (has_const_ssr z -> 0 < (map_mpoly T2R p').@[x]).
 { by apply (Hind p' z Q); [by apply /andP; split|]. }
 rewrite !rmorphB !rmorphM /=.
-rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_le_0.
-by apply Rle_trans, Rmult_le_pos; [apply (soscheck_correct Hsoscheck0)|].
+move=> [] H1 H2; split=> [|H3]; [move: H1|move: (H2 H3)].
+{ rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_le_0.
+  by apply Rle_trans, Rmult_le_pos; [apply (soscheck_correct Hsoscheck0)|]. }
+rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_lt_0.
+by apply Rle_lt_trans, Rmult_le_pos; [apply (soscheck_correct Hsoscheck0)|].
 Qed.
 
 End theory_soscheck.
@@ -1821,7 +1826,7 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
    vars_ltn n ap,
    all (vars_ltn n) apl,
    size papi == size szQl,
-   strict == false &  (* FIXME: take strict into account *)
+   strict ==> has_const_eff (s:=s.-1) (n:=n) z &
    soscheck_hyps_eff
      (n := n) (s := s')
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
@@ -1874,7 +1879,6 @@ set apapi := all_prop _ _.
 suff: apapi -> if b then 0 < interp_p_abstr_poly vm pap
                else 0 <= interp_p_abstr_poly vm pap by case b.
 rewrite {}/apapi => Hall_prop.
-move: Hstrict; case b => // _.  (* FIXME : handle strict *)
 rewrite interp_correct; [|by move: Hn; rewrite -/n; case n|by rewrite ?lt0n].
 set x := fun _ => _.
 have Hall_prop' :
@@ -1885,6 +1889,17 @@ have Hall_prop' :
   case=> // szQlbh szQlbt /= /eqP [] HszQlbt /andP [] Hltnh Hltnt [] H1 H2.
   split; [|by apply Hind; [apply/eqP| |]].
   by rewrite -interp_correct; [|move: Hn; rewrite -/n; case n|]. }
+set papx := _.@[x].
+suff: 0 <= papx /\ (has_const_ssr zb -> 0 < papx).
+{ move: Hstrict; case b => /= [Hcz [] _ Hczb|_ [] //]; apply Hczb.
+  move: Hcz; rewrite -Hn' /is_true => <-.
+  apply refines_eq, refines_bool_eq; refines_apply1.
+  { apply refine_has_const. }
+  rewrite /zb /z.
+  rewrite refinesE; apply RseqmxC_spec_seqmx.
+  { apply /andP; split; [by rewrite size_map Hs'|].
+    by apply /allP => x' /mapP [] x'' _ ->. }
+  by apply listR_seqmultinom_map; rewrite Hn'. }
 move: Hall_prop'.
 apply soscheck_hyps_correct with
   (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
@@ -1893,7 +1908,6 @@ apply soscheck_hyps_correct with
   (4 := max_l)
   (5 := max_r)
   (6 := GRing.RMorphism.mixin (ratr_is_rmorphism _))
-  (z0 := zb)
   (Q0 := Qb).
 move: Hsos_hyps; apply etrans.
 apply refines_eq, refines_bool_eq.
@@ -2097,8 +2111,6 @@ Lemma test_validsdp (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
 Time validsdp.
 Time Qed.
 
-(* Fixme : reimplement strict
 Lemma test_validsdp' (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 + 1 > 0)%Re.
 Time validsdp.
 Time Qed.
-*)

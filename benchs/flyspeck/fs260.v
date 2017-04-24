@@ -39,21 +39,6 @@ Let b5 (x0 x1 x2 x3 x4 x5 : R) :=
 Let b6 (x0 x1 x2 x3 x4 x5 : R) :=
   (x5 - 4) * (8 - x5).
 
-Lemma aux (x0 x1 x2 x3 x4 x5 : R) :
-  b1 x0 x1 x2 x3 x4 x5 >= 0 ->
-  b2 x0 x1 x2 x3 x4 x5 >= 0 ->
-  b3 x0 x1 x2 x3 x4 x5 >= 0 ->
-  b4 x0 x1 x2 x3 x4 x5 >= 0 ->
-  b5 x0 x1 x2 x3 x4 x5 >= 0 ->
-  b6 x0 x1 x2 x3 x4 x5 >= 0 ->
-  p x0 x1 x2 x3 x4 x5 <= 0 ->
-  p' x0 x1 x2 x3 x4 x5 <= 0 ->
-  p'' x0 x1 x2 x3 x4 x5 >= 1/100000000.
-Proof.
-unfold b1, b2, b3, b4, b5, b6, p, p', p''.
-validsdp.
-Qed.
-
 Theorem alternative (x0 x1 x2 x3 x4 x5 : R) :
   b1 x0 x1 x2 x3 x4 x5 >= 0 ->
   b2 x0 x1 x2 x3 x4 x5 >= 0 ->
@@ -66,8 +51,9 @@ Theorem alternative (x0 x1 x2 x3 x4 x5 : R) :
    \/ p'' x0 x1 x2 x3 x4 x5 > 0).
 Proof.
 intros H1 H2 H3 H4 H5 H6.
-case (Rlt_or_le 0 (p x0 x1 x2 x3 x4 x5)) => Hp; [by left|right].
-case (Rlt_or_le 0 (p' x0 x1 x2 x3 x4 x5)) => Hp'; [by left|right].
-apply (Rlt_le_trans _ (1/100000000)); [lra|].
-by apply Rge_le, aux.
+case (Rlt_or_le 0 (p x0 x1 x2 x3 x4 x5)) => Hp; [now left|right].
+case (Rlt_or_le 0 (p' x0 x1 x2 x3 x4 x5)) => Hp'; [now left|right].
+revert H1 H2 H3 H4 H5 H6 Hp Hp'.
+unfold b1, b2, b3, b4, b5, b6, p, p', p''.
+validsdp.
 Qed.
