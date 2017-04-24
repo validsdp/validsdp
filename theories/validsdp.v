@@ -1437,28 +1437,6 @@ End refinement_interp_poly.
 
 (** ** Part 4: The final tactic *)
 
-Definition soscheck_eff_wrapup (vm : seq R) (pap : p_abstr_poly)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
-  let n := size vm in
-  let n' := n.-1 in
-  let ap := abstr_poly_of_p_abstr_poly pap in
-  let bp := interp_poly_eff n' ap in
-  let z := map (fun x => [:: x]) zQ.1 in
-  let s := size zQ.1 in
-  let Q := map (map F2FI) zQ.2 in
-  [&& (n != 0%N),
-   (all (fun m => size m == n) zQ.1),
-   (s != 0%N),
-   (size Q == s),
-   (all (fun e => size e == s) Q),
-   vars_ltn n ap &
-   soscheck_eff
-     (n := n) (s := s.-1)
-     (fs := coqinterval_infnan.coqinterval_round_up_infnan)
-     (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
-     (T2F := F2FI \o bigQ2F')
-     bp z Q].
-
 Lemma map_R_nth (T1 T2 : Type) (x0 : T2) (T_R : T1 -> T2 -> Type) (f : T2 -> T1) l :
   (forall i, (i < size l)%N -> T_R (f (nth x0 l i)) (nth x0 l i)) ->
   list_R T_R [seq f x | x <- l] l.
@@ -1537,7 +1515,6 @@ Inductive p_abstr_hyp :=
 
 Inductive p_abstr_goal :=
   | Gineq of p_abstr_ineq
-(*| Gand of p_abstr_ineq & p_abstr_ineq *)
   | Ghyp of p_abstr_hyp & p_abstr_goal
   .
 
@@ -1558,15 +1535,12 @@ Fixpoint interp_p_abstr_hyp (vm : seq R) (h : p_abstr_hyp) : Prop :=
 Fixpoint interp_p_abstr_goal (vm : seq R) (g : p_abstr_goal) {struct g} : Prop :=
   match g with
   | Gineq i => interp_p_abstr_ineq vm i
-(*| Gand a b => interp_p_abstr_ineq vm a /\ interp_p_abstr_ineq vm b *)
   | Ghyp h g => interp_p_abstr_hyp vm h -> interp_p_abstr_goal vm g
   end.
 
 (** (li, p, true) stands for /\_i 0 <= li -> 0 < p
     (li, p, false) stands for /\_i 0 <= li -> 0 <= p *)
 Definition abstr_goal := (seq p_abstr_poly * p_abstr_poly * bool)%type.
-
-(* Definition abstr_goals := seq abstr_goal. *)
 
 Definition sub_p_abstr_poly p q :=
   match p, q with
@@ -1586,16 +1560,6 @@ by case: p =>//= *; ring.
 by case: q =>//= *; ring.
 Qed.
 
-(*
-Definition aux_p_abstr_ineq {T : Type} (strict large : p_abstr_poly -> T) i :=
-  match i with
-  | ILt p q => strict (sub_p_abstr_poly q p)
-  | IGt p q => strict (sub_p_abstr_poly p q)
-  | ILe p q => large (sub_p_abstr_poly q p)
-  | IGe p q => large (sub_p_abstr_poly p q)
-  end.
- *)
-
 Fixpoint seq_p_abstr_poly_of_hyp h :=
   match h with
   | Hineq i =>
@@ -1610,7 +1574,6 @@ Fixpoint seq_p_abstr_poly_of_hyp h :=
 Fixpoint abstr_goal_of_p_abstr_goal_aux
   (accu : seq p_abstr_poly) (g : p_abstr_goal) {struct g} : abstr_goal :=
   match g with
-(*| Gineq i => aux_p_abstr_ineq (Gstrict accu) (Glarge accu) i*)
   | Gineq i =>
     match i with
     | ILt p q => (accu, (sub_p_abstr_poly q p), true)
@@ -1657,134 +1620,6 @@ elim: h Hh => [i Hi|a A b B H]  /=.
 have {H} [H1 H2] := H.
 by apply/all_prop_cat; split =>//=; auto.
 Qed.
-
-(* TODO: move/refactor *)
-
-Definition soscheck_eff_wrapup_strict (vm : seq R) (pap : p_abstr_poly)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
-  let n := size vm in
-  let s := size zQ.1 in
-  let z := map (fun x => [:: x]) zQ.1 in
-  has_const_eff (s:=s.-1) (n:=n) z && soscheck_eff_wrapup vm pap zQ.
-
-Theorem soscheck_eff_wrapup_correct
-  (vm : seq R) (pap : p_abstr_poly)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
-  (soscheck_eff_wrapup vm pap zQ ->
-   (0 <= interp_p_abstr_poly vm pap)%Re)
-  /\ (soscheck_eff_wrapup_strict vm pap zQ ->
-      (0 < interp_p_abstr_poly vm pap)%Re).
-Proof.
-rewrite /soscheck_eff_wrapup_strict /soscheck_eff_wrapup.
-set n := size vm.
-set n' := n.-1.
-set ap := abstr_poly_of_p_abstr_poly pap.
-set bp := interp_poly_eff n' ap.
-set za := (map (fun x => [:: x]) zQ.1).
-set Qa := map (map F2FI) zQ.2.
-pose s := (size zQ.1).-1.
-pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s.+1 1 za.
-pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s.+1 s.+1 Qa.
-set hyps := andb _ _.
-set hconst := has_const_eff _.
-suff : hyps -> (0 <= interp_p_abstr_poly vm pap /\
-                (hconst -> 0 < interp_p_abstr_poly vm pap)).
-{ by move=> H; split; [|move/andP=> [? ?]]; apply H. }
-rewrite /hyps.
-case/and5P => Hn Hz Hs HzQ /and3P [HzQ' Hltn Hsos].
-have Hn' : n'.+1 = n by rewrite prednK // lt0n Hn.
-rewrite interp_correct; [|by move: Hn; rewrite -/n; case n|by rewrite ?lt0n].
-have -> : hconst = has_const_ssr zb.
-{ rewrite /hconst -/s -Hn'.
-  apply esym, refines_eq, refines_bool_eq; refines_apply1.
-  { apply refine_has_const. }
-  rewrite /zb /za.
-  rewrite refinesE; apply RseqmxC_spec_seqmx.
-  { apply /andP; split.
-    { by rewrite size_map prednK //; move: Hs; case (size _). }
-    by apply /allP => x /mapP [] x' _ ->. }
-  by apply listR_seqmultinom_map; rewrite Hn'. }
-apply soscheck_correct with
-  (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
-  (2 := rat2FIS_correct)
-  (3 := rat2R_FIS2rat)
-  (4 := max_l)
-  (5 := max_r)
-  (z := zb)
-  (Q := Qb).
-apply (etrans (y := @soscheck_eff n'.+1 _
-  zero_bigQ one_bigQ opp_bigQ add_bigQ sub_bigQ mul_bigQ eq_bigQ max_bigQ s fs
-  (F2bigQ \o FI_val) (F2FI \o bigQ2F') bp za Qa)); last first.
-{ by rewrite Hn' Hsos. }
-apply refines_eq, refines_bool_eq.
-refines_apply1; first refines_apply1; first refines_apply1.
-{ eapply (refine_soscheck (eq_F := eqFIS) (rAC := r_ratBigQ)). (* 17 evars *)
-  exact: eqFIS_P. }
-{ by apply refine_interp_poly; rewrite prednK ?lt0n. }
-{ rewrite refinesE; eapply RseqmxC_spec_seqmx.
-  { rewrite prednK ?lt0n // size_map eqxx /= /za.
-    by apply/allP => x /mapP [y Hy] ->. }
-  apply: listR_seqmultinom_map.
-  by rewrite prednK ?lt0n // size_map eqxx /= /za. }
-refines_trans.
-rewrite refinesE; eapply Rseqmx_spec_seqmx.
-{ rewrite !size_map in HzQ.
-  by rewrite prednK ?lt0n // !size_map HzQ. }
-{ by rewrite refinesE; apply: list_Rxx => x; apply: list_Rxx => y. }
-Unshelve.
-{ split =>//.
-  by move=> x y z Hxy Hyz; red; rewrite Hxy. }
-{ by rewrite refinesE. }
-{ by rewrite refinesE. }
-{ by op1 F.neg_correct. }
-{ by op1 F.sqrt_correct. }
-{ by op2 F.add_correct. }
-{ by op2 F.mul_correct. }
-{ by op2 F.div_correct. }
-{ op1 F.real_correct; exact: bool_Rxx. }
-{ by op202 ltac:(rewrite /leq_instFIS /file /= /ficompare /=; suff_eq bool_Rxx)
-  F.cmp_correct F.real_correct. }
-{ by op202 ltac:(rewrite /lt_instFIS /filt /= /ficompare /=; suff_eq bool_Rxx)
-  F.cmp_correct F.real_correct. }
-{ by op2 F.add_correct. }
-{ by op22 F.neg_correct F.add_correct. }
-{ by op2 F.mul_correct. }
-{ by op2 F.div_correct. }
-by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
-Qed.
-
-Theorem soscheck_eff_wrapup_large_correct
-  (vm : seq R) (pap : p_abstr_poly)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
-  (soscheck_eff_wrapup vm pap zQ ->
-   (0 <= interp_p_abstr_poly vm pap)%Re).
-Proof.
-apply soscheck_eff_wrapup_correct.
-Qed.
-
-Theorem soscheck_eff_wrapup_strict_correct
-  (vm : seq R) (pap : p_abstr_poly)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :
-  (soscheck_eff_wrapup_strict vm pap zQ ->
-      (0 < interp_p_abstr_poly vm pap)%Re).
-Proof.
-apply soscheck_eff_wrapup_correct.
-Qed.
-
-(* Unneeded !
-
-Fixpoint p_abstr_poly_of_p_abstr_goal g :=
-  match g with
-  | Gineq p => p
-  | Ghyp _ g => p_abstr_poly_of_p_abstr_goal g
-  end.
-
-Fixpoint seq_p_abstr_poly_of_p_abstr_goal g :=
-  match g with
-  | Gineq _ => [::]
-  | Ghyp h g => seq_p_abstr_poly_of_hyp h ++ seq_p_abstr_poly_of_p_abstr_goal g
-  end.
- *)
 
 Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))
@@ -1982,40 +1817,6 @@ Unshelve.
 { by op2 F.div_correct. }
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
 Qed.
-
-Ltac validsdp_core lem r :=
-  match get_poly r (@Datatypes.nil R) with
-    (?pap, ?vm) =>
-    abstract (
-      let n' := constr:((size vm).-1) in
-      let ap := constr:(abstr_poly_of_p_abstr_poly pap) in
-      let bp := constr:(interp_poly_eff n' ap) in
-      let l := eval vm_compute in (M.elements bp) in
-      let l' := eval vm_compute in (l, ([::] : seq (seq (seq BinNums.N * BigQ.t_)))) in
-      let zQ_zQi := fresh "zQ_zQi" in
-      (soswitness of l' as zQ_zQi);
-      apply (@lem vm pap (fst zQ_zQi));
-      (vm_cast_no_check (erefl true))
-    )
-  end.
-
-Ltac validsdp' :=
-  lazymatch goal with
-  | [ |- (0 <= ?r)%Re ] => validsdp_core soscheck_eff_wrapup_large_correct r
-  | [ |- (0 < ?r)%Re ] => validsdp_core soscheck_eff_wrapup_strict_correct r
-  | [ |- (?a <= ?b)%Re ] =>
-    match a with
-    | R0 => fail 100 "validsdp': assert false"
-    | _ => apply Rle_minus_le; validsdp'
-    end
-  | [ |- (?a < ?b)%Re ] =>
-    match a with
-    | R0 => fail 100 "validsdp': assert false"
-    | _ => apply Rlt_minus_lt; validsdp'
-    end
-  | [ |- (?a >= ?b)%Re ] => apply Rle_ge; validsdp'
-  | [ |- (?a > ?b)%Re ] => apply Rlt_gt; validsdp'
-  end.
 
 Ltac get_ineq i l :=
   let aux c x y :=
