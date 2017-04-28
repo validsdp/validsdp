@@ -1193,11 +1193,9 @@ Qed.
 
 End refinement_cholesky.
 
-(* FIXME: closing/opening a new section should be unnecessary here *)
 Section refinement_cholesky_2.
-(* C := FIS fs *)
-
 Context {fs : Float_round_up_infnan_spec}.
+(* C := FIS fs *)
 
 (* To move? *)
 Variable eqFIS : FIS fs -> FIS fs -> Prop.

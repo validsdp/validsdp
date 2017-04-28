@@ -1886,7 +1886,7 @@ Ltac validsdp :=
         let ppi := eval vm_compute in (p, pi) in
         let zQ_szQi := fresh "zQ_szQi" in
         (soswitness of ppi as zQ_szQi);
-        apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1 (* FIXME: merge *));
+        apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1);
         (vm_cast_no_check (erefl true))
       end)
     | false => fail 100 "unsupported goal"
