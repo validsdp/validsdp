@@ -447,12 +447,11 @@ Inductive sz_witness :=
   | Wit : polyT -> forall s, mx monom s.+1 1 -> mx F s.+1 s.+1 -> sz_witness.
 
 (* Prove that /\_i pi >= 0 -> p >= 0 by proving that
-   - p - \sum_i si pi >= 0 with z and Q as above
-   - \forall i, pi >= 0 with zi, Qi as above *)
+   - \forall i, pi >= 0 with zi, Qi as above
+   - p - \sum_i si pi >= 0 with z and Q as above *)
 Definition soscheck_hyps
-   (* TODO: change the order of arguments ? *)
-    (p : polyT) (pszQi : seq (polyT * sz_witness))
-    (z : mx monom s 1) (Q : mx F s s) : bool :=
+    (pszQi : seq (polyT * sz_witness))
+    (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
   let p' :=
       foldl
         (fun p' (pszQ : polyT * sz_witness) =>
@@ -539,8 +538,8 @@ Definition soscheck_eff : polyT -> mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
 Global Instance poly_mul_eff : poly_mul_of polyT := mpoly_mul_eff.
 
 Definition soscheck_hyps_eff :
-  polyT -> seq (polyT * sz_witness) ->
-  mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
+  seq (polyT * sz_witness) ->
+  polyT -> mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
   soscheck_hyps (set:=set) (F2T:=F2T) (T2F:=T2F)
                 (I0n:=fun n => O) (succ0n:=fun n => S) (natof0n:=fun _ => id).
 
@@ -615,8 +614,8 @@ Definition soscheck_ssr (s : nat) :
 Global Instance poly_mul_ssr : poly_mul_of polyT := fun p q => (p * q)%R.
 
 Definition soscheck_hyps_ssr (s : nat) :
-  polyT -> seq (polyT * sz_witness) ->
-  'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
+  seq (polyT * sz_witness) ->
+  polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
   soscheck_hyps (F2T:=F2T) (T2F:=T2F).
 
 Global Instance monom_eq_ssr : eq_of monom := eqtype.eq_op.
@@ -801,11 +800,9 @@ rewrite /GRing.zero /= /const_mx /map_mx !mxE.
 by rewrite z0 mpolyX0 meval1 => /eqP; rewrite GRing.oner_eq0.
 Qed.
 
-(* TODO: Implement a similar function for arrows. *)
 Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
   match s with
   | [::] => True
-(*| [:: x] => a x *)(* unneeded *)
   | x :: s' => a x /\ all_prop a s'
   end.
 
@@ -813,7 +810,7 @@ Hypothesis T2R_multiplicative : multiplicative T2R.
 Canonical T2R_morphism_struct := AddRMorphism T2R_multiplicative.
 
 Lemma soscheck_hyps_correct s p pzQi z Q :
-  @soscheck_hyps_ssr s p pzQi z Q ->
+  @soscheck_hyps_ssr s pzQi p z Q ->
   forall x,
     all_prop (fun pzQ => 0%R <= (map_mpoly T2R pzQ.1).@[x]) pzQi ->
     (0%R <= (map_mpoly T2R p).@[x]
@@ -1350,7 +1347,8 @@ CoInductive RWit (w : sz_witness) (w' : sz_witness) : Type :=
       RWit w w'.
 
 Lemma refine_soscheck_hyps :
-  refines (ReffmpolyC rAC ==> list_R (prod_R (ReffmpolyC rAC) RWit) ==>
+  refines (list_R (prod_R (ReffmpolyC rAC) RWit) ==>
+           ReffmpolyC rAC ==> 
            RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==>
            RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==>
            bool_R)
@@ -1622,9 +1620,9 @@ by apply/all_prop_cat; split =>//=; auto.
 Qed.
 
 Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))
   (szQi : seq (seq (seq BinNums.N * bigQ)
-               * (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))))) :=
+               * (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))))
+  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
   let '(papi, pap, strict) := abstr_goal_of_p_abstr_goal g in
   let n := size vm in
   let n' := n.-1 in
@@ -1667,14 +1665,14 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
      (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
      (T2F := F2FI \o bigQ2F')
-     bp pszQl z Q].
+     pszQl bp z Q].
 
 Theorem soscheck_hyps_eff_wrapup_correct
   (vm : seq R) (g : p_abstr_goal)
-  (zQ : (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))))
   (szQi : seq (seq (seq BinNums.N * bigQ)
-               * (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))))) :
-  soscheck_hyps_eff_wrapup vm g zQ szQi ->
+               * (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))))
+  (zQ : (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))) :
+  soscheck_hyps_eff_wrapup vm g szQi zQ ->
   interp_p_abstr_goal vm g.
 Proof.
 rewrite /soscheck_hyps_eff_wrapup => hyps.
@@ -1751,7 +1749,6 @@ refines_apply1; first refines_apply1;
 { rewrite -Hn'.
   eapply (refine_soscheck_hyps (eq_F := eqFIS) (rAC := r_ratBigQ)).
   exact: eqFIS_P. }
-{ by apply refine_interp_poly; rewrite prednK ?lt0n. }
 { rewrite refinesE; apply zip_R.
   { rewrite /bplb /bpl; move: Hltn'.
     elim apl => [|h t Hind] //= /andP [] Hltnh Hltnt; apply list_R_cons_R.
@@ -1786,6 +1783,7 @@ refines_apply1; first refines_apply1;
     rewrite size_map prednK ?lt0n // Hsh' /= all_map /is_true -Hsh''.
     by apply eq_all => e /=; rewrite size_map. }
   by apply list_Rxx => x'; apply list_Rxx. }
+{ by apply refine_interp_poly; rewrite prednK ?lt0n. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /z.
     by apply/allP => x' /mapP [y Hy] ->. }
@@ -1888,7 +1886,7 @@ Ltac validsdp :=
         let ppi := eval vm_compute in (p, pi) in
         let zQ_szQi := fresh "zQ_szQi" in
         (soswitness of ppi as zQ_szQi);
-        apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.1 zQ_szQi.2 (* FIXME: merge *));
+        apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1 (* FIXME: merge *));
         (vm_cast_no_check (erefl true))
       end)
     | false => fail 100 "unsupported goal"
