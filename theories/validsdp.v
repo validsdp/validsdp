@@ -4,8 +4,7 @@ Require Import ZArith.
 From Flocq Require Import Fcore.
 From Interval Require Import Interval_definitions Interval_xreal.
 From Interval Require Import Interval_missing.
-From CoqEAL.refinements Require Import hrel refinements param (*seqmx*) binint rational.
-Require Import seqmx.
+From CoqEAL.refinements Require Import hrel refinements param seqmx binint rational.
 Require Import binrat.
 Require Import Reals Flocq.Core.Fcore_Raux QArith BigZ BigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.

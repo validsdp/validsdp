@@ -19,7 +19,6 @@ multipoly.v
 real_matrix.v
 Rstruct.v
 seqmx_complements.v
-seqmx.v
 validsdp.v
 zulp.v
 binrat.v

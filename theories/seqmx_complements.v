@@ -5,8 +5,7 @@
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import choice fintype bigop matrix.
 
-From CoqEAL Require Import hrel param refinements (*seqmx*).
-Require Import seqmx.
+From CoqEAL Require Import hrel param refinements seqmx.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
