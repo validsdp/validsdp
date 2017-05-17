@@ -361,6 +361,8 @@ Class poly_mul_of polyT := poly_mul_op : polyT -> polyT -> polyT.
 Notation map_mx2_of B :=
   (forall {T T'} {m n : nat}, map_mx_of T T' (B T m n) (B T' m n)) (only parsing).
 
+
+
 (** ** Part 1: Generic programs *)
 
 Section generic_soscheck.
@@ -375,7 +377,7 @@ Context `{!polyC_of T polyT, !polyX_of monom polyT, !poly_sub_of polyT}.
 Context {set : Type}.
 Context `{!sempty_of set, !sadd_of monom set, !smem_of monom set}.
 
-Context `{!zero_of T, !opp_of T, !max_of T}.
+Context `{!zero_of T, !opp_of T, !leq_of T}.
 Context {ord : nat -> Type} {mx : Type -> nat -> nat -> Type}.
 Context `{!fun_of_of monom ord (mx monom)}.
 Context `{!fun_of_of polyT ord (mx polyT)}.
@@ -385,7 +387,7 @@ Context {natof0n : forall n, nat_of_class ord n.+1}.
 Context `{!I0_class ord 1}.
 
 Definition max_coeff (p : polyT) : T :=
-  foldl (fun m mc => max_op m (max_op mc.2 (-mc.2)%C)) 0%C (list_of_poly_op p).
+  foldl (fun m mc => max m (max mc.2 (-mc.2)%C)) 0%C (list_of_poly_op p).
 
 Context `{!trmx_of (mx polyT)}.
 (* Multiplication of matrices of polynomials. *)
@@ -504,7 +506,7 @@ Global Instance sadd_eff : sadd_of monom set := S.add.
 
 Global Instance smem_eff : smem_of monom set := S.mem.
 
-Context `{!max_of T}.
+Context `{!leq_of T}.
 
 Let ord := ord_instN.
 
@@ -583,7 +585,7 @@ Global Instance smem_ssr : smem_of monom set := fun e s => e \in s.
 Local Instance zero_ssr : zero_of T := 0%R.
 Local Instance opp_ssr : opp_of T := fun x => (-x)%R.
 
-Context `{!max_of T}.
+Context `{!leq_of T}.
 
 Let ord := ordinal.
 
@@ -629,8 +631,8 @@ Hypothesis T2R_additive : additive T2R.
 Canonical T2R_additive_struct := Additive T2R_additive.
 Hypothesis T2F_correct : forall x, finite (T2F x) -> T2R x <= FIS2FS (T2F x).
 Hypothesis T2R_F2T : forall x, T2R (F2T x) = FIS2FS x.
-Hypothesis max_l : forall x y : T, T2R x <= T2R (max_op x y).
-Hypothesis max_r : forall x y, T2R y <= T2R (max_op x y).
+Hypothesis max_l : forall x y : T, T2R x <= T2R (max x y).
+Hypothesis max_r : forall x y, T2R y <= T2R (max x y).
 
 Lemma max_coeff_pos (p : polyT) : 0 <= T2R (max_coeff p).
 Proof.
@@ -648,7 +650,7 @@ case_eq (m \in msupp p);
   [|rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 Rabs_R0;
     by apply max_coeff_pos].
 rewrite /max_coeff /list_of_poly_of /list_of_poly_ssr /list_of_mpoly.
-have Hmax : forall x y, Rabs (T2R x) <= T2R (max_op y (max_op x (- x)%C)).
+have Hmax : forall x y, Rabs (T2R x) <= T2R (max y (max x (- x)%C)).
 { move=> x y; apply Rabs_le; split.
   { rewrite -(Ropp_involutive (T2R x)); apply Ropp_le_contravar.
     change (- (T2R x))%Re with (- (T2R x))%Ri.
@@ -658,7 +660,7 @@ have Hmax : forall x y, Rabs (T2R x) <= T2R (max_op y (max_op x (- x)%C)).
 rewrite -(path.mem_sort mnmc_le) /list_of_poly_op.
 elim: (path.sort _) 0%C=> [//|h t IH] z; move/orP; elim.
 { move/eqP-> => /=; set f := fun _ => _; set l := map _ _.
-  move: (Hmax p@_h z); set z' := max_op z _; generalize z'.
+  move: (Hmax p@_h z); set z' := max z _; generalize z'.
   elim l => /= [//|h' l' IH' z'' Hz'']; apply IH'.
   apply (Rle_trans _ _ _ Hz''), max_l. }
 by move=> Ht; apply IH.
@@ -1152,11 +1154,17 @@ Qed.
 Lemma rat2R_le (x y : rat) : (x <= y)%Ri -> rat2R x <= rat2R y.
 Proof. by move=> Hxy; apply/RleP; rewrite unfoldR; rewrite ler_rat. Qed.
 
-Lemma max_l (x0 y0 : rat) : rat2R x0 <= rat2R (Num.max x0 y0).
-Proof. by apply: rat2R_le; rewrite ler_maxr lerr. Qed.
+(* TODO: to move? *)
+Global Instance leq_rat : leq_of rat := Num.Def.ler.
 
-Lemma max_r (x0 y0 : rat) : rat2R y0 <= rat2R (Num.max x0 y0).
-Proof. by apply: rat2R_le; rewrite ler_maxr lerr orbT. Qed.
+Lemma max_l (x0 y0 : rat) : rat2R x0 <= rat2R (max x0 y0).
+Proof. by rewrite /max; case: ifP => H; apply: rat2R_le =>//; rewrite lerr. Qed.
+
+Lemma max_r (x0 y0 : rat) : rat2R y0 <= rat2R (max x0 y0).
+Proof.
+rewrite /max; case: ifP; rewrite /leq_op /leq_rat => H; apply: rat2R_le =>//.
+by rewrite lerNgt ltr_def negb_and H orbT.
+Qed.
 
 (** ** Part 3: Parametricity *)
 
@@ -1239,9 +1247,9 @@ move/S.add_3=>H; apply/orP; right; apply S.mem_1, H.
   by move/mnmc_eq_seqP; rewrite eq_sym Em'.
 Qed.
 
-Context `{!max_of A}.
-Context `{!max_of C}.
-Context `{!refines (rAC ==> rAC ==> rAC) max_op max_op}.
+Context `{!leq_of A}.
+Context `{!leq_of C}.
+Context `{!refines (rAC ==> rAC ==> bool_R) leq_op leq_op}.
 
 (* TODO: move in CoqEAL_complement? *)
 Global Instance refine_foldl
@@ -1266,7 +1274,12 @@ apply refinesP; refines_apply1.
 refines_apply1.
 refines_apply1.
 apply refines_abstr2 => m m' rm mc mc' rmc.
-refines_apply1.
+do 2! refines_apply1; refines_abstr => *.
+rewrite /max !ifE; eapply refines_if_expr; tc.
+by eapply refinesP, refines_bool_eq; tc.
+do 2! refines_apply1; refines_abstr => *.
+rewrite /max !ifE; eapply refines_if_expr; tc.
+by eapply refinesP, refines_bool_eq; tc.
 Qed.
 
 Context {fs : Float_round_up_infnan_spec}.

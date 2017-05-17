@@ -53,7 +53,7 @@ Proof. by move=> Hr; case: l => *; constructor. Qed.
 (** Automation: for proving refinement lemmas involving if-then-else's
 do [rewrite !ifE; apply refines_if_expr]. *)
 Lemma refines_if_expr
-  (A : Type) (b1 b2 : bool) (vt1 vt2 vf1 vf2 : A) (R : A -> A -> Type) :
+  (A C : Type) (b1 b2 : bool) (vt1 vf1 : A) (vt2 vf2 : C) (R : A -> C -> Type) :
   b1 = b2 -> (b1 -> b2 -> R vt1 vt2) -> (~~ b1 -> ~~ b2 -> R vf1 vf2) ->
   R (if_expr b1 vt1 vf1) (if_expr b2 vt2 vf2).
 Proof.

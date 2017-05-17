@@ -309,6 +309,9 @@ Definition rat2bigQ (q : rat) : bigQ :=
 (** Refinement relation *)
 Definition r_ratBigQ := fun_hrel bigQ2rat.
 
+(** *** Generic function for max *)
+Definition max T `{!leq_of T} (a b : T) := if (b <= a)%C then a else b.
+
 (** *** Main instances *)
 
 Global Instance zero_bigQ : zero_of bigQ := 0%bigQ.
@@ -318,6 +321,8 @@ Global Instance add_bigQ : add_of bigQ := BigQ.add.
 Global Instance sub_bigQ : sub_of bigQ := BigQ.sub.
 Global Instance mul_bigQ : mul_of bigQ := BigQ.mul.
 Global Instance eq_bigQ : eq_of bigQ := BigQ.eq_bool.
+Global Instance lt_bigQ : lt_of bigQ := fun p q => if BigQ.compare p q is Lt then true else false.
+Global Instance le_bigQ : leq_of bigQ := fun p q => if BigQ.compare q p is Lt then false else true.
 
 (** *** Proofs of refinement *)
 
@@ -488,17 +493,12 @@ move: E; rewrite -rba -rdc=> /eqP H; apply H, val_inj=>/={H}.
 by move: E'; rewrite BigQ.spec_compare -Qeq_alt=>/Qred_complete ->.
 Qed.
 
-(* TODO: Refactor as a definition using lt *)
-Class max_of T := max_op : T -> T -> T.
-
-Global Instance max_bigQ : max_of bigQ := BigQ.max.
-
-Global Instance refine_ratBigQ_max :
-  refines (r_ratBigQ ==> r_ratBigQ ==> r_ratBigQ) Num.max max_op.
+Global Instance refine_ratBigQ_le :
+  refines (r_ratBigQ ==> r_ratBigQ ==> bool_R) Num.le leq_op.
 Proof.
 apply refines_abstr2=> a b rab c d rcd.
-rewrite /max_op /max_bigQ /BigQ.max /Num.max.
-case E: (_ <= _)%R; case E': (_ ?= _)%bigQ=>//; exfalso.
+rewrite /leq_op /le_bigQ.
+case E: (_ <= _)%R; case E': (_ ?= _)%bigQ; rewrite refinesE //; exfalso.
 { move: rab rcd; rewrite refinesE /r_ratBigQ /bigQ2rat /fun_hrel=> rba rdc.
   move: E; rewrite -rba -rdc.
   rewrite /Num.Def.ler /= /le_rat /numq /denq /=.
