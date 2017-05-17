@@ -19,6 +19,8 @@ Import Refinements.Op.
 
 Arguments refines A%type B%type R%rel _ _. (* Fix a scope issue with refines *)
 
+Arguments refinesP {T T' R x y} _.
+
 Hint Resolve list_R_nil_R.
 
 Notation ord_instN := (fun _ : nat => nat) (only parsing).
@@ -54,11 +56,11 @@ Proof. by move=> Hr; case: l => *; constructor. Qed.
 do [rewrite !ifE; apply refines_if_expr]. *)
 Lemma refines_if_expr
   (A C : Type) (b1 b2 : bool) (vt1 vf1 : A) (vt2 vf2 : C) (R : A -> C -> Type) :
-  b1 = b2 -> (b1 -> b2 -> R vt1 vt2) -> (~~ b1 -> ~~ b2 -> R vf1 vf2) ->
-  R (if_expr b1 vt1 vf1) (if_expr b2 vt2 vf2).
+  refines bool_R b1 b2 -> (b1 -> b2 -> R vt1 vt2) -> (~~ b1 -> ~~ b2 -> R vf1 vf2) ->
+  refines R (if_expr b1 vt1 vf1) (if_expr b2 vt2 vf2).
 Proof.
-move=> Hb; rewrite -!{}Hb => Ht Hf.
-rewrite /if_expr; case: b1 Ht Hf => Ht Hf.
+move/refines_bool_eq/refinesP=> Hb; rewrite -!{}Hb => Ht Hf.
+rewrite /if_expr !refinesE; case: b1 Ht Hf => Ht Hf.
 exact: Ht.
 exact: Hf.
 Qed.
@@ -69,8 +71,6 @@ Lemma optionE (A B : Type) (o : option A) (b : B) (f : A -> B) :
   | None => b
   end = oapp f b o.
 Proof. by []. Qed.
-
-Arguments refinesP {T T' R x y} _.
 
 (** Automation: for proving refinement lemmas involving options,
 do [rewrite !optionE; apply refines_option]. *)
@@ -348,6 +348,19 @@ Global Instance refine_fun_of_seqmx m n :
     ((@fun_of_matrix A m n) : matrix A m n -> ordinal m -> ordinal n -> A)
     (@fun_of_seqmx C _ m n).
 Proof. exact: RseqmxC_fun_of_seqmx. Qed.
+
+Global Instance refine_foldl
+  (T1 T2 : Type) (rT : T1 -> T2 -> Type) (R1 R2 : Type) (rR : R1 -> R2 -> Type) :
+  refines ((rR ==> rT ==> rR) ==> rR ==> list_R rT ==> rR)
+    (@foldl T1 R1) (@foldl T2 R2).
+Proof.
+rewrite refinesE=> f f' rf z z' rz s' s'' rs'.
+elim: s' s'' rs' z z' rz=> [|h t IH] s'' rs' z z' rz.
+{ case: s'' rs'=> [//|h' t'] rs'; inversion rs'. }
+case: s'' rs'=> [|h' t'] rs' /=; [by inversion rs'|].
+apply IH; [by inversion rs'|].
+by apply refinesP; refines_apply; rewrite refinesE; inversion rs'.
+Qed.
 
 End seqmx_param.
 

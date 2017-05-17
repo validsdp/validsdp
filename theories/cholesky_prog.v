@@ -1848,7 +1848,8 @@ Proof.
 ref_abstr => x x' Hx.
 ref_abstr => y y' Hy.
 ref_abstr => z z' Hz.
-rewrite refinesE=> a a' ra; rewrite /compute_c.
+ref_abstr => a a' ra.
+rewrite /compute_c.
 set ca := compute_c_aux _ _ a _.
 set ca' := compute_c_aux _ _ a' _.
 (* suff_eq option_Rxx.
@@ -1867,8 +1868,7 @@ have ref_ca: refines eqFIS ca ca'.
     rewrite /le1 /le2; eapply refinesP, refines_bool_eq; refines_apply.
   by case: le2.
   tc. }
-rewrite !ifE.
-apply refines_if_expr.
+rewrite ifE; apply refines_if_expr; first (rewrite refinesE; suff_eq bool_Rxx).
 congr andb.
 { eapply refinesP, refines_bool_eq.
   refines_apply1.
@@ -1888,8 +1888,7 @@ congr andb.
   refines_apply1.
   by rewrite refinesE; exact: nat_Rxx. }
 { move=> _ _.
-  apply refines_if_expr.
-  eapply refinesP, refines_bool_eq.
+  eapply refinesP; apply refines_if_expr.
   by eapply refines_apply; tc.
   move=> _ _.
   constructor.

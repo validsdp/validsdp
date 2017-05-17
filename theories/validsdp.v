@@ -631,6 +631,8 @@ Hypothesis T2R_additive : additive T2R.
 Canonical T2R_additive_struct := Additive T2R_additive.
 Hypothesis T2F_correct : forall x, finite (T2F x) -> T2R x <= FIS2FS (T2F x).
 Hypothesis T2R_F2T : forall x, T2R (F2T x) = FIS2FS x.
+(** NOTE: we would like to use [Num.max x y] here, but it is not possible as is
+given there is no canonical structure that merges comRingType & numDomainType *)
 Hypothesis max_l : forall x y : T, T2R x <= T2R (max x y).
 Hypothesis max_r : forall x y, T2R y <= T2R (max x y).
 
@@ -1151,11 +1153,13 @@ by rewrite refinesE.
 by refines_apply1; rewrite refinesE.
 Qed.
 
+(** This "abstract/proof-oriented" instance is needed by [max_l, max_r] below,
+given that we cannot use [Num.max] here (see the note before [max_l] above) *)
+
+Global Instance leq_rat : leq_of rat := Num.Def.ler.
+
 Lemma rat2R_le (x y : rat) : (x <= y)%Ri -> rat2R x <= rat2R y.
 Proof. by move=> Hxy; apply/RleP; rewrite unfoldR; rewrite ler_rat. Qed.
-
-(* TODO: to move? *)
-Global Instance leq_rat : leq_of rat := Num.Def.ler.
 
 Lemma max_l (x0 y0 : rat) : rat2R x0 <= rat2R (max x0 y0).
 Proof. by rewrite /max; case: ifP => H; apply: rat2R_le =>//; rewrite lerr. Qed.
@@ -1252,18 +1256,6 @@ Context `{!leq_of C}.
 Context `{!refines (rAC ==> rAC ==> bool_R) leq_op leq_op}.
 
 (* TODO: move in CoqEAL_complement? *)
-Global Instance refine_foldl
-  (T T' : Type) (rT : T -> T' -> Type) (R R' : Type) (rR : R -> R' -> Type) :
-  refines ((rR ==> rT ==> rR) ==> rR ==> list_R rT ==> rR)
-    (@foldl T R) (@foldl T' R').
-Proof.
-rewrite refinesE=> f f' rf z z' rz s' s'' rs'.
-elim: s' s'' rs' z z' rz=> [|h t IH] s'' rs' z z' rz.
-{ case: s'' rs'=> [//|h' t'] rs'; inversion rs'. }
-case: s'' rs'=> [|h' t'] rs' /=; [by inversion rs'|].
-apply IH; [by inversion rs'|].
-by apply refinesP; refines_apply; rewrite refinesE; inversion rs'.
-Qed.
 
 Instance refine_max_coeff :
   refines (ReffmpolyC (n:=n) rAC ==> rAC) max_coeff_ssr max_coeff_eff.
@@ -1276,10 +1268,11 @@ refines_apply1.
 apply refines_abstr2 => m m' rm mc mc' rmc.
 do 2! refines_apply1; refines_abstr => *.
 rewrite /max !ifE; eapply refines_if_expr; tc.
-by eapply refinesP, refines_bool_eq; tc.
+by move=> _ _; eapply refinesP; tc.
+by move=> _ _; eapply refinesP; tc.
 do 2! refines_apply1; refines_abstr => *.
 rewrite /max !ifE; eapply refines_if_expr; tc.
-by eapply refinesP, refines_bool_eq; tc.
+all: by move=> _ _; eapply refinesP; tc.
 Qed.
 
 Context {fs : Float_round_up_infnan_spec}.
