@@ -19,7 +19,7 @@ Import Num.Theory.
 (** ** Link between [Z] (Coq standard lib) and [int] (Mathcomp) *)
 Section Zint.
 
-(** Various lemmas about [nat_of_pos] *)
+(** *** Various lemmas about [nat_of_pos] *)
 
 Lemma nat_of_pos_inj x y : nat_of_pos x = nat_of_pos y -> x = y.
 Proof. rewrite -!binnat.to_natE; apply Pos2Nat.inj. Qed.
@@ -34,7 +34,7 @@ case E: (Pos.to_nat _)=>//; exfalso; move: E.
 by move: (binnat.to_nat_gt0 p); case (Pos.to_nat _).
 Qed.
 
-(** Conversion from [Z] to [int] *)
+(** *** Conversion from [Z] to [int] *)
 Definition Z2int (z : BinNums.Z) :=
   match z with
   | Z0 => 0%:Z
@@ -42,7 +42,7 @@ Definition Z2int (z : BinNums.Z) :=
   | Z.neg n => (- (nat_of_pos n)%:Z)%R
   end.
 
-(** Conversion from [int] to [Z] *)
+(** *** Conversion from [int] to [Z] *)
 Definition int2Z (n : int) : BinNums.Z :=
   match n with
   | Posz O => Z0
@@ -100,7 +100,7 @@ set n := Pos.to_nat p.
 by case: n.
 Qed.
 
-(** [Z2int] is a morphism for arithmetic operations *)
+(** *** [Z2int] is a morphism for arithmetic operations *)
 
 Lemma Z2int_opp n : Z2int (- n) = (- (Z2int n))%R.
 Proof. by case n=>// p /=; rewrite GRing.opprK. Qed.
@@ -286,7 +286,7 @@ Section binrat_theory.
 
 Arguments refines A%type B%type R%rel _ _. (* Fix a scope issue with refines *)
 
-(** Conversion from [bigQ] to [rat] *)
+(** *** Conversion from [bigQ] to [rat] *)
 Program Definition bigQ2rat (bq : bigQ) :=
   let q := Qred [bq]%bigQ in
   @Rat (Z2int (Qnum q), Z2int (Z.pos (Qden q))) _.
@@ -300,17 +300,14 @@ rewrite ZgcdE in HQ.
 by rewrite /div.coprime; apply/eqP/Nat2Z.inj; rewrite HQ.
 Qed.
 
-(** Conversion from [rat] to [bigQ] *)
+(** *** Conversion from [rat] to [bigQ] *)
 Definition rat2bigQ (q : rat) : bigQ :=
   let n := BigZ.of_Z (int2Z (numq q)) in
   let d := BigN.N_of_Z (int2Z (denq q)) in
   (n # d)%bigQ.
 
-(** Refinement relation *)
+(** *** Refinement relation *)
 Definition r_ratBigQ := fun_hrel bigQ2rat.
-
-(** *** Generic function for max *)
-Definition max T `{!leq_of T} (a b : T) := if (b <= a)%C then a else b.
 
 (** *** Main instances *)
 

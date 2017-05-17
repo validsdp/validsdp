@@ -1162,13 +1162,14 @@ Lemma rat2R_le (x y : rat) : (x <= y)%Ri -> rat2R x <= rat2R y.
 Proof. by move=> Hxy; apply/RleP; rewrite unfoldR; rewrite ler_rat. Qed.
 
 Lemma max_l (x0 y0 : rat) : rat2R x0 <= rat2R (max x0 y0).
-Proof. by rewrite /max; case: ifP => H; apply: rat2R_le =>//; rewrite lerr. Qed.
+Proof.
+rewrite /max; case: ifP; rewrite /leq_op /leq_rat => H; apply: rat2R_le =>//=.
+by rewrite lerNgt ltr_def negb_and H orbT.
+Qed.
 
 Lemma max_r (x0 y0 : rat) : rat2R y0 <= rat2R (max x0 y0).
 Proof.
-rewrite /max; case: ifP; rewrite /leq_op /leq_rat => H; apply: rat2R_le =>//.
-by rewrite lerNgt ltr_def negb_and H orbT.
-Qed.
+by rewrite /max; case: ifP; rewrite /leq_op /leq_rat => H; apply: rat2R_le. Qed.
 
 (** ** Part 3: Parametricity *)
 

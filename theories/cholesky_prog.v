@@ -97,7 +97,7 @@ Context `{!lt_of T}.
 
 Definition pos_diag := all_diag (fun x => 0 < x)%C.
 
-Definition max (x y : T) := if (x <= y)%C then y else x.
+Definition max (a b : T) := if (b <= a)%C then a else b.
 
 Definition max_diag A := foldl_diag max 0%C A.
 
@@ -637,7 +637,7 @@ Lemma max_diag_correct (A : 'M[FIS fs]_n.+1) : (forall i, finite (A i i)) ->
   forall i, (MFI2F A) i i <= FIS2FS (max_diag_ssr A).
 Proof.
 move=> HF.
-set f := fun m c : FIS fs => if (m <= c)%C then c else m.
+set f := fun m c : FIS fs => if (c <= m)%C then m else c.
 move=> i; move: i (ltn_ord i).
 set P' := fun j (s : FIS fs) => forall (i : 'I_n.+1), (i < j)%N ->
   (MFI2F A) i i <= FIS2FS s; rewrite -/(P' _ _).
@@ -650,10 +650,10 @@ apply foldl_diag_correct; rewrite /P /P'.
   { by apply fimax_spec_f. }
   move=> j Hj; case (ltnP j i) => Hji.
   { rewrite /f -/(fimax _ _); apply (Rle_trans _ _ _ (Hind' _ Hji)).
-    by apply fimax_spec_lel. }
+    by apply fimax_spec_ler. }
   have H' : j = i.
   { by apply ord_inj, anti_leq; rewrite Hji Bool.andb_true_r. }
-  by rewrite H' /f -/(fimax _ _) mxE; apply fimax_spec_ler. }
+  by rewrite H' /f -/(fimax _ _) mxE; apply fimax_spec_lel. }
 by split; [apply finite0|].
 Qed.
 
@@ -661,15 +661,15 @@ Lemma max_diag_pos (A : 'M[FIS fs]_n.+1) : (forall i, finite (A i i)) ->
   0 <= FIS2FS (max_diag_ssr A).
 Proof.
 move=> HF.
-set f := fun m c : FIS fs => if (m <= c)%C then c else m.
+set f := fun m c : FIS fs => if (c <= m)%C then m else c.
 suff : (finite (foldl_diag_ssr f (FIS0 fs) A)
         /\ 0 <= FIS2FS (foldl_diag_ssr f (FIS0 fs) A)).
 { by move=> H; elim H. }
 set P := fun (j : nat) s => @finite fs s /\ 0 <= FIS2FS s.
 apply foldl_diag_correct with (P0 := P); rewrite /P.
 { move=> i z Hind; destruct Hind as (Hind, Hind'); split.
-  { by case (fimax_spec_eq z (A i i)) => H; rewrite /f -/(fimax _ _) H. }
-  by rewrite /f -/(fimax _ _); apply (Rle_trans _ _ _ Hind'), fimax_spec_lel. }
+  { by case (fimax_spec_eq (A i i) z) => H; rewrite /f -/(fimax _ _) H. }
+  by rewrite /f -/(fimax _ _); apply (Rle_trans _ _ _ Hind'), fimax_spec_ler. }
 by split; [apply finite0|rewrite FIS2FS0; right].
 Qed.
 
