@@ -2167,16 +2167,8 @@ eapply refines_apply.
   { set c1 := compute_c _ _ _ _.
     set c2 := compute_c _ _ _ _.
     rewrite !optionE.
-    eapply refinesP, refines_bool_eq, refines_option.
-    eapply refines_apply.
-    eapply refines_apply.
-    eapply refines_apply.
-    eapply refines_apply.
-    eapply refine_compute_c_seqmx.
-    done.
-    tc.
-    refines_abstr.
-    done.
+    eapply refinesP, refines_bool_eq; refines_apply.
+    apply refines_option.
     refines_abstr.
     refines_apply1.
     refines_apply1.
@@ -2192,8 +2184,7 @@ eapply refines_apply.
       refines_apply1.
       refines_apply1.
       refines_apply1.
-      by refines_abstr. }
-    rewrite refinesE; exact: bool_Rxx. } }
+      by refines_abstr. } } }
 rewrite refinesE; reflexivity.
 rewrite refinesE; reflexivity.
 Qed.
