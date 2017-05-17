@@ -882,6 +882,9 @@ Definition F2bigQ (q : coqinterval_infnan.F.type) : bigQ :=
 (* TODO LATER:
    Generalize the formalization w.r.t
    [Variable fs : Float_round_up_infnan_spec.]
+   Remark:
+   - fs == coqinterval_round_up_infnan
+   - fris fs == coqinterval_infnan
 *)
 
 Local Notation fs := coqinterval_infnan.coqinterval_round_up_infnan (only parsing).
@@ -1255,8 +1258,6 @@ Qed.
 Context `{!leq_of A}.
 Context `{!leq_of C}.
 Context `{!refines (rAC ==> rAC ==> bool_R) leq_op leq_op}.
-
-(* TODO: move in CoqEAL_complement? *)
 
 Instance refine_max_coeff :
   refines (ReffmpolyC (n:=n) rAC ==> rAC) max_coeff_ssr max_coeff_eff.
