@@ -552,15 +552,6 @@ move=> i; rewrite nth_nseq if_same multinomE (tnth_nth 0%N) nth_map //=.
 by rewrite size_enum_ord.
 Qed.
 
-Lemma RordE (n1 n2 : nat) (rn : nat_R n1 n2) i i' :
-  refines (Rord rn) i i' -> i = i' :> nat.
-Proof. by rewrite refinesE =>->. Qed.
-
-(* TODO: move this lemma above *)
-Lemma Rord_ltn2 (n1 n2 : nat) (rn : nat_R n1 n2) i i' :
-  refines (Rord rn) i i' -> i' < n2.
-Proof. by rewrite refinesE =>->; rewrite -(nat_R_eq rn). Qed.
-
 Definition Rord0 {n1} : 'I_n1 -> nat -> Type := fun x y => x = y :> nat.
 
 Lemma Rord0E (n1 : nat) i i' :
