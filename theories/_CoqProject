@@ -43,7 +43,7 @@ QUOT = "$(shell printf '\x22')"
 
 -extra-phony deps.html deps.dot "dot -Tcmapx $< -o deps.html"
 
--extra-phony doc "gallinahtml deps.png deps.html" "cp deps.png html/ ;\
+-extra-phony doc "gallinahtml deps.png deps.html validsdp.vo" "cp deps.png html/ ;\
 	if ! grep -e 'deps[.]png' html/toc.html; then\
 	  sed -i html/toc.html \
 	  -e 's,id=.main.>,&<img src='\''deps.png'\'' border=0 usemap='\''#coq_dependencies'\'' />,' \
