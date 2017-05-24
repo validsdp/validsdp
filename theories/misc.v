@@ -47,10 +47,6 @@ Hint View for apply/ ifft1|2 ifft2|2.
 Lemma ifftW (P Q : Prop) : P <=> Q -> (P <-> Q).
 Proof. by case. Qed.
 
-(** Tip to leverage a Boolean condition *)
-Definition sumb (b : bool) : {b = true} + {b = false} :=
-  if b is true then left erefl else right erefl.
-
 (** ** Lemmas mostly about real numbers. *)
 Section Misc.
 
