@@ -8,15 +8,23 @@ From CoqEAL Require Import hrel.
 From CoqEAL Require Import refinements.
 From CoqEAL Require Import param binord binnat.
 From CoqEAL Require Import seqmx  (** for zipwith and eq_seq *).
-(* Require Import misc. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+(** * CoqEAL refinement for effective multivariate polynomials built on FMaps *)
+
+(** N.B.: Do not use {vm_,native_}compute directly on the various
+    [..._eff] functions as FMaps contain proof terms about balancing of binary
+    trees. Rather surround the polynomial expression with a call to
+    list_of_mpoly_eff. *)
+
+Import Refinements.Op.
+
 Local Open Scope ring_scope.
 
-(* from misc *)
+(** BEGIN move to theory/ssrcomplements.v ? *)
 (** ** map2 - Section taken from coq-interval *)
 Section Map2.
 Variables (A : Type) (B : Type) (C : Type).
@@ -47,14 +55,9 @@ Qed.
 
 End Map2.
 
-(* from misc *)
-(** Tip to leverage a Boolean condition *)
-Definition sumb (b : bool) : {b = true} + {b = false} :=
-  if b is true then left erefl else right erefl.
-
-(* from misc *)
-(** As in the latest version of CoqEAL, all relations are in [Type],
-we need to add some material, such as [ifft], which is similar to [iff] *)
+(** ** Informative version of [iff] *)
+(** As CoqEAL now puts all relations in [Type], we define a compliant
+version of [iff], named [ifft], along with view declarations *)
 Inductive ifft (A B : Type) : Type := Ifft of (A -> B) & (B -> A).
 Infix "<=>" := ifft (at level 95) : type_scope.
 
@@ -73,15 +76,7 @@ Hint View for apply/ ifft1|2 ifft2|2.
 
 Lemma ifftW (P Q : Prop) : P <=> Q -> (P <-> Q).
 Proof. by case. Qed.
-
-(** * CoqEAL refinement for effective multivariate polynomials built on FMaps *)
-
-(** N.B.: Do not use {vm_,native_}compute directly on the various
-    [..._eff] functions as FMaps contain proof terms about balancing of binary
-    trees. Rather surround the polynomial expression with a call to
-    list_of_mpoly_eff. *)
-
-Import Refinements.Op.
+(** END move to theory/ssrcomplements.v ? *)
 
 (** BEGIN pending PR CoqEAL/CoqEAL#3 *)
 Arguments refines A%type B%type R%rel _ _. (* Fix a scope issue with refines *)
@@ -128,7 +123,45 @@ apply inj_map => m n Hmn.
 rewrite -(nat_of_binK m) -(nat_of_binK n).
 by rewrite /spec_N in Hmn; rewrite Hmn.
 Qed.
+
+Lemma Nat2Pos_xI m : ((Pos.of_nat m.+1)~1)%positive = Pos.of_nat ((m.+1).*2.+1).
+Proof.
+rewrite -muln2 [RHS]Nat2Pos.inj_succ // Nat2Pos.inj_mul //.
+simpl (Pos.of_nat 2); zify; omega.
+Qed.
+
+Lemma Nat2Pos_xO m : ((Pos.of_nat m.+1)~0)%positive = Pos.of_nat ((m.+1).*2).
+Proof.
+rewrite -muln2 Nat2Pos.inj_mul //.
+simpl (Pos.of_nat 2); zify; omega.
+Qed.
+
+Lemma pos_of_natE m n : pos_of_nat m n = Pos.of_nat (maxn 1 (m.*2.+1 - n)).
+Proof.
+elim: m n => [|m IHm] n; first by rewrite /= double0 (maxn_idPl (leq_subr _ _)).
+simpl.
+case: n => [|n]; last case: n => [|n]; last by rewrite IHm.
+- rewrite subn0 IHm.
+  have->: (m.*2.+1 - m = m.+1)%N.
+    rewrite -addnn subSn; first by rewrite addnK.
+    exact: leq_addr.
+  by rewrite !(maxn_idPr _) // Nat2Pos_xI.
+- rewrite subn1 IHm.
+  have->: (m.*2.+1 - m = m.+1)%N.
+    rewrite -addnn subSn; first by rewrite addnK.
+    exact: leq_addr.
+  by rewrite !(maxn_idPr _) // Nat2Pos_xO.
+Qed.
+
+Lemma bin_of_natE : bin_of_nat =1 N.of_nat.
+move=> n.
+by rewrite -[bin_of_nat n]nat_of_binK bin_of_natK.
+Qed.
 (** END move to refinements/binnat.v ? *)
+
+(** Tip to leverage a Boolean condition *)
+Definition sumb (b : bool) : {b = true} + {b = false} :=
+  if b is true then left erefl else right erefl.
 
 Definition Rord0 {n1} : 'I_n1 -> nat -> Type := fun x y => x = y :> nat.
 
@@ -186,8 +219,6 @@ by move/andP => [Ha Hs]; apply/eqP; f_equal; apply /eqP => //; apply/Hind.
 Qed.
 
 End effmpoly_generic.
-
-(** Multivariate polynomials *)
 
 Module MultinomOrd <: OrderedType.
 Definition t := seqmultinom.
@@ -266,6 +297,9 @@ Qed.
 
 End MultinomOrd.
 
+(** Generic implementation of multivariate polynomials that can be instanciated
+with e.g. [M := FMapList.Make MultinomOrd] or [M := FMapAVL.Make MultinomOrd] *)
+
 Module FMapMultipoly (M : Sfun MultinomOrd).
 
 Arguments M.empty {elt}.
@@ -285,7 +319,6 @@ Lemma singleton_mapsto {T} k k' (e e' : T) :
 Proof.
 rewrite F.add_mapsto_iff; elim; move=> [Hk He]; [split; [|by[]]|].
 by move/mnmc_eq_seqP/eqP in Hk.
-(* exact: M.E.eq_sym. *)
 by move: He; rewrite F.empty_mapsto_iff.
 Qed.
 
@@ -988,9 +1021,6 @@ Lemma refine_seq_multinom_coeff n (s : seq ('X_{1..n} * T)) s' :
 Proof.
 rewrite refinesE.
 elim: s' s=> [|h' t' IH]; case=> [//|h t] //=.
-(* by move=> *; apply: list_R_nil_R.
-   (* OK thanks to [Hint Resolve list_R_nil_R.] *)
-*)
 case/andP => Hsh Hst [Hh Ht]; constructor.
 { apply/prod_RI; rewrite Hh; split=>//.
   by apply refinesP; eapply refine_multinom_of_seqmultinom_val. }
@@ -1548,42 +1578,6 @@ Qed.
 
 Definition mpoly_exp {n} (p : {mpoly T[n]}) (n : nat) := p ^+ n.
 
-(** Missing material on Pos.of_nat, pos_of_nat, bin_of_nat *)
-
-Lemma Nat2Pos_xI m : ((Pos.of_nat m.+1)~1)%positive = Pos.of_nat ((m.+1).*2.+1).
-Proof.
-rewrite -muln2 [RHS]Nat2Pos.inj_succ // Nat2Pos.inj_mul //.
-simpl (Pos.of_nat 2); zify; omega.
-Qed.
-
-Lemma Nat2Pos_xO m : ((Pos.of_nat m.+1)~0)%positive = Pos.of_nat ((m.+1).*2).
-Proof.
-rewrite -muln2 Nat2Pos.inj_mul //.
-simpl (Pos.of_nat 2); zify; omega.
-Qed.
-
-Lemma pos_of_natE m n : pos_of_nat m n = Pos.of_nat (maxn 1 (m.*2.+1 - n)).
-Proof.
-elim: m n => [|m IHm] n; first by rewrite /= double0 (maxn_idPl (leq_subr _ _)).
-simpl.
-case: n => [|n]; last case: n => [|n]; last by rewrite IHm.
-- rewrite subn0 IHm.
-  have->: (m.*2.+1 - m = m.+1)%N.
-    rewrite -addnn subSn; first by rewrite addnK.
-    exact: leq_addr.
-  by rewrite !(maxn_idPr _) // Nat2Pos_xI.
-- rewrite subn1 IHm.
-  have->: (m.*2.+1 - m = m.+1)%N.
-    rewrite -addnn subSn; first by rewrite addnK.
-    exact: leq_addr.
-  by rewrite !(maxn_idPr _) // Nat2Pos_xO.
-Qed.
-
-Lemma bin_of_natE : bin_of_nat =1 N.of_nat.
-move=> n.
-by rewrite -[bin_of_nat n]nat_of_binK bin_of_natK.
-Qed.
-
 Global Instance refine_mpoly_exp_eff n :
   refines (Reffmpoly ==> Rnat ==> Reffmpoly (T := T) (n := n))
   mpoly_exp (mpoly_exp_eff (n:=n)).
@@ -1749,38 +1743,31 @@ move: ref_m (proj2 Ha) (proj2 Ha'); rewrite !refinesE => ref_m.
 apply (snd ref_m).
 Qed.
 
-(** Missing in new CoqEAL *)
-Fixpoint ohrel {A B : Type} (rAB : A -> B -> Type) sa sb : Type :=
-  match sa, sb with
-    | None,   None   => True
-    | Some a, Some b => rAB a b
-    | _,      _      => False
-  end.
-
 Lemma refine_M_hrel_find :
-  refines (eq ==> M_hrel ==> ohrel rAC) (@M.find A) (@M.find C).
+  refines (eq ==> M_hrel ==> option_R rAC) (@M.find A) (@M.find C).
 Proof.
 apply refines_abstr => k k'; rewrite refinesE => <-.
 apply refines_abstr => m m'; rewrite refinesE => ref_m.
 rewrite refinesE; case_eq (M.find k m') => [e'|]; case_eq (M.find k m) => [e|] /=.
 { move/F.find_mapsto_iff => H1 /F.find_mapsto_iff => H2.
-  by apply (snd ref_m) with k. }
-{ move/F.not_find_in_iff => H' H''; apply H'.
+  by constructor; apply (snd ref_m) with k. }
+{ move/F.not_find_in_iff => H' H''; exfalso; apply H'.
   by apply (fst ref_m); rewrite F.in_find_iff H''. }
-{ rewrite -F.not_find_in_iff /= => H' H''; apply H''.
-  by apply (fst ref_m); rewrite F.in_find_iff H'. }
-done.
+{ move=> H' /F.not_find_in_iff => H''; exfalso; apply H''.
+  apply/(fst ref_m k)/F.in_find_iff.
+  by rewrite H'. }
+by move=> *; constructor.
 Qed.
 
 (* Note: Maybe could be simplified using [map2_ifft] *)
 Lemma refine_M_hrel_map2 :
-  refines ((ohrel rAC ==> ohrel rAC ==> ohrel rAC) ==> M_hrel ==> M_hrel ==> M_hrel)
+  refines ((option_R rAC ==> option_R rAC ==> option_R rAC) ==> M_hrel ==> M_hrel ==> M_hrel)
     (@M.map2 A A A) (@M.map2 C C C).
 Proof.
 apply refines_abstr => f f' ref_f.
 apply refines_abstr => m1 m1' ref_m1.
 apply refines_abstr => m2 m2' ref_m2.
-have Hf : forall k, ohrel rAC (f (M.find k m1) (M.find k m2))
+have Hf : forall k, option_R rAC (f (M.find k m1) (M.find k m2))
                       (f' (M.find k m1') (M.find k m2')).
 { move=> k; apply refinesP; eapply refines_apply; [eapply refines_apply|].
   { apply ref_f. }
@@ -1794,21 +1781,23 @@ rewrite refinesE; rewrite refinesE in ref_m1, ref_m2; split.
     apply M.find_1 in He; rewrite (M.map2_1 _ Hor) in He.
     move: (Hf k); rewrite He; case_eq (f' (M.find k m1') (M.find k m2')) => //.
     move=> e' He' _; exists e'; apply M.find_2; rewrite -He'; apply M.map2_1.
-    by destruct Hor as [Hk|Hk]; [left; apply ref_m1|right; apply ref_m2]. }
+      by destruct Hor as [Hk|Hk]; [left; apply ref_m1|right; apply ref_m2].
+    by move=> _ K; inversion_clear K. }
   move=> Hk; have Hor := M.map2_2 Hk; move: Hk => [e He].
   apply M.find_1 in He; rewrite (M.map2_1 _ Hor) in He.
   move: (Hf k); rewrite He; case_eq (f (M.find k m1) (M.find k m2)) => //.
   move=> e' He' _; exists e'; apply M.find_2; rewrite -He'; apply M.map2_1.
-  by destruct Hor as [Hk|Hk]; [left; apply ref_m1|right; apply ref_m2]. }
+    by destruct Hor as [Hk|Hk]; [left; apply ref_m1|right; apply ref_m2].
+  by move=> _ K; inversion_clear K. }
 move=> k e e' He He'; move: (M.find_1 He) (M.find_1 He') (Hf k).
 case_eq (M.find k m1) => [e1|] He1.
 { rewrite M.map2_1; [|by left; exists e1; apply M.find_2].
   rewrite M.map2_1; [|by left; apply ref_m1; exists e1; apply M.find_2].
-  by rewrite He1 => -> ->. }
+  by rewrite He1 => -> -> H; inversion_clear H. }
 case_eq (M.find k m2) => [e2|] He2.
 { rewrite M.map2_1; [|by right; exists e2; apply M.find_2].
   rewrite M.map2_1; [|by right; apply ref_m2; exists e2; apply M.find_2].
-  by rewrite He1 He2 => -> ->. }
+  by rewrite He1 He2 => -> -> H; inversion_clear H. }
 elim (@map2_2_dec _ _ _ m1 m2 k f); [| |by exists e].
 { by move/MIn_sig=> [e'1 He'1]; apply M.find_1 in He'1; rewrite He'1 in He1. }
 by move/MIn_sig=> [e'2 He'2]; apply M.find_1 in He'2; rewrite He'2 in He2.
@@ -2031,7 +2020,7 @@ eapply refines_trans; [by apply composable_comp|by apply refine_mp0_eff|].
 apply refine_M_hrel_empty.
 Qed.
 
-Global Instance ReffmpolyA_mp1_eff (n : nat) :
+Global Instance ReffmpolyC_mp1_eff (n : nat) :
   refines (@ReffmpolyC n) 1 (mp1_eff (n:=n)).
 Proof.
 eapply refines_trans; [by apply composable_comp|by apply refine_mp1_eff|].
@@ -2118,8 +2107,7 @@ Proof.
 rewrite /mpoly_add_eff.
 eapply refines_apply; first eapply refine_M_hrel_map2.
 rewrite refinesE => a a' ref_a b b' ref_b.
-case: a ref_a; case: a'; case: b ref_b; case: b' =>// a' a ref_a b' b ref_b.
-red in ref_a, ref_b |- *.
+case: ref_a; case: ref_b => *; constructor =>//.
 by eapply refinesP; refines_apply.
 Qed.
 
@@ -2135,10 +2123,9 @@ Proof.
 rewrite /mpoly_sub_eff.
 eapply refines_apply; first eapply refine_M_hrel_map2.
 rewrite refinesE => a a' ref_a b b' ref_b.
-case: a ref_a; case: a'; case: b ref_b; case: b' =>//.
-{ move => a' a ref_a b' b ref_b; red in ref_a, ref_b |- *.
-  eapply refinesP; refines_apply. }
-move=> a' a ref_a _; red in ref_a |- *; eapply refinesP; refines_apply.
+case: ref_a; case: ref_b => *; constructor =>//.
+by eapply refinesP; refines_apply.
+by eapply refinesP; refines_apply.
 Qed.
 
 Global Instance ReffmpolyC_mpoly_sub_eff (n : nat) :
