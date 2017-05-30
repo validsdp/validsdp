@@ -2168,7 +2168,6 @@ eapply refines_apply.
     set c2 := compute_c _ _ _ _.
     rewrite !optionE.
     eapply refinesP, refines_bool_eq; refines_apply.
-    apply refines_option.
     refines_abstr.
     refines_apply1.
     refines_apply1.
