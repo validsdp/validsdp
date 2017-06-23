@@ -1,10 +1,28 @@
 # Developer Makefile, for preparing an archive
 
 all::
-	@echo "You can run: make dist"
+	@echo 'You can run:'
+	@echo '    "make dist" to create a tarball'
+	@echo '    "make external" to build extra Coq dependencies'
+	@echo '    "make install" to build and install ValidSDP'
 
 DIST1 = dist1
 DIST2 = dist2
+
+external::
+	@echo Cloning external dependencies...
+	git submodule update --init
+	@echo Installing external dependencies...
+	( cd external/paramcoq && make && make install )
+	( cd external/CoqEAL/theory && make && make install )
+	( cd external/CoqEAL/refinements && make && make install )
+	( cd external/multinomials && make && make install )
+
+install::
+	$(MAKE) -C plugins/soswitness
+	$(MAKE) -C plugins/soswitness install
+	$(MAKE) -C plugins/theories
+	$(MAKE) -C plugins/theories install
 
 dist:: AUTHORS README
 	$(MAKE) -C plugins/soswitness dist
