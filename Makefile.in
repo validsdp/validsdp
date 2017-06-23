@@ -26,8 +26,8 @@ external::
 install::
 	$(MAKE) -C plugins/soswitness
 	$(MAKE) -C plugins/soswitness install
-	$(MAKE) -C plugins/theories
-	$(MAKE) -C plugins/theories install
+	$(MAKE) -C theories
+	$(MAKE) -C theories install
 
 dist::
 	autoreconf
