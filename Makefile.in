@@ -11,7 +11,7 @@ DIST2 = dist2
 FILES = AUTHORS README configure Makefile.in
 
 external::
-	@if ! ls -1qA external/paramcoq | grep -q .; then \
+	@if test -r .gitmodules; then \
 		echo Cloning external dependencies...; \
 		echo git submodule update --init; \
 		git submodule update --init; \
