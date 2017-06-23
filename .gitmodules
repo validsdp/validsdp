@@ -5,3 +5,6 @@
 	path = external/CoqEAL
 	url = https://github.com/CoqEAL/CoqEAL.git
 	branch = paramcoq-dev
+[submodule "external/multinomials"]
+	path = external/multinomials
+	url = https://github.com/math-comp/multinomials.git
