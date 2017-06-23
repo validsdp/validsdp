@@ -4,21 +4,30 @@ ValidSDP
 Dependencies
 ------------
 
-- Coq 8.6 (http://coq.inria.fr)
+- Coq 8.6 (https://coq.inria.fr)
 - mathcomp (https://math-comp.github.io/math-comp/, tested with version 1.6.1)
-- paramcoq (https://github.com/CohenCyril/paramcoq.git, tested with git revision 8dbf3fc1a0a0e0177eb9d88f6b76b8eb0dc22889)
-- CoqEAL (https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev, tested with git revision 09edca5ae49b80ebfd562b787dce841a44e48774)
-- multinomials (https://github.com/math-comp/multinomials, tested with git revision 5b46e50983ee68dd1b6932e7e4a3bfc1113e7360)
 - Flocq (http://flocq.gforge.inria.fr/, tested with version 2.5.2)
 - Coquelicot (http://coquelicot.saclay.inria.fr/, tested with version 3.0.0)
-- CoqInterval (http://coq-interval.gforge.inria.fr/, tested with version 3.2.0)
+- Coq-interval (http://coq-interval.gforge.inria.fr/, tested with version 3.2.0)
 - OSDP (https://cavale.enseeiht.fr/osdp, tested with version 0.5.3)
+- paramcoq (https://github.com/CohenCyril/paramcoq.git, dev. version)
+- CoqEAL (https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev, dev. version)
+- multinomials (https://github.com/math-comp/multinomials, dev. version)
+
+Remark
+------
+
+For the libraries tagged above as "dev. version" you may get more info
+(the SHA-1 of the corresponding commits) by cloning our Git repository
+and typing "git submodule status". However these libraries need not be
+retrieved and installed manually: they are available in the "external"
+subfolder and their installation can be automated (see below).
 
 Installation
 ------------
 
 Most of the dependencies (Coq, mathcomp, Flocq, Coquelicot and
-CoqInterval) can be easily installed with OPAM
+Coq-interval) can be easily installed with OPAM
 (https://opam.ocaml.org). Once OPAM is installed, type
 
 % opam repo add coq-released https://coq.inria.fr/opam/released
