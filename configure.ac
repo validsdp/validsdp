@@ -80,6 +80,6 @@ AC_OUTPUT
 chmod a-w Makefile
 
 echo ""
-echo "  Now type 'make external' to build and install extra Coq dependencies"
-echo "  then 'make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION."
+echo "  Now run 'make external' to build and install extra Coq dependencies"
+echo "  then run 'make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
 echo ""

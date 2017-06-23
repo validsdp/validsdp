@@ -1,20 +1,21 @@
 # Developer Makefile, for preparing an archive
 
 all::
-	@echo 'You can run:'
-	@echo '    "make external" to build and install extra Coq dependencies'
-	@echo '    "make install" to build and install ValidSDP'
-	@echo '    "make dist" to prepare a folder for distribution'
+	@echo "You can run:"
+	@echo "    'make external' to build and install extra Coq dependencies"
+	@echo "    'make install' to build and install ValidSDP"
+	@echo "    'make dist' to prepare an archive for distribution"
 
 DIST1 = dist1
 DIST2 = dist2
-FILES = AUTHORS README configure Makefile.in
+FILES = AUTHORS README.md configure Makefile.in
 
 external::
 	@if test -r .gitmodules; then \
-		echo Cloning external dependencies...; \
+		echo Retrieving external dependencies...; \
 		echo git submodule update --init; \
 		git submodule update --init; \
+		echo; \
 	fi
 	@echo Installing external dependencies...
 	( cd external/paramcoq && make && make install )
@@ -32,6 +33,6 @@ dist::
 	autoreconf
 	$(MAKE) -C plugins/soswitness dist
 	$(MAKE) -C theories dist
-	export T=$$(readlink -f $$(mktemp -d dist.XXX)) && export S=@PACKAGE_NAME@ && mkdir -p $$T/$$S && rsync -R $(FILES) $$T/$$S && rsync -av $(DIST1)/$$S $(DIST2)/$$S $$T && git submodule foreach 'git archive --format=tar HEAD | (mkdir -p $$T/$$S/$$path && cd $$T/$$S/$$path && tar xf -)' && rm -fr $$T/$$S/external/CoqEAL/{v0.1,0.2,release}; (cd $$T && tar cvzf @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.gz @PACKAGE_NAME@); echo '\n'See $$T'\n'
+	export T=$$(readlink -f $$(mktemp -d dist.XXX)) && export S=@PACKAGE_NAME@ && mkdir -p $$T/$$S && rsync -R $(FILES) $$T/$$S && rsync -av $(DIST1)/$$S $(DIST2)/$$S $$T && git submodule foreach 'git archive --format=tar HEAD | (mkdir -p $$T/$$S/$$path && cd $$T/$$S/$$path && tar xf -)' && rm -fr $$T/$$S/external/CoqEAL/{v0.1,0.2,release}; (cd $$T && tar cvzf @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.gz @PACKAGE_NAME@); echo '\n'See $$T/'\n'
 	$(RM) -r $$(readlink $(DIST1)) $$(readlink $(DIST2))
 	$(RM) $(DIST1) $(DIST2)
