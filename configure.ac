@@ -31,7 +31,17 @@ AS_IF(
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find theories rat and matrix from mathcomp >= 1.6.1 (http://math-comp.github.io/math-comp/)])])
+    AC_MSG_ERROR([ *** Unable to find theories rat and matrix from mathcomp >= 1.6.1 (https://math-comp.github.io/math-comp/)])])
+rm -f conftest.v conftest.vo conftest.err
+
+AC_MSG_CHECKING([for Flocq])
+AS_IF(
+  [ echo "Require Import Flocq.Flocq_version BinNat." \
+         "Goal (20500 <= Flocq_version)%N. easy. Qed." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find library Flocq >= 2.5 (http://flocq.gforge.inria.fr/)])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Coq-interval])
@@ -51,16 +61,6 @@ rm -f conftest.v conftest.vo conftest.err
 if test "$libdir" = '${exec_prefix}/lib'; then
   libdir="`$COQC -where`/user-contrib/Interval"
 fi
-
-AC_MSG_CHECKING([for Flocq])
-AS_IF(
-  [ echo "Require Import Flocq.Flocq_version BinNat." \
-         "Goal (20500 <= Flocq_version)%N. easy. Qed." > conftest.v
-    $COQC conftest.v > conftest.err ],
-  [ AC_MSG_RESULT([yes]) ],
-  [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library Flocq >= 2.5 (http://flocq.gforge.inria.fr/)])])
-rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for OSDP])
 AS_IF(
