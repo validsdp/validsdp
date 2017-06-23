@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([ValidSDP], [0.4-git])
+AC_INIT([validsdp], [0.4-git])
 AC_CONFIG_SRCDIR([theories/validsdp.v])
 
 # Check for programs
@@ -75,8 +75,9 @@ AS_IF(
 rm -f conftest.v conftest.vo conftest.err
 
 # Create files
-AC_CONFIG_FILES()
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
+chmod a-w Makefile
 
 echo ""
 echo "  Now type 'make external' to build dependencies (stored in git submodules)."
