@@ -66,12 +66,20 @@ setup.data
 setup.log
 
 # Misc
+/dist.*/
+/configure
+/config.status
+/Makefile
+/autom4te.cache/
 /theories/coqgraph
 /theories/html/
 /theories/Makefile.coq
-/dependencies/CoqEAL_refinements/Makefile.coq
-/dependencies/CoqEAL_theory/Makefile.coq
+/plugins/soswitness/Makefile.coq
+*.ml4.d
+*.mllib.d
 *.log
+csdp.cache
+lia.cache
 
 # PVS
 *.summary
