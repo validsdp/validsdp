@@ -22,38 +22,24 @@ CoqInterval) can be easily installed with OPAM
 (https://opam.ocaml.org). Once OPAM is installed, type
 
 % opam repo add coq-released https://coq.inria.fr/opam/released
-% opam install ocamlfind zarith coq coq-interval
-
-Paramcoq, CoqEAL and multinomials have to be retrieved from their Git
-repository:
-
-% git clone https://github.com/CohenCyril/paramcoq.git
-% git clone https://github.com/CoqEAL/CoqEAL.git
-% git clone https://github.com/math-comp/multinomials.git
-
-then follow their respective installation instructions (usually make
-and make install, in both subdirectories theory and refinements for
-CoqEAL).
+% opam install ocamlfind zarith coq coq-interval coq-mathcomp-algebra
 
 OSDP can be downloaded from (https://cavale.enseeiht.fr/osdp), then
 follow the instructions in the INSTALL file (only the SDPA dependency
 is required (Debian package sdpa for instance), in particular CSDP,
 Mosek, camlp4 and ocaml-glpk are not mandatory).
 
-The installation of ValidSDP itself can then proceed, first with the
-OCaml plugin:
+To check that you have these dependencies properly installed, you can run:
 
-% cd plugins/soswitness/
-% make
-% make install  # possibly as root (but probably not if you installed Coq via OPAM)
-% cd ../..
+% ./configure
 
-Then with the Coq tactic:
+Then, build and install Paramcoq, CoqEAL, and multinomials by typing:
 
-% cd theories
-% make -j2
-% make install  # possibly as root (but probably not if you installed Coq via OPAM)
-% cd ..
+% make external
+
+Finally, build and install ValidSDP by typing:
+
+% make install
 
 Usage
 -----
