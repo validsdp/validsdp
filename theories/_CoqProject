@@ -50,4 +50,4 @@ QUOT = "$(shell printf '\x22')"
 	  -e '/<img src='\''deps.png'\''/r deps.html';\
 	fi"
 
--extra-phony dist "$(VFILES) _CoqProject Makefile coqgraph.ml" "T=$$(mktemp -d ../dist2.XXX) && S=$$T/validsdp/theories && mkdir -p $$S && rsync -R $^ $$S && rm -f ../dist2 && ln -rsv $$T ../dist2"
+-extra-phony dist "$(VFILES) _CoqProject Makefile coqgraph.ml" "T=$$(mktemp -d ../dist2.XXX) && S=$$T/theories && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ../dist2 && ln -rsv $$T ../dist2"

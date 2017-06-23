@@ -33,6 +33,6 @@ dist::
 	autoreconf
 	$(MAKE) -C plugins/soswitness dist
 	$(MAKE) -C theories dist
-	export T=$$(readlink -f $$(mktemp -d dist.XXX)) && export S=@PACKAGE_NAME@ && mkdir -p $$T/$$S && rsync -R $(FILES) $$T/$$S && rsync -av $(DIST1)/$$S $(DIST2)/$$S $$T && git submodule foreach 'git archive --format=tar HEAD | (mkdir -p $$T/$$S/$$path && cd $$T/$$S/$$path && tar xf -)' && rm -fr $$T/$$S/external/CoqEAL/{v0.1,0.2,release}; (cd $$T && tar cvzf @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.gz @PACKAGE_NAME@); echo '\n'See $$T/'\n'
+	export T=$$(readlink -f $$(mktemp -d dist.XXX)) && export S=@PACKAGE_NAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDvR $(FILES) $$T/$$S && rsync -rlpgoDv $$(readlink $(DIST1))/ $$(readlink $(DIST2))/ $$T/$$S && git submodule foreach 'git archive --format=tar HEAD | (mkdir -p $$T/$$S/$$path && cd $$T/$$S/$$path && tar xf -)' && rm -fr $$T/$$S/external/CoqEAL/{v0.1,0.2,release}; (cd $$T && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
 	$(RM) -r $$(readlink $(DIST1)) $$(readlink $(DIST2))
 	$(RM) $(DIST1) $(DIST2)
