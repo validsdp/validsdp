@@ -1,3 +1,7 @@
 [submodule "external/paramcoq"]
 	path = external/paramcoq
 	url = https://github.com/CohenCyril/paramcoq.git
+[submodule "external/CoqEAL"]
+	path = external/CoqEAL
+	url = https://github.com/CoqEAL/CoqEAL.git
+	branch = paramcoq-dev
