@@ -26,17 +26,14 @@ be retrieved and installed manually: they are available in the
 Installation
 ------------
 
-Most of the dependencies (Coq, mathcomp, Flocq, Coquelicot, Coq-interval)
-can be easily installed with [OPAM](https://opam.ocaml.org/).
+Most of the dependencies (Coq, mathcomp, Flocq, Coquelicot,
+Coq-interval and OSDP) can be easily installed with
+[OPAM](https://opam.ocaml.org/).
 Once OPAM is installed, run:
 
     $ opam repo add coq-released https://coq.inria.fr/opam/released
-    $ opam install ocamlfind zarith coq coq-interval coq-mathcomp-algebra
-
-OSDP can be downloaded from <https://cavale.enseeiht.fr/osdp/>, then
-follow the instructions in the INSTALL file (only the SDPA dependency
-is required (Debian package sdpa for instance), in particular CSDP,
-Mosek, camlp4 and ocaml-glpk are not mandatory).
+    $ opam update
+    $ opam install coq coq-interval coq-mathcomp-algebra osdp
 
 To ensure that you have these dependencies properly installed, run:
 
