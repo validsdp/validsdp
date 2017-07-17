@@ -33,7 +33,7 @@ Once OPAM is installed, run:
 
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
-    $ opam install coq coq-interval coq-mathcomp-algebra osdp
+    $ opam install coq coq-interval coq-mathcomp-field osdp
 
 To ensure that you have these dependencies properly installed, run:
 
