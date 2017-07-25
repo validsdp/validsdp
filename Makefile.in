@@ -1,4 +1,4 @@
-# Developer Makefile, for preparing an archive
+# Makefile for ValidSDP
 
 all::
 	@echo "You can run:"
