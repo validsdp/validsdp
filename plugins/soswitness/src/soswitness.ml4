@@ -275,7 +275,7 @@ let psatz options q =
   let ret, _, vals, wl = Sos.solve ~options Sos.Purefeas [Sos.(!!q)] in
   match (ret = Osdp.SdpRet.Success), wl with
   | (false, _ | _, []) ->
-     Format.printf "l27@."; errorpp "soswitness: OSDP found no witnesses."
+     Format.printf "l27@."; errorpp "soswitness: OSDP found no witnesses"
   | _, (zQ :: _) ->
      let array_to_list (z, q) =
        Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
@@ -328,11 +328,11 @@ let psatz_hyps options q pl =
     | (Some _) as w -> w
     | None -> get_wits true in
   match w with
-  | None -> errorpp "soswitness: OSDP found no witnesses."
+  | None -> errorpp "soswitness: OSDP found no witnesses"
   | Some (nb_vars, coeff, sigmas, vals, zQ, zQl) ->
      let coeff = Sos.value coeff vals in
      if SosP.Coeff.equal coeff SosP.Coeff.zero then
-       errorpp "soswitness: OSDP found no witnesses.";
+       errorpp "soswitness: OSDP found no witnesses";
      let coeff = SosP.Coeff.inv coeff in
      let sigmas = List.rev_map (fun e -> Sos.value_poly e vals) sigmas in
      let sigmas = List.map (SosP.mult_scalar coeff) sigmas in
@@ -362,7 +362,7 @@ let soswitness options c =
   let () =  (* TODO: try to fix that *)
     if Osdp.Sos.Q.Poly.is_const q <> None then
       errorpp "soswitness: expects a closed term representing \
-               a non constant polynomial." in
+               a non constant polynomial" in
   (* Call OSDP to retrieve witnesses *)
   let nb_vars, zq, szql =
     match pl with [] -> psatz options q | _ -> psatz_hyps options q pl in
