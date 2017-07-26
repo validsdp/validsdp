@@ -402,10 +402,9 @@ let soswitness options c =
   tyPair ty_witness (tyList (tyPair ty_poly ty_witness))
 
 let soswitness options gl c id =
-  Format.printf "before soswitness@.";
   let (v, t), ti = Osdp.Utils.profile (fun () -> soswitness options c) in
-  Format.printf "after soswitness@.";
-  Format.printf "  soswitness took %.2fs@." ti;
+  if options.Sos.verbose > 0 then
+    Format.printf "soswitness took: %.2fs@." ti;
   Tactics.letin_tac None (Names.Name id) v (Some t) Locusops.nowhere
 
 let soswitness_opts gl c id opts =
