@@ -1,7 +1,7 @@
 (** * Main tactic for multivariate polynomial positivity. *)
 
 Require Import ZArith.
-From Flocq Require Import Fcore.
+From Flocq Require Import Fcore. Require Import Datatypes.
 From Interval Require Import Interval_definitions Interval_xreal.
 From Interval Require Import Interval_missing.
 From CoqEAL.refinements Require Import hrel refinements param seqmx binint rational.
@@ -16,8 +16,9 @@ Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog coqinterval_infnan.
 Require Import multipoly. Import PolyAVL.
-From ValidSDP Require Import soswitness zulp.
+From ValidSDP Require Import zulp.
 Require Import seqmx_complements misc.
+From ValidSDP Require Export soswitness.
 
 Import GRing.Theory.
 Import Num.Theory.
@@ -1874,7 +1875,7 @@ Ltac get_goal g l :=
         end
   end.
 
-Ltac validsdp :=
+Ltac do_validsdp params :=
   lazymatch goal with
   | [ |- ?g ] =>
     match get_goal g (@Datatypes.nil R) with
@@ -1892,7 +1893,7 @@ Ltac validsdp :=
                           abstr_poly_of_p_abstr_poly) p) in
         let ppi := eval vm_compute in (p, pi) in
         let zQ_szQi := fresh "zQ_szQi" in
-        (soswitness of ppi as zQ_szQi);
+        (soswitness of ppi as zQ_szQi with params);
         apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1);
         (vm_cast_no_check (erefl true))
       end)
@@ -1900,6 +1901,21 @@ Ltac validsdp :=
     | _ => fail "validsdp failed to conclude"
     end
   end.
+
+(* [tuple_to_list] was taken from CoqInterval *)
+Ltac tuple_to_list params l :=
+  match params with
+  | pair ?a ?b => tuple_to_list a (b :: l)
+  | ?b => constr:(b :: l)
+  | ?z => fail 100 "Unknown tactic parameter" z
+  end.
+
+
+Tactic Notation "validsdp" :=
+  do_validsdp (@Datatypes.nil validsdp_tac_parameters).
+
+Tactic Notation "validsdp" "with" constr(params) :=
+ do_validsdp ltac:(tuple_to_list params (@Datatypes.nil validsdp_tac_parameters)).
 
 (** Some quick tests. *)
 
