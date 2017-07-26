@@ -431,7 +431,11 @@ let soswitness_opts gl c id opts =
              Sos.sdp =
                { options.Sos.sdp with Osdp.Sdp.verbose = n } } )
       Sos.default opts in
-  soswitness options gl c id
+  try soswitness options gl c id
+  with SosFail (level, msg) -> failtac level msg
+     | Failure msg -> failtac maxlevel (Pp.str msg)
+     | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
+            failtac maxlevel Pp.(str msg)
 
 open Constrarg
 
@@ -441,18 +445,10 @@ TACTIC EXTEND soswitness_of_as
     let gl = Proofview.Goal.assume gl in
     let opts =
       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
-    try soswitness_opts gl c id opts
-    with SosFail (level, msg) -> failtac level msg
-       | Failure msg -> failtac maxlevel (Pp.str msg)
-       | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
-              failtac maxlevel Pp.(str msg) } ]
+    soswitness_opts gl c id opts } ]
 |
 ["soswitness" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
 [ Proofview.Goal.enter { Proofview.Goal.enter = fun gl ->
     let gl = Proofview.Goal.assume gl in
-    try soswitness_opts gl c id opts
-    with SosFail (level, msg) -> failtac level msg
-       | Failure msg -> failtac maxlevel (Pp.str msg)
-       | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
-              failtac maxlevel Pp.(str msg) } ]
+    soswitness_opts gl c id opts } ]
 END
