@@ -4,6 +4,7 @@ all::
 	@echo "You can run:"
 	@echo "    'make external' to build and install extra Coq dependencies"
 	@echo "    'make install' to build and install ValidSDP"
+	@echo "    'make clean' to remove all generated files"
 	@echo "    'make dist' to prepare an archive for distribution"
 
 DIST1 = dist1
@@ -18,16 +19,24 @@ external::
 		echo; \
 	fi
 	@echo Installing external dependencies...
-	( cd external/paramcoq && make && make install )
-	( cd external/CoqEAL/theory && make && make install )
-	( cd external/CoqEAL/refinements && make && make install )
-	( cd external/multinomials && make && make install )
+	( cd external/paramcoq && $(MAKE) && $(MAKE) install )
+	( cd external/CoqEAL/theory && $(MAKE) && $(MAKE) install )
+	( cd external/CoqEAL/refinements && $(MAKE) && $(MAKE) install )
+	( cd external/multinomials && $(MAKE) && $(MAKE) install )
 
 install::
 	$(MAKE) -C plugins/soswitness
 	$(MAKE) -C plugins/soswitness install
 	$(MAKE) -C theories
 	$(MAKE) -C theories install
+
+clean::
+	([ -f external/paramcoq/Makefile ] && $(MAKE) -C external/paramcoq clean )
+	([ -f external/CoqEAL/theory/Makefile ] && $(MAKE) -C external/CoqEAL/theory clean )
+	([ -f external/CoqEAL/refinements/Makefile ] && $(MAKE) -C external/CoqEAL/refinements clean )
+	([ -f external/multinomials/Makefile ] && $(MAKE) -C external/multinomials clean )
+	$(MAKE) -C plugins/soswitness clean
+	$(MAKE) -C theories clean
 
 dist::
 	autoreconf
