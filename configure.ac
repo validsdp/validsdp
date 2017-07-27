@@ -27,11 +27,11 @@ AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
 # Check for libraries
 AC_MSG_CHECKING([for Mathcomp])
 AS_IF(
-  [ echo "From mathcomp Require Import rat matrix." > conftest.v
+  [ echo "From mathcomp Require Import rat matrix countalg." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find theories rat and matrix from mathcomp >= 1.6.1 (https://math-comp.github.io/math-comp/)])])
+    AC_MSG_ERROR([ *** Unable to find theories rat, matrix, countalg from mathcomp >= 1.6.1 (http://coq.io/opam/coq-mathcomp-field.1.6.1.html)])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Flocq])
