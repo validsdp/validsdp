@@ -63,14 +63,19 @@ fi
 
 AC_MSG_CHECKING([for OSDP])
 AS_IF(
-  [ osdp_version=`ocamlfind query -format %v osdp`
-    major=`echo $coq_version | cut -d . -f 1`
-    minor=`echo $coq_version | cut -d . -f 2`
-    patch=`echo $coq_version | cut -d . -f 3`
-    test "0$major" -gt 0 -o "0$minor" -gt 5 -o \( "0$minor" -eq 5 -a "0$patch" -ge 2 \) ],
-  [ AC_MSG_RESULT([yes]) ],
+  [ req_maj="0"
+    req_min="5"
+    req_pat="2"
+    osdp_version=`ocamlfind query -format %v osdp 2>/dev/null`
+    major=`echo $osdp_version | cut -d . -f 1`
+    minor=`echo $osdp_version | cut -d . -f 2`
+    patch=`echo $osdp_version | cut -d . -f 3`
+    test "0$major" -gt "0$req_maj" || { test "0$major" -eq "0$req_maj" && \
+      test "0$minor" -gt "0$req_min" || { test "0$minor" -eq "0$req_min" && \
+        test "0$patch" -ge "0$req_pat"; }; } ],
+  [ AC_MSG_RESULT($osdp_version) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library OSDP >= 0.5.2 (https://cavale.enseeiht.fr/osdp/)])])
+    AC_MSG_ERROR([ *** Unable to find library OSDP >= $req_maj.$req_min.$req_pat (https://cavale.enseeiht.fr/osdp/)])])
 rm -f conftest.v conftest.vo conftest.err
 
 # Create files
