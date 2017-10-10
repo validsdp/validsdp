@@ -69,7 +69,7 @@ AS_IF(
     osdp_version=`ocamlfind query -format %v osdp 2>/dev/null`
     major=`echo $osdp_version | cut -d . -f 1`
     minor=`echo $osdp_version | cut -d . -f 2`
-    patch=`echo $osdp_version | cut -d . -f 3`
+    patch=`echo $osdp_version | cut -d . -f 3 | cut -d - -f 1`
     test "0$major" -gt "0$req_maj" || { test "0$major" -eq "0$req_maj" && \
       test "0$minor" -gt "0$req_min" || { test "0$minor" -eq "0$req_min" && \
         test "0$patch" -ge "0$req_pat"; }; } ],
