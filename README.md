@@ -4,7 +4,7 @@ ValidSDP
 Dependencies
 ------------
 
-- [Coq](https://coq.inria.fr) version 8.6
+- [Coq](https://coq.inria.fr) version 8.6.x
 - [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.6.1)
 - [Flocq](http://flocq.gforge.inria.fr/) (tested with version 2.5.2)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.0)
