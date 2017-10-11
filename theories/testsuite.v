@@ -2,6 +2,8 @@ Require Import Reals.
 From ValidSDP Require Import validsdp.
 Local Open Scope R_scope.
 
+Section testsuite.
+
 Let sigma x0 x1 x2 : R := 6444365281246187/9007199254740992
          + 6312265263179769/576460752303423488 * x0
          + 6621776382116655/144115188075855872 * x1
@@ -179,3 +181,5 @@ Lemma p_ind (x0 x1 x2 : R) :
 unfold p, sigma, sigma1.
 Time validsdp.
 Time Qed.
+
+End testsuite.

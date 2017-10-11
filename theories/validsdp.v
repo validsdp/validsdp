@@ -1919,20 +1919,17 @@ Tactic Notation "validsdp" "with" constr(params) :=
 
 (** Some quick tests. *)
 
-Goal forall x y : R, 0 <= x -> 0 <= y -> x + y + 1 >= 0.
+Let test1 : forall x y : R, 0 < x -> 1 <= y -> x + y >= 0.
 intros x y.
 Time validsdp.
-Abort.
+Qed.
 
-Goal forall x y : R, x^2 + y^2 <= 2 -> x^2 + y^2 <= 4.
+Let test2 : forall x y : R, (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
 intros x y.
 Time validsdp.
-Abort.
+Qed.
 
-Lemma test_validsdp (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
+Let test3 : forall x y : R, (2 / 3 * x ^ 2 + y ^ 2 + 1 > 0)%Re.
+intros x y.
 Time validsdp.
-Time Qed.
-
-Lemma test_validsdp' (x y : R) : (2 / 3 * x ^ 2 + y ^ 2 + 1 > 0)%Re.
-Time validsdp.
-Time Qed.
+Qed.
