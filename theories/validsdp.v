@@ -445,7 +445,7 @@ Context `{!poly_mul_of polyT}.
 Context {s : nat}.
 Context `{!I0_class ord s, !succ0_class ord s, !nat_of_class ord s}.
 
-Inductive sz_witness :=
+Variant sz_witness :=
   | Wit : polyT -> forall s, mx monom s.+1 1 -> mx F s.+1 s.+1 -> sz_witness.
 
 (* Prove that /\_i pi >= 0 -> p >= 0 by proving that
@@ -1346,7 +1346,7 @@ by rewrite refinesE /Rord.
 by rewrite refinesE /Rord.
 Qed.
 
-CoInductive RWit (w : sz_witness) (w' : sz_witness) : Type :=
+Variant RWit (w : sz_witness) (w' : sz_witness) : Type :=
 | RWit_spec :
     forall s p z Q p' z' Q' (_ : w = Wit p z Q) (_ : w' = Wit p' z' Q')
            (_ : ReffmpolyC (n:=n) rAC p p')
@@ -1648,7 +1648,7 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
            let sz := size szQ.2.1 in
            let z := map (fun x => [:: x]) szQ.2.1 in
            let Q := map (map F2FI) szQ.2.2 in
-           Wit s (s:=sz.-1) z Q)
+           Wit (mx := @hseqmx) (fs := fs) s (s := sz.-1) z Q)
         szQi in
   let pszQl := zip bpl szQl in
   [&&
