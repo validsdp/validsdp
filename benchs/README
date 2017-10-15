@@ -63,6 +63,7 @@ For each benchmark <test>:
 <test>.pvs: benchmark with PVS/Bernstein
 <test>.hl: benchmark with HOL Light/Formal_ineqs
 <test>.sage: benchmark with MC11
+<test>.qepcad: benchmark with QEPCAD
 
 input.ineq: due to NLCertify's input format, all benchmarks for this tool are gathered here
 lexer.mll parser.mly parse.ml parse.ml: files needed for OSDP benchmarks
@@ -80,6 +81,7 @@ Dependencies
 - PVS 5.0 with nasalib (see below)
 - NLCertify (see below)
 - HOL Light (see below)
+- QEPCAD (see below)
 
 Installing PVS 5.0 and nasalib
 ------------------------------
@@ -196,6 +198,19 @@ Note: this procedure may not work within an SSH session.
 % dmtcp_command --checkpoint # from another terminal (when computation is over)
   # and finally close the OCaml top-level (with Ctrl+D)
 
+Installing QEPCAD
+-----------------
+
+% git clone https://github.com/PetterS/qepcad
+
+Compilation require CMake:
+
+% cd qepcad
+% mkdir build
+% cd build
+% cmake ..
+% make
+
 Running the benchmarks
 ======================
 
@@ -215,6 +230,7 @@ Or independently
 % make logs_nlcnocoq
 % make logs_nlccoq
 % make logs_taylor
+% make logs_qepcad
 
 Collecting the results
 ----------------------
