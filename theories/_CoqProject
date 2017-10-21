@@ -25,29 +25,25 @@ binrat.v
 
 -extra-phony test "testsuite.v validsdp.v" "$(COQC) $(COQDEBUG) $(COQFLAGS) $<"
 
-#COQFLAGS = "-debug"
-
 COQDOCFLAGS = "-interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq"
 
-# QUOT = "$(shell printf '\x22')"
-# 
-# -extra coqgraph coqgraph.ml "ocamlc.opt -o $@ $<"
-# 
-# -extra-phony deps.dot "$(VFILES) coqgraph" "cat $(addsuffix .d,$(VFILES)) |\
-# 	sed -e 's,./,,g' |\
-# 	./coqgraph - |\
-# 	sed -e 's/color \?= \?grey95,/& URL=$(QUOT)ValidSDP.\\N.html$(QUOT),/' |\
-# 	tred > $@"
-# 
-# -extra-phony deps.png deps.dot "dot -Tpng $< -o $@"
-# 
-# -extra-phony deps.html deps.dot "dot -Tcmapx $< -o deps.html"
-# 
-# -extra-phony doc "gallinahtml deps.png deps.html validsdp.vo" "cp deps.png html/ ;\
-# 	if ! grep -e 'deps[.]png' html/toc.html; then\
-# 	  sed -i html/toc.html \
-# 	  -e 's,id=.main.>,&<img src='\''deps.png'\'' border=0 usemap='\''#coq_dependencies'\'' />,' \
-# 	  -e '/<img src='\''deps.png'\''/r deps.html';\
-# 	fi"
-# 
--extra-phony dist "$(VFILES) _CoqProject Makefile" "T=$$(mktemp -d ../dist2.XXX) && S=$$T/theories && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ../dist2 && ln -rsv $$T ../dist2"
+-extra makedot dependtodot.ml "ocamlc -o $@ -pp camlp4o $<"
+
+-extra-phony depend.dot "$(VFILES) makedot" "coqdep -noglob $(VFILES) | \
+	grep -v -e '\.vio:' > depend && \
+	sed -i -e 's|[/0-9A-Za-z_]*\.v\.beautified||g' depend && \
+	./makedot depend && \
+	sed -i -e 's|\./|./ValidSDP.|g' $@"
+
+-extra-phony depend.png depend.dot "dot -Tpng $< -o $@"
+
+-extra-phony depend.html depend.dot "dot -Tcmapx $< -o depend.html"
+
+-extra-phony doc "gallinahtml depend.png depend.html validsdp.vo" "cp depend.png html/ ;\
+	if ! grep -e 'depend[.]png' html/toc.html; then\
+	  sed -i html/toc.html \
+	  -e 's,id=.main.>,&<img src='\''depend.png'\'' border=0 usemap='\''#depend'\'' />,' \
+	  -e '/<img src='\''depend.png'\''/r depend.html';\
+	fi"
+
+-extra-phony dist "$(VFILES) _CoqProject Makefile dependtodot.ml" "T=$$(mktemp -d ../dist2.XXX) && S=$$T/theories && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ../dist2 && ln -rsv $$T ../dist2"
