@@ -50,8 +50,8 @@ Finally, to build and install ValidSDP, run:
 Usage
 -----
 
-Examples of usage of the tactic can be found at the end of the
-"theories/validsdp.v" file.
+Examples of usage of the tactic can be found at the end of the file
+"theories/validsdp.v" as well as in the file "theories/testsuite.v"
 
 Documentation
 -------------
