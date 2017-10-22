@@ -1,27 +1,27 @@
 -R . ValidSDP
-bigop_tactics.v
-binary64_infnan.v
-binary64.v
-bounded.v
-cholesky_infnan.v
-cholesky_prog.v
-cholesky.v
-coqinterval_infnan.v
-fcmdotprod.v
-float_infnan_spec.v
-float_spec.v
-flx64.v
-fsum.v
-gamma.v
-iteri_ord.v
-misc.v
-multipoly.v
-real_matrix.v
 Rstruct.v
-seqmx_complements.v
-validsdp.v
-zulp.v
 binrat.v
+misc.v
+real_matrix.v
+bounded.v
+float_spec.v
+gamma.v
+fsum.v
+fcmdotprod.v
+binary64.v
+cholesky.v
+float_infnan_spec.v
+binary64_infnan.v
+cholesky_infnan.v
+flx64.v
+zulp.v
+coqinterval_infnan.v
+cholesky_prog.v
+seqmx_complements.v
+iteri_ord.v
+bigop_tactics.v
+multipoly.v
+validsdp.v
 
 -extra-phony test "testsuite.v validsdp.v" "$(COQC) $(COQDEBUG) $(COQFLAGS) $<"
 
