@@ -1,16 +1,3 @@
-Preliminary remark
-==================
-
-Currently, the relaxation coefficients sigma* are hardcoded for
-ValidSDP benchmarks whereas they are automatically computed by other
-tools requiring them. This is a limitation of ValidSDP we are
-currently alleviating. The automatic computation feature is already
-available in the underlying OSDP library. Experiments with OSDP
-indicate that, whereas this computation has an impact on SDP solvers
-running time (let's say OSDP becomes two times slower), this shouldn't
-incur any major overhead to ValidSDP (since currently, SDP solver
-running time is only a small portion of ValidSDP total running time).
-
 Short description of benchmarks
 ===============================
 
