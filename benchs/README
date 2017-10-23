@@ -174,17 +174,11 @@ You may already have installed it for OSDP. Otherwise:
 
 ### Create checkpoints using DMTCP
 
+Do successively:
+
 % export HOLLIGHT_DIR=~/forge/git-anon/hol-light
-
 % ./ckpt-hollight-multi.bash "$HOLLIGHT_DIR"
-
-# FIXME: Update
-% cd $HOLLIGHT_DIR
-% mkdir dmtcp-multi-ineqs && cd dmtcp-multi-ineqs
-% ../dmtcp-multi/dmtcp_restart_script.sh --ckptdir ./ # restarts the top-level
-  #use "../Formal_ineqs/make.ml";;
-% dmtcp_command --checkpoint # from another terminal (when computation is over)
-  # and finally close the OCaml top-level (with Ctrl+D)
+% ./ckpt-hollight-multi-ineqs.bash "$HOLLIGHT_DIR"
 
 Installing QEPCAD
 -----------------
