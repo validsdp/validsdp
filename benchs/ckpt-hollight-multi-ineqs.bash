@@ -34,7 +34,8 @@ function ckpt-exit() {
 
 # Possible enhancement: replace output file with a fifo to earn space
 function main() {
-    dmtcp=(../dmtcp-multi/dmtcp_restart_script.sh --ckptdir ./)
+    # dmtcp=(../dmtcp-multi/dmtcp_restart_script.sh --ckptdir ./) # --ckptdir doesn't seem to work
+    dmtcp=(../dmtcp-multi/dmtcp_restart_script.sh)
     # mlargs=(/usr/bin/ocaml -I +../camlp5)
     mlcode='#use "../Formal_ineqs/make.ml";;
 print_endline "Done.";;'
@@ -83,6 +84,7 @@ In the very end, type ^C to automatically checkpoint & exit.
 "
     pause
 
+    export DMTCP_CHECKPOINT_DIR=$(readlink -f .)
     cat "$fi" | "${dmtcp[@]}" >"$out" &
     exec 3>"$fi"
     echo "$mlcode" > "$fi"
