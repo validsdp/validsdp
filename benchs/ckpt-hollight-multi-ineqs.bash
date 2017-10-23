@@ -58,6 +58,10 @@ print_endline "Done.";;'
     fi="$PWD/input"
     out="$PWD/output"
 
+    if [[ ! -r "$HOLLIGHT_DIR/$subdir/${dmtcp[0]}" ]]; then
+        die_hard "Error: cannot find '$HOLLIGHT_DIR/$subdir/${dmtcp[0]}'."
+    fi
+
     if [[ ! -p "$fi" ]]; then
 	mkfifo "$fi"
     else
@@ -84,7 +88,8 @@ In the very end, type ^C to automatically checkpoint & exit.
 "
     pause
 
-    export DMTCP_CHECKPOINT_DIR=$(readlink -f .)
+    DMTCP_CHECKPOINT_DIR=$(readlink -f .)
+    export DMTCP_CHECKPOINT_DIR
     cat "$fi" | "${dmtcp[@]}" >"$out" &
     exec 3>"$fi"
     echo "$mlcode" > "$fi"
