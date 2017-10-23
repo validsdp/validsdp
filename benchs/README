@@ -114,17 +114,17 @@ regarding the installation, you can go to
 
 Install BLAS/LAPACK shared libraries (for lacaml)
 
-% sudo aptitude install libblas3 libblas-dev liblapack3 liblapack-dev
+% sudo apt-get install libblas3 libblas-dev liblapack3 liblapack-dev
 
 Install NLCertify's dependencies (including SDPA)
 
 % opam install ocamlfind ocamlgraph zarith lacaml.7.2.6
 
-% apt-get install sdpa  # adapt to your distro if not Debian based
+% sudo apt-get install sdpa
 
 Checkout NLCertify (as of 2014-11-04 12:07:04)
 
-% sudo aptitude install git gitk
+% sudo apt-get install git gitk
 % mkdir -p ~/forge/git-anon && cd ~/forge/git-anon
 % git clone https://forge.ocamlcore.org/anonscm/git/nl-certify/nl-certify.git
 % cd nl-certify
