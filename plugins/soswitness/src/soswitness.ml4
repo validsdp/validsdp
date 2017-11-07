@@ -147,7 +147,8 @@ let ofZn2z hght c =
       | _ -> raise Parse_error in
   aux hght c
 
-let bigN_path = ["Coq"; "Numbers"; "Natural"; "BigN"; "BigN"; "BigN"]
+(* let bigN_path = ["Coq"; "Numbers"; "Natural"; "BigN"; "BigN"; "BigN"] *)
+let bigN_path = ["Bignums"; "BigN"; "BigN"; "BigN"]
 let coq_bigN_N0 = lazy (init_constant bigN_path "N0")
 let coq_bigN_N1 = lazy (init_constant bigN_path "N1")
 let coq_bigN_N2 = lazy (init_constant bigN_path "N2")
@@ -197,7 +198,8 @@ let ofBigZ c = match Term.decompose_app c with
   | c, [n] (*when eq_cst c coq_bigZ_Neg*) -> Z.neg (ofBigN n)
   | _ -> raise Parse_error
 
-let bigQ_path = ["Coq"; "Numbers"; "Rational"; "BigQ"; "BigQ"; "BigQ"]
+(* let bigQ_path = ["Coq"; "Numbers"; "Rational"; "BigQ"; "BigQ"; "BigQ"] *)
+let bigQ_path = ["Bignums"; "BigQ"; "BigQ"; "BigQ"]
 let coq_bigQ_ind = lazy (init_constant bigQ_path "t_")
 let coq_bigQ_Qz = lazy (init_constant bigQ_path "Qz")
 let coq_bigQ_Qq = lazy (init_constant bigQ_path "Qq")
@@ -343,26 +345,32 @@ let psatz_hyps options q pl =
      nb_vars, array_to_list zQ, List.combine sigmas (List.map array_to_list zQl)
 
 let soswitness options c =
+  Format.printf "<begin soswitness@.";
   let ty_N = Lazy.force coq_N_ind in
   let ty_seqmultinom = tyList ty_N in
   let ty_bigQ = Lazy.force coq_bigQ_ind in
   let ty_poly = tyList (tyPair ty_seqmultinom ty_bigQ) in
+  Format.printf "before deconstruct@.";
   (* Deconstruct the input (translate it from Coq to OCaml). *)
   let q, pl =
     let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofN c) in
     let ofPoly c =
       Osdp.Sos.Q.Poly.of_list (ofList (ofPair ofSeqmultinom ofBigQ) c) in
     try
+      Format.printf "  before try ofPair@.";
       ofPair ofPoly (ofList ofPoly) c
     with Parse_error ->
+      Format.printf "  Parse_error@.";
       let ty_input = tyPair ty_poly (tyList ty_poly) in
       fail maxlevel
         Pp.(str "soswitness: wrong input type (expected "
             ++ Printer.pr_constr ty_input ++ str ").") in
+  Format.printf "in deconstruct@.";
   let () =  (* TODO: try to fix that *)
     if Osdp.Sos.Q.Poly.is_const q <> None then
       errorpp "soswitness: expects a closed term representing \
                a non constant polynomial" in
+  Format.printf "after deconstruct@.";
   (* Call OSDP to retrieve witnesses *)
   let nb_vars, zq, szql =
     match pl with [] -> psatz options q | _ -> psatz_hyps options q pl in
@@ -372,6 +380,7 @@ let soswitness options c =
     | h :: t -> h :: add_tr_0 (n - 1) t in
   let add_zeros (z, q) = List.map (add_tr_0 nb_vars) z, q in
   let zq, szql = add_zeros zq, List.map (fun (s, zq) -> s, add_zeros zq) szql in
+  Format.printf "before reconstruct@.";
   (* Reconstruct the output (translate it from OCaml to Coq). *)
   let ty_seqmultinom_list = tyList ty_seqmultinom in
   let ty_bigZ = Lazy.force coq_bigZ_ind in
@@ -394,6 +403,7 @@ let soswitness options c =
         (mkPair ty_seqmultinom ty_bigQ mkSeqmultinom mkBigQ)
         (Osdp.Sos.Q.Poly.to_list p) in
     mkPair ty_poly ty_witness mkPoly mk_witness in
+  Format.printf "end of soswitness>@.";
   mkPair
     ty_witness (tyList (tyPair ty_poly ty_witness))
     mk_witness
@@ -405,6 +415,8 @@ let soswitness options gl c id =
   let (v, t), ti = Osdp.Utils.profile (fun () -> soswitness options c) in
   if options.Sos.verbose > 0 then
     Format.printf "soswitness took: %.2fs@." ti;
+  let v = EConstr.of_constr v in
+  let t = EConstr.of_constr t in
   Tactics.letin_tac None (Names.Name id) v (Some t) Locusops.nowhere
 
 let soswitness_opts gl c id opts =
@@ -436,18 +448,23 @@ let soswitness_opts gl c id opts =
      | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
             failtac maxlevel Pp.(str msg)
 
-open Constrarg
+(* open Constrarg *)
+open Stdarg
+open Ltac_plugin
 
 TACTIC EXTEND soswitness_of_as
 ["soswitness" "of" constr(c) "as" ident(id) ] ->
-[ Proofview.Goal.enter { Proofview.Goal.enter = fun gl ->
+[ Proofview.Goal.enter (*{ Proofview.Goal.enter =*)( fun gl ->
     let gl = Proofview.Goal.assume gl in
+    let c = EConstr.Unsafe.to_constr c in
     let opts =
       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
-    soswitness_opts gl c id opts } ]
+    soswitness_opts gl c id opts ) (*}*) ]
 |
 ["soswitness" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
-[ Proofview.Goal.enter { Proofview.Goal.enter = fun gl ->
+[ Proofview.Goal.enter (* { Proofview.Goal.enter = *) (fun gl ->
     let gl = Proofview.Goal.assume gl in
-    soswitness_opts gl c id opts } ]
+    let c = EConstr.Unsafe.to_constr c in
+    let opts = EConstr.Unsafe.to_constr opts in
+    soswitness_opts gl c id opts)  (* } *) ]
 END

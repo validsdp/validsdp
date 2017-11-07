@@ -38,7 +38,7 @@ Import Refinements.Op.
 
 Require Import iteri_ord.
 Require Import cholesky_prog.
-Require Import BigQ.
+Require Import Bignums.BigQ.
 Require Import Interval.Interval_xreal.
 
 Require Import cholesky_prog.

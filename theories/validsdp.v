@@ -6,7 +6,7 @@ From Interval Require Import Interval_definitions Interval_xreal.
 From Interval Require Import Interval_missing.
 From CoqEAL.refinements Require Import hrel refinements param seqmx binint rational.
 Require Import binrat.
-Require Import Reals Flocq.Core.Fcore_Raux QArith BigZ BigQ Psatz FSetAVL.
+Require Import Reals Flocq.Core.Fcore_Raux QArith Bignums.BigZ.BigZ Bignums.BigQ.BigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.

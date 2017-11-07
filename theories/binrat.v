@@ -1,6 +1,6 @@
 (** * A refinement of Mathcomp's rationals [rat] with [bigQ] from Coq standard library. *)
 
-Require Import ZArith QArith BigQ.
+Require Import ZArith QArith Bignums.BigQ.BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 From mathcomp Require Import ssralg ssrnum ssrint rat div.
 From CoqEAL.refinements Require Import hrel refinements param binint.

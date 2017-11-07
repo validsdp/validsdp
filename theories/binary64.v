@@ -161,6 +161,7 @@ assert (Hexy : (exy <= fexp exy)%Z).
   { apply (ln_beta_le_bpow _ _ _ Nzxy'), (Rle_lt_trans _ _ _ Hxy').
     apply (Rmult_lt_reg_l 2); [lra|rewrite <- Rmult_assoc, Rinv_r; [|lra]].
     rewrite ulp_neq_0; [|easy].
+    change 2%R with (Rplus 1%R 1%R).
     rewrite Rmult_plus_distr_r, Rmult_1_l.
     rewrite <- Rplus_0_r at 1.
     apply Rplus_lt_compat_l, bpow_gt_0. }

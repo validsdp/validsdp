@@ -1,7 +1,7 @@
 (** * CoqInterval floats satisfy hypothesis in [Float_infnan_spec] *)
 
 Require Import Reals.
-Require Import BigZ.
+Require Import Bignums.BigZ.BigZ.
 Require Import ROmega.
 
 Require Import Flocq.Core.Fcore_Zaux.
@@ -218,7 +218,7 @@ have NZf1 : f1 <> Z0.
 { move=> K; rewrite /F2R -/f1 K /= Rsimpl in H1.
   case: H1; rewrite FtoR_split /F2R /=.
   case/Rmult_integral.
-  { change R0 with (Z2R 0); apply: Z2R_neq; by case: (s). }
+  { change 0%Re with (Z2R 0); apply: Z2R_neq; by case: (s). }
   by apply: Rgt_not_eq; apply: bpow_gt_0. }
 move/(Zdigits_le_Zpower radix2) in Hf2.
 apply/Z.leb_le.
@@ -248,10 +248,10 @@ have Hlte : (bpow radix2 [e]%bigZ < bpow radix2 (Fexp f))%Re.
     rewrite (Rabs_pos_eq (/ bpow _ _));
       last exact/Rlt_le/Rinv_0_lt_compat/bpow_gt_0.
     field.
-    split; last by apply/Rabs_no_R0; change R0 with (Z2R Z0); exact: Z2R_neq.
+    split; last by apply/Rabs_no_R0; change 0%Re with (Z2R Z0); exact: Z2R_neq.
     exact/Rgt_not_eq/bpow_gt_0.
   apply.
-  by apply/Rabs_pos_lt; change R0 with (Z2R Z0); exact: Z2R_neq. }
+  by apply/Rabs_pos_lt; change 0%Re with (Z2R Z0); exact: Z2R_neq. }
 move/lt_bpow in Hlte.
 have {Hmf} Hmf : ([m]%bigZ = f1 * 2 ^ (Fexp f - [e]%bigZ))%Z.
 { clear - Hlte Hmf.
