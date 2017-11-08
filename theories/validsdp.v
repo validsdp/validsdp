@@ -35,21 +35,10 @@ Inductive p_real_cst :=
 | PConstR0
 (* | PConstQz of bigZ *)
 | PConstQq of bigZ & bigN
-| PConstP2R of positive
+| PConstIZR of BinNums.Z
 | PConstRdiv of p_real_cst & positive
 | PConstRopp of p_real_cst
 | PConstRinv of positive.
-
-Ltac get_positive t :=
-  let rec aux t :=
-    match t with
-    | 1%Re => xH
-    | 2%Re => constr:(xO xH)
-    | 3%Re => constr:(xI xH)
-    | (2 * ?v)%Re => let w := aux v in constr:(xO w)
-    | (1 + 2 * ?v)%Re => let w := aux v in constr:(xI w)
-    end in
-  aux t.
 
 Ltac get_real_cst t :=
   let rec aux t :=
@@ -57,14 +46,12 @@ Ltac get_real_cst t :=
     (* | Z2R [?z]%bigZ *)
     | bigQ2R (?z # ?n)%bigQ => constr:(PConstQq z n)
     | R0 => PConstR0
-    | Rdiv ?x ?y => let x := aux x in
-                    let y := get_positive y in
-                    constr:(PConstRdiv x y)
+    | Rdiv ?x (IZR (BinNums.Zpos ?y)) => let x := aux x in
+                                         constr:(PConstRdiv x y)
     | Ropp ?x => let x := aux x in
                  constr:(PConstRopp x)
-    | Rinv ?x => let x := get_positive x in
-                 constr:(PConstRinv x)
-    | ?n => let p := get_positive n in constr:(PConstP2R p)
+    | Rinv (IZR (BinNums.Zpos ?x)) => constr:(PConstRinv x)
+    | IZR ?n => constr:(PConstIZR n)
     | _ => false
     end in
   aux t.
@@ -74,7 +61,7 @@ Fixpoint interp_p_real_cst (p : p_real_cst) : R :=
   | PConstR0 => R0
 (* | PConstQz z => Z2R [z]%bigZ *)
   | PConstQq z n => bigQ2R (z # n)%bigQ
-  | PConstP2R p => P2R p
+  | PConstIZR n => IZR n
   | PConstRdiv x y => Rdiv (interp_p_real_cst x) (P2R y)
   | PConstRopp x => Ropp (interp_p_real_cst x)
   | PConstRinv x => Rinv (P2R x)
@@ -187,7 +174,7 @@ Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
   match c with
   | PConstR0 => 0%bigQ
   | PConstQq z n => (z # n)%bigQ
-  | PConstP2R p => BigQ.of_Q (inject_Z (Z.pos p))
+  | PConstIZR n => BigQ.of_Q (inject_Z n)
   | PConstRdiv x y => (aux x / BigQ.of_Q (inject_Z (Z.pos y)))%bigQ
   | PConstRopp x => (- aux x)%bigQ
   | PConstRinv x => (1 / BigQ.of_Q (inject_Z (Z.pos x)))%bigQ
@@ -196,21 +183,25 @@ Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
 Lemma bigQ_of_p_real_cst_correct c :
   bigQ2R (bigQ_of_p_real_cst c) = interp_p_real_cst c.
 Proof.
+have P2R_IPR : forall p, P2R p = IPR p by elim=> [p|p|//] /= ->; case p.
 have IQRp : forall p,
-  Q2R [BigQ.Qz (BigZ.Pos (BigN.of_pos p))]%bigQ = P2R p.
+  Q2R [BigQ.Qz (BigZ.Pos (BigN.of_pos p))]%bigQ = IPR p.
 { by move=> p; rewrite /Q2R /= BigN.spec_of_pos /= Rsimpl. }
 elim c.
 { by rewrite /bigQ2R /Q2R /= /Rdiv Rmult_0_l. }
 { done. }
-{ exact: IQRp. }
-{ move=> c' Hc' p; rewrite /= -Hc' /bigQ2R /Rdiv -IQRp -Q2R_inv.
+{ move=> [|p|p] /=.
+  { by rewrite /bigQ2R /Q2R /= /Rdiv Rmult_0_l. }
+  { by rewrite /bigQ2R IQRp /IZR. }
+  by rewrite /bigQ2R /IZR -IQRp -Q2R_opp. }
+{ move=> c' Hc' p; rewrite /= -Hc' /Rdiv /bigQ2R /= P2R_IPR -IQRp -Q2R_inv.
   { by rewrite -Q2R_mult; apply Q2R_Qeq; rewrite BigQ.spec_div. }
   by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl; pos_P2R. }
 { move=> p Hp; rewrite /= -Hp /bigQ2R -Q2R_opp; apply Q2R_Qeq, BigQ.spec_opp. }
-{ move=> p; rewrite /bigQ2R /interp_p_real_cst -IQRp -Q2R_inv.
-  { apply Q2R_Qeq; rewrite -(Qmult_1_l (Qinv _)) -/([1]%bigQ).
-    by rewrite -BigQ.spec_inv -BigQ.spec_mul. }
-  by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl; pos_P2R. }
+move=> p; rewrite /bigQ2R /interp_p_real_cst P2R_IPR -IQRp -Q2R_inv.
+{ apply Q2R_Qeq; rewrite -(Qmult_1_l (Qinv _)) -/([1]%bigQ).
+  by rewrite -BigQ.spec_inv -BigQ.spec_mul. }
+by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl; pos_P2R.
 Qed.
 
 Fixpoint abstr_poly_of_p_abstr_poly (p : p_abstr_poly) : abstr_poly :=
@@ -759,7 +750,7 @@ have : exists E : 'M_s.+1,
     { move=> Hm; move: (check_base_correct Hbase Hm).
       move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
       apply Rgt_not_eq, Rlt_gt.
-      rewrite -unfoldR; change R0 with (INR 0); apply lt_INR.
+      rewrite -unfoldR; change 0%Re with (INR 0); apply lt_INR.
       rewrite /nbm filter_index_enum; rewrite <-cardE.
       by apply/ltP/card_gt0P; exists (j, i); rewrite /in_mem /=. }
     by rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 GRing.mul0r. }
@@ -946,10 +937,10 @@ case E: nr.
   { by apply round_UP_pt, FLX_exp_valid. }
   rewrite /x -!Z2R_int2Z real_FtoX_toR // toR_Float /= Rmult_1_r.
   apply (Rmult_le_reg_r (Z2R (int2Z d))).
-  { by rewrite -[R0]/(Z2R 0); apply Z2R_lt. }
+  { by rewrite -[0%Re]/(Z2R 0); apply Z2R_lt. }
   rewrite -Z2R_mult Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc.
   rewrite Rstruct.mulVr ?Rmult_1_r; [by right|].
-  rewrite -[R0]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
+  rewrite -[0%Re]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
   by move: Hd; rewrite H. }
 rewrite /= ifF /=; last first.
 { move: E; rewrite /nr; set nrnr := (_ # _)%bigQ; move: (BigQ_red_den_neq0 nrnr).
@@ -957,7 +948,7 @@ rewrite /= ifF /=; last first.
 rewrite F.div_correct /Xround /Xdiv real_FtoX_toR //= real_FtoX_toR //=.
 rewrite /Xdiv' ifF; last first.
 { apply Req_bool_false; rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
-  rewrite -[R0]/(Z2R 0); apply Z2R_neq.
+  rewrite -[0%Re]/(Z2R 0); apply Z2R_neq.
   move: E; rewrite /nr; set nrnr := (_ # _)%bigQ.
   move: (BigQ_red_den_neq0_aux nrnr).
   by case (BigQ.red _)=>[//|n' d'] H [] _ <-. }
@@ -969,16 +960,16 @@ move=> Hnd; rewrite /round /rnd_of_mode /=.
 set x := _ / _; apply (Rle_trans _ x); [|by apply round_UP_pt, FLX_exp_valid].
 rewrite /x -!Z2R_int2Z; do 2 rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
 apply (Rmult_le_reg_r (Z2R (int2Z d))).
-{ by rewrite -[R0]/(Z2R 0); apply Z2R_lt. }
+{ by rewrite -[0%Re]/(Z2R 0); apply Z2R_lt. }
 set lhs := _ * _; rewrite Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc -Z2R_mult.
 rewrite Hnd {}/lhs /GRing.mul /= Rmult_assoc.
 rewrite Rstruct.mulVr ?Rmult_1_r; [right|]; last first.
-{ rewrite -[R0]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
+{ rewrite -[0%Re]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
   by move: Hd; rewrite H. }
 rewrite Z2R_mult Rmult_assoc Rinv_r ?Rmult_1_r //.
 move: (erefl nr); rewrite /nr; set nrnr := (_ # _)%bigQ=>_.
 move: (BigQ_red_den_neq0_aux nrnr); rewrite /nrnr -/nr E=>H.
-by rewrite -[R0]/(Z2R 0); apply Z2R_neq.
+by rewrite -[0%Re]/(Z2R 0); apply Z2R_neq.
 Transparent F.div.
 Qed.
 

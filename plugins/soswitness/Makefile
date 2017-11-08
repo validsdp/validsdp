@@ -14,7 +14,7 @@ Makefile.coq: Makefile $(MODULES)
 #	@ocamlfind query glpk >/dev/null
 	coq_makefile -I src \
 	  -I "$(shell ocamlfind query zarith)" -I "$(shell ocamlfind query ocplib-simplex)" -I "$(shell ocamlfind query osdp)" \
-	  -Q theories $(NAME) $(MODULES) -o $@
+	  -R theories $(NAME) $(MODULES) -o $@
 	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
 #	& glpk.cmxa
 
@@ -23,7 +23,7 @@ install: Makefile.coq
 
 clean: Makefile.coq
 	-$(MAKE) -f Makefile.coq clean
-	rm -f Makefile.coq
+	rm -f Makefile.coq Makefile.coq.conf
 
 dist: $(MODULES) Makefile
 	T=$$(mktemp -d ../../dist1.XXX) && S=$$T/plugins/soswitness && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ../../dist1 && ln -rsv $$T ../../dist1

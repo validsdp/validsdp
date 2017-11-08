@@ -83,11 +83,11 @@ let coq_N_ind = lazy (init_constant nat_path "N")
 let coq_N_0 = lazy (init_constant nat_path "N0")
 let coq_N_pos = lazy (init_constant nat_path "Npos")
 
-let rec mkN n =
+let mkN n =
   if n <= 0 then Lazy.force coq_N_0
   else Term.mkApp (Lazy.force coq_N_pos, [|mkPositive n|])
 
-let rec ofN c = match snd (Term.decompose_app c) with
+let ofN c = match snd (Term.decompose_app c) with
   | [] -> 0
   | p :: _ -> ofPositive p
 
@@ -116,7 +116,7 @@ let ofInt31 c =
     | d :: t (*when eq_cst d coq_int31_1*) -> aux t (2 * acc + 1) in
   aux (snd (Term.decompose_app c)) 0
 
-let zn2z_path = ["Coq"; "Numbers"; "Cyclic"; "DoubleCyclic"; "DoubleType"]
+let zn2z_path = ["Coq"; "Numbers"; "Cyclic"; "Abstract"; "DoubleType"]
 let coq_zn2z_ind = lazy (init_constant zn2z_path "zn2z")
 let coq_zn2z_W0 = lazy (init_constant zn2z_path "W0")
 let coq_zn2z_WW = lazy (init_constant zn2z_path "WW")
@@ -147,7 +147,6 @@ let ofZn2z hght c =
       | _ -> raise Parse_error in
   aux hght c
 
-(* let bigN_path = ["Coq"; "Numbers"; "Natural"; "BigN"; "BigN"; "BigN"] *)
 let bigN_path = ["Bignums"; "BigN"; "BigN"; "BigN"]
 let coq_bigN_N0 = lazy (init_constant bigN_path "N0")
 let coq_bigN_N1 = lazy (init_constant bigN_path "N1")
@@ -160,7 +159,7 @@ let coq_bigN_Nn = lazy (init_constant bigN_path "Nn")
 
 let mkBigN n =
   let rec height pow2 acc =
-    if Z.(n < pow2) then acc else height Z.(pow2 * pow2) (acc + 1) in
+    if Z.lt n pow2 then acc else height Z.(pow2 * pow2) (acc + 1) in
   let hght = height Z.(shift_left one 31) 0 in
   let word = mkZn2z hght n in
   match hght with
@@ -184,7 +183,7 @@ let ofBigN c = match Term.decompose_app c with
   | c, [n; d] when eq_cst c coq_bigN_Nn -> ofZn2z (ofNat n + 7) d
   | _ -> raise Parse_error
 
-let bigZ_path = ["Coq"; "Numbers"; "Integer"; "BigZ"; "BigZ"; "BigZ"]
+let bigZ_path = ["Bignums"; "BigZ"; "BigZ"; "BigZ"]
 let coq_bigZ_ind = lazy (init_constant bigZ_path "t")
 let coq_bigZ_Pos = lazy (init_constant bigZ_path "Pos")
 let coq_bigZ_Neg = lazy (init_constant bigZ_path "Neg")
@@ -192,13 +191,12 @@ let coq_bigZ_Neg = lazy (init_constant bigZ_path "Neg")
 let mkBigZ n =
   if Z.sign n >= 0 then Term.mkApp (Lazy.force coq_bigZ_Pos, [|mkBigN n|])
   else Term.mkApp (Lazy.force coq_bigZ_Neg, [|mkBigN (Z.neg n)|])
-                        
+
 let ofBigZ c = match Term.decompose_app c with
   | c, [n] when eq_cst c coq_bigZ_Pos -> ofBigN n
   | c, [n] (*when eq_cst c coq_bigZ_Neg*) -> Z.neg (ofBigN n)
   | _ -> raise Parse_error
 
-(* let bigQ_path = ["Coq"; "Numbers"; "Rational"; "BigQ"; "BigQ"; "BigQ"] *)
 let bigQ_path = ["Bignums"; "BigQ"; "BigQ"; "BigQ"]
 let coq_bigQ_ind = lazy (init_constant bigQ_path "t_")
 let coq_bigQ_Qz = lazy (init_constant bigQ_path "Qz")
@@ -224,7 +222,7 @@ let mkFloat f =
   let bigZ = Lazy.force coq_bigZ_ind in
   let nan = Term.mkApp (Lazy.force coq_float_nan, [|bigZ; bigZ|]) in
   let float = Term.mkApp (Lazy.force coq_float_float, [|bigZ; bigZ|]) in
-  let fl = fun m e -> Term.mkApp (float, [|mkBigZ m; mkBigZ e|]) in
+  let fl m e = Term.mkApp (float, [|mkBigZ m; mkBigZ e|]) in
   match classify_float f with
   | FP_normal ->
      let m, e = frexp f in
@@ -345,32 +343,26 @@ let psatz_hyps options q pl =
      nb_vars, array_to_list zQ, List.combine sigmas (List.map array_to_list zQl)
 
 let soswitness options c =
-  Format.printf "<begin soswitness@.";
   let ty_N = Lazy.force coq_N_ind in
   let ty_seqmultinom = tyList ty_N in
   let ty_bigQ = Lazy.force coq_bigQ_ind in
   let ty_poly = tyList (tyPair ty_seqmultinom ty_bigQ) in
-  Format.printf "before deconstruct@.";
   (* Deconstruct the input (translate it from Coq to OCaml). *)
   let q, pl =
     let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofN c) in
     let ofPoly c =
       Osdp.Sos.Q.Poly.of_list (ofList (ofPair ofSeqmultinom ofBigQ) c) in
     try
-      Format.printf "  before try ofPair@.";
       ofPair ofPoly (ofList ofPoly) c
     with Parse_error ->
-      Format.printf "  Parse_error@.";
       let ty_input = tyPair ty_poly (tyList ty_poly) in
       fail maxlevel
         Pp.(str "soswitness: wrong input type (expected "
             ++ Printer.pr_constr ty_input ++ str ").") in
-  Format.printf "in deconstruct@.";
   let () =  (* TODO: try to fix that *)
     if Osdp.Sos.Q.Poly.is_const q <> None then
       errorpp "soswitness: expects a closed term representing \
                a non constant polynomial" in
-  Format.printf "after deconstruct@.";
   (* Call OSDP to retrieve witnesses *)
   let nb_vars, zq, szql =
     match pl with [] -> psatz options q | _ -> psatz_hyps options q pl in
@@ -380,7 +372,6 @@ let soswitness options c =
     | h :: t -> h :: add_tr_0 (n - 1) t in
   let add_zeros (z, q) = List.map (add_tr_0 nb_vars) z, q in
   let zq, szql = add_zeros zq, List.map (fun (s, zq) -> s, add_zeros zq) szql in
-  Format.printf "before reconstruct@.";
   (* Reconstruct the output (translate it from OCaml to Coq). *)
   let ty_seqmultinom_list = tyList ty_seqmultinom in
   let ty_bigZ = Lazy.force coq_bigZ_ind in
@@ -403,7 +394,6 @@ let soswitness options c =
         (mkPair ty_seqmultinom ty_bigQ mkSeqmultinom mkBigQ)
         (Osdp.Sos.Q.Poly.to_list p) in
     mkPair ty_poly ty_witness mkPoly mk_witness in
-  Format.printf "end of soswitness>@.";
   mkPair
     ty_witness (tyList (tyPair ty_poly ty_witness))
     mk_witness
