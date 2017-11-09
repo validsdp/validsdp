@@ -83,11 +83,11 @@ let coq_N_ind = lazy (init_constant nat_path "N")
 let coq_N_0 = lazy (init_constant nat_path "N0")
 let coq_N_pos = lazy (init_constant nat_path "Npos")
 
-let rec mkN n =
+let mkN n =
   if n <= 0 then Lazy.force coq_N_0
   else Term.mkApp (Lazy.force coq_N_pos, [|mkPositive n|])
 
-let rec ofN c = match snd (Term.decompose_app c) with
+let ofN c = match snd (Term.decompose_app c) with
   | [] -> 0
   | p :: _ -> ofPositive p
 
@@ -159,7 +159,7 @@ let coq_bigN_Nn = lazy (init_constant bigN_path "Nn")
 
 let mkBigN n =
   let rec height pow2 acc =
-    if Z.(n < pow2) then acc else height Z.(pow2 * pow2) (acc + 1) in
+    if Z.lt n pow2 then acc else height Z.(pow2 * pow2) (acc + 1) in
   let hght = height Z.(shift_left one 31) 0 in
   let word = mkZn2z hght n in
   match hght with
@@ -222,7 +222,7 @@ let mkFloat f =
   let bigZ = Lazy.force coq_bigZ_ind in
   let nan = Term.mkApp (Lazy.force coq_float_nan, [|bigZ; bigZ|]) in
   let float = Term.mkApp (Lazy.force coq_float_float, [|bigZ; bigZ|]) in
-  let fl = fun m e -> Term.mkApp (float, [|mkBigZ m; mkBigZ e|]) in
+  let fl m e = Term.mkApp (float, [|mkBigZ m; mkBigZ e|]) in
   match classify_float f with
   | FP_normal ->
      let m, e = frexp f in
