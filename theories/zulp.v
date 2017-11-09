@@ -1,5 +1,5 @@
 Require Import Reals.
-Require Import ZArith BigQ.
+Require Import ZArith CBigQ.
 Require Import ROmega.
 From Flocq Require Import Fcore_defs.
 From Flocq Require Import Fcore_digits.
@@ -83,7 +83,7 @@ Qed.
 Lemma Rabs_div_gt_1 a b : a <> R0 -> (Rabs a < b <-> 1 < b / Rabs a)%Re.
 Proof.
 move=> H0; split => Hab.
-{ rewrite -[R1](Rinv_r_simpl_l (Rabs a)); last exact: Rabs_no_R0.
+{ rewrite -[1%Re](Rinv_r_simpl_l (Rabs a)); last exact: Rabs_no_R0.
   rewrite Rmult_1_l /Rdiv.
   apply: Rmult_lt_compat_r =>//.
   apply/Rinv_0_lt_compat.

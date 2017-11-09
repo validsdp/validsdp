@@ -1,6 +1,6 @@
 (** * Miscellaneous lemmas. *)
 
-Require Import Reals QArith BigQ.
+Require Import Reals QArith CBigQ.
 Require Import Flocq.Core.Fcore_Raux.
 Require Import Interval.Interval_missing.
 Require Import Psatz.
@@ -325,7 +325,7 @@ apply: eq_Z2R.
 rewrite !Z2R_mult.
 apply (Rmult_eq_reg_r (/ Z2R (' Qden x))); last first.
 { apply: Rinv_neq_0_compat.
-  by change R0 with (Z2R 0); apply: Z2R_neq. }
+  by change 0%Re with (Z2R 0); apply: Z2R_neq. }
 rewrite /Rdiv in Hxy.
 rewrite Rmult_assoc [(_ * / _)%Re]Rmult_comm -Rmult_assoc Hxy.
 field; split; simpl; pos_P2R.

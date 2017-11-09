@@ -191,7 +191,7 @@ let coq_bigZ_Neg = lazy (init_constant bigZ_path "Neg")
 let mkBigZ n =
   if Z.sign n >= 0 then Term.mkApp (Lazy.force coq_bigZ_Pos, [|mkBigN n|])
   else Term.mkApp (Lazy.force coq_bigZ_Neg, [|mkBigN (Z.neg n)|])
-                        
+
 let ofBigZ c = match Term.decompose_app c with
   | c, [n] when eq_cst c coq_bigZ_Pos -> ofBigN n
   | c, [n] (*when eq_cst c coq_bigZ_Neg*) -> Z.neg (ofBigN n)

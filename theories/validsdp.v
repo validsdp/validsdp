@@ -6,7 +6,7 @@ From Interval Require Import Interval_definitions Interval_xreal.
 From Interval Require Import Interval_missing.
 From CoqEAL.refinements Require Import hrel refinements param seqmx binint rational.
 Require Import binrat.
-Require Import Reals Flocq.Core.Fcore_Raux QArith BigZ BigQ Psatz FSetAVL.
+Require Import Reals Flocq.Core.Fcore_Raux QArith CBigZ CBigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
@@ -759,7 +759,7 @@ have : exists E : 'M_s.+1,
     { move=> Hm; move: (check_base_correct Hbase Hm).
       move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
       apply Rgt_not_eq, Rlt_gt.
-      rewrite -unfoldR; change R0 with (INR 0); apply lt_INR.
+      rewrite -unfoldR; change 0%Re with (INR 0); apply lt_INR.
       rewrite /nbm filter_index_enum; rewrite <-cardE.
       by apply/ltP/card_gt0P; exists (j, i); rewrite /in_mem /=. }
     by rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 GRing.mul0r. }
@@ -946,10 +946,10 @@ case E: nr.
   { by apply round_UP_pt, FLX_exp_valid. }
   rewrite /x -!Z2R_int2Z real_FtoX_toR // toR_Float /= Rmult_1_r.
   apply (Rmult_le_reg_r (Z2R (int2Z d))).
-  { by rewrite -[R0]/(Z2R 0); apply Z2R_lt. }
+  { by rewrite -[0%Re]/(Z2R 0); apply Z2R_lt. }
   rewrite -Z2R_mult Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc.
   rewrite Rstruct.mulVr ?Rmult_1_r; [by right|].
-  rewrite -[R0]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
+  rewrite -[0%Re]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
   by move: Hd; rewrite H. }
 rewrite /= ifF /=; last first.
 { move: E; rewrite /nr; set nrnr := (_ # _)%bigQ; move: (BigQ_red_den_neq0 nrnr).
@@ -957,7 +957,7 @@ rewrite /= ifF /=; last first.
 rewrite F.div_correct /Xround /Xdiv real_FtoX_toR //= real_FtoX_toR //=.
 rewrite /Xdiv' ifF; last first.
 { apply Req_bool_false; rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
-  rewrite -[R0]/(Z2R 0); apply Z2R_neq.
+  rewrite -[0%Re]/(Z2R 0); apply Z2R_neq.
   move: E; rewrite /nr; set nrnr := (_ # _)%bigQ.
   move: (BigQ_red_den_neq0_aux nrnr).
   by case (BigQ.red _)=>[//|n' d'] H [] _ <-. }
@@ -969,16 +969,16 @@ move=> Hnd; rewrite /round /rnd_of_mode /=.
 set x := _ / _; apply (Rle_trans _ x); [|by apply round_UP_pt, FLX_exp_valid].
 rewrite /x -!Z2R_int2Z; do 2 rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
 apply (Rmult_le_reg_r (Z2R (int2Z d))).
-{ by rewrite -[R0]/(Z2R 0); apply Z2R_lt. }
+{ by rewrite -[0%Re]/(Z2R 0); apply Z2R_lt. }
 set lhs := _ * _; rewrite Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc -Z2R_mult.
 rewrite Hnd {}/lhs /GRing.mul /= Rmult_assoc.
 rewrite Rstruct.mulVr ?Rmult_1_r; [right|]; last first.
-{ rewrite -[R0]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
+{ rewrite -[0%Re]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
   by move: Hd; rewrite H. }
 rewrite Z2R_mult Rmult_assoc Rinv_r ?Rmult_1_r //.
 move: (erefl nr); rewrite /nr; set nrnr := (_ # _)%bigQ=>_.
 move: (BigQ_red_den_neq0_aux nrnr); rewrite /nrnr -/nr E=>H.
-by rewrite -[R0]/(Z2R 0); apply Z2R_neq.
+by rewrite -[0%Re]/(Z2R 0); apply Z2R_neq.
 Transparent F.div.
 Qed.
 

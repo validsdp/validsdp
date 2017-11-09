@@ -1,4 +1,4 @@
-Require Import Reals BigZ Psatz ROmega BigQ.
+Require Import Reals CBigZ Psatz ROmega CBigQ.
 From Flocq Require Import Fcore_Raux Fcore_defs Fcore_digits.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
@@ -834,7 +834,7 @@ apply (@cholesky_success_infnan_f1 _ _ At Rt^T) => //; split.
 { rewrite /Rt -/(cholesky_ssr At).
   apply cholesky_spec_correct, cholesky_correct. }
 move=> i'; rewrite mxE.
-have->: R0 = FIS2FS (FIS0 fs) by rewrite FIS2FS0.
+have->: 0%Re = FIS2FS (FIS0 fs) by rewrite FIS2FS0.
 apply filt_spec; [by apply finite0| |].
 { move: Had i'; rewrite -/(all_diag_ssr _ _); apply all_diag_correct. }
 move: Hpd i'; rewrite /pos_diag -/(all_diag_ssr _ _); apply all_diag_correct.
@@ -963,7 +963,7 @@ apply Mle_trans with (INR n.+1 * FIS2FS r)%Re%:M.
   { move: HXt; apply Mle_trans, Mabs_pos. }
   by move=> i j; rewrite !mxE; right. }
 set IN := INR n.+1; rewrite Mle_scalar !mxE /GRing.natmul /= -(Rmult_1_r (_ * _)).
-replace R1 with (R1^2) by ring; rewrite /GRing.one /= in Hx; rewrite -Hx.
+replace 1%Re with (1%Re^2) by ring; rewrite /GRing.one /= in Hx; rewrite -Hx.
 rewrite norm2_sqr_dotprod /dotprod mxE /= big_distrr /=.
 apply big_rec2 => [|i y1 y2 _ Hy12]; [by right|]; rewrite mul_mx_diag !mxE.
 rewrite /GRing.add /GRing.mul /=; apply Rplus_le_compat => //.
@@ -975,7 +975,7 @@ have Fnr : finite nr.
 apply (Rle_trans _ (FIS2FS nr)).
 { apply (Rle_trans _ (FIS2FS (float_of_nat_up fs n.+1) * FIS2FS r)).
   { apply Rmult_le_compat_r.
-    { change R0 with (F0 fs : R); rewrite -FIS2FS0; apply file_spec.
+    { change 0%Re with (F0 fs : R); rewrite -FIS2FS0; apply file_spec.
       { apply finite0. }
       { move: Fnr; rewrite /nr; apply fimult_up_spec_fr. }
       by move: Pr. }

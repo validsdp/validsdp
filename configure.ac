@@ -20,6 +20,14 @@ if test "v$majmin" != "v8.6"; then
 fi
 AC_MSG_RESULT($coq_version)
 
+minor=`echo "$coq_version" | cut -d . -f 2`
+if test "$minor" -le 6; then
+  BIGNUMS_FROM=""
+else
+  BIGNUMS_FROM="From Bignums "
+fi
+AC_SUBST(BIGNUMS_FROM)
+
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
 
@@ -79,9 +87,9 @@ AS_IF(
 rm -f conftest.v conftest.vo conftest.err
 
 # Create files
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile theories/CBigZ.v theories/CBigQ.v])
 AC_OUTPUT
-chmod a-w Makefile
+chmod a-w Makefile theories/CBigZ.v theories/CBigQ.v
 
 echo ""
 echo "  Now run 'make external' to build and install extra Coq dependencies"

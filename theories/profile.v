@@ -8,7 +8,7 @@ Require Import Interval.Interval_bigint_carrier.
 Require Import Interval.Interval_definitions.
 Require Import Interval.Interval_specific_ops.
 Module F := SpecificFloat BigIntRadix2.
-Require Import BigZ.
+Require Import CBigZ.
 (* Print Module F. *)
 Local Open Scope bigZ_scope.
 

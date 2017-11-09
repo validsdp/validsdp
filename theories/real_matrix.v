@@ -506,7 +506,7 @@ Hypothesis SymP : P^T = P.
 
 Hypothesis PP : posdef P.
 
-Lemma dotprodP_def (x : 'cV_n) : dotprodP P x x = R0 -> x = 0.
+Lemma dotprodP_def (x : 'cV_n) : dotprodP P x x = 0%Re -> x = 0.
 Proof.
 rewrite /dotprodP => Px.
 case (x =P 0) => Hx //.
