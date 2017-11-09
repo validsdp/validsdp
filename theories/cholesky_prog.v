@@ -1,4 +1,4 @@
-Require Import Reals Bignums.BigZ.BigZ Psatz ROmega Bignums.BigQ.BigQ.
+Require Import Reals CBigZ Psatz ROmega CBigQ.
 From Flocq Require Import Fcore_Raux Fcore_defs Fcore_digits.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.

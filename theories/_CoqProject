@@ -1,4 +1,6 @@
 -R . ValidSDP
+CBigZ.v
+CBigQ.v
 Rstruct.v
 binrat.v
 misc.v

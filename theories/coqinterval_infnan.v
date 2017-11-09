@@ -1,7 +1,7 @@
 (** * CoqInterval floats satisfy hypothesis in [Float_infnan_spec] *)
 
 Require Import Reals.
-Require Import Bignums.BigZ.BigZ.
+Require Import CBigZ.
 Require Import ROmega.
 
 Require Import Flocq.Core.Fcore_Zaux.
