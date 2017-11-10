@@ -8,6 +8,14 @@ MODULES =\
 all: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
+src/soswitness.ml4: src/soswitness_@COQ_VERSION@.ml4
+	cp -f src/soswitness_@COQ_VERSION@.ml4 src/soswitness.ml4
+	chmod a-w src/soswitness.ml4
+
+theories/soswitness.v: theories/soswitness_@COQ_VERSION@.v
+	cp -f theories/soswitness_@COQ_VERSION@.v theories/soswitness.v
+	chmod a-w theories/soswitness.v
+
 Makefile.coq: Makefile $(MODULES)
 	@ocamlfind query zarith >/dev/null
 	@ocamlfind query osdp >/dev/null
@@ -23,7 +31,7 @@ install: Makefile.coq
 
 clean: Makefile.coq
 	-$(MAKE) -f Makefile.coq clean
-	rm -f Makefile.coq Makefile.coq.conf
+	rm -f src/soswitness.ml4 theories/soswitness.v Makefile.coq Makefile.coq.conf
 
 dist: $(MODULES) Makefile
 	T=$$(mktemp -d ../../dist1.XXX) && S=$$T/plugins/soswitness && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ../../dist1 && ln -rsv $$T ../../dist1

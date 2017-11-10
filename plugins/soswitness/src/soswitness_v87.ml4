@@ -438,7 +438,6 @@ let soswitness_opts gl c id opts =
      | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
             failtac maxlevel Pp.(str msg)
 
-(* open Constrarg *)
 open Stdarg
 open Ltac_plugin
 

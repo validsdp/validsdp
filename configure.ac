@@ -22,10 +22,13 @@ AC_MSG_RESULT($coq_version)
 
 minor=`echo "$coq_version" | cut -d . -f 2`
 if test "$minor" -le 6; then
+  COQ_VERSION="v86"
   BIGNUMS_FROM=""
 else
+  COQ_VERSION="v87"
   BIGNUMS_FROM="From Bignums "
 fi
+AC_SUBST(COQ_VERSION)
 AC_SUBST(BIGNUMS_FROM)
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
@@ -87,9 +90,9 @@ AS_IF(
 rm -f conftest.v conftest.vo conftest.err
 
 # Create files
-AC_CONFIG_FILES([Makefile theories/CBigZ.v theories/CBigQ.v])
+AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/_CoqProject theories/CBigZ.v theories/CBigQ.v theories/parse_reals.v])
 AC_OUTPUT
-chmod a-w Makefile theories/CBigZ.v theories/CBigQ.v
+chmod a-w Makefile plugins/soswitness/Makefile src/_CoqProject theories/CBigZ.v theories/CBigQ.v theories/parse_reals.v
 
 echo ""
 echo "  Now run 'make external' to build and install extra Coq dependencies"

@@ -23,6 +23,8 @@ seqmx_complements.v
 iteri_ord.v
 bigop_tactics.v
 multipoly.v
+parse_reals_@COQ_VERSION@.v
+parse_reals.v
 validsdp.v
 
 -extra-phony test "testsuite.v validsdp.v" "$(COQC) $(COQDEBUG) $(COQFLAGS) $<"
