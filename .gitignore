@@ -77,7 +77,7 @@ setup.log
 /plugins/soswitness/Makefile.coq
 *.ml4.d
 *.mllib.d
- *.log
+*.log
 csdp.cache
 lia.cache
 
