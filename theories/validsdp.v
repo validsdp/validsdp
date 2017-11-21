@@ -1822,6 +1822,35 @@ Ltac do_validsdp params :=
     end
   end.
 
+(*
+Ltac do_validsdp_intro expr params :=
+  lazymatch goal with
+  | [ |- ?g ] =>
+    match get_goal g (@Datatypes.nil R) with
+    | (?g, ?vm) =>
+      abstract (
+      let n' := eval vm_compute in ((size vm).-1) in
+      let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
+      match lgb with
+      | (?l, ?p, ?b) =>
+        let pi := constr:(map (@M.elements bigQ \o
+                               interp_poly_eff n' \o
+                               abstr_poly_of_p_abstr_poly) l) in
+        let p := constr:((@M.elements bigQ \o
+                          interp_poly_eff n' \o
+                          abstr_poly_of_p_abstr_poly) p) in
+        let ppi := eval vm_compute in (p, pi) in
+        let zQ_szQi := fresh "zQ_szQi" in
+        (soswitness of ppi as zQ_szQi with params);
+        apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1);
+        (vm_cast_no_check (erefl true))
+      end)
+    | false => fail 100 "unsupported goal"
+    | _ => fail "validsdp failed to conclude"
+    end
+  end.
+ *)
+
 (* [tuple_to_list] was taken from CoqInterval *)
 Ltac tuple_to_list params l :=
   match params with
@@ -1830,6 +1859,12 @@ Ltac tuple_to_list params l :=
   | ?z => fail 100 "Unknown tactic parameter" z
   end.
 
+(*
+Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) "as" simple_intropattern(H) :=
+
+Tactic Notation "validsdp_intro" "with" constr(params) :=
+ do_validsdp ltac:(tuple_to_list params (@Datatypes.nil validsdp_tac_parameters)).
+ *)
 
 Tactic Notation "validsdp" :=
   do_validsdp (@Datatypes.nil validsdp_tac_parameters).
