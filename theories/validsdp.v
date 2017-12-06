@@ -42,7 +42,7 @@ Inductive p_abstr_poly :=
   | PMul of p_abstr_poly & p_abstr_poly
   | PPowN of p_abstr_poly & binnat.N
   | PPown of p_abstr_poly & nat
-  (* | Compose of abstr_poly * abstr_poly list *).
+  | PCompose of p_abstr_poly & seq p_abstr_poly.
 
 Fixpoint interp_p_abstr_poly (vm : seq R) (ap : p_abstr_poly) {struct ap} : R :=
   match ap with
@@ -54,6 +54,7 @@ Fixpoint interp_p_abstr_poly (vm : seq R) (ap : p_abstr_poly) {struct ap} : R :=
   | PPowN p n => powerRZ (interp_p_abstr_poly vm p) (Z.of_N n)
   | PPown p n => pow (interp_p_abstr_poly vm p) n
   | PVar i => seq.nth R0 vm i
+  | PCompose p qi => interp_p_abstr_poly (map (interp_p_abstr_poly vm) qi) p
   end.
 
 (* [list_add] was taken from CoqInterval *)
@@ -68,6 +69,33 @@ Ltac list_add a l :=
       end
     end in
   aux a l O.
+
+Ltac pair i :=
+  let rec pair impair t :=
+      match t with
+      | S ?t' => impair t'
+      | O => pose a := true
+      end in
+  let rec impair t :=
+      match t with
+      | S ?t' => pair impair t'
+      | O => pose a := false
+      end
+  in pair impair i.
+
+Ltac get_comp_poly get_poly t l :=
+  let rec aux t qi l :=
+      match t with
+      | ?p ?qn =>
+        match list_add qn l with
+        | (_, ?qi) =>
+          aux p qi l
+        end
+      | ?f => true
+        (* get_poly sur chaque qi en màj l *)
+        (* get_poly à partir du terme ouvert f *)
+      end
+  in aux t Datatypes.nil l.
 
 Ltac get_poly t l :=
   let rec aux t l :=
@@ -101,8 +129,19 @@ Ltac get_poly t l :=
     | _ =>
       match get_real_cst t with
       | false =>
-        match list_add t l with
-        | (?n, ?l) => constr:((PVar n, l))
+        match t with
+        | ?pp ?xx =>
+          match get_comp_poly t l with
+          | false =>
+            match list_add t l with
+            | (?n, ?l) => constr:((PVar n, l))
+            end
+          | (?p, ?qi, ?l) => constr:(((PCompose p, qi), l))
+          end
+        | _ =>
+          match list_add t l with
+          | (?n, ?l) => constr:((PVar n, l))
+          end
         end
       | ?c => constr:((PConst c, l))
       end
