@@ -71,17 +71,15 @@ Ltac list_add a l :=
   aux a l O.
 
 Ltac pair i :=
-  let rec pair impair t :=
-      match t with
-      | S ?t' => impair t'
-      | O => pose a := true
-      end in
   let rec impair t :=
       match t with
-      | S ?t' => pair impair t'
+      | S ?t' => pair t'
       | O => pose a := false
-      end
-  in pair impair i.
+      end in
+  match i with
+  | S ?t' => impair t'
+  | O => pose a := true
+  end.
 
 Ltac get_comp_poly get_poly t l :=
   let rec aux t qi l :=
