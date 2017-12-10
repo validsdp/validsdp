@@ -102,7 +102,11 @@ Ltac newvar T k :=
   clear x;
   k x'.
 
+Ltac deb tac := idtac.
+(* Ltac deb tac ::= tac. *)
+
 Ltac fold_get_poly get_poly lq vm k :=
+  deb ltac:(idtac "fold_get_poly on .." lq vm "..");
   let z0 := constr:((@Datatypes.nil p_abstr_poly, vm)) in
   let rec aux lq vm k :=
       match lq with
@@ -122,6 +126,7 @@ Ltac fold_get_poly get_poly lq vm k :=
 
 (** [get_comp_poly get_poly t vm k] requires [t] matches [?f ?x] *)
 Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
+  deb ltac:(idtac "get_comp_poly on .. .." t ".. ..");
   let rec aux2 f0 f qi xx vm k := (* second step *)
       match type of f with
       | R =>
@@ -130,11 +135,9 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
           match res with
           | false => k false (* TODO: remove and replace with match failure? *)
           | (?p, _) => (* ignore the xx that is returned and that hasn't changed *)
-            idtac "callFold";
             fold_get_poly get_poly_cur qi vm ltac:(fun res =>
               match res with
               | (?qi, ?vm) =>
-                idtac "retComp";
                 let res := constr:((PCompose p qi, vm)) in k res
               end)
           end)
@@ -171,6 +174,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
 
 (** [get_poly_pure t l k] adds no var; ret false if [t] is not poly over [l] *)
 Ltac get_poly_pure t l k :=
+  deb ltac:(idtac "get_poly_pure on " t l "..");
   let rec aux t l k :=
     let aux_u o a k :=
       aux a l ltac:(fun res =>
@@ -221,6 +225,7 @@ Ltac get_poly_pure t l k :=
   aux t l k.
 
 Ltac get_poly t l k :=
+  deb ltac:(idtac "get_poly on" t l "..");
   let rec aux t l k :=
     let aux_u o a k :=
       aux a l ltac:(fun res =>
@@ -256,7 +261,6 @@ Ltac get_poly t l k :=
     | _ =>
       match get_real_cst t with
       | false =>
-        idtac "callComp"; idtac "on" t;
         get_comp_poly get_poly get_poly_pure t l ltac:(fun t vm k =>
           match list_add t vm with
           | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
@@ -297,6 +301,7 @@ Abort.
 Definition g x y := f (2 * x * y).
 Goal forall x y, g (x - 1) (x * y) >= 0.
 intros.
+Ltac deb tac ::= tac.
 match goal with
 | [ |- ?p1 >= ?p2 ] =>
   get_poly p1 (@nil R) ltac:(fun p => pose p as result)
