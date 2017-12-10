@@ -7,6 +7,8 @@ Local Open Scope R_scope.
 
 Coercion bigQ2R : BigQ.t_ >-> R.
 
+Variant Assert := assert_false.
+
 Inductive p_real_cst :=
 | PConstR0
 (* | PConstQz of bigZ *)
@@ -28,7 +30,7 @@ Ltac get_real_cst t :=
                  constr:(PConstRopp x)
     | Rinv (IZR (BinNums.Zpos ?x)) => constr:(PConstRinv x)
     | IZR ?n => constr:(PConstIZR n)
-    | _ => false
+    | _ => assert_false
     end in
   aux t.
 

@@ -70,11 +70,12 @@ Ltac list_add a l :=
     end in
   aux a l O.
 
-(** [list_idx a l = (idx, l)], [idx] being the index of [a] in [l], or [false] *)
+(** [list_idx a l = (idx, l)], [idx] being the index of [a] in [l].
+    Otherwise return [assert_false] *)
 Ltac list_idx a l :=
   let rec aux a l n :=
     match l with
-    | Datatypes.nil        => constr:((false, l))
+    | Datatypes.nil        => constr:((assert_false, l))
     | Datatypes.cons a _   => constr:((n, l))
     | Datatypes.cons ?x ?l =>
       match aux a l (S n) with
@@ -133,7 +134,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
         let f := (eval unfold f0 in f) in
         get_poly_pure f xx ltac:(fun res =>
           match res with
-          | false => k false (* TODO: remove and replace with match failure? *)
+          | assert_false => k assert_false (* TODO: remove and replace with match failure? *)
           | (?p, _) => (* ignore the xx that is returned and that hasn't changed *)
             fold_get_poly get_poly_cur qi vm ltac:(fun res =>
               match res with
@@ -155,7 +156,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
       | ?f =>
         aux2 f f qi (@Datatypes.nil R) vm ltac:(fun res =>
         match res with
-        | false => (* if second step fails, return a variable *)
+        | assert_false => (* if second step fails, return a variable *)
           match list_add t0 vm with
           | (?n, ?vm) => constr:((PVar n, vm))
           end
@@ -172,7 +173,8 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
   | _ => tac_var t vm k
   end.
 
-(** [get_poly_pure t vm k] adds no var; ret false if [t] isn't poly over [vm] *)
+(** [get_poly_pure t vm k] creates no var.
+    Return [assert_false] if [t] isn't poly over [vm] *)
 Ltac get_poly_pure t vm k :=
   deb ltac:(idtac "get_poly_pure on " t vm "..");
   let rec aux t vm k :=
@@ -209,11 +211,11 @@ Ltac get_poly_pure t vm k :=
     | pow ?a ?n => aux_u' PPown a n k
     | _ =>
       match get_real_cst t with
-      | false =>
+      | assert_false =>
         (* differs w.r.t. get_poly *)
         get_comp_poly get_poly_pure get_poly_pure t vm ltac:(fun t vm k =>
           match list_idx t vm with
-          | (false, _) => k false
+          | (assert_false, _) => k assert_false
           | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
           end) ltac:(fun res =>
           match res with
@@ -260,7 +262,7 @@ Ltac get_poly t vm k :=
     | pow ?a ?n => aux_u' PPown a n k
     | _ =>
       match get_real_cst t with
-      | false =>
+      | assert_false =>
         get_comp_poly get_poly get_poly_pure t vm ltac:(fun t vm k =>
           match list_add t vm with
           | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
