@@ -211,15 +211,26 @@ Ltac get_comp_poly get_poly t vm k :=
       | ?f =>
         aux2 f f qi (@Datatypes.nil R) vm ltac:(fun res =>
         match res with
-        | false => k false
-          (*(* if second step fails, return a variable *) (*FIXME? *)
+        | false => (* if second step fails, return a variable *)
           match list_add t0 vm with
           | (?n, ?vm) => constr:((PVar n, vm))
-          end*)
-        | ?res => k res (* TODO: couple? *)
+          end
+        | ?res => k res
         end)
       end in
-  aux1 t t (@Datatypes.nil R) vm k.
+  (* Ensure [t] is a function applied to a real *)
+  match t with
+  | ?fp ?xn =>
+    match type of xn with
+    | R => aux1 t t (@Datatypes.nil R) vm k
+    | _ => match list_add t vm with
+          | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
+          end
+    end
+  | _ => match list_add t vm with
+        | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
+        end
+  end.
 
 Ltac get_poly t l k :=
   let rec aux t l k :=
@@ -258,23 +269,11 @@ Ltac get_poly t l k :=
       idtac "getCst"; 
       match get_real_cst t with
       | false =>
-        idtac "noCst";
-        match t with
-        | ?pp ?xx => (* TODO: move this test inside get_comp_poly ? *)
-          idtac "callComp";
-          get_comp_poly get_poly t l ltac:(fun res =>
+        idtac "callComp"; idtac "on" t;
+        get_comp_poly get_poly t l ltac:(fun res =>
           match res with
-          | false =>
-            match list_add t l with
-            | (?n, ?l) => let res := constr:((PVar n, l)) in k res
-            end
           | (?p, ?l) => let res := constr:((p, l)) in k res
           end)
-        | _ =>
-          match list_add t l with
-          | (?n, ?l) => let res := constr:((PVar n, l)) in k res
-          end
-        end
       | ?c => let res := constr:((PConst c, l)) in k res
       end
     end in
@@ -286,7 +285,6 @@ Definition f x := x ^ 2 + 1.
 Goal forall y, f (y - 1 + 4 / 1 (*!!*)) >= 0.
 Unset Ltac Debug.
 intros.
-
 match goal with
 | [ |- ?p1 >= ?p2 ] =>
   get_poly p1 (@nil R) ltac:(fun p => pose p as result)
