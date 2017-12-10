@@ -180,7 +180,7 @@ Ltac nevars T n k :=
  *)
 
 (** [get_comp_poly get_poly t vm k] requires [t] matches [?f ?x] *)
-Ltac get_comp_poly get_poly t vm k :=
+Ltac get_comp_poly get_poly t vm tac_var k :=
   let rec aux2 f0 f qi xx vm k := (* second step *)
       match type of f with
       | R =>
@@ -223,13 +223,9 @@ Ltac get_comp_poly get_poly t vm k :=
   | ?fp ?xn =>
     match type of xn with
     | R => aux1 t t (@Datatypes.nil R) vm k
-    | _ => match list_add t vm with
-          | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
-          end
+    | _ => tac_var t vm k
     end
-  | _ => match list_add t vm with
-        | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
-        end
+  | _ => tac_var t vm k
   end.
 
 Ltac get_poly t l k :=
@@ -270,7 +266,10 @@ Ltac get_poly t l k :=
       match get_real_cst t with
       | false =>
         idtac "callComp"; idtac "on" t;
-        get_comp_poly get_poly t l ltac:(fun res =>
+        get_comp_poly get_poly t l ltac:(fun t vm k =>
+          match list_add t vm with
+          | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
+          end) ltac:(fun res =>
           match res with
           | (?p, ?l) => let res := constr:((p, l)) in k res
           end)
@@ -298,6 +297,7 @@ match goal with
 | [ |- ?p1 >= ?p2 ] =>
   get_poly p1 (@nil R) ltac:(fun p => pose p as result)
 end.
+
 (*
 Ltac teste l :=
   match goal with
