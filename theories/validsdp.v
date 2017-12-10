@@ -131,6 +131,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
   let rec aux2 f0 f qi xx vm k := (* second step *)
       match type of f with
       | R =>
+        idtac f0 "in" f;
         let f := (eval unfold f0 in f) in
         get_poly_pure f xx ltac:(fun res =>
           match res with
@@ -289,6 +290,44 @@ Ltac nevars T n k :=
     nevars T n ltac:(fun s => k (x' :: s))
   end.
  *)
+
+Definition p0 x := x ^ 2.
+Unset Ltac Debug.
+Ltac deb tac ::= tac.
+
+Goal forall x : R, p0 (x + 1) >= 0.
+intros.
+match goal with
+| [ |- ?p1 >= ?p2 ] =>
+  get_poly p1 (@nil R) ltac:(fun p => pose p as result)
+end.
+Abort.
+(*
+get_poly on (p0 (x + 1)) [::] ..
+get_comp_poly on .. .. (p0 (x + 1)) [::] .. ..
+p0 in (p0 ?x0)
+get_poly_pure on  (?x0 ^ 2) [:: ?x0] ..
+get_comp_poly on .. .. ?x0 [:: ?x0] .. ..
+fold_get_poly on .. [:: x + 1] [::] ..
+get_poly on (x + 1) [::] ..
+get_comp_poly on .. .. x [::] .. ..
+*)
+Goal forall x : R, let p0 x := x ^ 2 in p0 (x + 1) >= 0.
+intros.
+match goal with
+| [ |- ?p1 >= ?p2 ] =>
+  get_poly p1 (@nil R) ltac:(fun p => pose p as result)
+end.
+(*
+get_poly on (p1 (x + 1)) [::] ..
+get_comp_poly on .. .. (p1 (x + 1)) [::] .. ..
+p1 in (p1 ?x0)
+get_poly_pure on  (?x0 ^ 2) [:: ?x0] ..
+get_comp_poly on .. .. ?x0 [:: ?x0] .. ..
+get_comp_poly on .. .. (?x0 ^ 2) [:: ?x0] .. ..
+(p1 (x + 1)) in (p1 (x + 1))
+*)
+Abort.
 
 Definition f x := x ^ 2 + 1.
 
