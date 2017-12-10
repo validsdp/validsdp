@@ -94,47 +94,51 @@ Ltac pair i :=
   | O => pose a := true
   end.
 
-(** [get_poly_pure t l] creates no new var; false if [t] is not poly over [l] *)
-Ltac get_poly_pure t l :=
-  let rec aux t l :=
-    let aux_u o a :=
-      match aux a l with
-      | (?u, ?l) => constr:((o u, l))
-      end in
-    let aux_u' o a b :=
-      match aux a l with
-      | (?u, ?l) => constr:((o u b, l))
-    end in
-      let aux_b o a b :=
-        match aux b l with
+(** [get_poly_pure t l k] adds no var; ret false if [t] is not poly over [l] *)
+Ltac get_poly_pure t l k :=
+  let rec aux t l k :=
+    let aux_u o a k :=
+      aux a l ltac:(fun res =>
+        match res with
+        | (?u, ?l) => let res := constr:((o u, l)) in k res
+        end) in
+    let aux_u' o a b k :=
+      aux a l ltac:(fun res =>
+        match res with
+        | (?u, ?l) => let res := constr:((o u b, l)) in k res
+        end) in
+    let aux_b o a b k :=
+      aux b l ltac:(fun res =>
+        match res with
         | (?v, ?l) =>
-          match aux a l with
-          | (?u, ?l) => constr:((o u v, l))
-          end
-        end in
+          aux a l ltac:(fun res =>
+            match res with
+            | (?u, ?l) => let res := constr:((o u v, l)) in k res
+            end)
+        end) in
     match t with
-    | Rplus ?a ?b => aux_b PAdd a b
-    | Rminus ?a ?b => aux_b PSub a b
-    | Ropp ?a => aux_u POpp a
-    | Rmult ?a ?b => aux_b PMul a b
- (* | Rsqr ?a => aux (Rmult a a) l  *)
+    | Rplus ?a ?b => aux_b PAdd a b k
+    | Rminus ?a ?b => aux_b PSub a b k
+    | Ropp ?a => aux_u POpp a k
+    | Rmult ?a ?b => aux_b PMul a b k
+ (* | Rsqr ?a => aux (Rmult a a) l *)
     | powerRZ ?a ?b =>
       match b with
-      | Z.pos ?p => aux_u' PPowN a (N.pos p)
-      | _ => fail 100 "Only constant, positive exponents are allowed"
+      | Z.pos ?p => aux_u' PPowN a (N.pos p) k
+      | _ => fail 200 "Only constant, positive exponents are allowed"
       end
-    | pow ?a ?n => aux_u' PPown a n
+    | pow ?a ?n => aux_u' PPown a n k
     | _ =>
       match get_real_cst t with
       | false => (* FIXME: add a call to get_comp_poly with get_poly := get_poly_pure *)
         match list_idx t l with (* differs w.r.t. get_poly *)
-        | (false, _) => false (* differs w.r.t. get_poly *)
-        | (?n, ?l) => constr:((PVar n, l))
+        | (false, _) => k false (* differs w.r.t. get_poly *)
+        | (?n, ?l) => let res := constr:((PVar n, l)) in k res
         end
-      | ?c => constr:((PConst c, l))
+      | ?c => let res := constr:((PConst c, l)) in k res
       end
     end in
-  aux t l.
+  aux t l k.
 
 Ltac fold_get_poly get_poly lq vm k :=
   let z0 := constr:((@Datatypes.nil p_abstr_poly, vm)) in
@@ -181,22 +185,23 @@ Ltac get_comp_poly get_poly t vm k :=
       match type of f with
       | R =>
         let f := (eval unfold f0 in f) in
-        match get_poly_pure f xx with
-        | false => k false (* FIXME: remove and replace with match failure? *)
-        | (?p, _) => (* ignore the xx that is returned and that hasn't changed *)
-          idtac "callFold";
-          fold_get_poly get_poly qi vm ltac:(fun res =>
-            match res with
-            | (?qi, ?vm) =>
-              idtac "retComp";
-              let res := constr:((PCompose p qi, vm)) in k res
-            end)
-        end
+        get_poly_pure f xx ltac:(fun res =>
+          match res with
+          | false => k false (* TODO: remove and replace with match failure? *)
+          | (?p, _) => (* ignore the xx that is returned and that hasn't changed *)
+            idtac "callFold";
+            fold_get_poly get_poly qi vm ltac:(fun res =>
+              match res with
+              | (?qi, ?vm) =>
+                idtac "retComp";
+                let res := constr:((PCompose p qi, vm)) in k res
+              end)
+          end)
       | forall x : R, _ =>
         newvar R ltac:(fun x => let fx := constr:(f x) in
                              let xx := constr:(Datatypes.cons x xx) in
                              aux2 f0 fx qi xx vm k)
-        (* TODO/FIXME: instantiate *)
+        (* TODO/FIXME: instantiate evars *)
       end in
   let rec aux1 t0 t qi vm k := (* first step *)
       match t with
@@ -246,7 +251,7 @@ Ltac get_poly t l k :=
     | powerRZ ?a ?b =>
       match b with
       | Z.pos ?p => aux_u' PPowN a (N.pos p) k
-      | _ => fail 100 "Only constant, positive exponents are allowed"
+      | _ => fail 200 "Only constant, positive exponents are allowed"
       end
     | pow ?a ?n => aux_u' PPown a n k
     | _ =>
@@ -278,14 +283,16 @@ Ltac get_poly t l k :=
 (* Tests for debugging *)
 
 Definition f x := x ^ 2 + 1.
-Goal forall y, f (y - 1 + 4 / 1 (*!*)) >= 0.
+Goal forall y, f (y - 1 + 4 / 1 (*!!*)) >= 0.
 Unset Ltac Debug.
 intros.
+
 match goal with
 | [ |- ?p1 >= ?p2 ] =>
   get_poly p1 (@nil R) ltac:(fun p => pose p as result)
 end.
 Abort.
+
 Definition g x y := f (2 * x * y).
 Goal forall x y, g (x - 1) (x * y) >= 0.
 intros.
