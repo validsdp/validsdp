@@ -172,27 +172,27 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
   | _ => tac_var t vm k
   end.
 
-(** [get_poly_pure t l k] adds no var; ret false if [t] is not poly over [l] *)
-Ltac get_poly_pure t l k :=
-  deb ltac:(idtac "get_poly_pure on " t l "..");
-  let rec aux t l k :=
+(** [get_poly_pure t vm k] adds no var; ret false if [t] isn't poly over [vm] *)
+Ltac get_poly_pure t vm k :=
+  deb ltac:(idtac "get_poly_pure on " t vm "..");
+  let rec aux t vm k :=
     let aux_u o a k :=
-      aux a l ltac:(fun res =>
+      aux a vm ltac:(fun res =>
         match res with
-        | (?u, ?l) => let res := constr:((o u, l)) in k res
+        | (?u, ?vm) => let res := constr:((o u, vm)) in k res
         end) in
     let aux_u' o a b k :=
-      aux a l ltac:(fun res =>
+      aux a vm ltac:(fun res =>
         match res with
-        | (?u, ?l) => let res := constr:((o u b, l)) in k res
+        | (?u, ?vm) => let res := constr:((o u b, vm)) in k res
         end) in
     let aux_b o a b k :=
-      aux b l ltac:(fun res =>
+      aux b vm ltac:(fun res =>
         match res with
-        | (?v, ?l) =>
-          aux a l ltac:(fun res =>
+        | (?v, ?vm) =>
+          aux a vm ltac:(fun res =>
             match res with
-            | (?u, ?l) => let res := constr:((o u v, l)) in k res
+            | (?u, ?vm) => let res := constr:((o u v, vm)) in k res
             end)
         end) in
     match t with
@@ -211,39 +211,39 @@ Ltac get_poly_pure t l k :=
       match get_real_cst t with
       | false =>
         (* differs w.r.t. get_poly *)
-        get_comp_poly get_poly_pure get_poly_pure t l ltac:(fun t vm k =>
+        get_comp_poly get_poly_pure get_poly_pure t vm ltac:(fun t vm k =>
           match list_idx t vm with
           | (false, _) => k false
           | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
           end) ltac:(fun res =>
           match res with
-          | (?p, ?l) => let res := constr:((p, l)) in k res
+          | (?p, ?vm) => let res := constr:((p, vm)) in k res
           end)
-      | ?c => let res := constr:((PConst c, l)) in k res
+      | ?c => let res := constr:((PConst c, vm)) in k res
       end
     end in
-  aux t l k.
+  aux t vm k.
 
-Ltac get_poly t l k :=
-  deb ltac:(idtac "get_poly on" t l "..");
-  let rec aux t l k :=
+Ltac get_poly t vm k :=
+  deb ltac:(idtac "get_poly on" t vm "..");
+  let rec aux t vm k :=
     let aux_u o a k :=
-      aux a l ltac:(fun res =>
+      aux a vm ltac:(fun res =>
         match res with
-        | (?u, ?l) => let res := constr:((o u, l)) in k res
+        | (?u, ?vm) => let res := constr:((o u, vm)) in k res
         end) in
     let aux_u' o a b k :=
-      aux a l ltac:(fun res =>
+      aux a vm ltac:(fun res =>
         match res with
-        | (?u, ?l) => let res := constr:((o u b, l)) in k res
+        | (?u, ?vm) => let res := constr:((o u b, vm)) in k res
         end) in
     let aux_b o a b k :=
-      aux b l ltac:(fun res =>
+      aux b vm ltac:(fun res =>
         match res with
-        | (?v, ?l) =>
-          aux a l ltac:(fun res =>
+        | (?v, ?vm) =>
+          aux a vm ltac:(fun res =>
             match res with
-            | (?u, ?l) => let res := constr:((o u v, l)) in k res
+            | (?u, ?vm) => let res := constr:((o u v, vm)) in k res
             end)
         end) in
     match t with
@@ -261,17 +261,17 @@ Ltac get_poly t l k :=
     | _ =>
       match get_real_cst t with
       | false =>
-        get_comp_poly get_poly get_poly_pure t l ltac:(fun t vm k =>
+        get_comp_poly get_poly get_poly_pure t vm ltac:(fun t vm k =>
           match list_add t vm with
           | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
           end) ltac:(fun res =>
           match res with
-          | (?p, ?l) => let res := constr:((p, l)) in k res
+          | (?p, ?vm) => let res := constr:((p, vm)) in k res
           end)
-      | ?c => let res := constr:((PConst c, l)) in k res
+      | ?c => let res := constr:((PConst c, vm)) in k res
       end
     end in
-  aux t l k.
+  aux t vm k.
 
 (* Tests for debugging *)
 
@@ -289,9 +289,12 @@ Ltac nevars T n k :=
  *)
 
 Definition f x := x ^ 2 + 1.
+
 Goal forall y, f (y - 1 + 4 / 1 (*!!*)) >= 0.
 Unset Ltac Debug.
 intros.
+
+Ltac deb tac ::= tac.
 match goal with
 | [ |- ?p1 >= ?p2 ] =>
   get_poly p1 (@nil R) ltac:(fun p => pose p as result)
@@ -299,9 +302,9 @@ end.
 Abort.
 
 Definition g x y := f (2 * x * y).
+
 Goal forall x y, g (x - 1) (x * y) >= 0.
 intros.
-Ltac deb tac ::= tac.
 match goal with
 | [ |- ?p1 >= ?p2 ] =>
   get_poly p1 (@nil R) ltac:(fun p => pose p as result)
