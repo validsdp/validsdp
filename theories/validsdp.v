@@ -126,7 +126,7 @@ Ltac fold_get_poly get_poly lq vm k :=
 
 (** [get_comp_poly get_poly t vm k] requires [t] matches [?f ?x] *)
 Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
-  deb ltac:(idtac "get_comp_poly on .. .." t ".. ..");
+  deb ltac:(idtac "get_comp_poly on .. .." t vm ".. ..");
   let rec aux2 f0 f qi xx vm k := (* second step *)
       match type of f with
       | R =>
