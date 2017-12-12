@@ -84,6 +84,14 @@ Ltac list_idx a l :=
     end in
   aux a l O.
 
+Ltac reverse T l :=
+  let rec aux l accu :=
+    match l with
+    | Datatypes.nil => accu
+    | Datatypes.cons ?x ?l => aux l constr:(Datatypes.cons x accu)
+    end in
+  aux l (@Datatypes.nil T).
+
 Ltac pair i :=
   let rec impair t :=
       match t with
@@ -95,7 +103,7 @@ Ltac pair i :=
   | O => pose a := true
   end.
 
-(* Trick (evar-making tactic with continuation passing style) *)
+(** Trick (evar-making tactic with continuation passing style) *)
 Ltac newvar T k :=
   let x := fresh "x" in
   evar (x : T);
@@ -104,7 +112,7 @@ Ltac newvar T k :=
   k x'.
 
 Ltac deb tac := idtac.
-(* Ltac deb tac ::= tac. *)
+(** Ltac deb tac ::= tac. *)
 
 Ltac fold_get_poly get_poly lq vm k :=
   deb ltac:(idtac "fold_get_poly on .." lq vm "..");
@@ -125,18 +133,18 @@ Ltac fold_get_poly get_poly lq vm k :=
       end in
   aux lq vm k.
 
-(** [get_comp_poly get_poly t vm k] requires [t] matches [?f ?x] *)
+(** [get_comp_poly tac0 tac1 t vm tac2 k] will check if [t] matches [?f ?x] *)
 Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
   deb ltac:(idtac "get_comp_poly on .. .." t vm ".. ..");
-  let rec aux2 f0 f qi xx vm k := (* second step *)
+  let rec aux2 f0 f qi xx vm k := (* Second step *)
       match type of f with
       | R =>
-        idtac f0 "in" f;
         let f := (eval unfold f0 in f) in
+        let xx := reverse R xx in
         get_poly_pure f xx ltac:(fun res =>
           match res with
-          | assert_false => k assert_false (* TODO: remove and replace with match failure? *)
-          | (?p, _) => (* ignore the xx that is returned and that hasn't changed *)
+          | assert_false => k assert_false (* todo: remove and replace with match failure? *)
+          | (?p, _) => (* Ignore the xx that is returned and that hasn't changed *)
             fold_get_poly get_poly_cur qi vm ltac:(fun res =>
               match res with
               | (?qi, ?vm) =>
@@ -149,7 +157,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
                              aux2 f0 fx qi xx vm k)
         (* TODO/FIXME: instantiate evars *)
       end in
-  let rec aux1 t0 t qi vm k := (* first step *)
+  let rec aux1 t0 t qi vm k := (* First step *)
       match t with
       | ?p ?q =>
         let qi1 := constr:(Datatypes.cons q qi) in
@@ -157,7 +165,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
       | ?f =>
         aux2 f f qi (@Datatypes.nil R) vm ltac:(fun res =>
         match res with
-        | assert_false => (* if second step fails, return a variable *)
+        | assert_false => (* If second step fails, return a PVar *)
           match list_add t0 vm with
           | (?n, ?vm) => constr:((PVar n, vm))
           end
@@ -213,7 +221,7 @@ Ltac get_poly_pure t vm k :=
     | _ =>
       match get_real_cst t with
       | assert_false =>
-        (* differs w.r.t. get_poly *)
+        (* Differs w.r.t. get_poly *)
         get_comp_poly get_poly_pure get_poly_pure t vm ltac:(fun t vm k =>
           match list_idx t vm with
           | (assert_false, _) => k assert_false
@@ -254,7 +262,7 @@ Ltac get_poly t vm k :=
     | Rminus ?a ?b => aux_b PSub a b k
     | Ropp ?a => aux_u POpp a k
     | Rmult ?a ?b => aux_b PMul a b k
- (* | Rsqr ?a => aux (Rmult a a) l  *)
+ (* | Rsqr ?a => aux (Rmult a a) l *)
     | powerRZ ?a ?b =>
       match b with
       | Z.pos ?p => aux_u' PPowN a (N.pos p) k
@@ -291,16 +299,44 @@ Ltac nevars T n k :=
   end.
  *)
 
-Definition p0 x := x ^ 2.
-Unset Ltac Debug.
 Ltac deb tac ::= tac.
+Definition p2 x y := x * (1 - y) ^ 2 * (* *1/ *) 3.
+Definition p1 x := 1 - p2 (1 + x) ((1 - x) * 1 / 2).
 
+Axiom poly_correct : forall (x : p_abstr_poly) vm,
+    (if x isn't PConst (PConstR0) then true else false) = true ->
+    interp_p_abstr_poly vm x >= R0.
+
+Lemma test_p2 x y : (2/3 * x ^ 2 + p2 x y >= 0)%Re.
+match goal with
+| [ |- (?r >= 0)%Re ] => get_poly r (@Datatypes.nil R) ltac:(fun p =>
+                                                            pose p as temp;
+                      match p with
+                      | (?po, ?vm) => apply (@poly_correct po vm)
+                      end)
+end.
+Abort.
+
+Lemma test_p1 x y : (2/3 * x ^ 2 + p1 x * y >= 0)%Re.
+match goal with
+| [ |- (?r >= 0)%Re ] => get_poly r (@Datatypes.nil R) ltac:(fun p =>
+                                                            pose p as temp;
+                      match p with
+                      | (?po, ?vm) => apply (@poly_correct po vm)
+                      end)
+end.
+Abort.
+
+Definition p0 x := x ^ 2.
 Goal forall x : R, p0 (x + 1) >= 0.
 intros.
 match goal with
-| [ |- ?p1 >= ?p2 ] =>
-  get_poly p1 (@nil R) ltac:(fun p => pose p as result)
+| [ |- ?p1 >= R0 ] =>
+  get_poly p1 (@nil R) ltac:(fun p => match p with
+                                   | (?p, ?l) => pose p as pol; pose l as vm
+                                   end)
 end.
+
 Abort.
 (*
 get_poly on (p0 (x + 1)) [::] ..
