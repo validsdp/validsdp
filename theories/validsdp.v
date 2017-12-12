@@ -57,7 +57,7 @@ Fixpoint interp_p_abstr_poly (vm : seq R) (ap : p_abstr_poly) {struct ap} : R :=
   | PCompose p qi => interp_p_abstr_poly (map (interp_p_abstr_poly vm) qi) p
   end.
 
-(* [list_add] was taken from CoqInterval *)
+(** [list_add] was taken from CoqInterval *)
 Ltac list_add a l :=
   let rec aux a l n :=
     match l with
@@ -92,6 +92,18 @@ Ltac reverse T l :=
     end in
   aux l (@Datatypes.nil T).
 
+Ltac iter_tac tac l :=
+  let rec aux l :=
+    match l with
+    | Datatypes.nil => idtac
+    | Datatypes.cons ?x ?l => tac x; aux l
+    end
+  in aux l.
+
+(** [equate] was taken from CPDT *)
+Ltac equate x y :=
+  let dummy := constr:(erefl x : x = y) in idtac.
+
 Ltac pair i :=
   let rec impair t :=
       match t with
@@ -105,14 +117,14 @@ Ltac pair i :=
 
 (** Trick (evar-making tactic with continuation passing style) *)
 Ltac newvar T k :=
-  let x := fresh "x" in
+  let x := fresh "dummy" in
   evar (x : T);
   let x' := (eval unfold x in x) in
   clear x;
   k x'.
 
 Ltac deb tac := idtac.
-(** Ltac deb tac ::= tac. *)
+(* Ltac deb tac ::= tac. *)
 
 Ltac fold_get_poly get_poly lq vm k :=
   deb ltac:(idtac "fold_get_poly on .." lq vm "..");
@@ -148,7 +160,9 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
             fold_get_poly get_poly_cur qi vm ltac:(fun res =>
               match res with
               | (?qi, ?vm) =>
-                let res := constr:((PCompose p qi, vm)) in k res
+                let res := constr:((PCompose p qi, vm)) in
+                let dummy := R0 in
+                iter_tac ltac:(fun it => equate it dummy) xx; k res
               end)
           end)
       | forall x : R, _ =>
@@ -299,7 +313,12 @@ Ltac nevars T n k :=
     clear x;
     nevars T n ltac:(fun s => k (x' :: s))
   end.
- *)
+
+Goal True.
+nevars nat 5%N ltac:(fun l => iter_tac ltac:(fun x => equate x O) l).
+Abort.
+*)
+
 
 Ltac deb tac ::= tac.
 Definition p2 x y := x * (1 - y) ^ 2 / 3.
@@ -312,22 +331,25 @@ Axiom poly_correct : forall (x : p_abstr_poly) vm,
 Lemma test_p2 x y : (2/3 * x ^ 2 + p2 x y >= 0)%Re.
 match goal with
 | [ |- (?r >= 0)%Re ] => get_poly r (@Datatypes.nil R) ltac:(fun p =>
-                                                            pose p as temp;
                       match p with
                       | (?po, ?vm) => apply (@poly_correct po vm)
                       end)
 end.
-Abort.
+reflexivity.
+Qed.
+Set Printing All.
+Print test_p2.
 
 Lemma test_p1 x y : (2/3 * x ^ 2 + p1 x * y >= 0)%Re.
 match goal with
 | [ |- (?r >= 0)%Re ] => get_poly r (@Datatypes.nil R) ltac:(fun p =>
-                                                            pose p as temp;
                       match p with
                       | (?po, ?vm) => apply (@poly_correct po vm)
                       end)
 end.
-Abort.
+reflexivity.
+Qed.
+Print test_p1.
 
 Definition p0 x := x ^ 2.
 Goal forall x : R, p0 (x + 1) >= 0.
