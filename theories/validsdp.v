@@ -218,6 +218,7 @@ Ltac get_poly_pure t vm k :=
       | _ => fail 200 "Only constant, positive exponents are allowed"
       end
     | pow ?a ?n => aux_u' PPown a n k
+    | Rdiv ?a ?b => aux (Rmult a (Rinv b)) vm k (* Both are convertible *)
     | _ =>
       match get_real_cst t with
       | assert_false =>
@@ -269,6 +270,7 @@ Ltac get_poly t vm k :=
       | _ => fail 200 "Only constant, positive exponents are allowed"
       end
     | pow ?a ?n => aux_u' PPown a n k
+    | Rdiv ?a ?b => aux (Rmult a (Rinv b)) vm k (* Both are convertible *)
     | _ =>
       match get_real_cst t with
       | assert_false =>
@@ -300,7 +302,7 @@ Ltac nevars T n k :=
  *)
 
 Ltac deb tac ::= tac.
-Definition p2 x y := x * (1 - y) ^ 2 * (* *1/ *) 3.
+Definition p2 x y := x * (1 - y) ^ 2 / 3.
 Definition p1 x := 1 - p2 (1 + x) ((1 - x) * 1 / 2).
 
 Axiom poly_correct : forall (x : p_abstr_poly) vm,
