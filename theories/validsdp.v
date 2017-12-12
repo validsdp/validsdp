@@ -104,17 +104,6 @@ Ltac iter_tac tac l :=
 Ltac equate x y :=
   let dummy := constr:(erefl x : x = y) in idtac.
 
-Ltac pair i :=
-  let rec impair t :=
-      match t with
-      | S ?t' => pair t'
-      | O => pose a := false
-      end in
-  match i with
-  | S ?t' => impair t'
-  | O => pose a := true
-  end.
-
 (** Trick (evar-making tactic with continuation passing style) *)
 Ltac newvar T k :=
   let x := fresh "dummy" in
@@ -300,26 +289,7 @@ Ltac get_poly t vm k :=
     end in
   aux t vm k.
 
-(* Tests for debugging *)
-
-(*
-Ltac nevars T n k :=
-  match n with
-  | O => k (@Datatypes.nil T)
-  | S ?n =>
-    let x := fresh "x" in
-    evar (x : T);
-    let x' := (eval unfold x in x) in
-    clear x;
-    nevars T n ltac:(fun s => k (x' :: s))
-  end.
-
-Goal True.
-nevars nat 5%N ltac:(fun l => iter_tac ltac:(fun x => equate x O) l).
-Abort.
-*)
-
-
+(* (* Test cases *)
 Ltac deb tac ::= tac.
 Definition p2 x y := x * (1 - y) ^ 2 / 3.
 Definition p1 x := 1 - p2 (1 + x) ((1 - x) * 1 / 2).
@@ -350,164 +320,7 @@ end.
 reflexivity.
 Qed.
 Print test_p1.
-
-Definition p0 x := x ^ 2.
-Goal forall x : R, p0 (x + 1) >= 0.
-intros.
-match goal with
-| [ |- ?p1 >= R0 ] =>
-  get_poly p1 (@nil R) ltac:(fun p => match p with
-                                   | (?p, ?l) => pose p as pol; pose l as vm
-                                   end)
-end.
-
-Abort.
-(*
-get_poly on (p0 (x + 1)) [::] ..
-get_comp_poly on .. .. (p0 (x + 1)) [::] .. ..
-p0 in (p0 ?x0)
-get_poly_pure on  (?x0 ^ 2) [:: ?x0] ..
-get_comp_poly on .. .. ?x0 [:: ?x0] .. ..
-fold_get_poly on .. [:: x + 1] [::] ..
-get_poly on (x + 1) [::] ..
-get_comp_poly on .. .. x [::] .. ..
-*)
-Goal forall x : R, let p0 x := x ^ 2 in p0 (x + 1) >= 0.
-intros.
-match goal with
-| [ |- ?p1 >= ?p2 ] =>
-  get_poly p1 (@nil R) ltac:(fun p => pose p as result)
-end.
-(*
-get_poly on (p1 (x + 1)) [::] ..
-get_comp_poly on .. .. (p1 (x + 1)) [::] .. ..
-p1 in (p1 ?x0)
-get_poly_pure on  (?x0 ^ 2) [:: ?x0] ..
-get_comp_poly on .. .. ?x0 [:: ?x0] .. ..
-get_comp_poly on .. .. (?x0 ^ 2) [:: ?x0] .. ..
-(p1 (x + 1)) in (p1 (x + 1))
-*)
-Abort.
-
-Definition f x := x ^ 2 + 1.
-
-Goal forall y, f (y - 1 + 4 / 1 (*!!*)) >= 0.
-Unset Ltac Debug.
-intros.
-
-Ltac deb tac ::= tac.
-match goal with
-| [ |- ?p1 >= ?p2 ] =>
-  get_poly p1 (@nil R) ltac:(fun p => pose p as result)
-end.
-Abort.
-
-Definition g x y := f (2 * x * y).
-
-Goal forall x y, g (x - 1) (x * y) >= 0.
-intros.
-match goal with
-| [ |- ?p1 >= ?p2 ] =>
-  get_poly p1 (@nil R) ltac:(fun p => pose p as result)
-end.
-
-(*
-Ltac teste l :=
-  match goal with
-    [ |- ?a = ?b ] => let p := constr:((a + b)%Re) in
-    let r := get_poly_pure p l in
-    let H := fresh "result" in
-    idtac p;
-    pose r as H
-  end.
-
-intros.
-let l := constr:(x :: y :: nil) in
-let r := list_idx x l in pose r as H.
-teste (x :: y :: nil).
-Abort.
-
-Goal True.
-Unset Ltac Debug.
-nevars R 5%N ltac:(fun s => pose s as suite).
-clear suite.
-Qed.
-
-Ltac test1 :=
-  match goal with
-    [ |- ?a = ?b ] => let lq := constr:(g a b) in
-                    let r := get_comp_poly get_poly lq (@nil R) in
-                    let H := fresh "result" in
-                    pose r as H
-  end.
-
-Ltac test0 :=
-  match goal with
-    [ |- ?a = ?b ] => let lq := constr:(a :: b :: @nil R) in
-                    let r := foldr_get_poly lq (@nil R) in
-                    let H := fresh "result" in
-                    pose r as H
-  end.
-
-Goal forall x y : R, x - y = y ^ 3.
-Set Ltac Debug.
-intros.
-test1.
-Abort.
-
-Goal forall x y z : R, x + y = z ^ 2.
-intros.
-test.
-set lq := x^2 :: y^2 :: z^2 :: @nil R.
-let a := fold_get_poly lq (@Datatypes.nil R) in pose a.
-
-Ltac fold_get_poly T get_poly lq vm :=
-  let rec map' ls :=
-    match ls with
-      | nil => constr:(@nil T)
-      | ?x :: ?ls' =>
-        let x' := get_poly x in
-          let ls'' := map' ls' in
-            constr:(x' :: ls'')
-    end in
-  map'.
-
-Ltac get_comp_poly get_poly t l :=
-  let rec aux t qi l :=
-      match t with
-      | ?p ?qn =>
-        match list_add qn l with
-        | (_, ?qi) =>
-          aux p qi l
-        end
-      | ?f => true
-
-      let x := fresh "x" in
-      evar (x : T);
-      let x' := eval unfold x in x in
-      clear x; specialize (H x')
-
-        (* get_poly sur chaque qi en màj l *)
-        (* get_poly à partir du terme ouvert f *)
-      end
-  in aux t Datatypes.nil l.
-*)
-
-(* (* Testcase *)
-
-Axiom poly_correct : forall (x : p_abstr_poly) vm,
-    (if x isn't PConst (PConstR0) then true else false) = true ->
-    interp_p_abstr_poly vm x >= R0.
-
-Lemma test_get_poly x y : (2/3 * x ^ 2 + x * y >= 0)%Re.
-match goal with
-| [ |- (?r >= 0)%Re ] => let p := get_poly r (@Datatypes.nil R) in
-                      match p with
-                      | (?p, ?vm) => apply (@poly_correct p vm)
-                      end
-end.
-Abort.
-*)
+ *)
 
 Inductive abstr_poly :=
   | Const of bigQ
