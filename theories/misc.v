@@ -9,7 +9,7 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import fintype finfun ssralg matrix bigop.
 From mathcomp Require Import ssrnum ssrint rat.
 
-Require Import binrat.
+From CoqEAL.refinements Require Import binrat.
 Require Import Rstruct.
 
 Set Implicit Arguments.

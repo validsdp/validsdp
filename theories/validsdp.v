@@ -4,8 +4,8 @@ Require Import ZArith.
 From Flocq Require Import Fcore. Require Import Datatypes.
 From Interval Require Import Interval_definitions Interval_xreal.
 From Interval Require Import Interval_missing.
-From CoqEAL.refinements Require Import hrel refinements param seqmx binint rational.
-Require Import binrat.
+From CoqEAL.theory Require Import ssrcomplements.
+From CoqEAL.refinements Require Import hrel refinements param seqmx binnat binint rational binrat.
 Require Import Reals Flocq.Core.Fcore_Raux QArith CBigZ CBigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
@@ -15,7 +15,7 @@ Require Import Rstruct.
 Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog coqinterval_infnan.
-Require Import multipoly. Import PolyAVL.
+From CoqEAL.refinements Require Import multipoly. Import PolyAVL.
 From ValidSDP Require Import zulp.
 Require Import seqmx_complements misc.
 From ValidSDP Require Export soswitness.
