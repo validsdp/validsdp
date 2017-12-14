@@ -19,10 +19,8 @@ flx64.v
 zulp.v
 coqinterval_infnan.v
 cholesky_prog.v
-seqmx_complements.v
 iteri_ord.v
 bigop_tactics.v
-multipoly.v
 parse_reals_@COQ_VERSION@.v
 parse_reals.v
 validsdp.v
