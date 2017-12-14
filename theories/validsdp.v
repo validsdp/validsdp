@@ -8,7 +8,7 @@ From CoqEAL.refinements Require Import hrel refinements param seqmx binint ratio
 Require Import binrat.
 Require Import Reals Flocq.Core.Fcore_Raux QArith CBigZ CBigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
+From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
 From SsrMultinomials Require Import mpoly.
 Require Import Rstruct.
@@ -43,6 +43,66 @@ Inductive p_abstr_poly :=
   | PPowN of p_abstr_poly & binnat.N
   | PPown of p_abstr_poly & nat
   | PCompose of p_abstr_poly & seq p_abstr_poly.
+
+Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
+  match s with
+  | [::] => True
+  | x :: s' => a x /\ all_prop a s'
+  end.
+
+Lemma all_prop_forall T1 T2 (P : T1 -> T2 -> Prop) (s : seq T1) :
+  all_prop (fun x : T1 => forall y : T2, P x y) s ->
+  forall y : T2, all_prop (fun x : T1 => P x y) s.
+Proof.
+elim: s => [|x s IHs] H y =>//=.
+by have /= [H1 H2] := H; split; last exact: IHs.
+Qed.
+
+Lemma eq_map_all_prop T1 T2 (f1 f2 : T1 ->  T2) (s : seq T1) :
+  all_prop (fun x : T1 => f1 x = f2 x) s ->
+  [seq f1 i | i <- s] =
+  [seq f2 i | i <- s].
+Proof.
+elim: s => [|x s IHs] H //=.
+have /= [-> H2] := H; congr cons; exact: IHs.
+Qed.
+
+Lemma all_prop_cat (T : Type) (a : T -> Prop) (s1 s2 : seq T) :
+  all_prop a (s1 ++ s2) <-> all_prop a s1 /\ all_prop a s2.
+Proof. by elim: s1 => [|x s1 IHs] //=; intuition. Qed.
+
+Section Defix.
+Variable (P : p_abstr_poly -> Prop).
+Let P' := all_prop P.
+Variable (f'0 : P' [::]).
+Variable (f'1 : forall p : p_abstr_poly, P p -> forall l : seq p_abstr_poly, P' l -> P' (p :: l)).
+Variable (f : forall p : p_real_cst, P (PConst p)).
+Variable (f0 : forall n : nat, P (PVar n)) (f1 : forall p : p_abstr_poly, P p -> P (POpp p)).
+Variable (f2 : forall p : p_abstr_poly, P p -> forall p0 : p_abstr_poly, P p0 -> P (PAdd p p0)).
+Variable (f3 : forall p : p_abstr_poly, P p -> forall p0 : p_abstr_poly, P p0 -> P (PSub p p0)).
+Variable (f4 : forall p : p_abstr_poly, P p -> forall p0 : p_abstr_poly, P p0 -> P (PMul p p0)).
+Variable (f5 : forall p : p_abstr_poly, P p -> forall n : BinNums.N, P (PPowN p n)).
+Variable (f6 : forall p : p_abstr_poly, P p -> forall n : nat, P (PPown p n)).
+Variable (f7 : forall p : p_abstr_poly, P p -> forall l : seq p_abstr_poly, P' l -> P (PCompose p l)).
+
+Fixpoint p_abstr_poly_ind' (p : p_abstr_poly) : P p :=
+  let fix p_abstr_poly_ind2 (l : seq p_abstr_poly) : P' l :=
+  match l as l0 return (P' l0) with
+  | [::] => f'0
+  | p :: l' => f'1 (p_abstr_poly_ind' p) (p_abstr_poly_ind2 l')
+  end in
+  match p as p0 return (P p0) with
+  | PConst p0 => f p0
+  | PVar n => f0 n
+  | POpp p0 => f1 (p_abstr_poly_ind' p0)
+  | PAdd p0 p1 => f2 (p_abstr_poly_ind' p0) (p_abstr_poly_ind' p1)
+  | PSub p0 p1 => f3 (p_abstr_poly_ind' p0) (p_abstr_poly_ind' p1)
+  | PMul p0 p1 => f4 (p_abstr_poly_ind' p0) (p_abstr_poly_ind' p1)
+  | PPowN p0 n => f5 (p_abstr_poly_ind' p0) n
+  | PPown p0 n => f6 (p_abstr_poly_ind' p0) n
+  | PCompose p0 l => f7 (p_abstr_poly_ind' p0) (p_abstr_poly_ind2 l)
+  end.
+End Defix.
 
 Fixpoint interp_p_abstr_poly (vm : seq R) (ap : p_abstr_poly) {struct ap} : R :=
   match ap with
@@ -328,71 +388,95 @@ Inductive abstr_poly :=
   | Add of abstr_poly & abstr_poly
   | Sub of abstr_poly & abstr_poly
   | Mul of abstr_poly & abstr_poly
-  | PowN of abstr_poly & binnat.N.
+  | PowN of abstr_poly & binnat.N
+  | Compose of abstr_poly & seq abstr_poly.
 
 Fixpoint abstr_poly_of_p_abstr_poly (p : p_abstr_poly) : abstr_poly :=
-  let aux := abstr_poly_of_p_abstr_poly in
   match p with
   | PConst c => Const (bigQ_of_p_real_cst c)
   | PVar n => Var n
-  | POpp x => Sub (Const 0%bigQ) (aux x)
-  | PAdd x y => Add (aux x) (aux y)
-  | PSub x y => Sub (aux x) (aux y)
-  | PMul x y => Mul (aux x) (aux y)
-  | PPowN x n => PowN (aux x) n
-  | PPown x n => PowN (aux x) (N.of_nat n)
+  | POpp x => Sub (Const 0%bigQ) (abstr_poly_of_p_abstr_poly x)
+  | PAdd x y => Add (abstr_poly_of_p_abstr_poly x) (abstr_poly_of_p_abstr_poly y)
+  | PSub x y => Sub (abstr_poly_of_p_abstr_poly x) (abstr_poly_of_p_abstr_poly y)
+  | PMul x y => Mul (abstr_poly_of_p_abstr_poly x) (abstr_poly_of_p_abstr_poly y)
+  | PPowN x n => PowN (abstr_poly_of_p_abstr_poly x) n
+  | PPown x n => PowN (abstr_poly_of_p_abstr_poly x) (N.of_nat n)
+  | PCompose p qi => Compose (abstr_poly_of_p_abstr_poly p) (map abstr_poly_of_p_abstr_poly qi)
   end.
 
 Fixpoint interp_abstr_poly (vm : seq R) (p : abstr_poly) {struct p} : R :=
-  let aux := interp_abstr_poly in
   match p with
   | Const c => bigQ2R c
-  | Add p q => Rplus (aux vm p) (aux vm q)
-  | Sub p q => Rminus (aux vm p) (aux vm q)
-  | Mul p q => Rmult (aux vm p) (aux vm q)
-  | PowN p n => powerRZ (aux vm p) (Z.of_N n)
+  | Add p q => Rplus (interp_abstr_poly vm p) (interp_abstr_poly vm q)
+  | Sub p q => Rminus (interp_abstr_poly vm p) (interp_abstr_poly vm q)
+  | Mul p q => Rmult (interp_abstr_poly vm p) (interp_abstr_poly vm q)
+  | PowN p n => powerRZ (interp_abstr_poly vm p) (Z.of_N n)
   | Var i => seq.nth R0 vm i
+  | Compose p qi => interp_abstr_poly (map (interp_abstr_poly vm) qi) p
   end.
+
 
 Lemma abstr_poly_of_p_abstr_poly_correct (vm : seq R) (p : p_abstr_poly) :
   interp_abstr_poly vm (abstr_poly_of_p_abstr_poly p) =
   interp_p_abstr_poly vm p.
 Proof.
-elim p.
-{ apply bigQ_of_p_real_cst_correct. }
-{ done. }
-{ move=> p' /= ->.
-  by rewrite /bigQ2R /Q2R Rsimpl /Rminus Rplus_0_l. }
-{ by move=> ? /= -> ? /= ->. }
-{ by move=> ? /= -> ? /= ->. }
-{ by move=> ? /= -> ? /= ->. }
-{ by move=> ? /= ->. }
-by move=> ? /= -> ?; rewrite pow_powerRZ nat_N_Z.
+elim/p_abstr_poly_ind': p vm =>//.
+{ move=> *; apply bigQ_of_p_real_cst_correct. }
+{ move=> p IHp vm /=.
+  by rewrite (IHp vm) /bigQ2R /Q2R Rsimpl /Rminus Rplus_0_l. }
+{ by move=> p1 IHp1 p2 IHp2 vm; rewrite /= (IHp1 vm) (IHp2 vm). }
+{ by move=> p1 IHp1 p2 IHp2 vm; rewrite /= (IHp1 vm) (IHp2 vm). }
+{ by move=> p1 IHp1 p2 IHp2 vm; rewrite /= (IHp1 vm) (IHp2 vm). }
+{ by move=> p IHp n vm; rewrite /= (IHp vm). }
+{ by move=> p IHp n vm; rewrite /= pow_powerRZ nat_N_Z (IHp vm). }
+move=> pp IHpp qqi IHqqi vm; rewrite /=.
+rewrite IHpp; f_equal.
+rewrite -map_comp.
+rewrite (eq_map_all_prop (f2 := interp_p_abstr_poly vm)) //.
+exact: (all_prop_forall (P := fun p vm =>
+  interp_abstr_poly vm (abstr_poly_of_p_abstr_poly p) = interp_p_abstr_poly vm p)).
 Qed.
 
-Definition interp_poly_ssr n (ap : abstr_poly) : {mpoly rat[n.+1]} :=
-  let fix aux ap :=
+Lemma eq_adhoc T1 T2 (f : T1 -> T2) (x : T1) s :
+  size (f x :: map f s) = (size s).+1.
+Proof. by rewrite /= size_map. Qed.
+
+(*
+Local Obligation Tactic := idtac.
+Program Fixpoint interp_poly_ssr n (ap : abstr_poly) {struct ap} : {mpoly rat[n.+1]} :=
+  let fix map s := match s with
+                   | [::] => [::]
+                   | x :: s' => interp_poly_ssr n x :: map s'
+                   end in
     match ap with
     | Const c => (bigQ2rat c)%:MP_[n.+1]
     | Var i => 'X_(inord i)
-    | Add p q => (aux p + aux q)%R
-    | Sub p q => (aux p - aux q)%R
-    | Mul p q => (aux p * aux q)%R
-    | PowN p m => mpoly_exp (aux p) m
-    end in
-  aux ap.
+    | Add p q => (interp_poly_ssr n p + interp_poly_ssr n q)%R
+    | Sub p q => (interp_poly_ssr n p - interp_poly_ssr n q)%R
+    | Mul p q => (interp_poly_ssr n p * interp_poly_ssr n q)%R
+    | PowN p m => mpoly_exp (interp_poly_ssr n p) m
+    | Compose p [::] => 0%R%:MP_[n.+1]
+    | Compose p (q :: qi) =>
+      let aqi := interp_poly_ssr n q :: map qi in
+      let prf := (* eq_adhoc _ q qi : size aqi = (size qi).+1 *) _ in
+      (comp_mpoly (ecast i (i.-tuple {mpoly rat[n.+1]}) prf (in_tuple aqi)) (interp_poly_ssr (size qi) p))
+    end.
+Next Obligation.
+move=> ?????? qi ?? /=; clear.
+by elim: qi => [|q qi IHq] //=; rewrite IHq.
+Admitted.
+ *)
 
-Definition interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
-  let fix aux ap :=
+Fixpoint interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
     match ap with
     | Const c => @mpolyC_eff bigQ n.+1 c
     | Var i => @mpvar_eff bigQ n.+1 1%bigQ 1 (N.of_nat i)
-    | Add p q => mpoly_add_eff (aux p) (aux q)
-    | Sub p q => mpoly_sub_eff (aux p) (aux q)
-    | Mul p q => mpoly_mul_eff (aux p) (aux q)
-    | PowN p m => mpoly_exp_eff (n := n.+1) (aux p) m
-    end in
-  aux ap.
+    | Add p q => mpoly_add_eff (interp_poly_eff n p) (interp_poly_eff n q)
+    | Sub p q => mpoly_sub_eff (interp_poly_eff n p) (interp_poly_eff n q)
+    | Mul p q => mpoly_mul_eff (interp_poly_eff n p) (interp_poly_eff n q)
+    | PowN p m => mpoly_exp_eff (n := n.+1) (interp_poly_eff n p) m
+    | Compose p qi => comp_mpoly_eff (n := n.+1) (map (interp_poly_eff n) qi) (interp_poly_eff (size qi).-1 p)
+    end.
 
 Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
   match ap with
@@ -400,6 +484,8 @@ Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
   | Var i => (i < n)%N
   | Add p q | Sub p q | Mul p q => vars_ltn n p && vars_ltn n q
   | PowN p _ => vars_ltn n p
+  | Compose _ [::] => false
+  | Compose p qi => all (vars_ltn n) qi && vars_ltn (size qi) p
   end.
 
 (* seemingly missing in mpoly *)
@@ -920,12 +1006,6 @@ move/matrixP => H; move: {H}(H ord0 ord0).
 rewrite /GRing.zero /= /const_mx /map_mx !mxE.
 by rewrite z0 mpolyX0 meval1 => /eqP; rewrite GRing.oner_eq0.
 Qed.
-
-Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
-  match s with
-  | [::] => True
-  | x :: s' => a x /\ all_prop a s'
-  end.
 
 Hypothesis T2R_multiplicative : multiplicative T2R.
 Canonical T2R_morphism_struct := AddRMorphism T2R_multiplicative.
@@ -1723,10 +1803,6 @@ Definition interp_abstr_goal (vm : seq R) (g : abstr_goal) : Prop :=
 
 Ltac tac := rewrite /= !sub_p_abstr_poly_correct; psatzl R.
 
-Lemma all_prop_cat (T : Type) (a : T -> Prop) (s1 s2 : seq T) :
-  all_prop a (s1 ++ s2) <-> all_prop a s1 /\ all_prop a s2.
-Proof. by elim: s1 => [|x s1 IHs] //=; intuition. Qed.
-
 Theorem abstr_goal_of_p_abstr_goal_correct vm (g : p_abstr_goal) :
   interp_abstr_goal vm (abstr_goal_of_p_abstr_goal g) ->
   interp_p_abstr_goal vm g.
@@ -1941,21 +2017,21 @@ Unshelve.
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
 Qed.
 
-Ltac get_ineq i l :=
+Ltac get_ineq i l k :=
   let aux c x y :=
-      match get_poly x l with
+      get_poly x l ltac:(res => match res with
       | (?p, ?l) =>
-        match get_poly y l with
+        get_poly y l ltac:(res => match res with
         | (?q, ?l) =>
-          constr:((c p q, l))
-        end
-      end in
+          let res := constr:((c p q, l)) in k res
+        end)
+      end) in
   match i with
-  | Rle ?x ?y => aux ILe x y
-  | Rge ?x ?y => aux IGe x y
-  | Rlt ?x ?y => aux ILt x y
-  | Rgt ?x ?y => aux IGt x y
-  | _ => false
+  | Rle ?x ?y => aux ILe x y k
+  | Rge ?x ?y => aux IGe x y k
+  | Rlt ?x ?y => aux ILt x y k
+  | Rgt ?x ?y => aux IGt x y k
+  | _ => k false
   end.
 
 Ltac get_hyp h l :=
