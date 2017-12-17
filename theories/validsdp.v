@@ -431,6 +431,42 @@ Fixpoint abstr_poly_ind' (p : abstr_poly) : P p :=
   end.
 End Defix'.
 
+Fixpoint all_type (T : Type) (a : T -> Type) (s : seq T) : Type :=
+  match s with
+  | [::] => True
+  | x :: s' => a x * all_type a s'
+  end.
+
+Section Defix''.
+Variable (P : abstr_poly -> Type).
+Let P' := all_type P.
+Variable (f'0 : P' [::]).
+Variable (f'1 : forall p : abstr_poly, P p -> forall l : seq abstr_poly, P' l -> P' (p :: l)).
+Variable (f : forall t : bigQ, P (Const t)).
+Variable (f0 : forall n : nat, P (Var n)).
+Variable (f1 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Add a a0)).
+Variable (f2 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Sub a a0)).
+Variable (f3 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Mul a a0)).
+Variable (f4 : forall a : abstr_poly, P a -> forall n : BinNums.N, P (PowN a n)).
+Variable (f5 : forall a : abstr_poly, P a -> forall l : seq abstr_poly, P' l -> P (Compose a l)).
+
+Fixpoint abstr_poly_rect' (p : abstr_poly) : P p :=
+  let fix abstr_poly_rect2 (l : seq abstr_poly) : P' l :=
+  match l as l0 return (P' l0) with
+  | [::] => f'0
+  | p :: l' => f'1 (abstr_poly_rect' p) (abstr_poly_rect2 l')
+  end in
+  match p as p0 return (P p0) with
+  | Const t => f t
+  | Var n => f0 n
+  | Add a0 a1 => f1 (abstr_poly_rect' a0) (abstr_poly_rect' a1)
+  | Sub a0 a1 => f2 (abstr_poly_rect' a0) (abstr_poly_rect' a1)
+  | Mul a0 a1 => f3 (abstr_poly_rect' a0) (abstr_poly_rect' a1)
+  | PowN a0 n => f4 (abstr_poly_rect' a0) n
+  | Compose a0 l => f5 (abstr_poly_rect' a0) (abstr_poly_rect2 l)
+  end.
+End Defix''.
+
 Fixpoint abstr_poly_of_p_abstr_poly (p : p_abstr_poly) : abstr_poly :=
   match p with
   | PConst c => Const (bigQ_of_p_real_cst c)
@@ -1723,8 +1759,7 @@ Section refinement_interp_poly.
 Lemma refine_interp_poly n ap : vars_ltn n.+1 ap ->
   refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
 Proof.
-elim/abstr_poly_ind': ap.  (* TODO : bug à creuser :
-* Anomaly: Uncaught exception Evarconv.UnableToUnify(_, _). Please report at http://coq.inria.fr/bugs/. *)
+elim/abstr_poly_rect': ap =>//.
 { move=> c /= _; eapply refines_apply; [eapply ReffmpolyC_mpolyC_eff; try by tc|].
   by rewrite refinesE. }
 { move=> i /= Hn.
@@ -1758,9 +1793,9 @@ elim/abstr_poly_ind': ap.  (* TODO : bug à creuser :
   { by apply ReffmpolyC_mpoly_exp_eff; tc. }
   { by apply Hp. }
   by rewrite refinesE. }
-move=> p Hp /= [//|h t /= /andP [] /andP [] Hnh Hnt Hnp].
+move=> p Hp /= [//|h t /= [Hnh Hnt] /andP [/andP [Hp1 Hp2] Hp3]].
 case (sumb _) => [e|]; [|by rewrite size_map eqxx].
-Qed.
+Admitted.
 
 End refinement_interp_poly.
 
