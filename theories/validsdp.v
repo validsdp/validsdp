@@ -50,6 +50,16 @@ Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
   | x :: s' => a x /\ all_prop a s'
   end.
 
+Lemma all_prop_nthP T (P : T -> Prop) (s : seq T) (x0 : T) :
+  (forall i, (i < size s)%N -> P (nth x0 s i)) <-> all_prop P s.
+Proof.
+elim: s => [//|h t Ht] /=; split.
+{ move=> H1; split.
+  { by apply (H1 O). }
+  by apply Ht => i Hi; apply (H1 i.+1). }
+by move=> [] Hh Ht'; case=> [|i] Hi //=; apply Ht.
+Qed.
+
 Lemma all_prop_forall T1 T2 (P : T1 -> T2 -> Prop) (s : seq T1) :
   all_prop (fun x : T1 => forall y : T2, P x y) s ->
   forall y : T2, all_prop (fun x : T1 => P x y) s.
@@ -466,7 +476,11 @@ exact: (all_prop_forall (P := fun p vm =>
   interp_abstr_poly vm (abstr_poly_of_p_abstr_poly p) = interp_p_abstr_poly vm p)).
 Qed.
 
-Fixpoint interp_poly_ssr (n : nat) (ap : abstr_poly) : {mpoly rat[n.+1]} :=
+(** Tip to leverage a Boolean condition *)
+Definition sumb (b : bool) : {b = true} + {b = false} :=
+  if b is true then left erefl else right erefl.
+
+Fixpoint interp_poly_ssr (n : nat) (ap : abstr_poly) {struct ap} : {mpoly rat[n.+1]} :=
   match ap with
   | Const t => (bigQ2rat t)%:MP_[n.+1]
   | Var i => 'X_(inord i)
@@ -478,7 +492,12 @@ Fixpoint interp_poly_ssr (n : nat) (ap : abstr_poly) : {mpoly rat[n.+1]} :=
   | Compose a0 (h :: t) =>
     let t' := map (interp_poly_ssr n) t in
     let ht' := interp_poly_ssr n h :: t' in
-    comp_mpoly (in_tuple ht') (interp_poly_ssr (size t') a0)
+    match sumb (size t' == size t) with
+    | right prf => 0%:MP_[n.+1]
+    | left prf =>
+      comp_mpoly (tcast (eq_S (size t') (size t) (eqP prf)) (in_tuple ht'))
+                 (interp_poly_ssr (size t) a0)
+    end
   end.
 
 Fixpoint interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
@@ -489,9 +508,11 @@ Fixpoint interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
   | Sub p q => mpoly_sub_eff (interp_poly_eff n p) (interp_poly_eff n q)
   | Mul p q => mpoly_mul_eff (interp_poly_eff n p) (interp_poly_eff n q)
   | PowN p m => mpoly_exp_eff (n := n.+1) (interp_poly_eff n p) m
-  | Compose p qi =>
-    let qi' := map (interp_poly_eff n) qi in
-    comp_mpoly_eff (n := n.+1) qi' (interp_poly_eff (size qi).-1 p)
+  | Compose _ [::] => @mpolyC_eff bigQ 0 0%bigQ
+  | Compose p (h :: t) =>
+    let t' := map (interp_poly_eff n) t in
+    let ht' := interp_poly_eff n h :: t' in
+    comp_mpoly_eff (n := n.+1) ht' (interp_poly_eff (size t) p)
   end.
 
 Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
@@ -504,122 +525,133 @@ Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
   | Compose p qi => all (vars_ltn n) qi && vars_ltn (size qi) p
   end.
 
-(* seemingly missing in mpoly *)
-Lemma map_mpolyC (R S : ringType) (f : R -> S) (Hf0 : f 0%R = 0%R) n' c :
-  map_mpoly f c%:MP_[n'] = (f c)%:MP_[n'].
+Lemma vars_ltn_ge (n n' : nat) (ap : abstr_poly) :
+  (n <= n')%N -> vars_ltn n ap -> vars_ltn n' ap.
 Proof.
-rewrite /map_mpoly /mmap msuppC.
-case_eq (c == 0%R)%B; [by move/eqP ->; rewrite big_nil Hf0 mpolyC0|].
-move=> _; rewrite big_cons big_nil GRing.addr0 mmap1_id.
-by rewrite mpolyX0 mcoeffC eqxx !GRing.mulr1 /=.
+move=> Hn'; elim/abstr_poly_ind': ap.
+{ by []. }
+{ by move=> * /=. }
+{ by []. }
+{ by move=> i /= Hi; move: Hn'; apply leq_trans. }
+{ by move=> a0 Ha0 a1 Ha1 /= /andP [] Hn0 Hn1; rewrite Ha0 // Ha1. }
+{ by move=> a0 Ha0 a1 Ha1 /= /andP [] Hn0 Hn1; rewrite Ha0 // Ha1. }
+{ by move=> a0 Ha0 a1 Ha1 /= /andP [] Hn0 Hn1; rewrite Ha0 // Ha1. }
+{ by []. }
+move=> a Ha; case=> [//|h t] /= [] Hh Ht /andP [] /andP [] Hh' Ht' Ha'.
+rewrite Hh //= Ha' andb_true_r.
+apply/(all_nthP (Const 0)) => i Hi.
+move: Ht => /all_prop_nthP; apply=> //.
+by move: Ht' => /all_nthP; apply.
+Qed.
+  
+(* begin PR ssrmultinomials *)
+Lemma map_mpolyC (R S : ringType) (f : {additive R -> S}) n c :
+  map_mpoly f c%:MP_[n] = (f c)%:MP_[n].
+Proof.
+apply /mpolyP => m.
+rewrite mcoeff_map_mpoly !mcoeffC.
+by case (_ == _); [rewrite !mulr1|rewrite !mulr0 raddf0].
 Qed.
 
-(* seemingly missing in mpoly *)
-Lemma map_mpolyX (R S : ringType) (f : R -> S) n' (m : 'X_{1..n'}) :
-  map_mpoly f 'X_[m] = (f 1 *: 'X_[m])%R.
+Lemma map_mpolyX (R S : ringType) (f : {rmorphism R -> S}) n (m : 'X_{1..n}) :
+  map_mpoly f 'X_[m] = 'X_[m].
 Proof.
-rewrite /map_mpoly /mmap msuppX big_cons big_nil GRing.addr0 mmap1_id.
-by rewrite mul_mpolyC mcoeffX eqxx.
+apply /mpolyP => m'.
+rewrite mcoeff_map_mpoly !mcoeffX.
+by case (_ == _); [rewrite /= rmorph1|rewrite raddf0].
 Qed.
 
-Lemma interp_abstr_poly_correct (l : seq R) (ap : abstr_poly) :
-  let n := size l in (0 < n)%N -> vars_ltn n ap ->
-  let n' := n.-1 in
-  let p := map_mpoly rat2R (interp_poly_ssr n' ap) in
-  interp_abstr_poly l ap = p.@[fun i : 'I_n'.+1 => nth R0 l i].
+Lemma map_mpolyZ n (R S : ringType) (f : {rmorphism R -> S}) (c : R) (p : {mpoly R[n]}) :
+  map_mpoly f (c *: p) = (f c) *: (map_mpoly f p).
 Proof.
-elim/abstr_poly_ind': ap l => //.
-{ move=> c ? ? _ _ ? /=.
-  by rewrite map_mpolyC ?GRing.raddf0 // mevalC bigQ2R_rat. }
-{ move=> ? ? ? ? /= ?; rewrite map_mpolyX mevalZ mevalX.
-  rewrite GRing.rmorph1 GRing.mul1r; f_equal.
-  by rewrite inordK // prednK. }
-{ move=> p Hp q Hq l /= Hsl /andP [] Hlp Hlq; set env := fun _ => _.
-  rewrite (Hp _ Hsl Hlp) (Hq _ Hsl Hlq).
-  by rewrite -[_+_]/(_.@[env] + _)%R !GRing.rmorphD. }
-{ move=> p Hp q Hq l /= Hsl /andP [] Hlp Hlq; set env := fun _ => _.
-  rewrite (Hp _ Hsl Hlp) (Hq _ Hsl Hlq).
-  by rewrite -[_-_]/(_.@[env] - _)%R !GRing.rmorphB. }
-{ move=> p Hp q Hq l /= Hsl /andP [] Hlp Hlq; set env := fun _ => _.
-  rewrite (Hp _ Hsl Hlp) (Hq _ Hsl Hlq).
-  by rewrite -[_*_]/(_.@[env] * _)%R !GRing.rmorphM. }
-{ move=> p Hp m l /= Hsl Hlp; rewrite (Hp _ Hsl Hlp).
+apply /mpolyP => m.
+by rewrite mcoeff_map_mpoly !mcoeffZ mcoeff_map_mpoly /= rmorphM.
+Qed.
+
+Lemma msupp_map_mpoly n (R S : ringType)
+      (f : R -> S) (Hf0 : forall x, x != 0%R -> f x != 0%R) (p : {mpoly R[n]}) :
+  perm_eq (msupp (map_mpoly f p)) (msupp p).
+Proof.
+rewrite /map_mpoly /mmap.
+set s := BigOp.bigop _ _ _.
+have -> : s = \big[+%R/0%R]_(m <- msupp p) (f p@_m *: 'X_[m]).
+{ by apply eq_bigr => m _; rewrite /= mmap1_id mul_mpolyC. }
+apply (msupp_sumX (msupp_uniq _)).
+move=> m; rewrite mcoeff_msupp; apply Hf0.
+Qed.
+
+(* TODO : hypothèse Hf0 equivalente à l'injectivité ~~> injective f *)
+Lemma map_mpoly_comp (n k : nat) (R S : ringType) (f : {rmorphism R -> S})
+      (Hf0 : forall x, x != 0%R -> f x != 0%R)
+      (lq : n.-tuple {mpoly R[k]}) (p : {mpoly R[n]}) :
+  map_mpoly f (p \mPo lq) = (map_mpoly f p) \mPo (map_tuple (map_mpoly f) lq).
+Proof.
+apply /mpolyP => m.
+rewrite mcoeff_map_mpoly !raddf_sum (eq_big_perm _ (msupp_map_mpoly Hf0 p)) /=.
+apply eq_bigr => m' _.
+rewrite mcoeff_map_mpoly !mcoeffCM rmorphM; f_equal.
+rewrite /mmap1 -mcoeff_map_mpoly rmorph_prod; f_equal.
+by apply eq_bigr => i _; rewrite tnth_map rmorphX.
+Qed.
+
+Lemma comp_mpoly_meval (n k : nat) (R : comRingType)
+      (lq : n.-tuple {mpoly R[k]}) (p : {mpoly R[n]}) (v : 'I_k -> R) :
+  (p \mPo lq).@[v] = p.@[fun i => (tnth lq i).@[v]].
+Proof.
+rewrite comp_mpolyEX {3}(mpolyE p) !raddf_sum.
+apply eq_bigr => m _ /=.
+rewrite !mevalZ; f_equal.
+rewrite /comp_mpoly /meval !mmapX rmorph_prod.
+by apply eq_bigr => i _; rewrite rmorphX.
+Qed.
+
+Lemma meval_eq2 n (R : ringType) (e1 e2 : 'I_n -> R) (p : {mpoly R[n]}) :
+  e1 =1 e2 -> p.@[e1] = p.@[e2].
+Proof.
+move=> He; rewrite !mevalE; apply eq_bigr => m _; f_equal.
+by apply eq_bigr => i _; f_equal.
+Qed.
+(* end PR ssrmultinomials *)
+
+(* TODO: move with ratr def et ~~> ratr_inj : injective ratr *)
+Lemma ratr_nzero (x : rat_Ring) : x != 0%R -> ratr x != 0.
+Proof.
+Admitted.
+
+Lemma interp_poly_ssr_correct (l : seq R) (n : nat) (ap : abstr_poly) :
+  size l = n.+1 -> vars_ltn n.+1 ap ->
+  let p := map_mpoly rat2R (interp_poly_ssr n ap) in
+  interp_abstr_poly l ap = p.@[fun i : 'I_n.+1 => nth R0 l i].
+Proof.
+elim/abstr_poly_ind': ap l n => //.
+{ by move=> ? ? ? _ _ /=; rewrite map_mpolyC mevalC bigQ2R_rat. }
+{ by move=> ? ? ? _ /= ?; rewrite map_mpolyX mevalX; f_equal; rewrite inordK. }
+{ move=> p Hp q Hq l n Hn /= /andP [] Hnp Hnq.
+  by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphD. }
+{ move=> p Hp q Hq l n Hn /= /andP [] Hnp Hnq.
+  by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphB. }
+{ move=> p Hp q Hq l n Hn /= /andP [] Hnp Hnq.
+  by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphM. }
+{ move=> p Hp m l n Hn /= Hnp; rewrite (Hp _ _ Hn Hnp).
   rewrite -{1}[m]spec_NK /binnat.implem_N bin_of_natE nat_N_Z.
-  by rewrite -Interval_missing.pow_powerRZ misc.pow_rexp !GRing.rmorphX. }
-move=> p Hp [//|h t /= [Hh Ht] l Hsl /andP [] /andP [] Hh' Ht'].
+  by rewrite -Interval_missing.pow_powerRZ misc.pow_rexp !rmorphX. }
+move=> p Hp [//|h t /= [Hh Ht] l n Hn /andP [] /andP [] Hh' Ht' Hp'].
 set l' := _ :: _.
-have -> : (size t).+1 = size l' by rewrite /l' /= size_map.
-move=> Hp'; rewrite (Hp l' _ Hp') //.
-set rhs := (map_mpoly ratr (_ \mPo _)).@[_].
-rewrite GRing.rmorph_sum.
-rewrite /rhs.
-set lhs := \big[_/_]_(_<-_) _.
-rewrite comp_mpolyE.
-Abort.
-(* rewrite GRing.rmorph_sum. *)
-(* rewrite -GRing.rmorph_sum /=. *)
+case (sumb _) => [e|]; [|by rewrite size_map eqxx].
+rewrite (Hp l' (size t)); [|by rewrite /l' /= size_map|by []].
+rewrite (map_mpoly_comp ratr_nzero) comp_mpoly_meval /=.
+apply meval_eq2 => i.
+rewrite tnth_map tcastE /tnth /= (set_nth_default 0%R (tnth_default _ _));
+  [|by rewrite /= size_map; case i].
+case: i; case=> [|i] Hi /=; [by apply Hh|].
+rewrite (nth_map (Const 0)) => //.
+move: Ht => /all_prop_nthP Ht.
+move: Ht' => /all_nthP Ht'.
+rewrite (Ht _ _ _ _ n) => //; [|by apply Ht'].
+by rewrite (nth_map (Const 0)).
+Qed.
 
-(* rewrite !GRing.rmorph_sum. *)
-(* rewrite -GRing.rmorph_sum. *)
-(* rewrite /meval_rmorphism /=. *)
-(* rewrite comp_mpolyE. *)
-(* Search "" meval. *)
-
-(* rewrite 1!GRing.rmorph_sum. *)
-(* Check GRing.rmorph_sum. *)
-(* set lhs := \big[_/_]_(_ <- _) _. *)
-(* set supp := msupp _. *)
-(* set b := fun _ => _. *)
-(* set b' := fun _ => _. *)
-(* Check GRing.rmorph_sum. *)
-(* set f := map_mpoly ratr. *)
-(* rewrite GRing.rmorph_sum. *)
-(* Search "" msupp. *)
-(* Set Printing All. *)
-(* set b := _ *: _. *)
-(* rewrite GRing.rmorph_sum. *)
-
-(* Search "" BigOp.bigop. *)
-(* big_morph: *)
-(* GRing.rmorph_sum: *)
-
-
-(* Search "" map_mpoly. *)
-(* Search "" BigOp.bigop. *)
-(* Set Printing All. *)
-(* rewrite GRing.rmorphD. *)
-
-(* set p' := interp_poly_ssr _ p. *)
-(* set p'' := interp_poly_ssr _ p. *)
-
-
-(* Search "" comp_mpoly. *)
-(* Search "" map_mpoly. *)
-(* Search "" meval. *)
-
-(* Search "" comp_mpoly. *)
-
-
-(* have Hsl' : (0 < size l')%N by []. *)
-
-(* rewrite (Hp _ Hsl Hp'). *)
-
-
-
-(* move=> p Hp [//|h t /= [Hh Ht] /andP [] /andP [] Hh' Ht' Hp']. *)
-(* have Hh'' := Hh Hh' => {Hh Hh'}. *)
-(* set sz := size _. *)
-(* have Hsz : sz = size t by rewrite /sz size_map. *)
-
-(* Search "" comp_mpoly. *)
-
-
-(* Locate "\mPo". *)
-
-
-(* Qed. *)
-
-Lemma interp_correct vm p :
+Lemma interp_poly_ssr_correct' vm p :
   let n := size vm in
   let n' := n.-1 in
   let p' := abstr_poly_of_p_abstr_poly p in
@@ -628,8 +660,10 @@ Lemma interp_correct vm p :
   vars_ltn n p' ->
   interp_p_abstr_poly vm p = p''.@[fun i : 'I_n'.+1 => nth R0 vm i].
 Proof.
-move=> *; rewrite -interp_abstr_poly_correct //.
-by rewrite abstr_poly_of_p_abstr_poly_correct.
+move=> *; rewrite -interp_poly_ssr_correct //.
+{ by rewrite abstr_poly_of_p_abstr_poly_correct. }
+{ by rewrite prednK. }
+by rewrite prednK.
 Qed.
 
 (** ** Part 0: Definition of operational type classes *)
@@ -1032,7 +1066,7 @@ have : exists E : 'M_s.+1,
   rewrite pair_bigA /= (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
   have -> : M = map_mpolyC_R (matrix.map_mx (T2R \o F2T) Q + E)%R.
   { apply/matrixP=> i j; rewrite /map_mpolyC_R /mpolyC_R.
-    by rewrite !mxE mpolyCD (map_mpolyC (GRing.raddf0 _)). }
+    by rewrite !mxE mpolyCD map_mpolyC. }
   move {M}; set M := map_mpolyC_R _.
   under big ? _ rewrite (GRing.mulrC (zpr _ _)) -GRing.mulrA mxE mcoeffCM.
   under big ? _ rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX.
@@ -1081,7 +1115,7 @@ replace (matrix.map_mx _ (map_mpolyC_R E)) with E;
   [|by apply/matrixP => i j; rewrite !mxE /= mevalC].
 replace (matrix.map_mx _ _) with (matrix.map_mx (T2R \o F2T) Q);
   [|by apply/matrixP => i j;
-    rewrite !mxE /= (map_mpolyC (GRing.raddf0 _)) mevalC].
+    rewrite !mxE /= map_mpolyC mevalC].
 have Hposdef : posdef (map_mx (T2R \o F2T) Q + E).
 { apply (posdef_check_itv_correct Hpcheck).
   apply Mle_trans with (Mabs E).
@@ -1689,7 +1723,8 @@ Section refinement_interp_poly.
 Lemma refine_interp_poly n ap : vars_ltn n.+1 ap ->
   refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
 Proof.
-elim: ap.
+elim/abstr_poly_ind': ap.  (* TODO : bug à creuser :
+* Anomaly: Uncaught exception Evarconv.UnableToUnify(_, _). Please report at http://coq.inria.fr/bugs/. *)
 { move=> c /= _; eapply refines_apply; [eapply ReffmpolyC_mpolyC_eff; try by tc|].
   by rewrite refinesE. }
 { move=> i /= Hn.
@@ -1718,11 +1753,13 @@ elim: ap.
   { by apply ReffmpolyC_mpoly_mul_eff; tc. }
   { by apply Hp. }
   by apply Hq. }
-move=> p Hp m /= Hlp.
-eapply refines_apply; first eapply refines_apply.
-{ by apply ReffmpolyC_mpoly_exp_eff; tc. }
-{ by apply Hp. }
-by rewrite refinesE.
+{ move=> p Hp m /= Hlp.
+  eapply refines_apply; first eapply refines_apply.
+  { by apply ReffmpolyC_mpoly_exp_eff; tc. }
+  { by apply Hp. }
+  by rewrite refinesE. }
+move=> p Hp /= [//|h t /= /andP [] /andP [] Hnh Hnt Hnp].
+case (sumb _) => [e|]; [|by rewrite size_map eqxx].
 Qed.
 
 End refinement_interp_poly.
@@ -2002,7 +2039,7 @@ set apapi := all_prop _ _.
 suff: apapi -> if b then 0 < interp_p_abstr_poly vm pap
                else 0 <= interp_p_abstr_poly vm pap by case b.
 rewrite {}/apapi => Hall_prop.
-rewrite interp_correct; [|by move: Hn; rewrite -/n; case n|by rewrite ?lt0n].
+rewrite interp_poly_ssr_correct'; [|by move: Hn; rewrite -/n; case n|by rewrite ?lt0n].
 set x := fun _ => _.
 have Hall_prop' :
   all_prop (fun pszQ => 0 <= (map_mpoly ratr pszQ.1).@[x]) pszQlb.
@@ -2011,7 +2048,7 @@ have Hall_prop' :
   move: szQlb {pszQlb}; elim papi => /= [|h t Hind]; [by case|].
   case=> // szQlbh szQlbt /= /eqP [] HszQlbt /andP [] Hltnh Hltnt [] H1 H2.
   split; [|by apply Hind; [apply/eqP| |]].
-  by rewrite -interp_correct; [|move: Hn; rewrite -/n; case n|]. }
+  by rewrite -interp_poly_ssr_correct'; [|move: Hn; rewrite -/n; case n|]. }
 set papx := _.@[x].
 suff: 0 <= papx /\ (has_const_ssr zb -> 0 < papx).
 { move: Hstrict; case b => /= [Hcz [] _ Hczb|_ [] //]; apply Hczb.
