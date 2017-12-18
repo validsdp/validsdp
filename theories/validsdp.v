@@ -84,8 +84,6 @@ Proof. by elim: s1 => [|x s1 IHs] //=; intuition. Qed.
 Section Defix.
 Variable (P : p_abstr_poly -> Prop).
 Let P' := all_prop P.
-Variable (f'0 : P' [::]).
-Variable (f'1 : forall p : p_abstr_poly, P p -> forall l : seq p_abstr_poly, P' l -> P' (p :: l)).
 Variable (f : forall p : p_real_cst, P (PConst p)).
 Variable (f0 : forall n : nat, P (PVar n)) (f1 : forall p : p_abstr_poly, P p -> P (POpp p)).
 Variable (f2 : forall p : p_abstr_poly, P p -> forall p0 : p_abstr_poly, P p0 -> P (PAdd p p0)).
@@ -98,8 +96,8 @@ Variable (f7 : forall p : p_abstr_poly, P p -> forall l : seq p_abstr_poly, P' l
 Fixpoint p_abstr_poly_ind' (p : p_abstr_poly) : P p :=
   let fix p_abstr_poly_ind2 (l : seq p_abstr_poly) : P' l :=
   match l as l0 return (P' l0) with
-  | [::] => f'0
-  | p :: l' => f'1 (p_abstr_poly_ind' p) (p_abstr_poly_ind2 l')
+  | [::] => I
+  | p :: l' => conj (p_abstr_poly_ind' p) (p_abstr_poly_ind2 l')
   end in
   match p as p0 return (P p0) with
   | PConst p0 => f p0
@@ -404,8 +402,6 @@ Inductive abstr_poly :=
 Section Defix'.
 Variable (P : abstr_poly -> Prop).
 Let P' := all_prop P.
-Variable (f'0 : P' [::]).
-Variable (f'1 : forall p : abstr_poly, P p -> forall l : seq abstr_poly, P' l -> P' (p :: l)).
 Variable (f : forall t : bigQ, P (Const t)).
 Variable (f0 : forall n : nat, P (Var n)).
 Variable (f1 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Add a a0)).
@@ -417,8 +413,8 @@ Variable (f5 : forall a : abstr_poly, P a -> forall l : seq abstr_poly, P' l -> 
 Fixpoint abstr_poly_ind' (p : abstr_poly) : P p :=
   let fix abstr_poly_ind2 (l : seq abstr_poly) : P' l :=
   match l as l0 return (P' l0) with
-  | [::] => f'0
-  | p :: l' => f'1 (abstr_poly_ind' p) (abstr_poly_ind2 l')
+  | [::] => I
+  | p :: l' => conj (abstr_poly_ind' p) (abstr_poly_ind2 l')
   end in
   match p as p0 return (P p0) with
   | Const t => f t
@@ -440,8 +436,6 @@ Fixpoint all_type (T : Type) (a : T -> Type) (s : seq T) : Type :=
 Section Defix''.
 Variable (P : abstr_poly -> Type).
 Let P' := all_type P.
-Variable (f'0 : P' [::]).
-Variable (f'1 : forall p : abstr_poly, P p -> forall l : seq abstr_poly, P' l -> P' (p :: l)).
 Variable (f : forall t : bigQ, P (Const t)).
 Variable (f0 : forall n : nat, P (Var n)).
 Variable (f1 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Add a a0)).
@@ -453,8 +447,8 @@ Variable (f5 : forall a : abstr_poly, P a -> forall l : seq abstr_poly, P' l -> 
 Fixpoint abstr_poly_rect' (p : abstr_poly) : P p :=
   let fix abstr_poly_rect2 (l : seq abstr_poly) : P' l :=
   match l as l0 return (P' l0) with
-  | [::] => f'0
-  | p :: l' => f'1 (abstr_poly_rect' p) (abstr_poly_rect2 l')
+  | [::] => I
+  | p :: l' => (abstr_poly_rect' p, abstr_poly_rect2 l')
   end in
   match p as p0 return (P p0) with
   | Const t => f t
@@ -495,7 +489,7 @@ Lemma abstr_poly_of_p_abstr_poly_correct (vm : seq R) (p : p_abstr_poly) :
   interp_abstr_poly vm (abstr_poly_of_p_abstr_poly p) =
   interp_p_abstr_poly vm p.
 Proof.
-elim/p_abstr_poly_ind': p vm =>//.
+elim/p_abstr_poly_ind': p vm => //.
 { move=> *; apply bigQ_of_p_real_cst_correct. }
 { move=> p IHp vm /=.
   by rewrite (IHp vm) /bigQ2R /Q2R Rsimpl /Rminus Rplus_0_l. }
@@ -565,8 +559,6 @@ Lemma vars_ltn_ge (n n' : nat) (ap : abstr_poly) :
   (n <= n')%N -> vars_ltn n ap -> vars_ltn n' ap.
 Proof.
 move=> Hn'; elim/abstr_poly_ind': ap.
-{ by []. }
-{ by move=> * /=. }
 { by []. }
 { by move=> i /= Hi; move: Hn'; apply leq_trans. }
 { by move=> a0 Ha0 a1 Ha1 /= /andP [] Hn0 Hn1; rewrite Ha0 // Ha1. }
