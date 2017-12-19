@@ -433,6 +433,17 @@ Fixpoint all_type (T : Type) (a : T -> Type) (s : seq T) : Type :=
   | x :: s' => a x * all_type a s'
   end.
 
+Lemma all_type_nth T (P : T -> Type) (s : seq T) (x0 : T):
+  all_type P s -> forall i, (i < size s)%N -> P (nth x0 s i).
+Proof. by elim: s => [//|? ? /= Hi [? ?] [//|?] ?]; apply Hi. Qed.
+
+Lemma nth_all_type T (P : T -> Type) (s : seq T) (x0 : T):
+  (forall i, (i < size s)%N -> P (nth x0 s i)) -> all_type P s.
+Proof.
+elim: s => [//|h t Ht H]; split; [by apply (H O)|].
+by apply Ht => i Hi; apply (H (S i)).
+Qed.
+
 Section Defix''.
 Variable (P : abstr_poly -> Type).
 Let P' := all_type P.
@@ -1743,46 +1754,111 @@ End refinement_soscheck.
 
 Section refinement_interp_poly.
 
+(* TODO: absent de CoqEAL ? *)
+Lemma nth_lt_list_R T1 T2 (T_R : T1 -> T2 -> Type) (x01 : T1) (x02 : T2) s1 s2 :
+  size s1 = size s2 ->
+  (forall n, (n < size s1)%N -> T_R (nth x01 s1 n) (nth x02 s2 n)) -> list_R T_R s1 s2.
+Proof.
+elim: s1 s2 => [|hs1 ts1 Hind]; [by move=> [//|]|].
+move=> [//|hs2 ts2 /= Hs H]; apply list_R_cons_R; [by apply (H O)|].
+by apply Hind; [apply eq_add_S|move=> n Hn; apply (H (S n))].
+Qed.
+
 Lemma refine_interp_poly n ap : vars_ltn n ap ->
   refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
 Proof.
-elim/abstr_poly_rect': ap =>//.
-{ move=> c /= _; eapply refines_apply; [eapply ReffmpolyC_mpolyC_eff; try by tc|].
+elim/abstr_poly_rect': ap n => //.
+{ move=> c ? /= _; eapply refines_apply;
+    [eapply ReffmpolyC_mpolyC_eff; try by tc|].
   by rewrite refinesE. }
-{ move=> i /= Hn.
+{ move=> i [|n] //= Hn.
   rewrite -(GRing.scale1r (mpolyX _ _)) -/(mpvar 1 1 (inord i)).
   eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
   { by apply ReffmpolyC_mpvar_eff. }
   { tc. }
   { by rewrite refinesE. }
   by rewrite refinesE /Rord0 -bin_of_natE bin_of_natK inordK. }
-{ move=> p Hp q Hq /= /andP [] Hlp Hlq.
+{ move=> p Hp q Hq n /= /andP [] Hlp Hlq.
   rewrite /GRing.add /=.
   eapply refines_apply; first eapply refines_apply.
   { by apply ReffmpolyC_mpoly_add_eff; tc. }
   { by apply Hp. }
   by apply Hq. }
-{ move=> p Hp q Hq /= /andP [] Hlp Hlq.
+{ move=> p Hp q Hq n /= /andP [] Hlp Hlq.
   set p' := _ _ p; set q' := _ _ q.
   rewrite -[(_ - _)%R]/(mpoly_sub p' q').
   eapply refines_apply; first eapply refines_apply.
   { by apply ReffmpolyC_mpoly_sub_eff; tc. }
   { by apply Hp. }
   by apply Hq. }
-{ move=> p Hp q Hq /= /andP [] Hlp Hlq.
+{ move=> p Hp q Hq n /= /andP [] Hlp Hlq.
   rewrite /GRing.mul /=.
   eapply refines_apply; first eapply refines_apply.
   { by apply ReffmpolyC_mpoly_mul_eff; tc. }
   { by apply Hp. }
   by apply Hq. }
-{ move=> p Hp m /= Hlp.
+{ move=> p Hp m n /= Hlp.
   eapply refines_apply; first eapply refines_apply.
   { by apply ReffmpolyC_mpoly_exp_eff; tc. }
   { by apply Hp. }
   by rewrite refinesE. }
-move=> p Hp /= [//|h t /= [Hnh Hnt] /andP [/andP [Hp1 Hp2] Hp3]].
+move=> p Hp qi Hqi n /= /andP [Hnqi Hnp].
 case (sumb _) => [e|]; [|by rewrite size_map eqxx].
-Admitted.
+eapply refines_apply; [|by apply Hp].
+eapply refines_apply; [by apply ReffmpolyC_comp_mpoly_eff; tc|].
+(* TODO : voir si on ne peut pas faire un lemme sur seq_ReffmpolyC *)
+rewrite refinesE /seq_ReffmpolyC.
+move: qi Hqi Hnqi {Hnp} e => [/= _ _ e|h t /= [Hqi Hqi'] /andP [Hh Ht] e].
+{ apply/(comp_hrelP (b := [::])) => //.
+  rewrite /seq_Reffmpoly => /=; split=> // i.
+  rewrite ssrcomplements.tval_tcast in_tupleE !nth_default //.
+  by apply refine_mp0_eff. }
+move: (Hqi _ Hh) => {Hqi Hh}.
+rewrite refinesE /ReffmpolyC => [] [] h' [Hh' Hh''].
+move: Ht => /(all_nthP (Const 0)) => Ht.
+move: (all_type_nth (Const 0) Hqi') => {Hqi'} Hqi'.
+have [t' [Hst' Ht'] Ht''] :
+  { t' : seq (effmpoly rat_Ring)
+         & (prod (size t' = size t)
+                 (all_type (fun i =>
+                              Reffmpoly (interp_poly_ssr n (nth (Const 0) t i)) (nth mp0_eff t' i))
+                           (iota 0 (size t))))
+         & all_type (fun i =>
+                       M_hrel r_ratBigQ (nth mp0_eff t' i) (interp_poly_eff n (nth (Const 0) t i)))
+                    (iota 0 (size t)) }.
+{ elim: t {e} Ht Hqi' => [|ht tt Htt] Ht Hqi; [by exists [::]|].
+  move : (Hqi O (erefl _) n (Ht O (erefl _))).
+  rewrite refinesE /ReffmpolyC => [] [] ht' [Hht'1 Hht'2].
+  elim Htt.
+  { move=> tt' [Hstt' Htt'1] Htt'2; exists (ht' :: tt').
+    { split=> /=; [by rewrite Hstt'|].
+      split=> //.
+      apply (nth_all_type (x0:=O)) => i.
+      rewrite size_iota => Hi; rewrite nth_iota //=.
+      move: (@all_type_nth _ _ _ O Htt'1 i).
+      by rewrite size_iota nth_iota //; apply. }
+    split=> //.
+    apply (nth_all_type (x0:=O)) => i.
+    rewrite size_iota => Hi; rewrite nth_iota //=.
+    move: (@all_type_nth _ _ _ O Htt'2 i).
+    by rewrite size_iota nth_iota //; apply. }
+  { by move=> i Hi; move: (Ht i.+1); apply. }
+  by move=> i Hi n' Hn'; rewrite -ltnS in Hi; move: (Hqi _ Hi n'); apply. }
+apply/(comp_hrelP (b := h' :: t')).
+{ rewrite /seq_Reffmpoly /=; split; [by rewrite Hst'|].
+  rewrite ssrcomplements.tval_tcast in_tupleE refinesE; move=> [//|i /=].
+  case (ltnP i (size t)) => Hi.
+  { move: (@all_type_nth _ _ _ O Ht' i).
+    by rewrite size_iota nth_iota // (nth_map (Const 0)) //; apply. }
+  rewrite nth_default; [|by rewrite size_map].
+  rewrite nth_default; [|by rewrite Hst'].
+  by move: (@refine_mp0_eff rat_Ring n); rewrite refinesE. }
+apply list_R_cons_R => //.
+apply (nth_lt_list_R (x01 := mp0_eff) (x02 := mp0_eff)).
+{ by rewrite size_map. }
+move=> i Hi; move: (@all_type_nth _ _ _ O Ht'' i).
+by rewrite size_iota nth_iota -?Hst' // (nth_map (Const 0)) -?Hst' //; apply.
+Qed.
 
 End refinement_interp_poly.
 
