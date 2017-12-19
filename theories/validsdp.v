@@ -510,39 +510,39 @@ Qed.
 Definition sumb (b : bool) : {b = true} + {b = false} :=
   if b is true then left erefl else right erefl.
 
-Fixpoint interp_poly_ssr (n : nat) (ap : abstr_poly) {struct ap} : {mpoly rat[n.+1]} :=
+Fixpoint interp_poly_ssr (n : nat) (ap : abstr_poly) {struct ap} : {mpoly rat[n]} :=
   match ap with
-  | Const t => (bigQ2rat t)%:MP_[n.+1]
-  | Var i => 'X_(inord i)
+  | Const t => (bigQ2rat t)%:MP_[n]
+  | Var i =>
+    match n with
+    | O => 0%:MP_[O]
+    | S n' => 'X_(inord i)
+    end
   | Add a0 a1 => (interp_poly_ssr n a0 + interp_poly_ssr n a1)%R
   | Sub a0 a1 => (interp_poly_ssr n a0 - interp_poly_ssr n a1)%R
   | Mul a0 a1 => (interp_poly_ssr n a0 * interp_poly_ssr n a1)%R
   | PowN a0 n' => mpoly_exp (interp_poly_ssr n a0) n'
-  | Compose _ [::] => 0%:MP_[n.+1]
-  | Compose a0 (h :: t) =>
-    let t' := map (interp_poly_ssr n) t in
-    let ht' := interp_poly_ssr n h :: t' in
-    match sumb (size t' == size t) with
-    | right prf => 0%:MP_[n.+1]
+  | Compose a0 qi =>
+    let qi' := map (interp_poly_ssr n) qi in
+    match sumb (size qi' == size qi) with
+    | right prf => 0%:MP_[n]
     | left prf =>
-      comp_mpoly (tcast (eq_S (size t') (size t) (eqP prf)) (in_tuple ht'))
-                 (interp_poly_ssr (size t) a0)
+      comp_mpoly (tcast (eqP prf) (in_tuple qi'))
+                 (interp_poly_ssr (size qi) a0)
     end
   end.
 
 Fixpoint interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
   match ap with
-  | Const c => @mpolyC_eff bigQ n.+1 c
-  | Var i => @mpvar_eff bigQ n.+1 1%bigQ 1 (N.of_nat i)
+  | Const c => @mpolyC_eff bigQ n c
+  | Var i => @mpvar_eff bigQ n 1%bigQ 1 (N.of_nat i)
   | Add p q => mpoly_add_eff (interp_poly_eff n p) (interp_poly_eff n q)
   | Sub p q => mpoly_sub_eff (interp_poly_eff n p) (interp_poly_eff n q)
   | Mul p q => mpoly_mul_eff (interp_poly_eff n p) (interp_poly_eff n q)
-  | PowN p m => mpoly_exp_eff (n := n.+1) (interp_poly_eff n p) m
-  | Compose _ [::] => @mpolyC_eff bigQ 0 0%bigQ
-  | Compose p (h :: t) =>
-    let t' := map (interp_poly_eff n) t in
-    let ht' := interp_poly_eff n h :: t' in
-    comp_mpoly_eff (n := n.+1) ht' (interp_poly_eff (size t) p)
+  | PowN p m => mpoly_exp_eff (n := n) (interp_poly_eff n p) m
+  | Compose p qi =>
+    let qi' := map (interp_poly_eff n) qi in
+    comp_mpoly_eff (n := n) qi' (interp_poly_eff (size qi) p)
   end.
 
 Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
@@ -551,7 +551,6 @@ Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
   | Var i => (i < n)%N
   | Add p q | Sub p q | Mul p q => vars_ltn n p && vars_ltn n q
   | PowN p _ => vars_ltn n p
-  | Compose _ [::] => false
   | Compose p qi => all (vars_ltn n) qi && vars_ltn (size qi) p
   end.
 
@@ -647,13 +646,14 @@ Proof.
 Admitted.
 
 Lemma interp_poly_ssr_correct (l : seq R) (n : nat) (ap : abstr_poly) :
-  size l = n.+1 -> vars_ltn n.+1 ap ->
+  size l = n -> vars_ltn n ap ->
   let p := map_mpoly rat2R (interp_poly_ssr n ap) in
-  interp_abstr_poly l ap = p.@[fun i : 'I_n.+1 => nth R0 l i].
+  interp_abstr_poly l ap = p.@[fun i : 'I_n => nth R0 l i].
 Proof.
 elim/abstr_poly_ind': ap l n => //.
 { by move=> ? ? ? _ _ /=; rewrite map_mpolyC mevalC bigQ2R_rat. }
-{ by move=> ? ? ? _ /= ?; rewrite map_mpolyX mevalX; f_equal; rewrite inordK. }
+{ move=> ? ? [|?] ? //= ?.
+  by rewrite map_mpolyX mevalX; f_equal; rewrite inordK. }
 { move=> p Hp q Hq l n Hn /= /andP [] Hnp Hnq.
   by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphD. }
 { move=> p Hp q Hq l n Hn /= /andP [] Hnp Hnq.
@@ -663,35 +663,30 @@ elim/abstr_poly_ind': ap l n => //.
 { move=> p Hp m l n Hn /= Hnp; rewrite (Hp _ _ Hn Hnp).
   rewrite -{1}[m]spec_NK /binnat.implem_N bin_of_natE nat_N_Z.
   by rewrite -Interval_missing.pow_powerRZ misc.pow_rexp !rmorphX. }
-move=> p Hp [//|h t /= [Hh Ht] l n Hn /andP [] /andP [] Hh' Ht' Hp'].
-set l' := _ :: _.
+move=> p Hp qi Hqi l n Hn /= /andP [Hqi' Hp'].
 case (sumb _) => [e|]; [|by rewrite size_map eqxx].
-rewrite (Hp l' (size t)); [|by rewrite /l' /= size_map|by []].
+set qi' := map _ _.
+rewrite (Hp qi' (size qi)); [|by rewrite /qi' /= size_map|by []].
 rewrite (map_mpoly_comp ratr_nzero) comp_mpoly_meval /=.
 apply meval_eq2 => i.
 rewrite tnth_map tcastE /tnth /= (set_nth_default 0%R (tnth_default _ _));
   [|by rewrite /= size_map; case i].
-case: i; case=> [|i] Hi /=; [by apply Hh|].
 rewrite (nth_map (Const 0)) => //.
-move: Ht => /all_prop_nthP Ht.
-move: Ht' => /all_nthP Ht'.
-rewrite (Ht _ _ _ _ n) => //; [|by apply Ht'].
+move: Hqi => /all_prop_nthP Hqi.
+move: Hqi' => /all_nthP Hqi'.
+rewrite (Hqi _ _ _ _ n) => //; [|by apply Hqi'].
 by rewrite (nth_map (Const 0)).
 Qed.
 
 Lemma interp_poly_ssr_correct' vm p :
   let n := size vm in
-  let n' := n.-1 in
   let p' := abstr_poly_of_p_abstr_poly p in
-  let p'' := map_mpoly rat2R (interp_poly_ssr n' p') in
-  (0 < n)%N ->
+  let p'' := map_mpoly rat2R (interp_poly_ssr n p') in
   vars_ltn n p' ->
-  interp_p_abstr_poly vm p = p''.@[fun i : 'I_n'.+1 => nth R0 vm i].
+  interp_p_abstr_poly vm p = p''.@[fun i : 'I_n => nth R0 vm i].
 Proof.
 move=> *; rewrite -interp_poly_ssr_correct //.
-{ by rewrite abstr_poly_of_p_abstr_poly_correct. }
-{ by rewrite prednK. }
-by rewrite prednK.
+by rewrite abstr_poly_of_p_abstr_poly_correct.
 Qed.
 
 (** ** Part 0: Definition of operational type classes *)
@@ -1748,7 +1743,7 @@ End refinement_soscheck.
 
 Section refinement_interp_poly.
 
-Lemma refine_interp_poly n ap : vars_ltn n.+1 ap ->
+Lemma refine_interp_poly n ap : vars_ltn n ap ->
   refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
 Proof.
 elim/abstr_poly_rect': ap =>//.
