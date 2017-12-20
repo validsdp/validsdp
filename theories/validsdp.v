@@ -1808,56 +1808,31 @@ eapply refines_apply; [|by apply Hp].
 eapply refines_apply; [by apply ReffmpolyC_comp_mpoly_eff; tc|].
 (* TODO : voir si on ne peut pas faire un lemme sur seq_ReffmpolyC *)
 rewrite refinesE /seq_ReffmpolyC.
-move: qi Hqi Hnqi {Hnp} e => [/= _ _ e|h t /= [Hqi Hqi'] /andP [Hh Ht] e].
-{ apply/(comp_hrelP (b := [::])) => //.
-  rewrite /seq_Reffmpoly => /=; split=> // i.
-  rewrite ssrcomplements.tval_tcast in_tupleE !nth_default //.
-  by apply refine_mp0_eff. }
-move: (Hqi _ Hh) => {Hqi Hh}.
-rewrite refinesE /ReffmpolyC => [] [] h' [Hh' Hh''].
-move: Ht => /(all_nthP (Const 0)) => Ht.
-move: (all_type_nth (Const 0) Hqi') => {Hqi'} Hqi'.
-have [t' [Hst' Ht'] Ht''] :
-  { t' : seq (effmpoly rat_Ring)
-         & (prod (size t' = size t)
-                 (all_type (fun i =>
-                              Reffmpoly (interp_poly_ssr n (nth (Const 0) t i)) (nth mp0_eff t' i))
-                           (iota 0 (size t))))
-         & all_type (fun i =>
-                       M_hrel r_ratBigQ (nth mp0_eff t' i) (interp_poly_eff n (nth (Const 0) t i)))
-                    (iota 0 (size t)) }.
-{ elim: t {e} Ht Hqi' => [|ht tt Htt] Ht Hqi; [by exists [::]|].
-  move : (Hqi O (erefl _) n (Ht O (erefl _))).
-  rewrite refinesE /ReffmpolyC => [] [] ht' [Hht'1 Hht'2].
-  elim Htt.
-  { move=> tt' [Hstt' Htt'1] Htt'2; exists (ht' :: tt').
-    { split=> /=; [by rewrite Hstt'|].
-      split=> //.
-      apply (nth_all_type (x0:=O)) => i.
-      rewrite size_iota => Hi; rewrite nth_iota //=.
-      move: (@all_type_nth _ _ _ O Htt'1 i).
-      by rewrite size_iota nth_iota //; apply. }
-    split=> //.
-    apply (nth_all_type (x0:=O)) => i.
-    rewrite size_iota => Hi; rewrite nth_iota //=.
-    move: (@all_type_nth _ _ _ O Htt'2 i).
-    by rewrite size_iota nth_iota //; apply. }
-  { by move=> i Hi; move: (Ht i.+1); apply. }
-  by move=> i Hi n' Hn'; rewrite -ltnS in Hi; move: (Hqi _ Hi n'); apply. }
-apply/(comp_hrelP (b := h' :: t')).
-{ rewrite /seq_Reffmpoly /=; split; [by rewrite Hst'|].
-  rewrite ssrcomplements.tval_tcast in_tupleE refinesE; move=> [//|i /=].
-  case (ltnP i (size t)) => Hi.
-  { move: (@all_type_nth _ _ _ O Ht' i).
-    by rewrite size_iota nth_iota // (nth_map (Const 0)) //; apply. }
-  rewrite nth_default; [|by rewrite size_map].
-  rewrite nth_default; [|by rewrite Hst'].
-  by move: (@refine_mp0_eff rat_Ring n); rewrite refinesE. }
-apply list_R_cons_R => //.
-apply (nth_lt_list_R (x01 := mp0_eff) (x02 := mp0_eff)).
-{ by rewrite size_map. }
-move=> i Hi; move: (@all_type_nth _ _ _ O Ht'' i).
-by rewrite size_iota nth_iota -?Hst' // (nth_map (Const 0)) -?Hst' //; apply.
+move=> {p Hp Hnp}.
+move: Hnqi => /(all_nthP (Const 0)) => Hnqi.
+move: (all_type_nth (Const 0) Hqi) => {Hqi} Hqi.
+set F := fun _ => _.
+suff H : {b : seq (effmpoly rat_Ring) & size b = size qi & F b }.
+{ by move: H => [b Hnb Hb]; exists b. }
+rewrite {}/F.
+elim: qi e Hnqi Hqi => [|h t Hind] e Hnqi Hqi.
+{ exists [::] => /=; split.
+  { rewrite /seq_Reffmpoly; split=> // i.
+    rewrite ssrcomplements.tval_tcast in_tupleE !nth_default //.
+    apply refine_mp0_eff. }
+  apply list_R_nil_R. }
+move: (Hqi O (erefl _) n (Hnqi O (erefl _))).
+rewrite refinesE => [] [] h' /= [Hh'1 Hh'2].
+elim (Hind e).
+{ move=> t' [Hnt' [Ht'1 Ht'2]].
+  exists (h' :: t'); [by rewrite /= Hnt'|split].
+  { split=> [|[|i]]; [by rewrite /= Hnt'| |].
+    { by rewrite ssrcomplements.tval_tcast in_tupleE refinesE. }
+    move: Ht'1 => [] _ Ht'1; move: (Ht'1 i).
+    by rewrite !ssrcomplements.tval_tcast. }
+  by apply list_R_cons_R. }
+{ by move=> i Hi; move: (Hnqi i.+1) => /=; apply. }
+by move=> i Hi n' Hn'; move: (Hqi i.+1) => /=; apply.
 Qed.
 
 End refinement_interp_poly.
@@ -1980,8 +1955,8 @@ Lemma sub_p_abstr_poly_correct vm p q :
   interp_p_abstr_poly vm (sub_p_abstr_poly p q) =
   interp_p_abstr_poly vm p - interp_p_abstr_poly vm q.
 Proof.
-case: p=> [p|n|p|p p'|p p'|p p'|p n|p n];
-case: q=> [q|d|q|q q'|q q'|q q'|q d|q d] //;
+case: p=> [p|n|p|p p'|p p'|p p'|p n|p n|p pi];
+case: q=> [q|d|q|q q'|q q'|q q'|q d|q d|q qi] //;
 try (case: p =>//=; case: q =>//= *; ring).
 by case: p =>//= *; ring.
 by case: q =>//= *; ring.
@@ -2050,11 +2025,10 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
   (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
   let '(papi, pap, strict) := abstr_goal_of_p_abstr_goal g in
   let n := size vm in
-  let n' := n.-1 in
   let ap := abstr_poly_of_p_abstr_poly pap in
-  let bp := interp_poly_eff n' ap in
+  let bp := interp_poly_eff n ap in
   let apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi] in
-  let bpl := [seq interp_poly_eff n' p | p <- apl] in
+  let bpl := [seq interp_poly_eff n p | p <- apl] in
   let s := size zQ.1 in
   let s' := s.-1 in
   let z := map (fun x => [:: x]) zQ.1 in
@@ -2104,40 +2078,38 @@ rewrite /soscheck_hyps_eff_wrapup => hyps.
 apply abstr_goal_of_p_abstr_goal_correct; move: hyps.
 set papipapb := _ g; case papipapb; case=> papi pap b {papipapb}.
 set n := size vm.
-set n' := n.-1.
 set ap := abstr_poly_of_p_abstr_poly pap.
-set bp := interp_poly_eff n' ap.
+set bp := interp_poly_eff n ap.
 set apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi].
-set bpl := [seq interp_poly_eff n' p | p <- apl].
+set bpl := [seq interp_poly_eff n p | p <- apl].
 set s := size zQ.1.
 set s' := s.-1.
 set z := map (fun x => [:: x]) zQ.1.
 set Q := map (map F2FI) zQ.2.
 set szQl := map _ szQi.
 set pszQl := zip bpl szQl.
-pose zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) s'.+1 1 z.
+pose zb := @spec_seqmx _ (@mnm0 n) _ (@multinom_of_seqmultinom_val n) s'.+1 1 z.
 pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) s'.+1 s'.+1 Q.
 pose szQlb :=
   [seq
      match szQ with
        | Wit s sz z Q =>
-         let sb := mpoly_of_effmpoly_val n'.+1 (M.map bigQ2rat s) in
-         let zb := @spec_seqmx _ (@mnm0 n'.+1) _ (@multinom_of_seqmultinom_val n'.+1) sz.+1 1 z in
+         let sb := mpoly_of_effmpoly_val n (M.map bigQ2rat s) in
+         let zb := @spec_seqmx _ (@mnm0 n) _ (@multinom_of_seqmultinom_val n) sz.+1 1 z in
          let Qb := @spec_seqmx _ (FIS0 fs) _ (id) sz.+1 sz.+1 Q in
          Wit sb zb Qb
      end | szQ <- szQl].
-pose bplb := [seq interp_poly_ssr n' p | p <- apl].
+pose bplb := [seq interp_poly_ssr n p | p <- apl].
 pose pszQlb := zip bplb szQlb.
 case/and5P => Hn Hz HszQi_s Hns /and5P [Hs HzQ HzQ' HszQi].
 case/and5P => HszQi_z HszQi_z' Hltn Hltn' /and3P [Hsbpl Hstrict Hsos_hyps].
-have Hn' : n'.+1 = n by rewrite prednK // lt0n Hn.
 have Hs' : s'.+1 = s by rewrite prednK // lt0n Hs.
 rewrite /interp_abstr_goal.
 set apapi := all_prop _ _.
 suff: apapi -> if b then 0 < interp_p_abstr_poly vm pap
                else 0 <= interp_p_abstr_poly vm pap by case b.
 rewrite {}/apapi => Hall_prop.
-rewrite interp_poly_ssr_correct'; [|by move: Hn; rewrite -/n; case n|by rewrite ?lt0n].
+rewrite interp_poly_ssr_correct' //.
 set x := fun _ => _.
 have Hall_prop' :
   all_prop (fun pszQ => 0 <= (map_mpoly ratr pszQ.1).@[x]) pszQlb.
@@ -2146,18 +2118,18 @@ have Hall_prop' :
   move: szQlb {pszQlb}; elim papi => /= [|h t Hind]; [by case|].
   case=> // szQlbh szQlbt /= /eqP [] HszQlbt /andP [] Hltnh Hltnt [] H1 H2.
   split; [|by apply Hind; [apply/eqP| |]].
-  by rewrite -interp_poly_ssr_correct'; [|move: Hn; rewrite -/n; case n|]. }
+  by rewrite -interp_poly_ssr_correct'. }
 set papx := _.@[x].
 suff: 0 <= papx /\ (has_const_ssr zb -> 0 < papx).
 { move: Hstrict; case b => /= [Hcz [] _ Hczb|_ [] //]; apply Hczb.
-  move: Hcz; rewrite -Hn' /is_true => <-.
+  move: Hcz; rewrite /is_true => <-.
   apply refines_eq, refines_bool_eq; refines_apply1.
   { apply refine_has_const. }
   rewrite /zb /z.
   rewrite refinesE; apply RseqmxC_spec_seqmx.
   { apply /andP; split; [by rewrite size_map Hs'|].
     by apply /allP => x' /mapP [] x'' _ ->. }
-  by apply listR_seqmultinom_map; rewrite Hn'. }
+  by apply listR_seqmultinom_map. }
 move: Hall_prop'.
 apply soscheck_hyps_correct with
   (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
@@ -2171,13 +2143,12 @@ move: Hsos_hyps; apply etrans.
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1;
   first refines_apply1; first refines_apply1.
-{ rewrite -Hn'.
-  eapply (refine_soscheck_hyps (eq_F := eqFIS) (rAC := r_ratBigQ)).
+{ eapply (refine_soscheck_hyps (eq_F := eqFIS) (rAC := r_ratBigQ)).
   exact: eqFIS_P. }
 { rewrite refinesE; apply zip_R.
   { rewrite /bplb /bpl; move: Hltn'.
     elim apl => [|h t Hind] //= /andP [] Hltnh Hltnt; apply list_R_cons_R.
-    { by apply refinesP, refine_interp_poly; rewrite Hn'. }
+    { by apply refinesP, refine_interp_poly. }
     by apply Hind. }
   move: Hns HszQi HszQi_s HszQi_z HszQi_z'; rewrite /szQlb /szQl.
   elim szQi => [//=|h t Hind] /andP [hnsh Hnst].
@@ -2191,7 +2162,7 @@ refines_apply1; first refines_apply1;
     { rewrite /Reffmpoly /s0 /mpoly_of_effmpoly_val /ofun_hrel /mpoly_of_effmpoly.
       rewrite ifT // /is_true (P.for_all_iff _) => k e.
       { rewrite F.map_mapsto_iff => [] [] x' [] _ Hk.
-        move: hnsh; rewrite /is_true (P.for_all_iff _) -/s0' -Hn' => H.
+        move: hnsh; rewrite /is_true (P.for_all_iff _) -/s0' => H.
         { by move: (H _ _ Hk). }
         by move=> y' /mnmc_eq_seqP /eqP ->. }
       by move=> /mnmc_eq_seqP /eqP ->. }
@@ -2202,18 +2173,18 @@ refines_apply1; first refines_apply1;
     { rewrite prednK ?lt0n // size_map eqxx /= /z.
       by apply/allP => x' /mapP [y Hy] ->. }
     apply: listR_seqmultinom_map.
-    by rewrite prednK ?lt0n // size_map eqxx. }
+    by rewrite ?lt0n // size_map eqxx. }
   apply refinesP; refines_trans; rewrite refinesE.
   { eapply Rseqmx_spec_seqmx.
     rewrite size_map prednK ?lt0n // Hsh' /= all_map /is_true -Hsh''.
     by apply eq_all => e /=; rewrite size_map. }
   by apply list_Rxx => x'; apply list_Rxx. }
-{ by apply refine_interp_poly; rewrite prednK ?lt0n. }
+{ by apply refine_interp_poly; rewrite ?lt0n. }
 { rewrite refinesE; eapply RseqmxC_spec_seqmx.
   { rewrite prednK ?lt0n // size_map eqxx /= /z.
     by apply/allP => x' /mapP [y Hy] ->. }
   apply: listR_seqmultinom_map.
-  by rewrite prednK ?lt0n // size_map eqxx. }
+  by rewrite ?lt0n // size_map eqxx. }
 refines_trans.
 { rewrite refinesE; eapply Rseqmx_spec_seqmx.
   rewrite !size_map in HzQ.
@@ -2243,9 +2214,9 @@ Qed.
 
 Ltac get_ineq i l k :=
   let aux c x y :=
-      get_poly x l ltac:(res => match res with
+      get_poly x l ltac:(fun res => match res with
       | (?p, ?l) =>
-        get_poly y l ltac:(res => match res with
+        get_poly y l ltac:(fun res => match res with
         | (?q, ?l) =>
           let res := constr:((c p q, l)) in k res
         end)
@@ -2298,15 +2269,15 @@ Ltac do_validsdp params :=
     match get_goal g (@Datatypes.nil R) with
     | (?g, ?vm) =>
       abstract (
-      let n' := eval vm_compute in ((size vm).-1) in
+      let n := eval vm_compute in (size vm) in
       let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
       match lgb with
       | (?l, ?p, ?b) =>
         let pi := constr:(map (@M.elements bigQ \o
-                               interp_poly_eff n' \o
+                               interp_poly_eff n \o
                                abstr_poly_of_p_abstr_poly) l) in
         let p := constr:((@M.elements bigQ \o
-                          interp_poly_eff n' \o
+                          interp_poly_eff n \o
                           abstr_poly_of_p_abstr_poly) p) in
         let ppi := eval vm_compute in (p, pi) in
         let zQ_szQi := fresh "zQ_szQi" in
