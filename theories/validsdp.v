@@ -11,6 +11,7 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
 From SsrMultinomials Require Import mpoly.
+Require Import ssrmultinomials_complements.
 Require Import Rstruct.
 Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
@@ -581,80 +582,6 @@ apply/(all_nthP (Const 0)) => i Hi.
 move: Ht => /all_prop_nthP; apply=> //.
 by move: Ht' => /all_nthP; apply.
 Qed.
-  
-(* begin PR ssrmultinomials *)
-Lemma map_mpolyC (R S : ringType) (f : {additive R -> S}) n c :
-  map_mpoly f c%:MP_[n] = (f c)%:MP_[n].
-Proof.
-apply /mpolyP => m.
-rewrite mcoeff_map_mpoly !mcoeffC.
-by case (_ == _); [rewrite !mulr1|rewrite !mulr0 raddf0].
-Qed.
-
-Lemma map_mpolyX (R S : ringType) (f : {rmorphism R -> S}) n (m : 'X_{1..n}) :
-  map_mpoly f 'X_[m] = 'X_[m].
-Proof.
-apply /mpolyP => m'.
-rewrite mcoeff_map_mpoly !mcoeffX.
-by case (_ == _); [rewrite /= rmorph1|rewrite raddf0].
-Qed.
-
-Lemma map_mpolyZ n (R S : ringType) (f : {rmorphism R -> S}) (c : R) (p : {mpoly R[n]}) :
-  map_mpoly f (c *: p) = (f c) *: (map_mpoly f p).
-Proof.
-apply /mpolyP => m.
-by rewrite mcoeff_map_mpoly !mcoeffZ mcoeff_map_mpoly /= rmorphM.
-Qed.
-
-Lemma msupp_map_mpoly n (R S : ringType)
-      (f : R -> S) (Hf0 : forall x, x != 0%R -> f x != 0%R) (p : {mpoly R[n]}) :
-  perm_eq (msupp (map_mpoly f p)) (msupp p).
-Proof.
-rewrite /map_mpoly /mmap.
-set s := BigOp.bigop _ _ _.
-have -> : s = \big[+%R/0%R]_(m <- msupp p) (f p@_m *: 'X_[m]).
-{ by apply eq_bigr => m _; rewrite /= mmap1_id mul_mpolyC. }
-apply (msupp_sumX (msupp_uniq _)).
-move=> m; rewrite mcoeff_msupp; apply Hf0.
-Qed.
-
-(* TODO : hypothèse Hf0 equivalente à l'injectivité ~~> injective f *)
-Lemma map_mpoly_comp (n k : nat) (R S : ringType) (f : {rmorphism R -> S})
-      (Hf0 : forall x, x != 0%R -> f x != 0%R)
-      (lq : n.-tuple {mpoly R[k]}) (p : {mpoly R[n]}) :
-  map_mpoly f (p \mPo lq) = (map_mpoly f p) \mPo (map_tuple (map_mpoly f) lq).
-Proof.
-apply /mpolyP => m.
-rewrite mcoeff_map_mpoly !raddf_sum (eq_big_perm _ (msupp_map_mpoly Hf0 p)) /=.
-apply eq_bigr => m' _.
-rewrite mcoeff_map_mpoly !mcoeffCM rmorphM; f_equal.
-rewrite /mmap1 -mcoeff_map_mpoly rmorph_prod; f_equal.
-by apply eq_bigr => i _; rewrite tnth_map rmorphX.
-Qed.
-
-Lemma comp_mpoly_meval (n k : nat) (R : comRingType)
-      (lq : n.-tuple {mpoly R[k]}) (p : {mpoly R[n]}) (v : 'I_k -> R) :
-  (p \mPo lq).@[v] = p.@[fun i => (tnth lq i).@[v]].
-Proof.
-rewrite comp_mpolyEX {3}(mpolyE p) !raddf_sum.
-apply eq_bigr => m _ /=.
-rewrite !mevalZ; f_equal.
-rewrite /comp_mpoly /meval !mmapX rmorph_prod.
-by apply eq_bigr => i _; rewrite rmorphX.
-Qed.
-
-Lemma meval_eq2 n (R : ringType) (e1 e2 : 'I_n -> R) (p : {mpoly R[n]}) :
-  e1 =1 e2 -> p.@[e1] = p.@[e2].
-Proof.
-move=> He; rewrite !mevalE; apply eq_bigr => m _; f_equal.
-by apply eq_bigr => i _; f_equal.
-Qed.
-(* end PR ssrmultinomials *)
-
-(* TODO: move with ratr def et ~~> ratr_inj : injective ratr *)
-Lemma ratr_nzero (x : rat_Ring) : x != 0%R -> ratr x != 0.
-Proof.
-Admitted.
 
 Lemma interp_poly_ssr_correct (l : seq R) (n : nat) (ap : abstr_poly) :
   size l = n -> vars_ltn n ap ->
@@ -678,8 +605,8 @@ move=> p Hp qi Hqi l n Hn /= /andP [Hqi' Hp'].
 case (sumb _) => [e|]; [|by rewrite size_map eqxx].
 set qi' := map _ _.
 rewrite (Hp qi' (size qi)); [|by rewrite /qi' /= size_map|by []].
-rewrite (map_mpoly_comp ratr_nzero) comp_mpoly_meval /=.
-apply meval_eq2 => i.
+rewrite (map_mpoly_comp (@ratr_inj _)) comp_mpoly_meval /=.
+apply meval_eq => i.
 rewrite tnth_map tcastE /tnth /= (set_nth_default 0%R (tnth_default _ _));
   [|by rewrite /= size_map; case i].
 rewrite (nth_map (Const 0)) => //.
@@ -721,8 +648,6 @@ Class poly_mul_of polyT := poly_mul_op : polyT -> polyT -> polyT.
 
 Notation map_mx2_of B :=
   (forall {T T'} {m n : nat}, map_mx_of T T' (B T m n) (B T' m n)) (only parsing).
-
-
 
 (** ** Part 1: Generic programs *)
 
@@ -2297,7 +2222,6 @@ Ltac tuple_to_list params l :=
   | ?b => constr:(b :: l)
   | ?z => fail 100 "Unknown tactic parameter" z
   end.
-
 
 Tactic Notation "validsdp" :=
   do_validsdp (@Datatypes.nil validsdp_tac_parameters).
