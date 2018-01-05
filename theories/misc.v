@@ -457,3 +457,6 @@ rewrite -(denq_eq0 (r)).
 have->: 0%Re = O%:~R by [].
 exact/inj_eq/intr_inj.
 Qed.
+
+Lemma ratr_inj (R : numFieldType) : injective (@ratr R).
+Proof. by move=> x y H; apply ler_asym; rewrite -!(ler_rat R) H lerr. Qed.
