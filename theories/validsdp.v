@@ -357,39 +357,6 @@ Ltac get_poly t vm k :=
     end in
   aux t vm k.
 
-(* (* Test cases *)
-Ltac deb tac ::= tac.
-Definition p2 x y := x * (1 - y) ^ 2 / 3.
-Definition p1 x := 1 - p2 (1 + x) ((1 - x) * 1 / 2).
-
-Axiom poly_correct : forall (x : p_abstr_poly) vm,
-    (if x isn't PConst (PConstR0) then true else false) = true ->
-    interp_p_abstr_poly vm x >= R0.
-
-Lemma test_p2 x y : (2/3 * x ^ 2 + p2 x y >= 0)%Re.
-match goal with
-| [ |- (?r >= 0)%Re ] => get_poly r (@Datatypes.nil R) ltac:(fun p =>
-                      match p with
-                      | (?po, ?vm) => apply (@poly_correct po vm)
-                      end)
-end.
-reflexivity.
-Qed.
-Set Printing All.
-Print test_p2.
-
-Lemma test_p1 x y : (2/3 * x ^ 2 + p1 x * y >= 0)%Re.
-match goal with
-| [ |- (?r >= 0)%Re ] => get_poly r (@Datatypes.nil R) ltac:(fun p =>
-                      match p with
-                      | (?po, ?vm) => apply (@poly_correct po vm)
-                      end)
-end.
-reflexivity.
-Qed.
-Print test_p1.
- *)
-
 Inductive abstr_poly :=
   | Const of bigQ
   | Var of nat
@@ -2167,51 +2134,51 @@ Ltac get_ineq i l k :=
         end)
       end) in
   match i with
-  | Rle ?x ?y => aux ILe x y k
-  | Rge ?x ?y => aux IGe x y k
-  | Rlt ?x ?y => aux ILt x y k
-  | Rgt ?x ?y => aux IGt x y k
+  | Rle ?x ?y => aux ILe x y
+  | Rge ?x ?y => aux IGe x y
+  | Rlt ?x ?y => aux ILt x y
+  | Rgt ?x ?y => aux IGt x y
   | _ => k false
   end.
 
-Ltac get_hyp h l :=
+Ltac get_hyp h l k :=
   match h with
   | and ?a ?b =>
-    match get_hyp a l with
+    get_hyp a l ltac:(fun res => match res with
     | (?a, ?l) =>
-      match get_hyp b l with
-      | (?b, ?l) => constr:((Hand a b, l))
-      | false => false
-      end
-    | false => false
-    end
-  | _ => match get_ineq h l with
-        | (?i, ?l) => constr:((Hineq i, l))
-        | _ => false
-        end
+      get_hyp b l ltac:(fun res => match res with
+      | (?b, ?l) => k constr:((Hand a b, l))
+      | false => k false
+      end)
+    | false => k false
+    end)
+  | _ => get_ineq h l ltac:(fun res => match res with
+        | (?i, ?l) => k constr:((Hineq i, l))
+        | _ => k false
+        end)
   end.
 
-Ltac get_goal g l :=
+Ltac get_goal g l k :=
   match g with
   | (?h -> ?g) =>
-    match get_hyp h l with
+    get_hyp h l ltac:(fun res => match res with
     | (?h, ?l) =>
-      match get_goal g l with
-      | (?g, ?l) => constr:((Ghyp h g, l))
-      | false => false
-      end
-    | false => false
-    end
-  | _ => match get_ineq g l with
-        | (?i, ?l) => constr:((Gineq i, l))
-        | false => false
-        end
+      get_goal g l ltac:(fun res => match res with
+      | (?g, ?l) => k constr:((Ghyp h g, l))
+      | false => k false
+      end)
+    | false => k false
+    end)
+  | _ => get_ineq g l ltac:(fun res => match res with
+        | (?i, ?l) => k constr:((Gineq i, l))
+        | false => k false
+        end)
   end.
 
 Ltac do_validsdp params :=
   lazymatch goal with
   | [ |- ?g ] =>
-    match get_goal g (@Datatypes.nil R) with
+    get_goal g (@Datatypes.nil R) ltac:(fun res => match res with
     | (?g, ?vm) =>
       abstract (
       let n := eval vm_compute in (size vm) in
@@ -2232,7 +2199,7 @@ Ltac do_validsdp params :=
       end)
     | false => fail 100 "unsupported goal"
     | _ => fail "validsdp failed to conclude"
-    end
+    end)
   end.
 
 (* [tuple_to_list] was taken from CoqInterval *)
@@ -2250,18 +2217,25 @@ Tactic Notation "validsdp" "with" constr(params) :=
  do_validsdp ltac:(tuple_to_list params (@Datatypes.nil validsdp_tac_parameters)).
 
 (** Some quick tests. *)
+(* Section tests. *)
 
-Let test1 : forall x y : R, 0 < x -> 1 <= y -> x + y >= 0.
-intros x y.
+Let test1 x y : 0 < x -> 1 <= y -> x + y >= 0.
 Time validsdp.
 Qed.
 
-Let test2 : forall x y : R, (2 / 3 * x ^ 2 + y ^ 2 >= 0)%Re.
-intros x y.
+Let test2 x y : 2 / 3 * x ^ 2 + y ^ 2 >= 0.
 Time validsdp.
 Qed.
 
-Let test3 : forall x y : R, (2 / 3 * x ^ 2 + y ^ 2 + 1 > 0)%Re.
-intros x y.
+Let test3 x y : 2 / 3 * x ^ 2 + y ^ 2 + 1 > 0.
 Time validsdp.
 Qed.
+
+(* Let ne marche pas dans la Section. *)
+Let p x y := 2 / 3 * x ^ 2 + y ^ 2.
+
+Let test4 x y : p x y + 1 > 0.
+Time validsdp.
+Qed.
+
+(* End tests. *)
