@@ -55,10 +55,9 @@ Lemma all_prop_nthP T (P : T -> Prop) (s : seq T) (x0 : T) :
   (forall i, (i < size s)%N -> P (nth x0 s i)) <-> all_prop P s.
 Proof.
 elim: s => [//|h t Ht] /=; split.
-{ move=> H1; split.
-  { by apply (H1 O). }
+{ move=> H1; split; [by apply (H1 O)|].
   by apply Ht => i Hi; apply (H1 i.+1). }
-by move=> [] Hh Ht'; case=> [|i] Hi //=; apply Ht.
+by move=> [Hh Ht'] [|i] Hi //=; apply Ht.
 Qed.
 
 Lemma all_prop_forall T1 T2 (P : T1 -> T2 -> Prop) (s : seq T1) :
