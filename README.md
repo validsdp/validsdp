@@ -77,7 +77,7 @@ polynomial expressions with rational constants. Anything else will be
 interpreted as a variable.
 
 The `validsdp` tactic also accepts options thanks to the following
-syntax: `validsdp with (param1, param2, ...)` Below is the list of
+syntax: `validsdp with (param1, param2, ...)`. Below is the list of
 supported options:
 
 - `s_sdpa` (*use the SDPA solver*)
@@ -116,12 +116,7 @@ single hypothesis with this name in the context asserting the proven
 inequality (or double-inequality).
 
 The syntax `with (param1, ...)` supports the same options as the
-`validsdp` tactic:
-
-- `s_sdpa` (*use the SDPA solver*)
-- `s_csdp` (*use the CSDP solver*)
-- `s_mosek` (*use the Mosek solver*)
-- `s_verbose (verb : nat)` (*set the verbosity level, default: 0*)
+`validsdp` tactic.
 
 Examples
 --------
