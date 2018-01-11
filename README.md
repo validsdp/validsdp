@@ -98,6 +98,31 @@ The syntax is as follows:
 - `validsdp_intro e lower` [`using (hyp1, ...)`] [`with (param1, ...)`] [`as Hl`]
 - `validsdp_intro e upper` [`using (hyp1, ...)`] [`with (param1, ...)`] [`as Hu`]
 
+where `e` is a term of type `R` representing a multivariate polynomial
+expression with rational constants and real-valued variables.
+
+The syntax `using (hyp1, ...)` allows one to select the hypotheses
+from the context to be considered by the solver. These hypotheses
+should be multivariate polynomial inequalities with rational constants
+and real-valued variables. They determine the input domain of the
+considered optimization problem. If the clause `using (hyp1, ...)` is
+omitted, the polynomial expression `e` is bounded over the whole
+vector space.
+
+The syntax `as Hl` (resp. `as (Hl, Hu)`) allows one to specify the
+name of the inequalities added to the context. If this clause is
+omitted, the `validsdp_intro` tactic generates a fresh name and adds a
+single hypothesis with this name in the context asserting the proven
+inequality (or double-inequality).
+
+The syntax `with (param1, ...)` supports the same options as the
+`validsdp` tactic:
+
+- `s_sdpa` (*use the SDPA solver*)
+- `s_csdp` (*use the CSDP solver*)
+- `s_mosek` (*use the Mosek solver*)
+- `s_verbose (verb : nat)` (*set the verbosity level, default: 0*)
+
 Examples
 --------
 
@@ -121,7 +146,7 @@ Examples of usage of the tactic can be found at the end of the file
 Documentation
 -------------
 
-To generate documentation from the Coq code, Camlp4 is required, so
+To generate documentation from the Coq code (which requires Camlp4)
 you should just have to run:
 
     $ opam install camlp4
