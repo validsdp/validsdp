@@ -10,9 +10,9 @@ Dependencies
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.0)
 - [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.2.0)
 - [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 0.5.3)
+- [multinomials](https://github.com/math-comp/multinomials.git) (tested with version 1.0)
 - [paramcoq](https://github.com/CohenCyril/paramcoq.git) (dev. version)
 - [CoqEAL](https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev) (dev. version)
-- [multinomials](https://github.com/math-comp/multinomials.git) (dev. version)
 
 Remark
 ------
@@ -33,7 +33,7 @@ Once OPAM is installed, run:
 
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
-    $ opam install --jobs=2 coq coq-interval coq-mathcomp-field osdp
+    $ opam install --jobs=2 coq coq-interval coq-mathcomp-field coq-mathcomp-multinomials osdp
 
 To ensure that you have these dependencies properly installed, run:
 
