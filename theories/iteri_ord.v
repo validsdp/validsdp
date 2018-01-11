@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import choice finfun tuple fintype.
 From CoqEAL Require Import hrel param refinements.
-Require Import seqmx_complements.  (* for Rord *)
+From CoqEAL Require Import seqmx_complements.  (* for Rord *)
 
 (** * A generic implementation of [iteri] *)
 

@@ -72,6 +72,16 @@ if test "$libdir" = '${exec_prefix}/lib'; then
   libdir="`$COQC -where`/user-contrib/Interval"
 fi
 
+AC_MSG_CHECKING([for Multinomials])
+AS_IF(
+  [ echo "From mathcomp Require Import ssreflect ssrfun." \
+    	 "From SsrMultinomials Require Import mpoly freeg." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find library Multinomials >= 1.0 (https://github.com/math-comp/multinomials/)])])
+rm -f conftest.v conftest.vo conftest.err
+
 AC_MSG_CHECKING([for OSDP])
 AS_IF(
   [ req_maj="0"

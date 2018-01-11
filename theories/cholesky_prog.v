@@ -3,11 +3,10 @@ From Flocq Require Import Fcore_Raux Fcore_defs Fcore_digits.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
 From CoqEAL Require Import hrel.
-From CoqEAL Require Import param refinements seqmx.
+From CoqEAL Require Import param refinements seqmx seqmx_complements.
 From Interval Require Import Interval_xreal.
 From Interval Require Import Interval_definitions.
 From Interval Require Import Interval_specific_ops.
-Require Import seqmx_complements.
 Require Import Rstruct misc.
 Require Import coqinterval_infnan zulp.
 Require Import iteri_ord float_infnan_spec real_matrix cholesky cholesky_infnan.

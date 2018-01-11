@@ -22,7 +22,6 @@ external::
 	( cd external/paramcoq && $(MAKE) && $(MAKE) install )
 	( cd external/CoqEAL/theory && $(MAKE) && $(MAKE) install )
 	( cd external/CoqEAL/refinements && $(MAKE) && $(MAKE) install )
-	( cd external/multinomials && $(MAKE) && $(MAKE) install )
 
 install::
 	$(MAKE) -C plugins/soswitness
@@ -34,7 +33,6 @@ clean::
 	([ -f external/paramcoq/Makefile ] && $(MAKE) -C external/paramcoq clean )
 	([ -f external/CoqEAL/theory/Makefile ] && $(MAKE) -C external/CoqEAL/theory clean )
 	([ -f external/CoqEAL/refinements/Makefile ] && $(MAKE) -C external/CoqEAL/refinements clean )
-	([ -f external/multinomials/Makefile ] && $(MAKE) -C external/multinomials clean )
 	$(MAKE) -C plugins/soswitness clean
 	$(MAKE) -C theories clean
 
