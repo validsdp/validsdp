@@ -2202,8 +2202,7 @@ Ltac do_validsdp params :=
     end)
   end.
 
-(*
-Ltac do_validsdp_intro expr params :=
+Ltac do_validsdp_intro_lb expr hyps params Hlb :=
   lazymatch goal with
   | [ |- ?g ] =>
     match get_goal g (@Datatypes.nil R) with
@@ -2220,16 +2219,17 @@ Ltac do_validsdp_intro expr params :=
                           interp_poly_eff n' \o
                           abstr_poly_of_p_abstr_poly) p) in
         let ppi := eval vm_compute in (p, pi) in
-        let zQ_szQi := fresh "zQ_szQi" in
-        (soswitness of ppi as zQ_szQi with params);
-        apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1);
+        let lb_zQ_szQi := fresh "lb_zQ_szQi" in
+        (soswitness_intro of ppi as lb_zQ_szQi with params);
+        let goal := constr:(True) (* /\ hyps -> lb <= expr *) in
+        have Hlb : goal by
+          apply (@soscheck_hyps_eff_wrapup_correct vm g lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
         (vm_cast_no_check (erefl true))
       end)
     | false => fail 100 "unsupported goal"
     | _ => fail "validsdp failed to conclude"
     end
   end.
- *)
 
 (* [tuple_to_list] was taken from CoqInterval *)
 Ltac tuple_to_list params l :=
