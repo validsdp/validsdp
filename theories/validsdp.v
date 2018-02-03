@@ -2190,7 +2190,7 @@ Ltac do_validsdp params :=
         apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1);
         (vm_cast_no_check (erefl true))
       end)
-    | assert_false => fail 100 "unsupported goal"
+    | assert_false => fail 900 "unsupported goal"
     | _ => fail "validsdp failed to conclude"
     end)
   end.
