@@ -226,7 +226,6 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
         newvar R ltac:(fun x => let fx := constr:(f x) in
                              let xx := constr:(Datatypes.cons x xx) in
                              aux2 f0 fx qi xx vm k)
-        (* TODO/FIXME: instantiate evars *)
       end in
   let rec aux1 t0 t qi vm k := (* First step *)
       match t with
@@ -2138,7 +2137,7 @@ Ltac get_ineq i l k :=
   | Rge ?x ?y => aux IGe x y
   | Rlt ?x ?y => aux ILt x y
   | Rgt ?x ?y => aux IGt x y
-  | _ => k false
+  | _ => k assert_false
   end.
 
 Ltac get_hyp h l k :=
@@ -2148,13 +2147,13 @@ Ltac get_hyp h l k :=
     | (?a, ?l) =>
       get_hyp b l ltac:(fun res => match res with
       | (?b, ?l) => k constr:((Hand a b, l))
-      | false => k false
+      | assert_false => k assert_false
       end)
-    | false => k false
+    | assert_false => k assert_false
     end)
   | _ => get_ineq h l ltac:(fun res => match res with
         | (?i, ?l) => k constr:((Hineq i, l))
-        | _ => k false
+        | _ => k assert_false
         end)
   end.
 
@@ -2165,13 +2164,13 @@ Ltac get_goal g l k :=
     | (?h, ?l) =>
       get_goal g l ltac:(fun res => match res with
       | (?g, ?l) => k constr:((Ghyp h g, l))
-      | false => k false
+      | assert_false => k assert_false
       end)
-    | false => k false
+    | assert_false => k assert_false
     end)
   | _ => get_ineq g l ltac:(fun res => match res with
         | (?i, ?l) => k constr:((Gineq i, l))
-        | false => k false
+        | assert_false => k assert_false
         end)
   end.
 
@@ -2197,7 +2196,7 @@ Ltac do_validsdp params :=
         apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1);
         (vm_cast_no_check (erefl true))
       end)
-    | false => fail 100 "unsupported goal"
+    | assert_false => fail 100 "unsupported goal"
     | _ => fail "validsdp failed to conclude"
     end)
   end.
