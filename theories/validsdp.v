@@ -297,10 +297,7 @@ Ltac get_poly_pure t vm k :=
           match list_idx t vm with
           | (assert_false, _) => k assert_false
           | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
-          end) ltac:(fun res =>
-          match res with
-          | (?p, ?vm) => let res := constr:((p, vm)) in k res
-          end)
+          end) ltac:(fun res => k res)
       | ?c => let res := constr:((PConst c, vm)) in k res
       end
     end in
@@ -347,10 +344,7 @@ Ltac get_poly t vm k :=
         get_comp_poly get_poly get_poly_pure t vm ltac:(fun t vm k =>
           match list_add t vm with
           | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
-          end) ltac:(fun res =>
-          match res with
-          | (?p, ?vm) => let res := constr:((p, vm)) in k res
-          end)
+          end) ltac:(fun res => k res)
       | ?c => let res := constr:((PConst c, vm)) in k res
       end
     end in
