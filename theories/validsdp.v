@@ -229,11 +229,25 @@ Ltac fold_get_poly get_poly lq vm k :=
       end in
   aux lq vm k.
 
+Ltac check_unexpected_case f0 :=
+  let err := fail 900 "Unexpected error. Maybe you have defined an intermediate polynomial using the Let vernacular instead of Definition." in
+  match f0 with
+  | Rplus => err
+  | Rminus => err
+  | Ropp => err
+  | Rmult => err
+  | powerRZ => err
+  | pow => err
+  | Rdiv => err
+  | _ => idtac
+  end.
+
 (** [get_comp_poly tac0 tac1 t vm tac2 k] will check if [t] matches [?f ?x] *)
 Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
   deb ltac:(idtac "get_comp_poly on .. .." t vm ".. ..");
   let rec aux2 f0 f qi xx vm k := (* Second step *)
       deb ltac:(idtac "get_comp_poly.aux2 on" f0 f qi xx vm "..");
+      check_unexpected_case f0;
       match type of f with
       | R =>
         let f := (eval unfold f0 in f) in
