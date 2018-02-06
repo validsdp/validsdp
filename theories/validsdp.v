@@ -157,6 +157,28 @@ Ltac list_idx a l :=
     end in
   aux a l O.
 
+(*
+(** [list_idx a l = (idx, l)], [idx] being the index of [a] in [l]. *)
+(*     Otherwise return [not_found] *)
+Ltac list_idx a l :=
+  let a := (eval hnf in a) in
+  let rec aux a l n :=
+    match l with
+    | Datatypes.nil        => not_found
+    | Datatypes.cons ?x ?l =>
+      let x := (eval compute in x) in
+      match x with
+      | a => constr:((n, l))
+      | _ =>
+        match aux a l (S n) with
+        | (?n, ?l) => constr:((n, Datatypes.cons x l))
+        | not_found => not_found
+        end
+      end
+    end in
+  aux a l O.
+ *)
+
 Ltac reverse T l :=
   let rec aux l accu :=
     match l with
@@ -405,6 +427,8 @@ Fixpoint all_type (T : Type) (a : T -> Type) (s : seq T) : Type :=
   | [::] => True
   | x :: s' => a x * all_type a s'
   end.
+
+(*/-*)
 
 Lemma all_type_nth T (P : T -> Type) (s : seq T) (x0 : T):
   all_type P s -> forall i, (i < size s)%N -> P (nth x0 s i).
@@ -1818,6 +1842,7 @@ Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
 
 Lemma Rlt_minus_lt r1 r2 : (0 < r2 - r1)%Re -> (r1 < r2)%Re.
 Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
+(*-/*)
 
 (** *** The main tactic. *)
 
@@ -1920,6 +1945,7 @@ Definition interp_abstr_goal (vm : seq R) (g : abstr_goal) : Prop :=
 
 Ltac tac := rewrite /= !sub_p_abstr_poly_correct; psatzl R.
 
+(*/-*)
 Theorem abstr_goal_of_p_abstr_goal_correct vm (g : p_abstr_goal) :
   interp_abstr_goal vm (abstr_goal_of_p_abstr_goal g) ->
   interp_p_abstr_goal vm g.
@@ -2129,6 +2155,7 @@ Unshelve.
 { by op2 F.div_correct. }
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
 Qed.
+(*-/*)
 
 Ltac get_ineq i l k :=
   let aux c x y :=
@@ -2186,6 +2213,8 @@ Ltac do_validsdp params :=
   | [ |- ?g ] =>
     get_goal g (@Datatypes.nil R) ltac:(fun res => match res with
     | (?g, ?vm) =>
+      (* let g' := fresh in pose g' := g;
+         let vm' := fresh in pose vm' := vm *)
       abstract (
       let n := eval vm_compute in (size vm) in
       let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
@@ -2223,7 +2252,6 @@ Tactic Notation "validsdp" "with" constr(params) :=
  do_validsdp ltac:(tuple_to_list params (@Datatypes.nil validsdp_tac_parameters)).
 
 (** Some quick tests. *)
-(* Section tests. *)
 
 Let test1 x y : 0 < x -> 1 <= y -> x + y >= 0.
 Time validsdp.
@@ -2237,11 +2265,47 @@ Let test3 x y : 2 / 3 * x ^ 2 + y ^ 2 + 1 > 0.
 Time validsdp.
 Qed.
 
+(* Section test. *)
 (* Let ne marche pas dans la Section. *)
 Let p x y := 2 / 3 * x ^ 2 + y ^ 2.
 
 Let test4 x y : p x y + 1 > 0.
 Time validsdp.
 Qed.
+(* End test. *)
 
-(* End tests. *)
+(*
+Ltac deb tac ::= tac.
+
+Section foo.
+
+Definition p0 x := 2 / 3 * x ^ 2.
+Let p1 x := 2 / 3 * x ^ 2.
+
+Let test40 x : p0 x + 1 > 0.
+Time validsdp.
+Abort.
+
+Let test41 x : p1 x + 1 > 0.
+Time validsdp.
+Abort.
+
+Goal True.
+evar (x : R).
+pose y := p1 x; unfold p1, x, y in y.
+Ltac test t x :=
+  let t0 := eval unfold t in t in
+  let x0 := eval unfold x in x in
+  let l := constr:(x0 :: Datatypes.nil) in
+  idtac t0; idtac x0; idtac l;
+  let rec aux t0 :=
+  match t0 with
+  | Rmult ?a ?b => aux a; aux b
+  | Rdiv ?a ?b => idtac
+  | pow ?a ?b => aux a
+  | ?x => idtac x; let res := list_idx x l in let H := fresh in pose H := res
+  end in aux t0.
+test y x.
+Abort.
+End foo.
+ *)
