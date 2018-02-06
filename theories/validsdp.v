@@ -138,16 +138,21 @@ Ltac list_add a l :=
     end in
   aux a l O.
 
+Variant Find_exc := not_found.
+Variant Poly_exc := not_polynomial.
+Variant Goal_exc := not_supported.
+
 (** [list_idx a l = (idx, l)], [idx] being the index of [a] in [l].
-    Otherwise return [assert_false] *)
+    Otherwise return [not_found] *)
 Ltac list_idx a l :=
   let rec aux a l n :=
     match l with
-    | Datatypes.nil        => constr:((assert_false, l))
+    | Datatypes.nil        => not_found
     | Datatypes.cons a _   => constr:((n, l))
     | Datatypes.cons ?x ?l =>
       match aux a l (S n) with
       | (?n, ?l) => constr:((n, Datatypes.cons x l))
+      | not_found => not_found
       end
     end in
   aux a l O.
@@ -212,8 +217,8 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
         let xx := reverse R xx in
         get_poly_pure f xx ltac:(fun res =>
           match res with
-          | assert_false => k assert_false (* todo: remove and replace with match failure? *)
-          | (?p, _) => (* Ignore the xx that is returned and that hasn't changed *)
+          | not_polynomial => k not_polynomial
+          | (?p, _) => (* Ignore the returned xx (that shouldn't have changed) *)
             fold_get_poly get_poly_cur qi vm ltac:(fun res =>
               match res with
               | (?qi, ?vm) =>
@@ -235,7 +240,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
       | ?f =>
         aux2 f f qi (@Datatypes.nil R) vm ltac:(fun res =>
         match res with
-        | assert_false => (* If second step fails, return a PVar *)
+        | not_polynomial => (* If second step fails, return a PVar *)
           match list_add t0 vm with
           | (?n, ?vm) => constr:((PVar n, vm))
           end
@@ -253,7 +258,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
   end.
 
 (** [get_poly_pure t vm k] creates no var.
-    Return [assert_false] if [t] isn't poly over [vm] *)
+    Return [not_polynomial] if [t] isn't poly over [vm] *)
 Ltac get_poly_pure t vm k :=
   deb ltac:(idtac "get_poly_pure on " t vm "..");
   let rec aux t vm k :=
@@ -261,11 +266,13 @@ Ltac get_poly_pure t vm k :=
       aux a vm ltac:(fun res =>
         match res with
         | (?u, ?vm) => let res := constr:((o u, vm)) in k res
+        | not_polynomial => k not_polynomial
         end) in
     let aux_u' o a b k :=
       aux a vm ltac:(fun res =>
         match res with
         | (?u, ?vm) => let res := constr:((o u b, vm)) in k res
+        | not_polynomial => k not_polynomial
         end) in
     let aux_b o a b k :=
       aux b vm ltac:(fun res =>
@@ -274,7 +281,9 @@ Ltac get_poly_pure t vm k :=
           aux a vm ltac:(fun res =>
             match res with
             | (?u, ?vm) => let res := constr:((o u v, vm)) in k res
+            | not_polynomial => k not_polynomial
             end)
+        | not_polynomial => k not_polynomial
         end) in
     match t with
     | Rplus ?a ?b => aux_b PAdd a b k
@@ -285,7 +294,7 @@ Ltac get_poly_pure t vm k :=
     | powerRZ ?a ?b =>
       match b with
       | Z.pos ?p => aux_u' PPowN a (N.pos p) k
-      | _ => fail 200 "Only constant, positive exponents are allowed"
+      | _ => fail 900 "Only constant, positive exponents are allowed"
       end
     | pow ?a ?n => aux_u' PPown a n k
     | Rdiv ?a ?b => aux (Rmult a (Rinv b)) vm k (* Both are convertible *)
@@ -295,8 +304,10 @@ Ltac get_poly_pure t vm k :=
         (* Differs w.r.t. get_poly *)
         get_comp_poly get_poly_pure get_poly_pure t vm ltac:(fun t vm k =>
           match list_idx t vm with
-          | (assert_false, _) => k assert_false
-          | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
+          | not_found =>
+            k not_polynomial
+          | (?n, ?vm) =>
+            let res := constr:((PVar n, vm)) in k res
           end) ltac:(fun res => k res)
       | ?c => let res := constr:((PConst c, vm)) in k res
       end
@@ -334,7 +345,7 @@ Ltac get_poly t vm k :=
     | powerRZ ?a ?b =>
       match b with
       | Z.pos ?p => aux_u' PPowN a (N.pos p) k
-      | _ => fail 200 "Only constant, positive exponents are allowed"
+      | _ => fail 900 "Only constant, positive exponents are allowed"
       end
     | pow ?a ?n => aux_u' PPown a n k
     | Rdiv ?a ?b => aux (Rmult a (Rinv b)) vm k (* Both are convertible *)
@@ -2131,7 +2142,7 @@ Ltac get_ineq i l k :=
   | Rge ?x ?y => aux IGe x y
   | Rlt ?x ?y => aux ILt x y
   | Rgt ?x ?y => aux IGt x y
-  | _ => k assert_false
+  | _ => k not_supported
   end.
 
 Ltac get_hyp h l k :=
@@ -2141,13 +2152,13 @@ Ltac get_hyp h l k :=
     | (?a, ?l) =>
       get_hyp b l ltac:(fun res => match res with
       | (?b, ?l) => k constr:((Hand a b, l))
-      | assert_false => k assert_false
+      | not_supported => k not_supported
       end)
-    | assert_false => k assert_false
+    | not_supported => k not_supported
     end)
   | _ => get_ineq h l ltac:(fun res => match res with
         | (?i, ?l) => k constr:((Hineq i, l))
-        | _ => k assert_false
+        | _ => k not_supported
         end)
   end.
 
@@ -2158,13 +2169,13 @@ Ltac get_goal g l k :=
     | (?h, ?l) =>
       get_goal g l ltac:(fun res => match res with
       | (?g, ?l) => k constr:((Ghyp h g, l))
-      | assert_false => k assert_false
+      | not_supported => k not_supported
       end)
-    | assert_false => k assert_false
+    | not_supported => k not_supported
     end)
   | _ => get_ineq g l ltac:(fun res => match res with
         | (?i, ?l) => k constr:((Gineq i, l))
-        | assert_false => k assert_false
+        | not_supported => k not_supported
         end)
   end.
 
@@ -2190,7 +2201,7 @@ Ltac do_validsdp params :=
         apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1);
         (vm_cast_no_check (erefl true))
       end)
-    | assert_false => fail 900 "unsupported goal"
+    | not_supported => fail 900 "unsupported goal"
     | _ => fail "validsdp failed to conclude"
     end)
   end.
