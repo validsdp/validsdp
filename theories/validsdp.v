@@ -211,6 +211,7 @@ Ltac fold_get_poly get_poly lq vm k :=
 Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
   deb ltac:(idtac "get_comp_poly on .. .." t vm ".. ..");
   let rec aux2 f0 f qi xx vm k := (* Second step *)
+      deb ltac:(idtac "get_comp_poly.aux2 on" f0 f qi xx vm "..");
       match type of f with
       | R =>
         let f := (eval unfold f0 in f) in
@@ -233,6 +234,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
                              aux2 f0 fx qi xx vm k)
       end in
   let rec aux1 t0 t qi vm k := (* First step *)
+      deb ltac:(idtac "get_comp_poly.aux1 on" t0 t qi vm "..");
       match t with
       | ?p ?q =>
         let qi1 := constr:(Datatypes.cons q qi) in
@@ -260,7 +262,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
 (** [get_poly_pure t vm k] creates no var.
     Return [not_polynomial] if [t] isn't poly over [vm] *)
 Ltac get_poly_pure t vm k :=
-  deb ltac:(idtac "get_poly_pure on " t vm "..");
+  deb ltac:(idtac "get_poly_pure on" t vm "..");
   let rec aux t vm k :=
     let aux_u o a k :=
       aux a vm ltac:(fun res =>
@@ -304,9 +306,9 @@ Ltac get_poly_pure t vm k :=
         (* Differs w.r.t. get_poly *)
         get_comp_poly get_poly_pure get_poly_pure t vm ltac:(fun t vm k =>
           match list_idx t vm with
-          | not_found =>
+          | not_found => deb ltac:(idtac t "doesn't_belong_to" vm);
             k not_polynomial
-          | (?n, ?vm) =>
+          | (?n, ?vm) => deb ltac:(idtac t "belongs_to" vm "with_idx" n);
             let res := constr:((PVar n, vm)) in k res
           end) ltac:(fun res => k res)
       | ?c => let res := constr:((PConst c, vm)) in k res
