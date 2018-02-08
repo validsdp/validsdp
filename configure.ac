@@ -99,6 +99,17 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find library OSDP >= $req_maj.$req_min.$req_pat (https://cavale.enseeiht.fr/osdp/)])])
 rm -f conftest.v conftest.vo conftest.err
 
+if test "$COQ_VERSION" != "v86"; then
+  AC_MSG_CHECKING([for coq-bignums])
+  AS_IF(
+    [ echo "Require Import Bignums.BigQ.BigQ." > conftest.v
+      $COQC conftest.v > conftest.err ],
+    [ AC_MSG_RESULT([yes]) ],
+    [ AC_MSG_RESULT([no])
+      AC_MSG_ERROR([ *** Unable to find library Bignums.BigQ.BigQ (opam package coq-bignums)])])
+  rm -f conftest.v conftest.vo conftest.err
+fi
+
 # Create files
 AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/_CoqProject theories/CBigZ.v theories/CBigQ.v theories/parse_reals.v])
 AC_OUTPUT
