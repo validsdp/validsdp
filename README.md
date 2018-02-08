@@ -34,7 +34,7 @@ Once OPAM is installed, run:
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
     $ opam pin -n -k version add coq 8.6.1
-    $ opam install --jobs=2 coq coq-interval coq-mathcomp-field coq-mathcomp-multinomials osdp
+    $ opam install --jobs=2 coq coq-interval coq-mathcomp-field coq-mathcomp-multinomials osdp camlp4
 
 To ensure that you have these dependencies properly installed, run:
 
@@ -57,10 +57,9 @@ Examples of usage of the tactic can be found at the end of the file
 Documentation
 -------------
 
-To generate documentation from the Coq code, Camlp4 is required, so
-you should just have to run:
+To generate documentation from the Coq code, you should just have to
+run:
 
-    $ opam install camlp4
     $ cd theories
     $ make doc
 
