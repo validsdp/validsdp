@@ -2179,6 +2179,7 @@ Ltac get_hyp h l k :=
   end.
 
 Ltac get_goal g l k :=
+  deb ltac:(idtac "get_goal on" g l "..");
   match g with
   | (?h -> ?g) =>
     get_hyp h l ltac:(fun res => match res with
@@ -2223,33 +2224,27 @@ Ltac do_validsdp params :=
   end.
 
 Ltac do_validsdp_intro_lb expr hyps params Hlb :=
-  lazymatch goal with
-  | [ |- ?g ] =>
-    match get_goal g (@Datatypes.nil R) with
-    | (?g, ?vm) =>
-      abstract (
-      let n' := eval vm_compute in ((size vm).-1) in
-      let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
-      match lgb with
-      | (?l, ?p, ?b) =>
-        let pi := constr:(map (@M.elements bigQ \o
-                               interp_poly_eff n' \o
-                               abstr_poly_of_p_abstr_poly) l) in
-        let p := constr:((@M.elements bigQ \o
-                          interp_poly_eff n' \o
-                          abstr_poly_of_p_abstr_poly) p) in
-        let ppi := eval vm_compute in (p, pi) in
-        let lb_zQ_szQi := fresh "lb_zQ_szQi" in
-        (soswitness_intro of ppi as lb_zQ_szQi with params);
-        let goal := constr:(True) (* /\ hyps -> lb <= expr *) in
-        have Hlb : goal by
-          apply (@soscheck_hyps_eff_wrapup_correct vm g lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
-        (vm_cast_no_check (erefl true))
-      end)
-    | false => fail 100 "unsupported goal"
-    | _ => fail "validsdp failed to conclude"
-    end
-  end.
+  get_poly expr (@Datatypes.nil R) ltac:(fun res => match res with
+  | (?p, ?vm) =>
+    let n := eval vm_compute in (size vm) in
+    let p := constr:((@M.elements bigQ \o
+                      interp_poly_eff n \o
+                      abstr_poly_of_p_abstr_poly) p) in
+    let ppi := eval vm_compute in (p, (@Datatypes.nil (seq (seq N * BigQ.t_)))) in
+    let lb_zQ_szQi := fresh "lb_zQ_szQi" in
+    (soswitness_intro of ppi as lb_zQ_szQi with params);
+    let lb := eval vm_compute in (lb_zQ_szQi.1) in
+    let g := constr:(lb <= expr) (* /\ hyps -> lb <= expr *) in
+    get_goal g vm ltac:(fun res =>
+      match res with
+      | (?g', ?vm) =>
+        have Hlb : g by
+          abstract (
+            apply (@soscheck_hyps_eff_wrapup_correct vm g' lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
+            (vm_cast_no_check (erefl true)))
+      end);
+    clear lb_zQ_szQi
+    end).
 
 (* [tuple_to_list] was taken from CoqInterval *)
 Ltac tuple_to_list params l :=
@@ -2258,7 +2253,6 @@ Ltac tuple_to_list params l :=
   | ?b => constr:(b :: l)
   | ?z => fail 100 "Unknown tactic parameter" z
   end.
-
 (*
 Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) "as" simple_intropattern(H) :=
 
@@ -2272,8 +2266,19 @@ Tactic Notation "validsdp" :=
 Tactic Notation "validsdp" "with" constr(params) :=
  do_validsdp ltac:(tuple_to_list params (@Datatypes.nil validsdp_tac_parameters)).
 
+Tactic Notation "validsdp_intro" constr(expr) "upper" "as" simple_intropattern(Hl) :=
+ do_validsdp_intro_lb expr (@Datatypes.nil Prop) (@Datatypes.nil validsdp_tac_parameters) Hl.
+
 (** Some quick tests. *)
 (* Section tests. *)
+
+Section test.
+Lemma test0 (x : R) : True.
+intros.
+validsdp_intro (x ^ 2 + 1) upper as ?.
+easy.
+Qed.
+End test.
 
 Let test1 x y : 0 < x -> 1 <= y -> x + y >= 0.
 Time validsdp.
