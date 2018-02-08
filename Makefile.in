@@ -21,12 +21,10 @@ external::
 	@echo Installing external dependencies...
 	( cd external/paramcoq_@COQ_VERSION@ && $(MAKE) && $(MAKE) install )
 	( cd external/CoqEAL/theory && $(MAKE) && $(MAKE) install )
-	@if test @COQ_VERSION@ = v86 ; then \
-		echo "sed -e 's/ Bignums.BigQ.BigQ./ BigQ./' -i external/CoqEAL/refinements/binrat.v"; \
-		sed -e 's/ Bignums.BigQ.BigQ./ BigQ./' -i external/CoqEAL/refinements/binrat.v; \
+	if test @COQ_VERSION@ = v86 ; then \
+		sed -e 's/ Bignums.BigQ.BigQ.\([^a-zA-Z_]\|$$\)/ BigQ.\1/' -i external/CoqEAL/refinements/binrat.v; \
 	else \
-		echo "sed -e 's/ BigQ./ Bignums.BigQ.BigQ./' -i external/CoqEAL/refinements/binrat.v"; \
-		sed -e 's/ BigQ./ Bignums.BigQ.BigQ./' -i external/CoqEAL/refinements/binrat.v; \
+		sed -e 's/ BigQ.\([^a-zA-Z_]\|$$\)/ Bignums.BigQ.BigQ.\1/' -i external/CoqEAL/refinements/binrat.v; \
 	fi
 	( cd external/CoqEAL/refinements && $(MAKE) && $(MAKE) install )
 
