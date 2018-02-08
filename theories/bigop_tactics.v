@@ -187,6 +187,7 @@ Tactic Notation "underp" open_constr(pat) "in" hyp(H) simple_intropattern(i) tac
 
 Section Tests.
 
+(*
 (* A test lemma covering several testcases. *)
 Let test1 (n : nat) (R : ringType) (f1 f2 g : nat -> R) :
   (\big[+%R/0%R]_(i < n) ((f1 i + f2 i) * g i) +
@@ -205,6 +206,7 @@ under b1 x _ rewrite GRing.mulrDl. (* 3 occurrences are rewritten *)
 rewrite big_split /=.
 by rewrite GRing.addrA.
 Qed.
+ *)
 
 (* A test with a side-condition. *)
 Let test2 (n : nat) (R : fieldType) (f : nat -> R) :
@@ -220,6 +222,7 @@ case: {Hneq0} n =>// n.
 by rewrite iteropS iterSr GRing.addr0.
 Qed.
 
+(*
 (* Another test lemma when the bigop appears in some hypothesis *)
 Let test3 (n : nat) (R : fieldType) (f : nat -> R) :
   (forall k : 'I_n, f k != 0%R) ->
@@ -238,6 +241,7 @@ done.
 
 done.
 Qed.
+ *)
 
 (* A test lemma for [underp] *)
 Let testp1 (A : finType) (n : nat) (F : A -> nat) :
