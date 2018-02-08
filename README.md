@@ -94,9 +94,9 @@ the resulting inequalities as a new hypothesis in the goal.
 
 The syntax is as follows:
 
-- `validsdp_intro e` [`using (hyp1, ...)`] [`with (param1, ...)`] [`as H` | `as (Hl, Hu)`]
-- `validsdp_intro e lower` [`using (hyp1, ...)`] [`with (param1, ...)`] [`as Hl`]
-- `validsdp_intro e upper` [`using (hyp1, ...)`] [`with (param1, ...)`] [`as Hu`]
+- `validsdp_intro e` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] [`as H` | `as (Hl, Hu)`]
+- `validsdp_intro e lower` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] [`as Hl`]
+- `validsdp_intro e upper` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] [`as Hu`]
 
 where `e` is a term of type `R` representing a multivariate polynomial
 expression with rational constants and real-valued variables.
@@ -105,9 +105,10 @@ The syntax `using (hyp1, ...)` allows one to select the hypotheses
 from the context to be considered by the solver. These hypotheses
 should be multivariate polynomial inequalities with rational constants
 and real-valued variables. They determine the input domain of the
-considered optimization problem. If the clause `using (hyp1, ...)` is
-omitted, the polynomial expression `e` is bounded over the whole
-vector space.
+considered optimization problem. The syntax `using *` will consider
+all hypotheses from the context that are such inequalities. Otherwise
+if the clause `using ...` is omitted, the polynomial expression `e` is
+bounded over the whole vector space.
 
 The syntax `as Hl` (resp. `as (Hl, Hu)`) allows one to specify the
 name of the inequalities added to the context. If this clause is
