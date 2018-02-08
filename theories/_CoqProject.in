@@ -2,7 +2,6 @@
 CBigZ.v
 CBigQ.v
 Rstruct.v
-binrat.v
 misc.v
 real_matrix.v
 bounded.v
