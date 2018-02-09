@@ -121,9 +121,9 @@ if test "$COQ_VERSION" != "v86"; then
 fi
 
 # Create files
-AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/_CoqProject theories/CBigZ.v theories/CBigQ.v theories/parse_reals.v])
+AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/Makefile theories/_CoqProject_${COQ_VERSION} theories/CBigZ.v theories/CBigQ.v theories/parse_reals.v])
 AC_OUTPUT
-chmod a-w Makefile plugins/soswitness/Makefile theories/_CoqProject theories/CBigZ.v theories/CBigQ.v theories/parse_reals.v
+chmod a-w Makefile plugins/soswitness/Makefile theories/Makefile theories/_CoqProject_${COQ_VERSION} theories/CBigZ.v theories/CBigQ.v theories/parse_reals.v
 
 echo ""
 echo "  Now run 'make external' to build and install extra Coq dependencies"
