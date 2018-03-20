@@ -2256,11 +2256,10 @@ Ltac do_validsdp_intro_lb expr hyps params Hl :=
     get_goal glb vm ltac:(fun res => (* TODO/FIXME: optimize this *)
       match res with
       | (?glb', ?vm) =>
-        have Hl : glb by
-          (*abstract/TODO/FIXME: size of proof term*) (
-            apply (@soscheck_hyps_eff_wrapup_correct vm glb' lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
-            (vm_cast_no_check (erefl true)));
-        (* TODO/FIXME: specialize *)
+        (have Hl : conc by
+          (* TODO/FIXME: Add abstract & Check size of proof term*) (
+          apply (@soscheck_hyps_eff_wrapup_correct vm glb' lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
+          first (vm_cast_no_check (erefl true))));
         clear lb_zQ_szQi
       end)
     end
@@ -2367,7 +2366,7 @@ Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" constr(params)
 
 (** Some quick tests. *)
 (* Section tests. *)
-
+(*
 Section test.
 Lemma test0 (x : R) : True.
 intros.
@@ -2396,13 +2395,15 @@ Time validsdp.
 Qed.
 
 (* End tests. *)
-
-Lemma test5 x : x >= 10 -> True.
-intros H.
-validsdp_intro (2 + x ^2) lower using H as HA.
+*)
+Lemma test5 x : x >= 10 -> x <= 12 -> True.
+intros H1 H2.
+validsdp_intro (2 + x ^2) lower using (H1, H2) as HA.
 easy.
 Qed.
 
-(* Lemma test6 x : x >= 10 -> 0 <= 2 + x ^ 2.
+Print test5.
+
+Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
 validsdp.
-Qed. *)
+Qed.
