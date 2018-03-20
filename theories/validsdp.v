@@ -2223,7 +2223,7 @@ Ltac do_validsdp params :=
     end)
   end.
 
-Ltac do_validsdp_intro_lb expr hyps params Hlb :=
+Ltac do_validsdp_intro_lb expr hyps params Hl :=
   get_poly expr (@Datatypes.nil R) ltac:(fun res => match res with
   | (?p, ?vm) =>
     let n := eval vm_compute in (size vm) in
@@ -2238,13 +2238,40 @@ Ltac do_validsdp_intro_lb expr hyps params Hlb :=
     get_goal g vm ltac:(fun res =>
       match res with
       | (?g', ?vm) =>
-        have Hlb : g by
+        have Hl : g by
           abstract (
             apply (@soscheck_hyps_eff_wrapup_correct vm g' lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
             (vm_cast_no_check (erefl true)))
       end);
     clear lb_zQ_szQi
     end).
+
+Lemma Ropp_le_r (r1 r2 : R) : r1 <= - r2 -> r2 <= - r1.
+Proof. by move=> Hle; apply Ropp_le_cancel; rewrite Ropp_involutive. Qed.
+
+Lemma bigQopp_le_r (r : R) (n1 n2 : bigN) :
+  bigQ2R (BigZ.Neg n1 # n2)%bigQ <= - r -> r <= bigQ2R (BigZ.Pos n1 # n2)%bigQ.
+Proof.
+move=> Hle.
+rewrite /bigQ2R in Hle *.
+rewrite (_: BigZ.Neg n1 = BigZ.opp (BigZ.Pos n1)) in Hle =>//.
+set z := (BigZ.Pos n1 # n2)%bigQ.
+rewrite -/(BigQ.opp z) -/z in Hle.
+pose proof BigQ.spec_opp z as H.
+move/Q2R_Qeq in H.
+rewrite H in Hle.
+rewrite Q2R_opp in Hle.
+by auto with real.
+Qed.
+
+Ltac do_validsdp_intro_ub expr hyps params Hu :=
+  let Hl := fresh "H" in
+  do_validsdp_intro_lb constr:(Ropp expr) hyps params Hl;
+  match type of Hl with
+  | (Ropp _ <= _) => have Hu := @Ropp_le_cancel _ _ Hl
+  | (bigQ2R ((BigZ.Neg _) # _)%bigQ <= _) => have Hu := @bigQopp_le_r _ _ _ Hl
+  | _ => have Hu := @Ropp_le_r _ _ Hl
+  end; clear Hl.
 
 (* [tuple_to_list] was taken from CoqInterval *)
 Ltac tuple_to_list params l :=
@@ -2301,7 +2328,7 @@ Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" constr(params)
   idtac.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "as" simple_intropattern(Hu) :=
-  idtac.
+  do_validsdp_intro_ub expr (@Datatypes.nil Prop) (@Datatypes.nil validsdp_tac_parameters) Hu.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "using" constr(hyps) "as" simple_intropattern(Hu) :=
   idtac.
@@ -2324,7 +2351,7 @@ Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" constr(params)
 Section test.
 Lemma test0 (x : R) : True.
 intros.
-validsdp_intro (x ^ 2 + 1) lower as ?.
+validsdp_intro ((- x ^ 2 + 1)) upper as H.
 easy.
 Qed.
 End test.
