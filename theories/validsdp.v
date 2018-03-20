@@ -2196,6 +2196,14 @@ Ltac get_goal g l k :=
         end)
   end.
 
+Ltac mk_goal_using hyps conc :=
+  match hyps with
+  | tt => conc
+  | pair ?rest ?h => let th := type of h in
+                    mk_goal_using rest (th -> conc)
+  | ?h => let th := type of h in constr:(th -> conc)
+  end.
+
 Ltac do_validsdp params :=
   lazymatch goal with
   | [ |- ?g ] =>
@@ -2224,27 +2232,39 @@ Ltac do_validsdp params :=
   end.
 
 Ltac do_validsdp_intro_lb expr hyps params Hl :=
-  get_poly expr (@Datatypes.nil R) ltac:(fun res => match res with
-  | (?p, ?vm) =>
+  let conc := constr:(R0 <= expr) in
+  let g0 := mk_goal_using hyps conc in
+  get_goal g0 (@Datatypes.nil R) ltac:(fun res => match res with
+  | (?g, ?vm) =>
     let n := eval vm_compute in (size vm) in
-    let p := constr:((@M.elements bigQ \o
-                      interp_poly_eff n \o
-                      abstr_poly_of_p_abstr_poly) p) in
-    let ppi := eval vm_compute in (p, (@Datatypes.nil (seq (seq N * BigQ.t_)))) in
-    let lb_zQ_szQi := fresh "lb_zQ_szQi" in
-    (soswitness_intro of ppi as lb_zQ_szQi with params);
-    let lb := eval vm_compute in (lb_zQ_szQi.1) in
-    let g := constr:(lb <= expr) (* /\ hyps -> lb <= expr *) in
-    get_goal g vm ltac:(fun res =>
+    let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
+    match lgb with
+    | (?l, ?p, ?b) =>
+      let pi := constr:(map (@M.elements bigQ \o
+                             interp_poly_eff n \o
+                             abstr_poly_of_p_abstr_poly) l) in
+      let p := constr:((@M.elements bigQ \o
+                        interp_poly_eff n \o
+                        abstr_poly_of_p_abstr_poly) p) in
+      let ppi := eval vm_compute in (p, pi) in
+      let lb_zQ_szQi := fresh "lb_zQ_szQi" in
+      (soswitness_intro of ppi as lb_zQ_szQi with params);
+      let lb := eval vm_compute in (lb_zQ_szQi.1) in
+      (* /\ hyps -> lb <= expr *)
+      let conc := constr:(lb <= expr) in
+      let glb := mk_goal_using hyps conc in
+    get_goal glb vm ltac:(fun res => (* TODO/FIXME: optimize this *)
       match res with
-      | (?g', ?vm) =>
-        have Hl : g by
-          abstract (
-            apply (@soscheck_hyps_eff_wrapup_correct vm g' lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
-            (vm_cast_no_check (erefl true)))
-      end);
-    clear lb_zQ_szQi
-    end).
+      | (?glb', ?vm) =>
+        have Hl : glb by
+          (*abstract/TODO/FIXME: size of proof term*) (
+            apply (@soscheck_hyps_eff_wrapup_correct vm glb' lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
+            (vm_cast_no_check (erefl true)));
+        (* TODO/FIXME: specialize *)
+        clear lb_zQ_szQi
+      end)
+    end
+  end).
 
 Lemma Ropp_le_r (r1 r2 : R) : r1 <= - r2 -> r2 <= - r1.
 Proof. by move=> Hle; apply Ropp_le_cancel; rewrite Ropp_involutive. Qed.
@@ -2310,10 +2330,10 @@ Tactic Notation "validsdp_intro" constr(expr) "using" "*" constr(params) "with" 
   idtac.
 
 Tactic Notation "validsdp_intro" constr(expr) "lower" "as" simple_intropattern(Hl) :=
-  do_validsdp_intro_lb expr (@Datatypes.nil Prop) (@Datatypes.nil validsdp_tac_parameters) Hl.
+  do_validsdp_intro_lb expr tt (@Datatypes.nil validsdp_tac_parameters) Hl.
 
 Tactic Notation "validsdp_intro" constr(expr) "lower" "using" constr(hyps) "as" simple_intropattern(Hl) :=
-  idtac.
+  do_validsdp_intro_lb expr hyps (@Datatypes.nil validsdp_tac_parameters) Hl.
 
 Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" "as" simple_intropattern(Hl) :=
   idtac.
@@ -2328,7 +2348,7 @@ Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" constr(params)
   idtac.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "as" simple_intropattern(Hu) :=
-  do_validsdp_intro_ub expr (@Datatypes.nil Prop) (@Datatypes.nil validsdp_tac_parameters) Hu.
+  do_validsdp_intro_ub expr tt (@Datatypes.nil validsdp_tac_parameters) Hu.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "using" constr(hyps) "as" simple_intropattern(Hu) :=
   idtac.
@@ -2351,7 +2371,7 @@ Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" constr(params)
 Section test.
 Lemma test0 (x : R) : True.
 intros.
-validsdp_intro ((- x ^ 2 + 1)) upper as H.
+validsdp_intro (1 + x ^ 2) lower as H.
 easy.
 Qed.
 End test.
@@ -2376,3 +2396,13 @@ Time validsdp.
 Qed.
 
 (* End tests. *)
+
+Lemma test5 x : x >= 10 -> True.
+intros H.
+validsdp_intro (2 + x ^2) lower using H as HA.
+easy.
+Qed.
+
+(* Lemma test6 x : x >= 10 -> 0 <= 2 + x ^ 2.
+validsdp.
+Qed. *)
