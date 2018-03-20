@@ -94,9 +94,9 @@ the resulting inequalities as a new hypothesis in the goal.
 
 The syntax is as follows:
 
-- `validsdp_intro e` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] [`as H` | `as (Hl, Hu)`]
-- `validsdp_intro e lower` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] [`as Hl`]
-- `validsdp_intro e upper` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] [`as Hu`]
+- `validsdp_intro e` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] `as` (`?` | `H` | `(Hl, Hu)`)
+- `validsdp_intro e lower` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] `as` (`?` | `Hl`)
+- `validsdp_intro e upper` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] `as` (`?` | `Hu`)
 
 where `e` is a term of type `R` representing a multivariate polynomial
 expression with rational constants and real-valued variables.
@@ -111,10 +111,7 @@ if the clause `using ...` is omitted, the polynomial expression `e` is
 bounded over the whole vector space.
 
 The syntax `as Hl` (resp. `as (Hl, Hu)`) allows one to specify the
-name of the inequalities added to the context. If this clause is
-omitted, the `validsdp_intro` tactic generates a fresh name and adds a
-single hypothesis with this name in the context asserting the proven
-inequality (or double-inequality).
+name of the inequalities added to the context. 
 
 The syntax `with (param1, ...)` supports the same options as the
 `validsdp` tactic.

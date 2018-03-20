@@ -2253,12 +2253,8 @@ Ltac tuple_to_list params l :=
   | ?b => constr:(b :: l)
   | ?z => fail 100 "Unknown tactic parameter" z
   end.
-(*
-Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) "as" simple_intropattern(H) :=
 
-Tactic Notation "validsdp_intro" "with" constr(params) :=
- do_validsdp ltac:(tuple_to_list params (@Datatypes.nil validsdp_tac_parameters)).
- *)
+(** Backward reasoning *)
 
 Tactic Notation "validsdp" :=
   do_validsdp (@Datatypes.nil validsdp_tac_parameters).
@@ -2266,8 +2262,61 @@ Tactic Notation "validsdp" :=
 Tactic Notation "validsdp" "with" constr(params) :=
  do_validsdp ltac:(tuple_to_list params (@Datatypes.nil validsdp_tac_parameters)).
 
-Tactic Notation "validsdp_intro" constr(expr) "upper" "as" simple_intropattern(Hl) :=
- do_validsdp_intro_lb expr (@Datatypes.nil Prop) (@Datatypes.nil validsdp_tac_parameters) Hl.
+(** Forward reasoning *)
+
+Tactic Notation "validsdp_intro" constr(expr) "as" simple_intropattern(H) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) "as" simple_intropattern(H) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "using" "*" "as" simple_intropattern(H) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "with" constr(params) "as" simple_intropattern(H) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) constr(params) "with" constr(params) "as" simple_intropattern(H) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(H) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "lower" "as" simple_intropattern(Hl) :=
+  do_validsdp_intro_lb expr (@Datatypes.nil Prop) (@Datatypes.nil validsdp_tac_parameters) Hl.
+
+Tactic Notation "validsdp_intro" constr(expr) "lower" "using" constr(hyps) "as" simple_intropattern(Hl) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" "as" simple_intropattern(Hl) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "lower" "with" constr(params) "as" simple_intropattern(Hl) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "lower" "using" constr(hyps) constr(params) "with" constr(params) "as" simple_intropattern(Hl) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(Hl) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "upper" "as" simple_intropattern(Hu) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "upper" "using" constr(hyps) "as" simple_intropattern(Hu) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" "as" simple_intropattern(Hu) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "upper" "with" constr(params) "as" simple_intropattern(Hu) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "upper" "using" constr(hyps) constr(params) "with" constr(params) "as" simple_intropattern(Hu) :=
+  idtac.
+
+Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(Hu) :=
+  idtac.
 
 (** Some quick tests. *)
 (* Section tests. *)
@@ -2275,7 +2324,7 @@ Tactic Notation "validsdp_intro" constr(expr) "upper" "as" simple_intropattern(H
 Section test.
 Lemma test0 (x : R) : True.
 intros.
-validsdp_intro (x ^ 2 + 1) upper as ?.
+validsdp_intro (x ^ 2 + 1) lower as ?.
 easy.
 Qed.
 End test.
