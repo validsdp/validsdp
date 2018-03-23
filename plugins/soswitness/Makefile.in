@@ -1,4 +1,4 @@
-NAME = ValidSDP
+NAME = @PACKAGE_NAME@
 MODULES =\
   src/soswitness.ml4\
   src/soswitness.mllib\

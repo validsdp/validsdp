@@ -1,4 +1,4 @@
-COQ_PROJ := _CoqProject
+COQ_PROJ := _CoqProject_@COQ_VERSION@
 COQ_MAKEFILE := Makefile.coq
 COQ_MAKE := +$(MAKE) -f $(COQ_MAKEFILE)
 
@@ -9,7 +9,7 @@ else
 endif
 export COQBIN
 
-all install html gallinahtml deps.dot deps.png doc dist: $(COQ_MAKEFILE)
+all install html gallinahtml deps.dot deps.png doc dist clean: $(COQ_MAKEFILE)
 	$(COQ_MAKE) $@
 
 %.vo: %.v
@@ -20,7 +20,7 @@ test:
 
 clean:
 	-$(COQ_MAKE) clean
-	$(RM) $(COQ_MAKEFILE)
+	$(RM) $(COQ_MAKEFILE) depend depend.dot depend.png depend.html makedot
 
 $(COQ_MAKEFILE): $(COQ_PROJ)
 	$(COQBIN)coq_makefile -f $< -o $@

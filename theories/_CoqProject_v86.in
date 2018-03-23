@@ -1,4 +1,4 @@
--R . ValidSDP
+-R . @PACKAGE_NAME@
 CBigZ.v
 CBigQ.v
 Rstruct.v

@@ -420,6 +420,8 @@ Fixpoint all_type (T : Type) (a : T -> Type) (s : seq T) : Type :=
   | x :: s' => a x * all_type a s'
   end.
 
+(*/-*)
+
 Lemma all_type_nth T (P : T -> Type) (s : seq T) (x0 : T):
   all_type P s -> forall i, (i < size s)%N -> P (nth x0 s i).
 Proof. by elim: s => [//|? ? /= Hi [? ?] [//|?] ?]; apply Hi. Qed.
@@ -1832,6 +1834,7 @@ Proof. now intros H0; apply Rge_le, Rminus_ge, Rle_ge. Qed.
 
 Lemma Rlt_minus_lt r1 r2 : (0 < r2 - r1)%Re -> (r1 < r2)%Re.
 Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
+(*-/*)
 
 (** *** The main tactic. *)
 
@@ -1934,6 +1937,7 @@ Definition interp_abstr_goal (vm : seq R) (g : abstr_goal) : Prop :=
 
 Ltac tac := rewrite /= !sub_p_abstr_poly_correct; psatzl R.
 
+(*/-*)
 Theorem abstr_goal_of_p_abstr_goal_correct vm (g : p_abstr_goal) :
   interp_abstr_goal vm (abstr_goal_of_p_abstr_goal g) ->
   interp_p_abstr_goal vm g.
@@ -2143,6 +2147,7 @@ Unshelve.
 { by op2 F.div_correct. }
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
 Qed.
+(*-/*)
 
 Ltac get_ineq i l k :=
   let aux c x y :=
@@ -2209,6 +2214,8 @@ Ltac do_validsdp params :=
   | [ |- ?g ] =>
     get_goal g (@Datatypes.nil R) ltac:(fun res => match res with
     | (?g, ?vm) =>
+      (* let g' := fresh in pose g' := g;
+         let vm' := fresh in pose vm' := vm *)
       abstract (
       let n := eval vm_compute in (size vm) in
       let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
@@ -2366,14 +2373,12 @@ Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" constr(params)
 
 (** Some quick tests. *)
 (* Section tests. *)
-(*
-Section test.
+
 Lemma test0 (x : R) : True.
 intros.
 validsdp_intro (1 + x ^ 2) lower as H.
 easy.
 Qed.
-End test.
 
 Let test1 x y : 0 < x -> 1 <= y -> x + y >= 0.
 Time validsdp.
@@ -2387,12 +2392,16 @@ Let test3 x y : 2 / 3 * x ^ 2 + y ^ 2 + 1 > 0.
 Time validsdp.
 Qed.
 
+(* Section test. *)
 (* Let ne marche pas dans la Section. *)
 Let p x y := 2 / 3 * x ^ 2 + y ^ 2.
 
 Let test4 x y : p x y + 1 > 0.
 Time validsdp.
 Qed.
+
+(*
+Ltac deb tac ::= tac.
 
 (* End tests. *)
 *)

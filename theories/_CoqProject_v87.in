@@ -1,0 +1,28 @@
+-R . @PACKAGE_NAME@
+CBigZ.v
+CBigQ.v
+Rstruct.v
+misc.v
+real_matrix.v
+bounded.v
+float_spec.v
+gamma.v
+fsum.v
+fcmdotprod.v
+binary64.v
+cholesky.v
+float_infnan_spec.v
+binary64_infnan.v
+cholesky_infnan.v
+flx64.v
+zulp.v
+coqinterval_infnan.v
+cholesky_prog.v
+iteri_ord.v
+bigop_tactics.v
+parse_reals_@COQ_VERSION@.v
+parse_reals.v
+ssrmultinomials_complements.v
+validsdp.v
+
+COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R . @PACKAGE_NAME@"
