@@ -246,6 +246,13 @@ Ltac check_unexpected_case f0 :=
 Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
   deb ltac:(idtac "get_comp_poly on .. .." t vm ".. ..");
   let rec aux2 f0 f qi xx vm k := (* Second step *)
+      (* f0 := initial value of f;
+         f := function to be parsed (head of term t);
+         qi := list of polynomial arguments;
+         xx := list of abstract variables (initially empty);
+         vm := list of ambient variables;
+         k := continuation;
+       *)
       deb ltac:(idtac "get_comp_poly.aux2 on" f0 f qi xx vm "..");
       check_unexpected_case f0;
       match type of f with
@@ -270,6 +277,12 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
                              aux2 f0 fx qi xx vm k)
       end in
   let rec aux1 t0 t qi vm k := (* First step *)
+      (* t0 := initial value of t;
+         t := term to be parsed;
+         qi := list of polynomial arguments (initially empty);
+         vm := list of ambient variables;
+         k := continuation;
+       *)
       deb ltac:(idtac "get_comp_poly.aux1 on" t0 t qi vm "..");
       match t with
       | ?p ?q =>
