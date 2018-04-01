@@ -195,6 +195,8 @@ Ltac iter_tac tac l :=
     end
   in aux l.
 
+(* OLD version
+
 (** [equate] was taken from CPDT *)
 Ltac equate x y :=
   let dummy := constr:(erefl x : x = y) in idtac.
@@ -205,6 +207,19 @@ Ltac newvar T k :=
   evar (x : T);
   let x' := (eval unfold x in x) in
   clear x;
+  k x'.
+ *)
+
+(** Define an opaque function to represent abstract real variables *)
+Definition x_ (nx : nat) : R.
+exact R0.
+Qed.
+
+(** Tactic with continuation passing style *)
+(* Erik: This new version of [newvar] does not create [evar]s anymore,
+   so CPS style might be removed *)
+Ltac newvar T nx k :=
+  let x' := constr:(x_ nx) in
   k x'.
 
 Ltac deb tac := idtac.
@@ -245,15 +260,16 @@ Ltac check_unexpected_case f0 :=
 (** [get_comp_poly tac0 tac1 t vm tac2 k] will check if [t] matches [?f ?x] *)
 Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
   deb ltac:(idtac "get_comp_poly on .. .." t vm ".. ..");
-  let rec aux2 f0 f qi xx vm k := (* Second step *)
+  let rec aux2 f0 f qi nx xx vm k := (* Second step *)
       (* f0 := initial value of f;
          f := function to be parsed (head of term t);
          qi := list of polynomial arguments;
+         nx := next index of abstract var (initially 0);
          xx := list of abstract variables (initially empty);
          vm := list of ambient variables;
          k := continuation;
        *)
-      deb ltac:(idtac "get_comp_poly.aux2 on" f0 f qi xx vm "..");
+      deb ltac:(idtac "get_comp_poly.aux2 on" f0 f qi nx xx vm "..");
       check_unexpected_case f0;
       match type of f with
       | R =>
@@ -267,14 +283,17 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
               match res with
               | (?qi, ?vm) =>
                 let res := constr:((PCompose p qi, vm)) in
-                let dummy := R0 in
-                iter_tac ltac:(fun it => equate it dummy) xx; k res
+                (* (* Used with OLD version of newvar *)
+                   let dummy := R0 in
+                   iter_tac ltac:(fun it => equate it dummy) xx; *)
+                k res
               end)
           end)
       | forall x : R, _ =>
-        newvar R ltac:(fun x => let fx := constr:(f x) in
-                             let xx := constr:(Datatypes.cons x xx) in
-                             aux2 f0 fx qi xx vm k)
+        newvar R nx ltac:(fun x => let fx := constr:(f x) in
+                                let xx := constr:(Datatypes.cons x xx) in
+                                let nx := constr:(S nx) in
+                                aux2 f0 fx qi nx xx vm k)
       end in
   let rec aux1 t0 t qi vm k := (* First step *)
       (* t0 := initial value of t;
@@ -289,7 +308,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
         let qi1 := constr:(Datatypes.cons q qi) in
         aux1 t0 p qi1 vm k
       | ?f =>
-        aux2 f f qi (@Datatypes.nil R) vm ltac:(fun res =>
+        aux2 f f qi O (@Datatypes.nil R) vm ltac:(fun res =>
         match res with
         | not_polynomial => (* If second step fails, return a PVar *)
           match list_add t0 vm with
@@ -2292,14 +2311,13 @@ Let test3 x y : 2 / 3 * x ^ 2 + y ^ 2 + 1 > 0.
 Time validsdp.
 Qed.
 
-(* Section test. *)
-(* Let ne marche pas dans la Section. *)
+Section test.
 Let p x y := 2 / 3 * x ^ 2 + y ^ 2.
 
-Let test4 x y : p x y + 1 > 0.
+(*Lemma*) Let test4 x y : p x y + 1 > 0.
 Time validsdp.
 Qed.
-(* End test. *)
+End test.
 
 (*
 Ltac deb tac ::= tac.
