@@ -2301,6 +2301,13 @@ Ltac do_validsdp_intro_ub expr hyps params Hu :=
   | _ => have Hu := @Ropp_le_r _ _ Hl
   end; clear Hl.
 
+Ltac do_validsdp_intro expr hyps params H :=
+  let Hl := fresh "Hl" in
+  let Hu := fresh "Hu" in
+  do_validsdp_intro_lb expr hyps params Hl;
+  do_validsdp_intro_ub expr hyps params Hu;
+  have H := conj Hl Hu; clear Hl Hu.
+
 (* [tuple_to_list] was taken from CoqInterval *)
 Ltac tuple_to_list params l :=
   match params with
@@ -2320,19 +2327,19 @@ Tactic Notation "validsdp" "with" constr(params) :=
 (** Forward reasoning *)
 
 Tactic Notation "validsdp_intro" constr(expr) "as" simple_intropattern(H) :=
-  idtac.
+  do_validsdp_intro expr tt (@Datatypes.nil validsdp_tac_parameters) H.
 
 Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) "as" simple_intropattern(H) :=
-  idtac.
+  do_validsdp_intro expr hyps (@Datatypes.nil validsdp_tac_parameters) H.
 
 Tactic Notation "validsdp_intro" constr(expr) "using" "*" "as" simple_intropattern(H) :=
   idtac.
 
 Tactic Notation "validsdp_intro" constr(expr) "with" constr(params) "as" simple_intropattern(H) :=
-  idtac.
+  do_validsdp_intro expr tt params H.
 
 Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) constr(params) "with" constr(params) "as" simple_intropattern(H) :=
-  idtac.
+  do_validsdp_intro expr hyps params H.
 
 Tactic Notation "validsdp_intro" constr(expr) "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(H) :=
   idtac.
@@ -2347,10 +2354,10 @@ Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" "as" simple_in
   idtac.
 
 Tactic Notation "validsdp_intro" constr(expr) "lower" "with" constr(params) "as" simple_intropattern(Hl) :=
-  idtac.
+  do_validsdp_intro_lb expr tt params Hl.
 
 Tactic Notation "validsdp_intro" constr(expr) "lower" "using" constr(hyps) constr(params) "with" constr(params) "as" simple_intropattern(Hl) :=
-  idtac.
+  do_validsdp_intro_lb expr hyps params Hl.
 
 Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(Hl) :=
   idtac.
@@ -2359,16 +2366,16 @@ Tactic Notation "validsdp_intro" constr(expr) "upper" "as" simple_intropattern(H
   do_validsdp_intro_ub expr tt (@Datatypes.nil validsdp_tac_parameters) Hu.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "using" constr(hyps) "as" simple_intropattern(Hu) :=
-  idtac.
+  do_validsdp_intro_ub expr hyps (@Datatypes.nil validsdp_tac_parameters) Hu.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" "as" simple_intropattern(Hu) :=
   idtac.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "with" constr(params) "as" simple_intropattern(Hu) :=
-  idtac.
+  do_validsdp_intro_ub expr tt params Hu.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "using" constr(hyps) constr(params) "with" constr(params) "as" simple_intropattern(Hu) :=
-  idtac.
+  do_validsdp_intro_ub expr hyps params Hu.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(Hu) :=
   idtac.
