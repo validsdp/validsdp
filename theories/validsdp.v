@@ -2209,6 +2209,12 @@ Ltac mk_goal_using hyps conc :=
   | ?h => let th := type of h in constr:(th -> conc)
   end.
 
+Ltac ch_goal_lhs g lhs :=
+  match g with
+  | Gineq (?c _ ?r) => constr:(Gineq (c lhs r))
+  | Ghyp ?h ?g => let g' := ch_goal_lhs g lhs in constr:(Ghyp h g')
+  end.
+
 Ltac do_validsdp params :=
   lazymatch goal with
   | [ |- ?g ] =>
@@ -2220,7 +2226,7 @@ Ltac do_validsdp params :=
       let n := eval vm_compute in (size vm) in
       let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
       match lgb with
-      | (?l, ?p, ?b) =>
+      | (?l, ?p, _) =>
         let pi := constr:(map (@M.elements bigQ \o
                                interp_poly_eff n \o
                                abstr_poly_of_p_abstr_poly) l) in
@@ -2246,7 +2252,7 @@ Ltac do_validsdp_intro_lb expr hyps params Hl :=
     let n := eval vm_compute in (size vm) in
     let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
     match lgb with
-    | (?l, ?p, ?b) =>
+    | (?l, ?p, _) =>
       let pi := constr:(map (@M.elements bigQ \o
                              interp_poly_eff n \o
                              abstr_poly_of_p_abstr_poly) l) in
@@ -2257,18 +2263,14 @@ Ltac do_validsdp_intro_lb expr hyps params Hl :=
       let lb_zQ_szQi := fresh "lb_zQ_szQi" in
       (soswitness_intro of ppi as lb_zQ_szQi with params);
       let lb := eval vm_compute in (lb_zQ_szQi.1) in
+      let lb' := get_real_cst (bigQ2R lb) in
       (* /\ hyps -> lb <= expr *)
-      let conc := constr:(lb <= expr) in
-      let glb := mk_goal_using hyps conc in
-    get_goal glb vm ltac:(fun res => (* TODO/FIXME: optimize this *)
-      match res with
-      | (?glb', ?vm) =>
-        (have Hl : conc by
+      let glb := ch_goal_lhs g constr:(PConst lb') in
+        (have Hl : lb <= expr by
           (* TODO/FIXME: Add abstract & Check size of proof term*) (
-          apply (@soscheck_hyps_eff_wrapup_correct vm glb' lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
+          apply (@soscheck_hyps_eff_wrapup_correct vm glb lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
           first (vm_cast_no_check (erefl true))));
         clear lb_zQ_szQi
-      end)
     end
   end).
 
