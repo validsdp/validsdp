@@ -2199,7 +2199,7 @@ Ltac get_ineq i l k :=
           let res := constr:((c p q, l)) in k res
         end)
       end) in
-  match i with
+  match i with (* see also [appears_in_ineq] below *)
   | Rle ?x ?y => aux ILe x y
   | Rge ?x ?y => aux IGe x y
   | Rlt ?x ?y => aux ILt x y
@@ -2374,8 +2374,10 @@ Ltac pair_member v l :=
   end.
 
 (** Membership function
-    [appears_in vm t] = does some var in list vm appears in the type t ? *)
-Ltac appears_in vm t :=
+    [appears_in_ineq vm t] = does some var in list vm appears in the ineq t ?
+    See also [get_ineq] above.
+*)
+Ltac appears_in_ineq vm t :=
   let rec aux vm t :=
       match vm with
       | Datatypes.nil => false
@@ -2385,7 +2387,13 @@ Ltac appears_in vm t :=
         | _ => aux vm t
         end
       end
-  in aux vm t.
+  in match t with
+     | Rle ?x ?y => aux vm t
+     | Rge ?x ?y => aux vm t
+     | Rlt ?x ?y => aux vm t
+     | Rgt ?x ?y => aux vm t
+     | _ => false
+     end.
 
 (** Primitives to append terms in a single pair-tuple at the top of the stack *)
 Ltac set_state top new :=
@@ -2420,7 +2428,7 @@ Ltac do_validsdp_intro_all expr k :=
       let top := fresh "hyps" in
       set_state top tt;
       repeat match goal with
-             | [ H : ?t |- _] => match appears_in vm t with
+             | [ H : ?t |- _] => match appears_in_ineq vm t with
                                | true => let top0 := peek_state in
                                         match pair_member H top0 with
                                         | true => fail
