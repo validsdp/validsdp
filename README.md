@@ -105,8 +105,8 @@ The syntax `using (hyp1, ...)` allows one to select the hypotheses
 from the context to be considered by the solver. These hypotheses
 should be multivariate polynomial inequalities with rational constants
 and real-valued variables. They determine the input domain of the
-considered optimization problem. The syntax `using *` will consider
-all hypotheses from the context that are such inequalities. Otherwise
+considered optimization problem. The syntax `using *` will select
+hypotheses from the context that are such inequalities. Otherwise
 if the clause `using ...` is omitted, the polynomial expression `e` is
 bounded over the whole vector space.
 
