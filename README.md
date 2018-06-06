@@ -51,6 +51,88 @@ Finally, to build and install ValidSDP, run:
 Usage
 -----
 
+This library provides the tactics `validsdp` and `validsdp_intro` for
+proving inequalities on multivariate polynomials involving real-valued
+variables and rational constants.
+
+First, one has to import the validsdp Coq theory:
+
+    From ValidSDP Require Import validsdp.
+
+The main tactic `validsdp` accepts the following goals:
+
+    ineq ::= (e1 <= e2)%R
+           | (e1 >= e2)%R
+           | (e1 < e2)%R
+           | (e1 > e2)%R
+    
+    hyp ::= ineq
+          | hyp /\ hyp
+    
+    goal ::= ineq
+           | hyp -> goal
+
+where `e1`, `e2` are terms of type `R` representing multivariate
+polynomial expressions with rational constants. Anything else will be
+interpreted as a variable.
+
+The `validsdp` tactic also accepts options thanks to the following
+syntax: `validsdp with (param1, param2, ...)`. Below is the list of
+supported options:
+
+- `s_sdpa` (*use the SDPA solver*)
+- `s_csdp` (*use the CSDP solver*)
+- `s_mosek` (*use the Mosek solver*)
+- `s_verbose (verb : nat)` (*set the verbosity level, default: 0*)
+
+Forward reasoning
+-----------------
+
+A tactic `validsdp_intro` is available to bound given polynomial
+expressions (under polynomials constraints if desired). It introduces
+the resulting inequalities as a new hypothesis in the goal.
+
+The syntax is as follows:
+
+- `validsdp_intro e` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] `as` (`?` | `H` | `(Hl, Hu)`)
+- `validsdp_intro e lower` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] `as` (`?` | `Hl`)
+- `validsdp_intro e upper` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] `as` (`?` | `Hu`)
+
+where `e` is a term of type `R` representing a multivariate polynomial
+expression with rational constants and real-valued variables.
+
+The syntax `using (hyp1, ...)` allows one to select the hypotheses
+from the context to be considered by the solver. These hypotheses
+should be multivariate polynomial inequalities with rational constants
+and real-valued variables. They determine the input domain of the
+considered optimization problem. The syntax `using *` will select
+hypotheses from the context that are such inequalities. Otherwise
+if the clause `using ...` is omitted, the polynomial expression `e` is
+bounded over the whole vector space.
+
+The syntax `as Hl` (resp. `as (Hl, Hu)`) allows one to specify the
+name of the inequalities added to the context. 
+
+The syntax `with (param1, ...)` supports the same options as the
+`validsdp` tactic.
+
+Examples
+--------
+
+    Require Import Reals.
+    Local Open Scope R_scope.
+    
+    Goal forall x y : R, 0 <= y -> 2 / 3 * x ^ 2 + y + 1 / 4 > 0.
+    intros x y.
+    validsdp.
+    Qed.
+    
+    Goal forall x y : R, -1 <= y <= 1 -> x * (x + y) + 1 / 2 >= 0.
+    intros x y.
+    validsdp.
+    Qed.
+
+
 Examples of usage of the tactic can be found at the end of the file
 "theories/validsdp.v" as well as in the file "theories/testsuite.v"
 

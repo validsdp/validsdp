@@ -256,9 +256,9 @@ let errorpp msg = CErrors.error msg
 exception SosFail of int * Pp.std_ppcmds
 let fail level msg = raise (SosFail(level, msg))
 let failpp level msg = raise (SosFail(level, Pp.str msg))
-let error msg = fail 0 msg
-let errorpp msg = failpp 0 msg
-let maxlevel = 100
+let maxlevel = 999
+let error msg = fail maxlevel msg (* could be set a smaller level *)
+let errorpp msg = failpp maxlevel msg
 let failtac level msg = Tacticals.New.tclFAIL level msg
 
 (* The actual tactic. *)
@@ -266,31 +266,38 @@ let failtac level msg = Tacticals.New.tclFAIL level msg
 module Sos = Osdp.Sos.Q
 module SosP = Sos.Poly
 
-(* [psatz q] calls OSDP to retrieve witnesses for q >= 0. Returns
-   [nb_vars, (z, Q), []] where [nb_vars] is the number of variables
-   appearing in [q], [z, Q] (z : vector of monomials, Q : float
-   matrix) is a witness for q >= 0. *)
-let psatz options q =
+(* [psatz q] calls OSDP to retrieve witnesses for q >= lb. Returns
+   [nb_vars, lb, (z, Q), []] where [nb_vars] is the number of
+   variables appearing in [q], [lb] is maximized if [intro = true] and
+   [0] otherwise, [z, Q] (z : vector of monomials, Q : float matrix)
+   is a witness for q >= 0. *)
+let psatz intro options q =
   let nb_vars = SosP.nb_vars q in
-  let ret, _, vals, wl = Sos.solve ~options Sos.Purefeas [Sos.(!!q)] in
+  let lb = Sos.make "lb" in
+  let ret, _, vals, wl =
+    if intro then Sos.solve ~options (Sos.Maximize lb) [Sos.(!!q - lb)]
+    else Sos.solve ~options Sos.Purefeas [Sos.(!!q)] in
   match (ret = Osdp.SdpRet.Success), wl with
   | (false, _ | _, []) ->
      Format.printf "l27@."; errorpp "soswitness: OSDP found no witnesses"
   | _, (zQ :: _) ->
      let array_to_list (z, q) =
        Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
-     nb_vars, array_to_list zQ, []
+     let lb = if intro then Sos.value lb vals else Q.zero in
+     nb_vars, lb, array_to_list zQ, []
 
 (* [psatz_hyps q [p1;...; pn]] calls OSDP to retrieve witnesses for
-   p1 >= 0 -> ... -> pn >= 0 -> q >= 0. Returns [nb_vars, (z, Q),
+   p1 >= 0 -> ... -> pn >= 0 -> q >= lb. Returns [nb_vars, lb, (z, Q),
    [(s1, (z1, Q1));...; (sn, (zn, Qn))]] where [nb_vars] is the number
-   of variables appearing in [p1,..., pn, q], [z, Q] (z : vector of
-   monomials, Q : float matrix) is a witness for q - \sum_i si pi >= 0
-   and each (zi, Qi) is a witness for si >= 0. *)
-let psatz_hyps options q pl =
+   of variables appearing in [p1,..., pn, q], [lb] is maximized when
+   [intro = true] and [0] otherwise, [z, Q] (z : vector of monomials,
+   Q : float matrix) is a witness for q - \sum_i si pi >= 0 and each
+   (zi, Qi) is a witness for si >= 0. *)
+let psatz_hyps intro options q pl =
   let get_wits keep =
     let nb_vars = List.map SosP.nb_vars (q :: pl) |> List.fold_left max 0 in
     let coeff = Sos.make "c" in
+    let lb = Sos.make "lb" in
     let sum, sigmas =
       let degs = List.map SosP.degree (q :: pl) in
       let max_deg = List.fold_left max 0 degs in
@@ -301,6 +308,7 @@ let psatz_hyps options q pl =
       let rup n = (n + 1) / 2 * 2 in
       let rup_monomial m =
         Osdp.Monomial.of_list (List.map rup (Osdp.Monomial.to_list m)) in
+      let sum = if intro then Sos.(!!q - lb) else Sos.(coeff * !!q) in
       List.fold_left
         (fun (sum, sigmas) p ->
           let s =
@@ -316,33 +324,44 @@ let psatz_hyps options q pl =
                 List.filter (fun (m, _) -> Osdp.Monomial.divide m lim) l in
             Sos.of_list l in
           Sos.(sum - s * !!p), s :: sigmas)
-        (Sos.(coeff * !!q), []) pl in
+        (sum, []) pl in
     let ret, _, vals, wl =
-      Sos.solve ~options Sos.Purefeas (sum :: coeff :: List.rev sigmas) in
+      if intro then
+        Sos.solve ~options (Sos.Maximize lb) (sum :: List.rev sigmas)
+      else
+        Sos.solve ~options Sos.Purefeas (sum :: coeff :: List.rev sigmas) in
     if ret <> Osdp.SdpRet.Success then None
     else
       match wl with
       | [] | [_] -> assert false
-      | h :: _ :: t -> Some (nb_vars, coeff, sigmas, vals, h, t) in
+      | h :: t when intro -> Some (nb_vars, lb, coeff, sigmas, vals, h, t)
+      | h :: _ :: t -> Some (nb_vars, lb, coeff, sigmas, vals, h, t) in
   let w = match get_wits false with
     | (Some _) as w -> w
     | None -> get_wits true in
   match w with
   | None -> errorpp "soswitness: OSDP found no witnesses"
-  | Some (nb_vars, coeff, sigmas, vals, zQ, zQl) ->
-     let coeff = Sos.value coeff vals in
-     if SosP.Coeff.equal coeff SosP.Coeff.zero then
-       errorpp "soswitness: OSDP found no witnesses";
-     let coeff = SosP.Coeff.inv coeff in
+  | Some (nb_vars, lb, coeff, sigmas, vals, zQ, zQl) ->
      let sigmas = List.rev_map (fun e -> Sos.value_poly e vals) sigmas in
-     let sigmas = List.map (SosP.mult_scalar coeff) sigmas in
-     let coeff = SosP.Coeff.to_float coeff in
-     let array_to_list (z, q) =
-       let q = Array.map (Array.map (fun c -> coeff *. c)) q in
-       Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
-     nb_vars, array_to_list zQ, List.combine sigmas (List.map array_to_list zQl)
+     if intro then
+       let array_to_list (z, q) =
+         Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
+       let szQl = List.combine sigmas (List.map array_to_list zQl) in
+       nb_vars, Sos.value lb vals, array_to_list zQ, szQl
+     else
+       let coeff = Sos.value coeff vals in
+       if SosP.Coeff.equal coeff SosP.Coeff.zero then
+         errorpp "soswitness: OSDP found no witnesses";
+       let coeff = SosP.Coeff.inv coeff in
+       let sigmas = List.map (SosP.mult_scalar coeff) sigmas in
+       let coeff = SosP.Coeff.to_float coeff in
+       let array_to_list (z, q) =
+         let q = Array.map (Array.map (fun c -> coeff *. c)) q in
+         Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
+       let szQl = List.combine sigmas (List.map array_to_list zQl) in
+       nb_vars, Q.zero, array_to_list zQ, szQl
 
-let soswitness options c =
+let soswitness intro options c =
   let ty_N = Lazy.force coq_N_ind in
   let ty_seqmultinom = tyList ty_N in
   let ty_bigQ = Lazy.force coq_bigQ_ind in
@@ -364,8 +383,10 @@ let soswitness options c =
       errorpp "soswitness: expects a closed term representing \
                a non constant polynomial" in
   (* Call OSDP to retrieve witnesses *)
-  let nb_vars, zq, szql =
-    match pl with [] -> psatz options q | _ -> psatz_hyps options q pl in
+  let nb_vars, lb, zq, szql =
+    match pl with
+    | [] -> psatz intro options q
+    | _ -> psatz_hyps intro options q pl in
   (* Add trailing zeros to multinoms in z so that they all have same length. *)
   let rec add_tr_0 n l = match l with
     | [] -> if n <= 0 then [] else 0 :: add_tr_0 (n - 1) []
@@ -394,22 +415,25 @@ let soswitness options c =
         (mkPair ty_seqmultinom ty_bigQ mkSeqmultinom mkBigQ)
         (Osdp.Sos.Q.Poly.to_list p) in
     mkPair ty_poly ty_witness mkPoly mk_witness in
-  mkPair
-    ty_witness (tyList (tyPair ty_poly ty_witness))
-    mk_witness
-    (mkList (tyPair ty_poly ty_witness) mk_s_witness)
-    (zq, szql),
-  tyPair ty_witness (tyList (tyPair ty_poly ty_witness))
+  let t = tyPair ty_witness (tyList (tyPair ty_poly ty_witness)) in
+  let wits =
+    mkPair
+      ty_witness (tyList (tyPair ty_poly ty_witness))
+      mk_witness
+      (mkList (tyPair ty_poly ty_witness) mk_s_witness)
+      (zq, szql) in
+  if not intro then (wits, t)
+  else (mkPair ty_bigQ t mkBigQ (fun t -> t) (lb, wits), tyPair ty_bigQ t)
 
-let soswitness options gl c id =
-  let (v, t), ti = Osdp.Utils.profile (fun () -> soswitness options c) in
+let soswitness intro options gl c id =
+  let (v, t), ti = Osdp.Utils.profile (fun () -> soswitness intro options c) in
   if options.Sos.verbose > 0 then
     Format.printf "soswitness took: %.2fs@." ti;
   let v = EConstr.of_constr v in
   let t = EConstr.of_constr t in
   Tactics.letin_tac None (Names.Name id) v (Some t) Locusops.nowhere
 
-let soswitness_opts gl c id opts =
+let soswitness_opts ?(intro=false) gl c id opts =
   let opts = ofList ofParameters opts in
   let options =
     List.fold_left
@@ -432,7 +456,7 @@ let soswitness_opts gl c id opts =
              Sos.sdp =
                { options.Sos.sdp with Osdp.Sdp.verbose = n } } )
       Sos.default opts in
-  try soswitness options gl c id
+  try soswitness intro options gl c id
   with SosFail (level, msg) -> failtac level msg
      | Failure msg -> failtac maxlevel (Pp.str msg)
      | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
@@ -443,17 +467,32 @@ open Ltac_plugin
 
 TACTIC EXTEND soswitness_of_as
 ["soswitness" "of" constr(c) "as" ident(id) ] ->
-[ Proofview.Goal.enter (*{ Proofview.Goal.enter =*)( fun gl ->
+[ Proofview.Goal.enter (fun gl ->
     let gl = Proofview.Goal.assume gl in
     let c = EConstr.Unsafe.to_constr c in
     let opts =
       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
-    soswitness_opts gl c id opts ) (*}*) ]
+    soswitness_opts gl c id opts) ]
 |
 ["soswitness" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
-[ Proofview.Goal.enter (* { Proofview.Goal.enter = *) (fun gl ->
+[ Proofview.Goal.enter (fun gl ->
     let gl = Proofview.Goal.assume gl in
     let c = EConstr.Unsafe.to_constr c in
     let opts = EConstr.Unsafe.to_constr opts in
-    soswitness_opts gl c id opts)  (* } *) ]
+    soswitness_opts gl c id opts) ]
+|
+["soswitness_intro" "of" constr(c) "as" ident(id) ] ->
+[ Proofview.Goal.enter (fun gl ->
+    let gl = Proofview.Goal.assume gl in
+    let c = EConstr.Unsafe.to_constr c in
+    let opts =
+      mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
+    soswitness_opts ~intro:true gl c id opts) ]
+|
+["soswitness_intro" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
+[ Proofview.Goal.enter (fun gl ->
+    let gl = Proofview.Goal.assume gl in
+    let c = EConstr.Unsafe.to_constr c in
+    let opts = EConstr.Unsafe.to_constr opts in
+    soswitness_opts ~intro:true gl c id opts) ]
 END
