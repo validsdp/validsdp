@@ -223,7 +223,7 @@ Ltac fold_get_poly get_poly lq vm k :=
   aux lq vm k.
 
 Ltac check_unexpected_case f0 :=
-  let err := fail 900 "Unexpected error. Maybe you have defined an intermediate polynomial using the Let vernacular instead of Definition." in
+  let err := fail 999 "Unexpected state. Please report this to the ValidSDP maintainers." in
   match f0 with
   | Rplus => err
   | Rminus => err
@@ -342,7 +342,7 @@ Ltac get_poly_pure t vm k :=
     | powerRZ ?a ?b =>
       match b with
       | Z.pos ?p => aux_u' PPowN a (N.pos p) k
-      | _ => fail 900 "Only constant, positive exponents are allowed"
+      | _ => fail 999 "Only constant, positive exponents are allowed"
       end
     | pow ?a ?n => aux_u' PPown a n k
     | Rdiv ?a ?b => aux (Rmult a (Rinv b)) vm k (* Both are convertible *)
@@ -393,7 +393,7 @@ Ltac get_poly t vm k :=
     | powerRZ ?a ?b =>
       match b with
       | Z.pos ?p => aux_u' PPowN a (N.pos p) k
-      | _ => fail 900 "Only constant, positive exponents are allowed"
+      | _ => fail 999 "Only constant, positive exponents are allowed"
       end
     | pow ?a ?n => aux_u' PPown a n k
     | Rdiv ?a ?b => aux (Rmult a (Rinv b)) vm k (* Both are convertible *)
@@ -2270,9 +2270,8 @@ Ltac do_validsdp params :=
         (soswitness of ppi as zQ_szQi with params);
         apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1);
         (vm_cast_no_check (erefl true))
-      end)
-    | not_supported => fail 900 "unsupported goal"
-    | _ => fail "validsdp failed to conclude"
+      end) || fail 999 "validsdp failed to certify the witness"
+    | not_supported => fail 999 "unsupported goal"
     end)
   end.
 
@@ -2345,7 +2344,7 @@ Ltac tuple_to_list params l :=
   match params with
   | pair ?a ?b => tuple_to_list a (b :: l)
   | ?b => constr:(b :: l)
-  | ?z => fail 100 "Unknown tactic parameter" z
+  | ?z => fail 999 "Unknown tactic parameter" z
   end.
 
 (** Backward reasoning *)

@@ -256,9 +256,9 @@ let errorpp msg = CErrors.error msg
 exception SosFail of int * Pp.std_ppcmds
 let fail level msg = raise (SosFail(level, msg))
 let failpp level msg = raise (SosFail(level, Pp.str msg))
-let error msg = fail 0 msg
-let errorpp msg = failpp 0 msg
-let maxlevel = 100
+let maxlevel = 999
+let error msg = fail maxlevel msg (* could be set a smaller level *)
+let errorpp msg = failpp maxlevel msg
 let failtac level msg = Tacticals.New.tclFAIL level msg
 
 (* The actual tactic. *)
