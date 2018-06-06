@@ -2357,6 +2357,80 @@ Ltac tuple_to_list params l :=
   | ?z => fail 999 "Unknown tactic parameter" z
   end.
 
+(* [pair_append] and [pair_member] support pair-based tuples of non-unit val. *)
+Ltac pair_append v l :=
+  match l with
+  | tt => v
+  | ?rest => constr:((rest, v))
+  end.
+
+Ltac pair_member v l :=
+  match l with
+  | tt => false
+  | pair ?rest v => true
+  | pair ?rest _ => pair_member v rest
+  | v => true
+  | _ => false
+  end.
+
+(** Membership function
+    [appears_in vm t] = does some var in list vm appears in the type t ? *)
+Ltac appears_in vm t :=
+  let rec aux vm t :=
+      match vm with
+      | Datatypes.nil => false
+      | Datatypes.cons ?v ?vm =>
+        match t with
+        | context [v] => true
+        | _ => aux vm t
+        end
+      end
+  in aux vm t.
+
+(** Primitives to append terms in a single pair-tuple at the top of the stack *)
+Ltac set_state top new :=
+  set top := new;
+  move: @top.
+
+Ltac pop_state top k :=
+  move=> top;
+  let val := (eval unfold top in top) in
+  clear top; k val.
+
+Ltac app_state top new :=
+  pop_state top ltac:(fun val =>
+    let res := pair_append new val in set_state top res).
+
+Ltac peek_state :=
+  match goal with
+  | [|- let _ := ?top in _] => top
+  end.
+
+(** Heuristic algorithm for "validsdp_intro expr using * as H":
+    - Retrieve the (non-polynomial) vars of expr
+    - For each hyp in the context, check if some of these vars appears inside
+    - Otherwise the hyp is discarded
+    - Then behave as "validsdp_intro expr using (list_of_vars) as H."
+ *)
+Ltac do_validsdp_intro_all expr k :=
+  let conc := constr:(R0 <= expr) in
+  get_goal conc (@Datatypes.nil R) ltac:(fun res =>
+    match res with
+    | (_, ?vm) =>
+      let top := fresh "hyps" in
+      set_state top tt;
+      repeat match goal with
+             | [ H : ?t |- _] => match appears_in vm t with
+                               | true => let top0 := peek_state in
+                                        match pair_member H top0 with
+                                        | true => fail
+                                        | false => app_state top H
+                                        end
+                               end
+             end;
+      pop_state top ltac:(fun hyps => idtac "Selected hypotheses" hyps; k hyps)
+    end).
+
 (** Backward reasoning *)
 
 Tactic Notation "validsdp" :=
@@ -2374,7 +2448,8 @@ Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) "as" simple_i
   do_validsdp_intro expr hyps (@Datatypes.nil validsdp_tac_parameters) H.
 
 Tactic Notation "validsdp_intro" constr(expr) "using" "*" "as" simple_intropattern(H) :=
-  idtac.
+  do_validsdp_intro_all expr ltac:(fun hyps =>
+  do_validsdp_intro expr hyps (@Datatypes.nil validsdp_tac_parameters) H).
 
 Tactic Notation "validsdp_intro" constr(expr) "with" constr(params) "as" simple_intropattern(H) :=
   do_validsdp_intro expr tt params H.
@@ -2383,7 +2458,8 @@ Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) constr(params
   do_validsdp_intro expr hyps params H.
 
 Tactic Notation "validsdp_intro" constr(expr) "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(H) :=
-  idtac.
+  do_validsdp_intro_all expr ltac:(fun hyps =>
+  do_validsdp_intro expr hyps params H).
 
 Tactic Notation "validsdp_intro" constr(expr) "lower" "as" simple_intropattern(Hl) :=
   do_validsdp_intro_lb expr tt (@Datatypes.nil validsdp_tac_parameters) Hl.
@@ -2392,7 +2468,8 @@ Tactic Notation "validsdp_intro" constr(expr) "lower" "using" constr(hyps) "as" 
   do_validsdp_intro_lb expr hyps (@Datatypes.nil validsdp_tac_parameters) Hl.
 
 Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" "as" simple_intropattern(Hl) :=
-  idtac.
+  do_validsdp_intro_all expr ltac:(fun hyps =>
+  do_validsdp_intro_lb expr hyps (@Datatypes.nil validsdp_tac_parameters) Hl).
 
 Tactic Notation "validsdp_intro" constr(expr) "lower" "with" constr(params) "as" simple_intropattern(Hl) :=
   do_validsdp_intro_lb expr tt params Hl.
@@ -2401,7 +2478,8 @@ Tactic Notation "validsdp_intro" constr(expr) "lower" "using" constr(hyps) const
   do_validsdp_intro_lb expr hyps params Hl.
 
 Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(Hl) :=
-  idtac.
+  do_validsdp_intro_all expr ltac:(fun hyps =>
+  do_validsdp_intro_lb expr hyps params Hl).
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "as" simple_intropattern(Hu) :=
   do_validsdp_intro_ub expr tt (@Datatypes.nil validsdp_tac_parameters) Hu.
@@ -2410,7 +2488,8 @@ Tactic Notation "validsdp_intro" constr(expr) "upper" "using" constr(hyps) "as" 
   do_validsdp_intro_ub expr hyps (@Datatypes.nil validsdp_tac_parameters) Hu.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" "as" simple_intropattern(Hu) :=
-  idtac.
+  do_validsdp_intro_all expr ltac:(fun hyps =>
+  do_validsdp_intro_ub expr hyps (@Datatypes.nil validsdp_tac_parameters) Hu).
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "with" constr(params) "as" simple_intropattern(Hu) :=
   do_validsdp_intro_ub expr tt params Hu.
@@ -2419,7 +2498,8 @@ Tactic Notation "validsdp_intro" constr(expr) "upper" "using" constr(hyps) const
   do_validsdp_intro_ub expr hyps params Hu.
 
 Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(Hu) :=
-  idtac.
+  do_validsdp_intro_all expr ltac:(fun hyps =>
+  do_validsdp_intro_ub expr hyps params Hu).
 
 (** Some quick tests. *)
 
@@ -2453,7 +2533,8 @@ End test.
 
 Lemma test5 x : x >= 10 -> x <= 12 -> True.
 intros H1 H2.
-validsdp_intro (2 + x ^2) lower using (H1, H2) as HA.
+validsdp_intro (11 - x) using * as H.
+validsdp_intro (2 + x ^ 2) lower using (H1, H2) as HA.
 easy.
 Qed.
 
