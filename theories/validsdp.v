@@ -212,9 +212,11 @@ Ltac fold_get_poly get_poly lq vm k :=
       | Datatypes.cons ?q1 ?lq1 =>
         aux lq1 vm ltac:(fun res =>
           match res with
+       (* | not_polynomial => k not_polynomial *)
           | (?lq2, ?vm1) =>
             get_poly q1 vm1 ltac:(fun res =>
               match res with
+           (* | not_polynomial => k not_polynomial *)
               | (?q2, ?vm2) =>
                 let res := constr:((Datatypes.cons q2 lq2, vm2)) in k res
               end)
@@ -259,6 +261,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
           | (?p, _) => (* Ignore the returned xx (that shouldn't have changed) *)
             fold_get_poly get_poly_cur qi vm ltac:(fun res =>
               match res with
+           (* | not_polynomial => k not_polynomial *)
               | (?qi, ?vm) =>
                 let res := constr:((PCompose p qi, vm)) in
                 (* (* Used with OLD version of newvar *)
@@ -290,7 +293,7 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
         match res with
         | not_polynomial => (* If second step fails, return a PVar *)
           match list_add t0 vm with
-          | (?n, ?vm) => constr:((PVar n, vm))
+          | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
           end
         | ?res => k res
         end)
@@ -356,7 +359,7 @@ Ltac get_poly_pure t vm k :=
             k not_polynomial
           | (?n, ?vm) => deb ltac:(idtac t "belongs_to" vm "with_idx" n);
             let res := constr:((PVar n, vm)) in k res
-          end) ltac:(fun res => k res)
+          end) ltac:(fun res => k res) (* also if res = not_polynomial *)
       | ?c => let res := constr:((PConst c, vm)) in k res
       end
     end in
@@ -369,11 +372,13 @@ Ltac get_poly t vm k :=
       aux a vm ltac:(fun res =>
         match res with
         | (?u, ?vm) => let res := constr:((o u, vm)) in k res
+     (* | not_polynomial => k not_polynomial *)
         end) in
     let aux_u' o a b k :=
       aux a vm ltac:(fun res =>
         match res with
         | (?u, ?vm) => let res := constr:((o u b, vm)) in k res
+     (* | not_polynomial => k not_polynomial *)
         end) in
     let aux_b o a b k :=
       aux b vm ltac:(fun res =>
@@ -382,7 +387,9 @@ Ltac get_poly t vm k :=
           aux a vm ltac:(fun res =>
             match res with
             | (?u, ?vm) => let res := constr:((o u v, vm)) in k res
+         (* | not_polynomial => k not_polynomial *)
             end)
+     (* | not_polynomial => k not_polynomial *)
         end) in
     match t with
     | Rplus ?a ?b => aux_b PAdd a b k
@@ -403,7 +410,7 @@ Ltac get_poly t vm k :=
         get_comp_poly get_poly get_poly_pure t vm ltac:(fun t vm k =>
           match list_add t vm with
           | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
-          end) ltac:(fun res => k res)
+          end) ltac:(fun res => k res) (* also if res = not_polynomial *)
       | ?c => let res := constr:((PConst c, vm)) in k res
       end
     end in
@@ -2184,8 +2191,10 @@ Qed.
 Ltac get_ineq i l k :=
   let aux c x y :=
       get_poly x l ltac:(fun res => match res with
+   (* | not_polynomial => k not_polynomial *)
       | (?p, ?l) =>
         get_poly y l ltac:(fun res => match res with
+     (* | not_polynomial => k not_polynomial *)
         | (?q, ?l) =>
           let res := constr:((c p q, l)) in k res
         end)
@@ -2211,6 +2220,7 @@ Ltac get_hyp h l k :=
     end)
   | _ => get_ineq h l ltac:(fun res => match res with
         | (?i, ?l) => k constr:((Hineq i, l))
+     (* | not_polynomial => fail 999 "should skip this hypothesis?" *)
         | _ => k not_supported
         end)
   end.
@@ -2258,7 +2268,7 @@ Ltac do_validsdp params :=
       let n := eval vm_compute in (size vm) in
       let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
       match lgb with
-      | (?l, ?p, _) =>
+      | (?l, ?p, _) => (* EMD: do we really need this 3rd argument? *)
         let pi := constr:(map (@M.elements bigQ \o
                                interp_poly_eff n \o
                                abstr_poly_of_p_abstr_poly) l) in
