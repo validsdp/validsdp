@@ -58,7 +58,6 @@ Lemma p_ind (x0 x1 x2 : R) :
     (1/4 * (-3/5 * (x1)^2 + 3/10 * x2^2))
     (1/4 * (1/2 * x2 + 2/5 * x0^2)) >= 0.
 Proof.
-unfold p.
 Time validsdp.
 Time Qed.
 
@@ -183,15 +182,15 @@ Let sigma1 x0 x1 x2 : R := 2238448784199197/4503599627370496
          + -5156218193544123/2305843009213693952 * x1 * x2^5
          + 2931994166378865/2305843009213693952 * x2^6.
 
+(*
 Lemma sigma_pos (x0 x1 x2 : R) : sigma x0 x1 x2 >= 0.
-unfold sigma.
 Time validsdp.
 Time Qed.
 
 Lemma sigma1_pos (x0 x1 x2 : R) : sigma1 x0 x1 x2 >= 0.
-unfold sigma1.
 Time validsdp.
 Time Qed.
+*)
 
 Lemma p_ind' (x0 x1 x2 : R) :
   (p (1/4 * (4/5 * x0 + 2/5 * x1^2))
@@ -199,7 +198,6 @@ Lemma p_ind' (x0 x1 x2 : R) :
      (1/4 * (1/2 * x2 + 2/5 * x0^2)))
   - (sigma x0 x1 x2) * (p x0 x1 x2)
   - (sigma1 x0 x1 x2) * (x0^2 + x1^2 + x2^2 - 1) >= 0.
-unfold p, sigma, sigma1.
 Time validsdp.
 Time Qed.
 
