@@ -2546,8 +2546,6 @@ validsdp_intro (2 + x ^ 2) lower using (H1, H2) as HA.
 easy.
 Qed.
 
-Print test5.
-
 Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
 validsdp.
 Qed.
