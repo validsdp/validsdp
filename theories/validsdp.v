@@ -30,7 +30,9 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope R_scope.
 
-Require Import parse_reals.
+Require Export parse_reals. (** [Import] would not suffice... because
+that file defines [Coercion bigQ2R : BigQ.t_ >-> R] that is used by the
+tactics. *)
 
 Inductive p_abstr_poly :=
   (* | Const of Poly.t *)
@@ -2307,7 +2309,7 @@ Ltac do_validsdp_intro_lb expr hyps params Hl :=
       let lb' := get_real_cst (bigQ2R lb) in
       (* /\ hyps -> lb <= expr *)
       let glb := ch_goal_lhs g constr:(PConst lb') in
-        (have Hl : lb <= expr by
+        (have Hl : bigQ2R lb <= expr by
           (* TODO/FIXME: Add abstract & Check size of proof term*) (
           apply (@soscheck_hyps_eff_wrapup_correct vm glb lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
           first (vm_cast_no_check (erefl true))));
