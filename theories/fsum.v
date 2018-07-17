@@ -11,7 +11,7 @@
 
     The primed versions are for c + \sum_i a_i with no error term on c but rather on fl(\sum_i a_i). *)
 
-Require Import Reals Flocq.Core.Fcore_Raux.
+Require Import Reals Flocq.Core.Raux.
 
 Require Import misc.
 

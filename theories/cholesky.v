@@ -5,7 +5,7 @@
     S.M. Rump: Verification of positive definiteness,
     BIT Numerical Mathematics, 46:433-452, 2006. *)
 
-Require Import Reals Flocq.Core.Fcore_Raux.
+Require Import Reals Flocq.Core.Raux.
 
 Require Import misc.
 

@@ -4,13 +4,13 @@ Require Import Reals.
 Require Import CBigZ.
 Require Import ROmega.
 
-Require Import Flocq.Core.Fcore_Zaux.
-Require Import Flocq.Core.Fcore_Raux.
-Require Import Flocq.Core.Fcore_defs.
-Require Import Flocq.Core.Fcore_digits.
-Require Import Flocq.Core.Fcore_generic_fmt.
-Require Import Flocq.Core.Fcore_FLX.
-Require Import Flocq.Core.Fcore_float_prop.
+Require Import Flocq.Core.Zaux.
+Require Import Flocq.Core.Raux.
+Require Import Flocq.Core.Defs.
+Require Import Flocq.Core.Digits.
+Require Import Flocq.Core.Generic_fmt.
+Require Import Flocq.Core.FLX.
+Require Import Flocq.Core.Float_prop.
 
 Require Import Interval.Interval_float_sig.
 Require Import Interval.Interval_specific_ops.
@@ -144,11 +144,10 @@ Proof.
 split => H.
 { rewrite /mantissa_bounded /x_bounded; right.
   exists (toR (Interval_specific_ops.Float m e)); first by rewrite -real_FtoX_toR.
-  red; rewrite /signif_digits in H.
-  exists (Fcore_defs.Float radix2
+  rewrite /signif_digits in H.
+  exists (Defs.Float radix2
                       [m / bigZulp m]%bigZ
                       [digits (bigZulp m) - 1 + e]%bigZ).
-  split.
   { rewrite /F.toX /F.toF.
     case: Bir.mantissa_sign (Bir.mantissa_sign_correct m) =>[/=|s n].
     { rewrite /F2R /= BigZ.spec_div.
@@ -156,7 +155,7 @@ split => H.
     case=> Hm Vn; rewrite /= FtoR_split.
     case: s Hm => Hm; rewrite /= -Hm /F2R /= /Bir.MtoZ /Bir.EtoZ.
     { rewrite BigZ.spec_add bpow_plus /= -Rmult_assoc; congr Rmult.
-      rewrite -Z2R_Zpower; last first.
+      rewrite -IZR_Zpower; last first.
       { rewrite BigZ.spec_sub digits_spec.
         apply(*:*) Z.lt_le_pred.
         apply: Zdigits_gt_0.
@@ -164,13 +163,13 @@ split => H.
         apply: Zulp_neq0.
         by move: Hm; rewrite /Bir.MtoZ =>->. }
       rewrite BigZ.spec_sub digits_spec.
-      rewrite -Z2R_mult; congr Z2R.
+      rewrite -mult_IZR; congr IZR.
       rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
       rewrite -/(Zulp [m]%bigZ) /= Zulp_digits;
         last by move=> K; rewrite /Bir.MtoZ K in Hm.
       by rewrite Zulp_mul. }
     rewrite BigZ.spec_add bpow_plus /= -Rmult_assoc; congr Rmult.
-    rewrite -Z2R_Zpower; last first.
+    rewrite -IZR_Zpower; last first.
     { rewrite BigZ.spec_sub digits_spec.
       apply(*:*) Z.lt_le_pred.
       apply: Zdigits_gt_0.
@@ -178,7 +177,7 @@ split => H.
       apply: Zulp_neq0.
       by move: Hm; rewrite /Bir.MtoZ =>->. }
     rewrite BigZ.spec_sub digits_spec.
-    rewrite -Z2R_mult; congr Z2R.
+    rewrite -mult_IZR; congr IZR.
     rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
     rewrite -/(Zulp [m]%bigZ) /= Zulp_digits;
       last by move=> K; rewrite /Bir.MtoZ K in Hm.
@@ -218,7 +217,7 @@ have NZf1 : f1 <> Z0.
 { move=> K; rewrite /F2R -/f1 K /= Rsimpl in H1.
   case: H1; rewrite FtoR_split /F2R /=.
   case/Rmult_integral.
-  { change 0%Re with (Z2R 0); apply: Z2R_neq; by case: (s). }
+  { apply: IZR_neq; by case: (s). }
   by apply: Rgt_not_eq; apply: bpow_gt_0. }
 move/(Zdigits_le_Zpower radix2) in Hf2.
 apply/Z.leb_le.
@@ -228,14 +227,14 @@ rewrite /Zdigits2 -Zdigits_abs -(Zdigits_abs _ f1).
 apply Zdigits_le; first exact: Z.abs_nonneg.
 apply Znumtheory.Zdivide_bounds =>//.
 apply Z.divide_abs_l.
-have Hmf : (Z2R [m]%bigZ * bpow radix2 [e]%bigZ = F2R f)%Re.
+have Hmf : (IZR [m]%bigZ * bpow radix2 [e]%bigZ = F2R f)%Re.
 { rewrite Hm; apply Xreal_inj; rewrite -{}H1; congr Xreal.
   rewrite FtoR_split /F2R /=.
   by case: (s). }
 have Hlte : (bpow radix2 [e]%bigZ < bpow radix2 (Fexp f))%Re.
 { rewrite /F2R in Hmf.
-  move/Z2R_lt in Hlt.
-  rewrite !Z2R_abs in Hlt.
+  move/IZR_lt in Hlt.
+  rewrite !abs_IZR in Hlt.
   rewrite -/f1 in Hmf.
   move/(congr1 (Rdiv ^~ (bpow radix2 [e]%bigZ))) in Hmf.
   rewrite /Rdiv Rinv_r_simpl_l in Hmf; last exact/Rgt_not_eq/bpow_gt_0.
@@ -248,19 +247,19 @@ have Hlte : (bpow radix2 [e]%bigZ < bpow radix2 (Fexp f))%Re.
     rewrite (Rabs_pos_eq (/ bpow _ _));
       last exact/Rlt_le/Rinv_0_lt_compat/bpow_gt_0.
     field.
-    split; last by apply/Rabs_no_R0; change 0%Re with (Z2R Z0); exact: Z2R_neq.
+    split; last by apply/Rabs_no_R0; exact: IZR_neq.
     exact/Rgt_not_eq/bpow_gt_0.
   apply.
-  by apply/Rabs_pos_lt; change 0%Re with (Z2R Z0); exact: Z2R_neq. }
+  by apply/Rabs_pos_lt; exact: IZR_neq. }
 move/lt_bpow in Hlte.
 have {Hmf} Hmf : ([m]%bigZ = f1 * 2 ^ (Fexp f - [e]%bigZ))%Z.
 { clear - Hlte Hmf.
   rewrite /F2R - /f1 in Hmf.
   move/(congr1 (Rmult ^~ (bpow radix2 (- [e]%bigZ)))) in Hmf.
   rewrite !Rmult_assoc -!bpow_plus Zegal_left //= Rmult_1_r in Hmf.
-  rewrite -Z2R_Zpower in Hmf; last romega.
-  rewrite -Z2R_mult in Hmf.
-  exact: eq_Z2R. }
+  rewrite -IZR_Zpower in Hmf; last romega.
+  rewrite -mult_IZR in Hmf.
+  exact: eq_IZR. }
 have Hdiv : (Z.abs ([m]%bigZ / Zulp [m]%bigZ) | [m]%bigZ)%Z.
 { apply/Z.divide_abs_l.
   apply Zdivide_div_l.
@@ -342,7 +341,7 @@ Proof. now unfold finite, FI0, F.real; simpl. Qed.
 Lemma finite1 : finite FI1.
 Proof. now unfold finite, FI0, F.real; simpl. Qed.
 
-Definition fis := flx64.flx64 (fun m => negb (Zeven m)).
+Definition fis := flx64.flx64 (fun m => negb (Z.even m)).
 
 Definition m := 2.  (* anything larger or equal 2 would do the job *)
 
@@ -350,7 +349,7 @@ Lemma m_ge_2 : 2 <= m.
 Proof. apply Rle_refl. Qed.
 
 Lemma toR_Float (m e : bigZ) :
-  toR (Interval_specific_ops.Float m e) = (Z2R [m]%bigZ * bpow F.radix [e]%bigZ)%Re.
+  toR (Interval_specific_ops.Float m e) = (IZR [m]%bigZ * bpow F.radix [e]%bigZ)%Re.
 Proof.
 rewrite /F.toX /F.toF /=.
 have := Bir.mantissa_sign_correct m.
@@ -411,7 +410,7 @@ Qed.
 Definition firnd_val (x : R) : F.type :=
   let f := frnd fis x in
   let m := Ztrunc (scaled_mantissa radix2 (FLX_exp 53) f) in
-  let e := canonic_exp radix2 (FLX_exp 53) f in
+  let e := cexp radix2 (FLX_exp 53) f in
   let f' := match m with
     | Zpos p => Float false p e
     | Z0 => Fzero
@@ -425,23 +424,23 @@ unfold mantissa_bounded, x_bounded, firnd_val, F.toX.
 rewrite toF_fromF_id; right; exists (frnd fis x).
 { set (f := frnd fis x).
   set (fexp := FLX_exp 53).
-  assert (Hfr : Fcore_generic_fmt.round radix2 fexp Ztrunc f = f).
+  assert (Hfr : Generic_fmt.round radix2 fexp Ztrunc f = f).
   { rewrite round_generic =>//.
     apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N]. }
   set (m := scaled_mantissa _ _ _).
   set (zm := Ztrunc m).
   unfold FtoX; case_eq zm.
-  { intro Hzm; rewrite <- Hfr; unfold Fcore_generic_fmt.round, F2R.
+  { intro Hzm; rewrite <- Hfr; unfold Generic_fmt.round, F2R.
     now fold m zm; rewrite Hzm Rmult_0_l. }
-  { intros p Hp; rewrite <- Hfr at 2; unfold Fcore_generic_fmt.round.
-    unfold FtoR; case (canonic_exp radix2 fexp f).
+  { intros p Hp; rewrite <- Hfr at 2; unfold Generic_fmt.round.
+    unfold FtoR; case (cexp radix2 fexp f).
     { now fold m zm; rewrite <- Hp; unfold F2R; rewrite Rmult_1_r. }
-    { now intro p'; fold m zm; rewrite <- Hp, Z2R_mult; unfold F2R. }
+    { now intro p'; fold m zm; rewrite <- Hp, mult_IZR; unfold F2R. }
     now intro p'; fold m zm; rewrite <- Hp. }
-  intros p Hp; rewrite <- Hfr at 2; unfold Fcore_generic_fmt.round.
-  unfold FtoR; case (canonic_exp radix2 fexp f).
+  intros p Hp; rewrite <- Hfr at 2; unfold Generic_fmt.round.
+  unfold FtoR; case (cexp radix2 fexp f).
   { now fold m zm; rewrite <- Hp; unfold F2R; rewrite Rmult_1_r. }
-  { now intro p'; fold m zm; rewrite <- Hp, Z2R_mult; unfold F2R. }
+  { now intro p'; fold m zm; rewrite <- Hp, mult_IZR; unfold F2R. }
   now intro p'; fold m zm; rewrite <- Hp. }
 apply FLX_format_generic; [now simpl|].
 apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N].
@@ -453,24 +452,24 @@ Definition firnd (x : R) : FI :=
 Lemma firnd_spec_aux x : FI2FS (firnd x) = frnd fis x :> R.
 Proof.
 rewrite /FI2FS /=.
-set (f := Fcore_generic_fmt.round _ _ _ _).
-assert (Hfr : Fcore_generic_fmt.round radix2 (FLX_exp 53) Ztrunc f = f).
+set (f := Generic_fmt.round _ _ _ _).
+assert (Hfr : Generic_fmt.round radix2 (FLX_exp 53) Ztrunc f = f).
 { rewrite round_generic =>//.
   apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N]. }
 unfold F.toF, firnd, firnd_val; simpl; fold f.
 set (m := scaled_mantissa _ _ _).
-set (e := canonic_exp _ _ _).
+set (e := cexp _ _ _).
 set (zm := Ztrunc m).
-rewrite <- Hfr; unfold Fcore_generic_fmt.round, F2R; simpl; fold m zm e.
+rewrite <- Hfr; unfold Generic_fmt.round, F2R; simpl; fold m zm e.
 unfold F.toX; rewrite toF_fromF_id; unfold FtoX; case_eq zm.
 { now rewrite Rmult_0_l. }
 { intros p Hp; unfold FtoR; case e.
   { now rewrite Rmult_1_r. }
-  { now intros p'; rewrite Z2R_mult. }
+  { now intros p'; rewrite mult_IZR. }
   now simpl. }
 intros p Hp; unfold FtoR; case e.
 { now rewrite Rmult_1_r. }
-{ now intro p'; rewrite Z2R_mult. }
+{ now intro p'; rewrite mult_IZR. }
 now simpl.
 Qed.
 
@@ -540,7 +539,7 @@ rewrite (FI2FS_X2F_FtoX _).
 unfold fiopp; rewrite F.neg_correct /= /X2F.
 caseFI x Hx H1 H2; first by rewrite Ropp_0.
 rewrite real_FtoX_toR //.
-rewrite /= Fcore_rnd_ne.round_NE_opp H1 /=.
+rewrite /= Round_NE.round_NE_opp H1 /=.
 rewrite round_generic //.
 by apply: generic_format_FLX.
 Qed.

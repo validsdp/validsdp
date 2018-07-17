@@ -10,14 +10,14 @@ Require Import Reals.
 
 Require Import float_spec.
 
-Require Import Flocq.Core.Fcore_Zaux.
-Require Import Flocq.Core.Fcore_Raux.
-Require Import Flocq.Core.Fcore_defs.
-Require Import Flocq.Core.Fcore_generic_fmt.
-Require Import Flocq.Core.Fcore_FLT.
-Require Import Flocq.Core.Fcore_ulp.
-Require Import Flocq.Prop.Fprop_relative.
-Require Import Flocq.Prop.Fprop_plus_error.
+Require Import Flocq.Core.Zaux.
+Require Import Flocq.Core.Raux.
+Require Import Flocq.Core.Defs.
+Require Import Flocq.Core.Generic_fmt.
+Require Import Flocq.Core.FLT.
+Require Import Flocq.Core.Ulp.
+Require Import Flocq.Prop.Relative.
+Require Import Flocq.Prop.Plus_error.
 
 Require Import Psatz.
 
@@ -47,21 +47,22 @@ Lemma format0 : format 0.
 Proof.
 unfold format, generic_format, scaled_mantissa, F2R; simpl.
 rewrite Rmult_0_l.
-change 0 with (Z2R 0); rewrite Ztrunc_Z2R.
+change 0 with (IZR 0); rewrite Ztrunc_IZR.
 now rewrite Rmult_0_l.
 Qed.
 
 Lemma format1 : format 1.
 Proof.
-unfold format, generic_format, scaled_mantissa, canonic_exp, F2R; simpl.
-rewrite Rmult_1_l, (ln_beta_unique radix2 1 1).
+unfold format, generic_format, scaled_mantissa, cexp, F2R; simpl.
+rewrite Rmult_1_l, (mag_unique radix2 1 1).
 { unfold fexp, FLT_exp.
   rewrite Zmax_left; [|unfold emin, emax, prec; omega].
-  rewrite <- Z2R_Zpower; [|unfold prec; omega].
-  rewrite Ztrunc_Z2R, Z2R_Zpower; [|unfold prec; omega].
+  rewrite <- IZR_Zpower; [|unfold prec; omega].
+  rewrite Ztrunc_IZR, IZR_Zpower; [|unfold prec; omega].
   rewrite <- bpow_plus.
   now replace (_ + _)%Z with Z0 by ring. }
-rewrite Rabs_R1; simpl; split; lra.
+rewrite Rabs_R1; simpl; split; [now right|].
+rewrite IZR_Zpower_pos; simpl; lra.
 Qed.
 
 Lemma format_opp x : format x -> format (- x).
@@ -75,11 +76,11 @@ Proof. apply bpow_ge_0. Qed.
 Lemma eps_lt_1 : eps < 1.
 Proof.
 unfold eps, bpow.
-apply (Rmult_lt_reg_r (Z2R (Z.pow_pos radix2 53)));
+apply (Rmult_lt_reg_r (IZR (Z.pow_pos radix2 53)));
   [now fold (bpow radix2 53); apply bpow_gt_0|].
 rewrite Rinv_l; [rewrite Rmult_1_l|now apply Rgt_not_eq, Rlt_gt;
                                     fold (bpow radix2 53); apply bpow_gt_0].
-change 1 with (Z2R 1); apply Z2R_lt.
+change 1 with (IZR 1); apply IZR_lt.
 unfold Z.pow_pos; simpl.
 omega.
 Qed.
@@ -154,21 +155,21 @@ destruct (Req_dec xy 0) as [Zxy|Nzxy].
   [|apply valid_rnd_N]. }
 apply Rminus_diag_uniq.
 destruct (Req_dec (fxy - xy) 0) as [Zxy|Nzxy']; [assumption|].
-set (exy := ln_beta radix2 (fxy - xy)).
+set (exy := mag radix2 (fxy - xy)).
 assert (Hexy : (exy <= fexp exy)%Z).
 { apply (Zle_trans _ emin); [|now apply Z.le_max_r].
-  apply (Zle_trans _ (canonic_exp radix2 fexp xy)).
-  { apply (ln_beta_le_bpow _ _ _ Nzxy'), (Rle_lt_trans _ _ _ Hxy').
+  apply (Zle_trans _ (cexp radix2 fexp xy)).
+  { apply (mag_le_bpow _ _ _ Nzxy'), (Rle_lt_trans _ _ _ Hxy').
     apply (Rmult_lt_reg_l 2); [lra|rewrite <- Rmult_assoc, Rinv_r; [|lra]].
     rewrite ulp_neq_0; [|easy].
     change 2%R with (Rplus 1%R 1%R).
     rewrite Rmult_plus_distr_r, Rmult_1_l.
     rewrite <- Rplus_0_r at 1.
     apply Rplus_lt_compat_l, bpow_gt_0. }
-  unfold canonic_exp, fexp, FLT_exp.
+  unfold cexp, fexp, FLT_exp.
   rewrite Zmax_right; [now apply Zle_refl|].
   apply (Zplus_le_reg_r _ _ prec); ring_simplify.
-  apply (ln_beta_le_bpow _ _ _ Nzxy).
+  apply (mag_le_bpow _ _ _ Nzxy).
   apply (Rlt_le_trans _ _ _ Hxy), bpow_le; omega. }
 destruct (Rtotal_order 0 (fxy - xy)) as [Pxy|[Zxy|Nxy]]; [|now apply eq_sym|].
 { rewrite <- (round_generic radix2 fexp Zfloor (fxy - xy) Hxy'').
@@ -207,9 +208,9 @@ Qed.
 Lemma fsqrt_spec (x : F) :
   exists d : b_eps, frnd (sqrt x) = (1 + d) * (sqrt x) :> R.
 Proof.
-destruct (Rlt_or_le x 0) as [Nx|Px].
+destruct (Rle_or_lt x 0) as [Nx|Px].
 { exists (bounded_0 eps_pos).
-  simpl; rewrite (sqrt_neg x (Rlt_le x 0 Nx)), Rmult_0_r.
+  simpl; rewrite (sqrt_neg x Nx), Rmult_0_r.
   now rewrite round_0; [|apply valid_rnd_N]. }
 destruct (Rle_or_lt (bpow radix2 (emin + prec - 1)) (Rabs (sqrt x)))
   as [Hsx|Hsx].
@@ -225,28 +226,27 @@ destruct (Rle_or_lt (bpow radix2 (emin + prec - 1)) (Rabs (sqrt x)))
   exists {| bounded_val := d; bounded_prop := Hd3 |}.
   now rewrite Rmult_comm. }
 exists (bounded_0 eps_pos).
-destruct (Req_dec x 0) as [Zx|Nzx].
-{ now unfold fsqrt, frnd; simpl; rewrite Zx, sqrt_0, round_0, Rmult_0_r;
-  [|apply valid_rnd_N]. }
+assert (Nzx : x <> 0 :> R).
+{ intro H; revert Px; rewrite H; apply Rlt_irrefl. }
 casetype False; apply Nzx.
 rewrite <- (round_generic radix2 fexp Zfloor x (FS_prop x)).
-set (ex := ln_beta radix2 x).
+set (ex := mag radix2 x).
 apply round_DN_small_pos with ex.
 { destruct ex as (ex', Hex'); simpl.
-  now rewrite <- (Rabs_pos_eq x); [apply Hex'|]. }
+  now rewrite <- (Rabs_pos_eq x); [apply Hex'|apply Rlt_le]. }
 assert (Hx : Rabs x < bpow radix2 (2 * (emin + prec - 1))).
-{ rewrite <- (sqrt_def x Px), Rabs_mult.
+{ rewrite <- (sqrt_def x (Rlt_le _ _ Px)), Rabs_mult.
   change 2%Z with (1 + 1)%Z; rewrite Zmult_plus_distr_l, Zmult_1_l, bpow_plus.
   now apply Rmult_lt_compat; [apply Rabs_pos|apply Rabs_pos| |]. }
 apply (Zle_trans _ emin); [|now apply Z.le_max_r].
-apply (Zle_trans _ (canonic_exp radix2 fexp x)).
-{ apply (ln_beta_le_bpow _ _ _ Nzx), (Rlt_le_trans _ _ _ Hx).
+apply (Zle_trans _ (cexp radix2 fexp x)).
+{ apply (mag_le_bpow _ _ _ Nzx), (Rlt_le_trans _ _ _ Hx).
   apply bpow_le; apply (Zle_trans _ emin); [|now apply Z.le_max_r].
   unfold emin, prec, emax; omega. }
-unfold canonic_exp, fexp, FLT_exp.
+unfold cexp, fexp, FLT_exp.
 rewrite Zmax_right; [now apply Zle_refl|].
 apply (Zplus_le_reg_r _ _ prec); ring_simplify.
-apply (ln_beta_le_bpow _ _ _ Nzx).
+apply (mag_le_bpow _ _ _ Nzx).
 apply (Rlt_le_trans _ _ _ Hx), bpow_le; unfold emin, prec, emax; omega.
 Qed.
 

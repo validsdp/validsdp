@@ -1,6 +1,6 @@
 (** * Type for real numbers with bounded absolute value. *)
 
-Require Import Reals Flocq.Core.Fcore_Raux.
+Require Import Reals Flocq.Core.Raux.
 
 Require Import misc.
 

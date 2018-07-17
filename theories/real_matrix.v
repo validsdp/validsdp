@@ -3,7 +3,7 @@
     Dot product, Euclidean norm, Cauchy-Schwarz inequality, componentwise
     orders and absolute value, definition of positive definiteness. *)
 
-Require Import Reals Flocq.Core.Fcore_Raux.
+Require Import Reals Flocq.Core.Raux.
 
 Require Import misc.
 

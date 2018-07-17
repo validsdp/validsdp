@@ -9,14 +9,14 @@ Require Import Reals.
 
 Require Import float_spec.
 
-Require Import Flocq.Core.Fcore_Zaux.
-Require Import Flocq.Core.Fcore_Raux.
-Require Import Flocq.Core.Fcore_defs.
-Require Import Flocq.Core.Fcore_generic_fmt.
-Require Import Flocq.Core.Fcore_FLX.
-Require Import Flocq.Core.Fcore_ulp.
-Require Import Flocq.Prop.Fprop_relative.
-Require Import Flocq.Prop.Fprop_plus_error.
+Require Import Flocq.Core.Zaux.
+Require Import Flocq.Core.Raux.
+Require Import Flocq.Core.Defs.
+Require Import Flocq.Core.Generic_fmt.
+Require Import Flocq.Core.FLX.
+Require Import Flocq.Core.Ulp.
+Require Import Flocq.Prop.Relative.
+Require Import Flocq.Prop.Plus_error.
 
 Require Import Psatz.
 
@@ -45,14 +45,15 @@ Proof. apply generic_format_0. Qed.
 
 Lemma format1 : format 1.
 Proof.
-unfold format, generic_format, scaled_mantissa, canonic_exp, F2R; simpl.
-rewrite Rmult_1_l, (ln_beta_unique radix2 1 1).
+unfold format, generic_format, scaled_mantissa, cexp, F2R; simpl.
+rewrite Rmult_1_l, (mag_unique radix2 1 1).
 { unfold fexp, FLX_exp.
-  rewrite <- Z2R_Zpower; [|unfold prec; omega].
-  rewrite Ztrunc_Z2R, Z2R_Zpower; [|unfold prec; omega].
+  rewrite <- IZR_Zpower; [|unfold prec; omega].
+  rewrite Ztrunc_IZR, IZR_Zpower; [|unfold prec; omega].
   rewrite <- bpow_plus.
   now replace (_ + _)%Z with Z0 by ring. }
-rewrite Rabs_R1; simpl; split; lra.
+rewrite Rabs_R1; simpl; split; [now right|].
+unfold Z.pow_pos; simpl; lra.
 Qed.
 
 Lemma format_opp x : format x -> format (- x).
@@ -66,11 +67,11 @@ Proof. apply bpow_ge_0. Qed.
 Lemma eps_lt_1 : eps < 1.
 Proof.
 unfold eps, bpow.
-apply (Rmult_lt_reg_r (Z2R (Z.pow_pos radix2 53)));
+apply (Rmult_lt_reg_r (IZR (Z.pow_pos radix2 53)));
   [now fold (bpow radix2 53); apply bpow_gt_0|].
 rewrite Rinv_l; [rewrite Rmult_1_l|now apply Rgt_not_eq, Rlt_gt;
                                     fold (bpow radix2 53); apply bpow_gt_0].
-change 1 with (Z2R 1); apply Z2R_lt.
+change 1 with (IZR 1); apply IZR_lt.
 unfold Z.pow_pos; simpl.
 omega.
 Qed.

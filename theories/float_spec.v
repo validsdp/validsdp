@@ -97,11 +97,11 @@ destruct (fsqrt_spec x) as (d, Hd); rewrite Hd.
 rewrite <- (Rmult_0_r (1+d)).
 apply Rmult_le_compat_l.
 { apply (Rplus_le_reg_r (-d)); ring_simplify.
-  apply Fcore_Raux.Rabs_le_inv  .
+  apply Raux.Rabs_le_inv  .
   rewrite Rabs_Ropp.
   destruct d as (d, dlte); apply (Rle_trans _ _ _ dlte).
   apply Rlt_le, eps_lt_1. }
-now rewrite (Fcore_Raux.sqrt_neg _ Hx); right.
+now rewrite (Raux.sqrt_neg _ Hx); right.
 Qed.
 
 (** Division. *)

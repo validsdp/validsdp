@@ -2,7 +2,7 @@
 
     These terms are tremendously useful for accumulating error bounds. *)
 
-Require Import Reals Flocq.Core.Fcore_Raux.
+Require Import Reals Flocq.Core.Raux.
 
 Require Import misc.
 

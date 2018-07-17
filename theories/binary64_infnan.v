@@ -8,15 +8,15 @@ Require Import Reals.
 
 Require Import float_spec binary64 float_infnan_spec.
 
-Require Import Flocq.Appli.Fappli_IEEE.
-Require Import Flocq.Appli.Fappli_IEEE_bits.
+Require Import Flocq.IEEE754.Binary.
+Require Import Flocq.IEEE754.Bits.
 
-Require Import Flocq.Core.Fcore_Zaux.
-Require Import Flocq.Core.Fcore_Raux.
-Require Import Flocq.Core.Fcore_defs.
-Require Import Flocq.Core.Fcore_generic_fmt.
-Require Import Flocq.Core.Fcore_FLT.
-Require Import Flocq.Core.Fcore_float_prop.
+Require Import Flocq.Core.Zaux.
+Require Import Flocq.Core.Raux.
+Require Import Flocq.Core.Defs.
+Require Import Flocq.Core.Generic_fmt.
+Require Import Flocq.Core.FLT.
+Require Import Flocq.Core.Float_prop.
 
 Require Import Psatz.
 
@@ -48,7 +48,7 @@ Proof. now simpl. Qed.
 Lemma finite1 : finite FI1.
 Proof. now simpl. Qed.
 
-Definition fis := binary64.binary64 (fun m => negb (Zeven m)).
+Definition fis := binary64.binary64 (fun m => negb (Z.even m)).
 
 Definition m := bpow radix2 emax.
 
@@ -66,8 +66,8 @@ Proof. now simpl. Qed.
 
 Lemma FI2FS1 : FI2FS (FI1) = F1 fis :> R.
 Proof.
-apply Rinv_r; change 0 with (Z2R 0).
-now change 4503599627370496 with (Z2R 4503599627370496); apply Z2R_neq.
+apply Rinv_r; change 0 with (IZR 0).
+now change 4503599627370496 with (Z2R 4503599627370496); apply IZR_neq.
 Qed.
 
 Definition firnd (x : R) : FI :=
@@ -75,7 +75,7 @@ Definition firnd (x : R) : FI :=
     prec emax (@eq_refl comparison Lt) (@eq_refl comparison Lt)
     mode_NE
     (round_mode mode_NE (scaled_mantissa binary64.radix2 fexp x))
-    (canonic_exp binary64.radix2 fexp x)
+    (cexp binary64.radix2 fexp x)
     false.
 
 Lemma firnd_spec x : finite (firnd x) -> FI2FS (firnd x) = frnd fis x :> R.
@@ -83,7 +83,7 @@ Proof.
 intro Frx.
 unfold FI2FS, firnd; simpl.
 set (mx := round_mode mode_NE (scaled_mantissa binary64.radix2 fexp x)).
-set (ex := canonic_exp binary64.radix2 fexp x).
+set (ex := cexp binary64.radix2 fexp x).
 assert (H := binary_normalize_correct prec emax
                                       (@eq_refl comparison Lt) (@eq_refl comparison Lt)
                                       mode_NE mx ex false).
@@ -100,7 +100,7 @@ Lemma firnd_spec_f x : Rabs (frnd fis x) < m -> finite (firnd x).
 Proof.
 intro Hm.
 set (mx := round_mode mode_NE (scaled_mantissa binary64.radix2 fexp x)).
-set (ex := canonic_exp binary64.radix2 fexp x).
+set (ex := cexp binary64.radix2 fexp x).
 assert (H := binary_normalize_correct prec emax
                                       (@eq_refl comparison Lt) (@eq_refl comparison Lt)
                                       mode_NE mx ex false).
@@ -222,7 +222,7 @@ Lemma F2R_cond_pos_not_0 (b : bool) (m : positive) (e : Z) :
 Proof.
 cut (0 < F2R (Float radix2 (Z.pos m) e)).
 { now rewrite F2R_cond_Zopp; case b; simpl; lra. }
-now apply F2R_gt_0_compat.
+now apply F2R_gt_0.
 Qed.
 
 Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
@@ -289,10 +289,11 @@ destruct H as (_, (H, _)); revert H; fold prec emax.
 replace (Bsqrt _ _ _ _ _ _ _ : binary_float prec emax) with (fisqrt x).
 { intro H; unfold finite; rewrite H; unfold is_finite, FI2FS, B2R; simpl.
   case x; try auto; intros b m e _ _; case b; [|now auto].
-  unfold F2R, Z2R; simpl; intro H'; casetype False; revert H'.
+  unfold F2R, IZR; simpl; intro H'; casetype False; revert H'.
+  change R0 with 0%Re.
   apply Rgt_not_ge; rewrite <- Ropp_0, Ropp_mult_distr_l_reverse.
   apply Ropp_lt_gt_contravar, Rmult_lt_0_compat; [|now apply bpow_gt_0].
-  rewrite P2R_INR; change 0 with (INR 0); apply lt_INR, Pos2Nat.is_pos. }
+  rewrite <-INR_IPR; apply pos_INR_nat_of_P. }
 now simpl.
 Qed.
 
@@ -310,7 +311,7 @@ case x; case y; try now simpl.
 { now intros b m e e' b'; case b'. }
 { now intros b b'; case b'. }
 { now intros b b'; case b'; case b. }
-{ now intros b n b'; case b'. }
+{ now intros b pl Hpl b' m e He; case b'. }
 intros b m e B b' m' e' B'; simpl; case b'; case b; try now simpl.
 { case_eq (Z.compare e' e); try now simpl.
   intro He; apply Z.compare_eq in He; rewrite Pos.compare_cont_antisym; simpl.
@@ -331,7 +332,7 @@ case x; case y; try now simpl.
 { now intros b b'; simpl; case b'. }
 { now intros b m e He b'; simpl; case b'. }
 { now intros b b'; case b'; case b. }
-now intros b n b'; case b'.
+now intros b pl Hpl b'; case b'.
 Qed.
 
 Definition binary64_infnan : Float_infnan_spec :=

@@ -1,12 +1,12 @@
 (** * Main tactic for multivariate polynomial positivity. *)
 
 Require Import ZArith.
-From Flocq Require Import Fcore. Require Import Datatypes.
+From Flocq Require Import Core. Require Import Datatypes.
 From Interval Require Import Interval_definitions Interval_xreal.
 From Interval Require Import Interval_missing.
 From CoqEAL.theory Require Import ssrcomplements.
 From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint rational binrat.
-Require Import Reals Flocq.Core.Fcore_Raux QArith CBigZ CBigQ Psatz FSetAVL.
+Require Import Reals Flocq.Core.Raux QArith CBigZ CBigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
@@ -1162,22 +1162,22 @@ Definition bigZZ2Q (m : bigZ) (e : bigZ) :=
   end.
 
 Lemma bigZZ2Q_correct m e :
-  Q2R [bigZZ2Q m e]%bigQ = Z2R [m]%bigZ * bpow radix2 [e]%bigZ.
+  Q2R [bigZZ2Q m e]%bigQ = IZR [m]%bigZ * bpow radix2 [e]%bigZ.
 Proof.
 case: m => m; case: e => e.
-{ rewrite /= BigN.spec_shiftl_pow2 /Q2R Z2R_mult Rcomplements.Rdiv_1.
-  rewrite (Z2R_Zpower radix2) //.
+{ rewrite /= BigN.spec_shiftl_pow2 /Q2R mult_IZR Rcomplements.Rdiv_1.
+  rewrite (IZR_Zpower radix2) //.
   exact: BigN.spec_pos. }
 { rewrite /= ifF /Q2R /=; last exact/BigN.eqb_neq/BigN.shiftl_eq_0_iff.
   rewrite BigN.spec_shiftl_pow2 /=.
-  rewrite bpow_opp -Z2R_Zpower; last exact: BigN.spec_pos.
+  rewrite bpow_opp -IZR_Zpower; last exact: BigN.spec_pos.
   move: (Zpower_gt_0 radix2 [e]%bigN (BigN.spec_pos _)); simpl.
   by case: Zpower =>// p Hp. }
-{ rewrite /= BigN.spec_shiftl_pow2 /= -Z2R_Zpower; last exact: BigN.spec_pos.
-  by rewrite /Q2R /= Zopp_mult_distr_l Z2R_mult Rcomplements.Rdiv_1. }
+{ rewrite /= BigN.spec_shiftl_pow2 /= -IZR_Zpower; last exact: BigN.spec_pos.
+  by rewrite /Q2R /= Zopp_mult_distr_l mult_IZR Rcomplements.Rdiv_1. }
 { rewrite /= ifF /Q2R /=; last exact/BigN.eqb_neq/BigN.shiftl_eq_0_iff.
   rewrite BigN.spec_shiftl_pow2 /=.
-  rewrite bpow_opp -Z2R_Zpower; last exact: BigN.spec_pos.
+  rewrite bpow_opp -IZR_Zpower; last exact: BigN.spec_pos.
   move: (Zpower_gt_0 radix2 [e]%bigN (BigN.spec_pos _)); simpl.
   by case: Zpower =>// p Hp. }
 Qed.
@@ -1253,11 +1253,11 @@ case E: nr.
   set x := proj_val _; apply (Rle_trans _ x); last first.
   { by apply round_UP_pt, FLX_exp_valid. }
   rewrite /x -!Z2R_int2Z real_FtoX_toR // toR_Float /= Rmult_1_r.
-  apply (Rmult_le_reg_r (Z2R (int2Z d))).
-  { by rewrite -[0%Re]/(Z2R 0); apply Z2R_lt. }
-  rewrite -Z2R_mult Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc.
+  apply (Rmult_le_reg_r (IZR (int2Z d))).
+  { by rewrite -[0%Re]/(IZR 0); apply IZR_lt. }
+  rewrite -mult_IZR Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc.
   rewrite Rstruct.mulVr ?Rmult_1_r; [by right|].
-  rewrite -[0%Re]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
+  rewrite -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
   by move: Hd; rewrite H. }
 rewrite /= ifF /=; last first.
 { move: E; rewrite /nr; set nrnr := (_ # _)%bigQ; move: (BigQ_red_den_neq0 nrnr).
@@ -1265,7 +1265,7 @@ rewrite /= ifF /=; last first.
 rewrite F.div_correct /Xround /Xdiv real_FtoX_toR //= real_FtoX_toR //=.
 rewrite /Xdiv' ifF; last first.
 { apply Req_bool_false; rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
-  rewrite -[0%Re]/(Z2R 0); apply Z2R_neq.
+  rewrite -[0%Re]/(IZR 0); apply IZR_neq.
   move: E; rewrite /nr; set nrnr := (_ # _)%bigQ.
   move: (BigQ_red_den_neq0_aux nrnr).
   by case (BigQ.red _)=>[//|n' d'] H [] _ <-. }
@@ -1276,17 +1276,17 @@ rewrite Z2Pos.id; last first.
 move=> Hnd; rewrite /round /rnd_of_mode /=.
 set x := _ / _; apply (Rle_trans _ x); [|by apply round_UP_pt, FLX_exp_valid].
 rewrite /x -!Z2R_int2Z; do 2 rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
-apply (Rmult_le_reg_r (Z2R (int2Z d))).
-{ by rewrite -[0%Re]/(Z2R 0); apply Z2R_lt. }
-set lhs := _ * _; rewrite Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc -Z2R_mult.
+apply (Rmult_le_reg_r (IZR (int2Z d))).
+{ by rewrite -[0%Re]/(IZR 0); apply IZR_lt. }
+set lhs := _ * _; rewrite Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc -mult_IZR.
 rewrite Hnd {}/lhs /GRing.mul /= Rmult_assoc.
 rewrite Rstruct.mulVr ?Rmult_1_r; [right|]; last first.
-{ rewrite -[0%Re]/(Z2R 0); apply/negP=>/eqP; apply Z2R_neq=>H.
+{ rewrite -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
   by move: Hd; rewrite H. }
-rewrite Z2R_mult Rmult_assoc Rinv_r ?Rmult_1_r //.
+rewrite mult_IZR Rmult_assoc Rinv_r ?Rmult_1_r //.
 move: (erefl nr); rewrite /nr; set nrnr := (_ # _)%bigQ=>_.
 move: (BigQ_red_den_neq0_aux nrnr); rewrite /nrnr -/nr E=>H.
-by rewrite -[0%Re]/(Z2R 0); apply Z2R_neq.
+by apply IZR_neq.
 Transparent F.div.
 Qed.
 

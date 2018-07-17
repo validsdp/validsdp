@@ -40,9 +40,9 @@ Fixpoint interp_p_real_cst (p : p_real_cst) : R :=
 (* | PConstQz z => Z2R [z]%bigZ *)
   | PConstQq z n => bigQ2R (z # n)%bigQ
   | PConstIZR n => IZR n
-  | PConstRdiv x y => Rdiv (interp_p_real_cst x) (P2R y)
+  | PConstRdiv x y => Rdiv (interp_p_real_cst x) (IPR y)
   | PConstRopp x => Ropp (interp_p_real_cst x)
-  | PConstRinv x => Rinv (P2R x)
+  | PConstRinv x => Rinv (IPR x)
   end.
 
 Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
@@ -59,7 +59,6 @@ Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
 Lemma bigQ_of_p_real_cst_correct c :
   bigQ2R (bigQ_of_p_real_cst c) = interp_p_real_cst c.
 Proof.
-have P2R_IPR : forall p, P2R p = IPR p by elim=> [p|p|//] /= ->; case p.
 have IQRp : forall p,
   Q2R [BigQ.Qz (BigZ.Pos (BigN.of_pos p))]%bigQ = IPR p.
 { by move=> p; rewrite /Q2R /= BigN.spec_of_pos /= Rsimpl. }
@@ -70,12 +69,12 @@ elim c.
   { by rewrite /bigQ2R /Q2R /= /Rdiv Rmult_0_l. }
   { by rewrite /bigQ2R IQRp /IZR. }
   by rewrite /bigQ2R /IZR -IQRp -Q2R_opp. }
-{ move=> c' Hc' p; rewrite /= -Hc' /Rdiv /bigQ2R /= P2R_IPR -IQRp -Q2R_inv.
+{ move=> c' Hc' p; rewrite /= -Hc' /Rdiv /bigQ2R /= -IQRp -Q2R_inv.
   { by rewrite -Q2R_mult; apply Q2R_Qeq; rewrite BigQ.spec_div. }
-  by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl; pos_P2R. }
+  by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl. }
 { move=> p Hp; rewrite /= -Hp /bigQ2R -Q2R_opp; apply Q2R_Qeq, BigQ.spec_opp. }
-move=> p; rewrite /bigQ2R /interp_p_real_cst P2R_IPR -IQRp -Q2R_inv.
+move=> p; rewrite /bigQ2R /interp_p_real_cst -IQRp -Q2R_inv.
 { apply Q2R_Qeq; rewrite -(Qmult_1_l (Qinv _)) -/([1]%bigQ).
   by rewrite -BigQ.spec_inv -BigQ.spec_mul. }
-by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl; pos_P2R.
+by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl.
 Qed.

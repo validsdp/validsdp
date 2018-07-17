@@ -1,8 +1,8 @@
 Require Import Reals.
 Require Import ZArith CBigQ.
 Require Import ROmega.
-From Flocq Require Import Fcore_defs.
-From Flocq Require Import Fcore_digits.
+From Flocq Require Import Core.Defs.
+From Flocq Require Import Core.Digits.
 From Interval Require Import Interval_definitions.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 Require Import misc.

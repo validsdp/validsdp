@@ -1,6 +1,6 @@
 (** * Application: corollary of [cholesky] considering overflows. *)
 
-Require Import Reals Flocq.Core.Fcore_Raux.
+Require Import Reals Flocq.Core.Raux.
 
 Require Import misc.
 
