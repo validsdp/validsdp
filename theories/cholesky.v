@@ -80,7 +80,7 @@ Lemma lemma_2_1_aux1 k (H2k : 2 * (INR k.+1) * eps fs < 1)
      + 2 * INR k * e + bk * (1 + t) * e' / (1 + d) :> R)%Re.
 Proof.
 have [t [t' [e Htt'e]]] := fcmdotprod_l2r_err' H2k c a b.
-have [d [e' Hde]] := fdiv_spec (stilde c a b) bk.
+have [d [e' [Hde _]]] := fdiv_spec (stilde c a b) bk.
 exists t, d, t', e, e'; rewrite Hde.
 by replace (_ / (1 + d))%Re
    with (stilde c a b * (1 + t) + bk * (1 + t) * e' / (1 + d))%Re;

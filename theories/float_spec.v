@@ -46,13 +46,19 @@ Record Float_spec := {
   (** Some rounding. *)
   frnd : R -> FS;
 
+  frnd_F (x : FS) : frnd x = x :> R;
+
   frnd_spec x :
-    exists (d : b_eps) (e : b_eta), (frnd x = (1 + d) * x + e :> R)%Re;
+    exists (d : b_eps) (e : b_eta),
+      (frnd x = (1 + d) * x + e :> R /\ d * e = 0)%Re;
 
   (** Addition. *)
   fplus (x y : FS) : FS := frnd (x + y);
 
   fplus_spec x y : exists d : b_eps, (fplus x y = (1 + d) * (x + y) :> R)%Re;
+
+  (** This is only true in rounding to nearest. *)
+  fplus_spec_l x y : (Rabs (fplus x y - (x + y)) <= Rabs x)%Re;
 
   fplus_spec2 (x y : FS) : (y <= 0 -> fplus x y <= x)%Re;
 
@@ -66,7 +72,12 @@ Record Float_spec := {
   (** Square root. *)
   fsqrt (x : FS) : FS := frnd (sqrt x);
 
-  fsqrt_spec x : exists d : b_eps, (fsqrt x = (1 + d) * (sqrt x) :> R)%Re
+  fsqrt_spec x : exists d : b_eps, (fsqrt x = (1 + d) * (sqrt x) :> R)%Re;
+
+  (** sqrt(1 + 2 eps) - 1 <= eps *)
+  fsqrt_spec_b (x : FS) :
+    exists d : bounded (sqrt (1 + 2 * eps) - 1)%Re,
+      (sqrt x = (1 + d) * fsqrt x)%Re
 }.
 
 Section Derived_spec.
@@ -84,6 +95,31 @@ Definition eta_0 : b_eta fs := bounded_0 (Rlt_le 0 (eta fs) (eta_pos fs)).
 (** Opposite. *)
 Definition fopp (x : FS fs) : FS fs :=
   {| FS_val := -x; FS_prop := format_opp (FS_prop x) |}.
+
+Lemma frnd_spec_separate (x : R) :
+  exists x' : R,
+    frnd fs x' = frnd fs x :> R /\ (exists e : b_eta fs, x' = x + e)
+    /\ (exists d : b_eps fs, frnd fs x' = (1 + d) * x' :> R).
+Proof.
+destruct (frnd_spec fs x) as (d, (e, (Hde, Hde0))).
+destruct (Rlt_or_le (Rabs (d * x)) (Rabs e)) as [HdxLte|HeLedx].
+{ exists (frnd fs x); split; [|split].
+  { apply frnd_F. }
+  { exists e; rewrite Hde; destruct (Rmult_integral _ _ Hde0) as [Zd|Ze].
+    { now rewrite Zd, Rplus_0_r, Rmult_1_l. }
+    exfalso; revert HdxLte; rewrite Ze, Rabs_R0; apply Rle_not_lt, Rabs_pos. }
+  now exists eps_0; rewrite frnd_F, Rplus_0_r, Rmult_1_l. }
+exists x; split; [now simpl|split].
+{ now exists eta_0; rewrite Rplus_0_r. }
+exists d; rewrite Hde; destruct (Rmult_integral _ _ Hde0) as [Zd|Ze].
+{ assert (Ze : e = 0 :> R); [|now rewrite Ze, Rplus_0_r].
+  apply Rcomplements.Rabs_eq_0, Rle_antisym; [|now apply Rabs_pos].
+  now revert HeLedx; rewrite Zd, Rmult_0_l, Rabs_R0. }
+now rewrite Ze, Rplus_0_r.
+Qed.
+
+Lemma fplus_spec_r (x y : FS fs) : (Rabs (fplus x y - (x + y)) <= Rabs y)%Re.
+Proof. unfold fplus; rewrite Rplus_comm; apply fplus_spec_l. Qed.
 
 (** Subtraction. *)
 Definition fminus (x y : FS fs) : FS fs := fplus x (fopp y).

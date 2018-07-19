@@ -62,7 +62,7 @@ suff H : forall i, exists e, F i = F' i e.
                                       (b_gamma_0 (bg_S (bg_2 Hn)), eta_0 fs)) H.
   by exists t, ea; rewrite -Hea -Htta. }
 move=> i.
-have [d [e Hde]] := fmult_spec (a i) (b i).
+have [d [e [Hde _]]] := fmult_spec (a i) (b i).
 have [t' Ht'] := gammap1_mult_epsp1 Hn (ta i) d.
 exists (bounded_opp t', (ta i, bounded_opp e)).
 rewrite /F /F' /t ffunE /fopp /= Hde.
@@ -90,7 +90,7 @@ suff H : forall i, exists e, F i = F' i e.
                                       (b_gamma_0 (bg_S (bg_2 Hn)), eta_0 fs)) H.
   by exists t, ea; rewrite -Hea -Htta. }
 move=> i.
-have [d [e Hde]] := fmult_spec (a i) (b i).
+have [d [e [Hde _]]] := fmult_spec (a i) (b i).
 have [t' Ht'] := gammap1_mult_epsp1 Hn (ta i) d.
 exists (bounded_opp t', (ta i, bounded_opp e)).
 rewrite /F /F' /t ffunE /fopp /= Hde.
