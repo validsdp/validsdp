@@ -92,9 +92,13 @@ Variable choice : Z -> bool.
 Definition frnd (x : R) : F :=
   Build_FS_of (generic_format_round radix2 fexp (Znearest choice) x).
 
+Lemma frnd_F (x : F) : round radix2 fexp (Znearest choice) x = x :> R.
+Proof. apply round_generic; [apply valid_rnd_N|apply FS_prop]. Qed.
+  
 Lemma frnd_spec (x : R) :
   exists (d : b_eps) (e : b_eta),
-  round radix2 fexp (Znearest choice) x = (1 + d) * x + e :> R.
+    round radix2 fexp (Znearest choice) x = (1 + d) * x + e :> R
+    /\ d * e = 0.
 Proof.
 destruct (relative_error_N_FLX_ex radix2 prec Pprec choice x) as (d, (Hd, Hr)).
 assert (Hd' : Rabs d <= eps).
@@ -106,7 +110,7 @@ assert (Hd' : Rabs d <= eps).
   now apply bpow_le. }
 exists {| bounded_val := d; bounded_prop := Hd' |}.
 exists (bounded_0 (Rlt_le _ _ eta_pos)).
-now rewrite Rmult_comm, Rplus_0_r.
+now rewrite Rmult_comm, Rplus_0_r, Rmult_0_r.
 Qed.
 
 Lemma fplus_spec (x y : F) :
@@ -125,6 +129,13 @@ assert (Hd3 : Rabs d <= eps).
   now apply bpow_le. }
 exists {| bounded_val := d; bounded_prop := Hd3 |}.
 now rewrite Rmult_comm.
+Qed.
+
+Lemma fplus_spec_l (x y : F) : Rabs (frnd (x + y) - (x + y)) <= Rabs x.
+Proof.
+apply (Rle_trans _ (Rabs (y - (x + y)))).
+{ now apply round_N_pt; [apply FLX_exp_valid|apply FS_prop]. }
+rewrite Rabs_minus_sym; right; f_equal; ring.
 Qed.
 
 Lemma fplus_spec2 (x y : F) : y <= 0 -> frnd (x + y) <= x.
@@ -165,6 +176,12 @@ exists {| bounded_val := d; bounded_prop := Hd3 |}.
 now rewrite Rmult_comm.
 Qed.
 
+Lemma fsqrt_spec_b (x : F) :
+  exists d : bounded (sqrt (1 + 2 * eps) - 1),
+    sqrt x = (1 + d) * frnd (sqrt x) :> R.
+Proof.
+Admitted.
+
 Definition flx64 : Float_spec :=
   @Build_Float_spec
     format
@@ -177,10 +194,13 @@ Definition flx64 : Float_spec :=
     eta
     eta_pos
     frnd
+    frnd_F
     frnd_spec
     fplus_spec
+    fplus_spec_l
     fplus_spec2
     fmult_spec2
-    fsqrt_spec.
+    fsqrt_spec
+    fsqrt_spec_b.
 
 End Flx64.
