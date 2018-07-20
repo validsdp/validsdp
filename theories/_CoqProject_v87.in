@@ -17,6 +17,7 @@ cholesky_infnan.v
 flx64.v
 zulp.v
 coqinterval_infnan.v
+matrices.v
 cholesky_prog.v
 iteri_ord.v
 bigop_tactics.v
