@@ -310,7 +310,7 @@ move=> Hxy; rewrite /Q2R.
 rewrite /Qeq in Hxy.
 move/(congr1 IZR) in Hxy.
 rewrite !mult_IZR in Hxy.
-apply (Rmult_eq_reg_r (IZR (' Qden y))); last by simpl.
+apply (Rmult_eq_reg_r (IZR (BinNums.Zpos (Qden y)))); last by simpl.
 by rewrite /Rdiv Rmult_assoc [(/ _ * _)%Re]Rmult_comm -Rmult_assoc Hxy; field.
 Qed.
 
@@ -321,7 +321,7 @@ move=> Hxy; rewrite /Qeq.
 rewrite /Q2R in Hxy.
 apply: eq_IZR.
 rewrite !mult_IZR.
-apply (Rmult_eq_reg_r (/ IZR (' Qden x))); last first.
+apply (Rmult_eq_reg_r (/ IZR (BinNums.Zpos (Qden x)))); last first.
 { apply: Rinv_neq_0_compat.
   by change 0%Re with (IZR 0); apply: IZR_neq. }
 rewrite /Rdiv in Hxy.
