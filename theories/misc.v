@@ -74,18 +74,18 @@ Qed.
 Lemma sqr_ge_0 x : (0 <= x * x)%Re.
 Proof. by replace (x * x)%Re with (x ^ 2)%Re; [apply pow2_ge_0|ring]. Qed.
 
-Lemma sqrtx_le_x x : (1 <= x -> sqrt x <= x)%Re.
+Lemma sqrtx_le_x x : (1 <= x -> R_sqrt.sqrt x <= x)%Re.
 Proof.
 move=> Hx.
-rewrite -{2}(sqrt_Rsqr x); [|lra].
+rewrite -{2}(sqrt_Rsqr x); [ |lra].
 apply sqrt_le_1_alt; rewrite /Rsqr -{1}(Rmult_1_r x).
 apply Rmult_le_compat_l; lra.
 Qed.
 
-Lemma sqrtx_le_xp1 x : (0 <= x -> sqrt x <= x + 1)%Re.
+Lemma sqrtx_le_xp1 x : (0 <= x -> R_sqrt.sqrt x <= x + 1)%Re.
 Proof.
 move=> Hx.
-rewrite -(sqrt_Rsqr (x + 1)); [|lra].
+rewrite -(sqrt_Rsqr (x + 1)); [ |lra].
 have Lx := Rle_0_sqr x; have L1 := Rle_0_sqr 1.
 apply sqrt_le_1_alt; rewrite Rsqr_plus; lra.
 Qed.
@@ -136,13 +136,13 @@ Proof. by apply eq_bigr => i; rewrite ffunE. Qed.
 
 Lemma big_sum_Ropp n F : (- (\sum_(i < n) F i) = \sum_i (- F i)%Re)%Re.
 Proof.
-apply (big_rec2 (fun x y => (- x = y)%Re)); [by rewrite Ropp_0|].
+apply (big_rec2 (fun x y => (- x = y)%Re)); [by rewrite Ropp_0| ].
 by move=> i y1 y2 _ H; rewrite -H /GRing.add /= Ropp_plus_distr.
 Qed.
 
 Lemma big_sum_const n x : (\sum_(i < n) x = INR n * x)%Re.
 Proof.
-move: n x; elim=> [|n IHk] x.
+move: n x; elim=> [ |n IHk] x.
 { by rewrite big_ord0 /= Rmult_0_l. }
 by rewrite big_ord_recl S_INR Rplus_comm Rmult_plus_distr_r Rmult_1_l IHk.
 Qed.
@@ -150,7 +150,7 @@ Qed.
 Lemma big_sum_pred_const (I : Type) (r : seq I) (P : pred I) (x : R) :
   \big[+%R/0]_(i <- r | P i) x = INR (size [seq i <- r | P i]) * x.
 Proof.
-rewrite -big_filter; set l := [seq x <- r | P x]; elim l => [|h t IH].
+rewrite -big_filter; set l := [seq x <- r | P x]; elim l => [ |h t IH].
 { by rewrite big_nil /= Rmult_0_l. }
 simpl size; rewrite big_cons S_INR IH /GRing.add /GRing.mul /=; ring.
 Qed.
@@ -159,8 +159,8 @@ Lemma big_sum_pred_pos_pos n (P : pred 'I_n) F :
   ((forall i : 'I_n, P i -> 0 <= F i) -> 0 <= \sum_(i | P i) F i)%Re.
 Proof.
 move=> HF.
-apply big_rec; [by right|]; move=> i x HP Hx.
-by apply Rplus_le_le_0_compat; [apply HF|].
+apply big_rec; [by right| ]; move=> i x HP Hx.
+by apply Rplus_le_le_0_compat; [apply HF| ].
 Qed.
 
 Lemma big_sum_pos_pos n F : ((forall i : 'I_n, 0 <= F i) -> 0 <= \sum_i F i)%Re.
@@ -187,7 +187,7 @@ Qed.
 
 Lemma big_Rabs_triang n (F : 'I_n -> R) :
   (Rabs (\sum_i (F i)) <= \sum_i (Rabs (F i)))%Re.
-Proof. elim/big_rec2: _ => [|i y x _]; split_Rabs; simpl_re; lra. Qed.
+Proof. elim/big_rec2: _ => [ |i y x _]; split_Rabs; simpl_re; lra. Qed.
 
 End Big_misc.
 
@@ -205,21 +205,21 @@ Fixpoint max_tuple n (a : R ^ n.+1) :=
 Lemma max_tuple_eq n (a1 : R ^ n.+1) (a2 : R ^ n.+1) :
   a1 =1 a2 -> max_tuple a1 = max_tuple a2.
 Proof.
-elim: n a1 a2 => [|n IHn] a1 a2 H12 //=.
+elim: n a1 a2 => [ |n IHn] a1 a2 H12 //=.
 apply f_equal2 => //; apply IHn => i; rewrite !ffunE //.
 Qed.
 
 Lemma max_tuple_monotone n (a1 : R ^ n.+1) (a2 : R ^ n.+1) :
   (forall i, a1 i <= a2 i) -> max_tuple a1 <= max_tuple a2.
 Proof.
-elim: n a1 a2 => [|n IHn] a1 a2 H12 //=; apply Rle_max_compat => //.
+elim: n a1 a2 => [ |n IHn] a1 a2 H12 //=; apply Rle_max_compat => //.
 by apply IHn => i; rewrite !ffunE.
 Qed.
 
 Lemma max_tuple_i n (a : R ^ n.+1) (i : 'I_n.+1) : a i <= max_tuple a.
 Proof.
-elim: n a i => [|n IHn] a i /=; [by rewrite (ord_1_0 i); right|].
-case (unliftP ord_max i) => [j ->|->]; [|by apply Rmax_r].
+elim: n a i => [ |n IHn] a i /=; [by rewrite (ord_1_0 i); right| ].
+case (unliftP ord_max i) => [j ->|->]; [ |by apply Rmax_r].
 replace (a _) with ([ffun i : 'I_n.+1 => a (inord i)] j).
 { apply (Rle_trans _ _ _ (IHn _ _)), Rmax_l. }
 rewrite ffunE; apply f_equal, ord_inj; rewrite lift_max inordK //.
@@ -229,17 +229,17 @@ Qed.
 Lemma max_tuple_lub_lt n (a : R ^ n.+1) (x : R) :
   (forall i, a i < x) -> max_tuple a < x.
 Proof.
-elim: n a x => [|n IHn] a x Hx //=.
-apply Rmax_lub_lt; [|by apply Hx].
+elim: n a x => [ |n IHn] a x Hx //=.
+apply Rmax_lub_lt; [ |by apply Hx].
 apply IHn => i; rewrite ffunE; apply Hx.
 Qed.
 
 Lemma max_tuple_Rmult n (a : R ^ n.+1) (c : R) : 0 <= c ->
   (max_tuple [ffun i => c * a i] = c * max_tuple a)%Re.
 Proof.
-elim: n a c => [|n IHn] a c Hc /=; [by rewrite ffunE|].
-rewrite -RmaxRmult; [|by []]; apply f_equal2; [|by rewrite ffunE].
-by rewrite -IHn; [|by []]; apply max_tuple_eq => i; rewrite !ffunE.
+elim: n a c => [ |n IHn] a c Hc /=; [by rewrite ffunE| ].
+rewrite -RmaxRmult; [ |by []]; apply f_equal2; [ |by rewrite ffunE].
+by rewrite -IHn; [ |by []]; apply max_tuple_eq => i; rewrite !ffunE.
 Qed.
 
 Lemma max_tuple_prod n (a b : R ^ n.+1) :
@@ -255,12 +255,12 @@ Qed.
 
 Lemma max_tuple_sum n (a : R ^ n.+1) : \sum_i a i <= INR n.+1 * max_tuple a.
 Proof.
-elim: n a => [|n IHn] a.
+elim: n a => [ |n IHn] a.
 { by rewrite zmodp.big_ord1 Rmult_1_l; right. }
 rewrite big_ord_recr S_INR Rmult_plus_distr_r Rmult_1_l; apply Rplus_le_compat.
 { apply Rle_trans with (INR n.+1 * max_tuple [ffun i : 'I_n.+1 => a (inord i)]).
   { replace (_ : R) with (\sum_i [ffun i : 'I_n.+1 => a (inord i)] i);
-      [by apply IHn|].
+      [by apply IHn| ].
     apply eq_bigr => i _; rewrite ffunE.
     apply f_equal, ord_inj; rewrite inordK //; apply ltnW, leq_ord. }
   apply Rmult_le_compat_l; [apply pos_INR|apply Rmax_l]. }
@@ -286,7 +286,7 @@ Proof. by rewrite /Q2R /= /Rdiv Rmult_0_l. Qed.
 
 Lemma Q2R_inv x : Q2R x <> 0%Re -> Q2R (/ x) = / (Q2R x).
 Proof.
-move: x => [[|a|a] b] Hx; rewrite /Q2R /Qinv /=.
+move: x => [[ |a|a] b] Hx; rewrite /Q2R /Qinv /=.
 { by rewrite /Q2R /= /Rdiv Rmult_0_l in Hx. }
 { clear Hx; rewrite Rinv_Rdiv //. }
 { clear Hx; rewrite /Rdiv !Ropp_mult_distr_l_reverse -Ropp_inv_permute.
@@ -342,7 +342,7 @@ rewrite /BigQ.check_int.
 case E: (_ ?= _)%bigN=>//.
 move: E; rewrite BigN.compare_lt_iff=> E H.
 apply (BigN.lt_irrefl BigN.one).
-apply (BigN.lt_trans _ BigN.zero); [|apply BigN.lt_0_1].
+apply (BigN.lt_trans _ BigN.zero); [ |apply BigN.lt_0_1].
 by move: E; rewrite -BigN.ltb_lt BigN.spec_ltb H /=.
 Qed.
 

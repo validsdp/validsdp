@@ -1,0 +1,798 @@
+2018-05-09 New release.
+2018-05-09 Remove compatibility layer for Bignums.
+2018-05-09 Rename testsuite file.
+2018-05-09 Recognize Ztrunc and friends.
+2018-05-09 Update .mailmap file.
+2018-05-09 Remove trailing spaces.
+2018-05-09 Merge branch 'nearbyint'
+2018-02-27 Add support for bpow.
+2018-02-27 Simplify proofs.
+2018-02-27 Adapt to the new definitions of Fdiv_core and Fsqrt_core.
+2017-12-12 Convert to Flocq 3.0.
+2017-11-09 Convert to Flocq 3.0.
+2017-10-21 Deciding taylor mode of Rnearbyint depends of the rounding mode
+2017-10-20 linking TM_nearbyint
+2017-10-20 Naive taylor model for Rnearbyint
+2017-10-18 Update installation instruction.
+2017-10-18 more renaming
+2017-10-18 renaming
+2017-10-18 Addind a nearbyint testsuite
+2017-10-17 Adding a no_floor_prog to guard all theorems that requires continuity
+2017-10-16 simpler mantissa_shrp_aux in stdz
+2017-10-15 mantissa_shrp_aux in stdz driven by the mantissa
+2017-10-15 mantissa_shrp_aux in stdz with only positive
+2017-10-15 removing some auto tactic with easy
+2017-10-15 better mantissa_shrp in standard carrier
+2017-10-15 Proof of nearbyint_correct
+2017-10-15 Proof of coorectness of round_at_exp
+2017-10-15 give a bigint implementation for mantissa_shrp
+2017-10-15 give a std implementation for mantissa_shrp (could be improved
+2017-10-15 adding the mantissa_shrp function
+2017-10-15 simplify Fround_at_exp
+2017-10-12 Proof of Fnearbyint_exact_correct
+2017-10-12 Merge branch 'nearbyint' of git+ssh://scm.gforge.inria.fr/gitroot/coq-interval/coq-interval into nearbyint
+2017-09-15 New release.
+2017-09-15 Fix compilation with Coq 8.5.
+2017-09-15 Restore support for Coq 8.5 Bignums.
+2017-09-11 Adapt to Coq 8.7.
+2017-09-11 Switch to external Bignum library.
+2017-09-11 Adapt to Coq 8.7.
+2017-08-11 Make I.cos/sin compute a bit less naively away from zero.
+2017-08-11 Add options i_delay and i_native_compute. Rename i_integral_aprec to i_integral_width.
+2017-08-10 Add option i_integral_aprec.
+2017-05-31 More support for nearbyint.
+2017-05-30 Tentative support for nearbyint.
+2017-04-04 Remove some warning messages.
+2017-04-04 Simplify some proofs.
+2017-03-06 Remove debug leftover.
+2017-03-06 Turn some R0 and R1 into 0%R and 1%R.
+2017-03-04 New release.
+2017-03-04 Update documentation.
+2017-03-01 Adapt with respect to Coquelicot.
+2017-02-14 Fix tactic.
+2017-02-14 cosmetic changes
+2017-02-14 Merge branch 'extend_integral_infinity' of git+ssh://scm.gforge.inria.fr/gitroot/coq-interval/coq-interval into extend_integral_infinity
+2017-02-14 renaming pole --> singularity
+2017-02-14 renaming pole --> singularity
+2017-02-14 Moved test on beta at beginning of integral computation rather than at each node of the tree.
+2017-02-14 a lot of helper lemmas on limits: all admits removed
+2017-02-13 removed one admit in Interval_tactic
+2017-02-13 isolated one admit in Interval_tactic
+2017-02-13 changed exp(-x) in to exp(-lambda x). Tactic not functioning yet
+2017-02-13 Done case of equality for Bertrand, up to a couple of easy admits.
+2017-02-12 Merge branch 'extend_integral_infinity' of git+ssh://scm.gforge.inria.fr/gitroot/coq-interval/coq-interval into extend_integral_infinity
+2017-02-12 improved lemma about 1 / x ln x being continuous
+2017-02-10 Avoid warning with Coq 8.6.
+2017-02-10 Removed all admits, added example for equality case at end of Interval_tactic.
+2017-02-09 tactic now working for equality case in Bertrand.
+2017-02-09 final lemma for tactic for Bertrand (alpha = 1)
+2017-02-09 progress towards bertrand equality case
+2017-02-08 Added support for integrating against exp(-x) at +infinity.
+2017-02-07 working tactic at the pole 0!
+2017-02-07 Completed lemmas for tactic with pole 0. Not working, but we shouldn't be too far.
+2017-02-06 ad hoc definitions for dichotomy at poles
+2017-02-06 some progress for poles, dichotomy still todo
+2017-02-06 missing lemma + incorrect hypothesis for poles
+2017-02-03 forgot to factor one A^{alpha+1} in f_int_aux
+2017-02-01 updated gitignore to reduce noise in git status
+2017-02-01 Definition of integralEstimatorCorrect_atpole
+2017-02-01 refactored some of the computation in Bertrand integrals
+2017-02-01 improved commented example
+2017-02-01 corrected hypotheses about g for poles
+2017-01-25 simplified proof
+2017-01-25 cleanup and refactoring in bertrand.v
+2017-01-18 ball_to_lra to facilitate proofs, now an equivalence
+2017-01-18 generalisation of integral_interval_mul_zero to integral_interval_mul_pole
+2017-01-17 Finished proof of integral at 0 + various helper lemmas.
+2017-01-17 New lemmas + cleanup in bertrand.v
+2017-01-16 Proved a counterpart to ex_RInt_gen_cauchy. The proof is much too long for what it does.
+2017-01-16 Finished proof of integral_interval_mul_infty.
+2017-01-13 removed some admits
+2017-01-11 progress, easy admits
+2017-01-11 Merge branch 'extend_integral_infinity' of git+ssh://scm.gforge.inria.fr/gitroot/coq-interval/coq-interval into extend_integral_infinity
+2017-01-11 minor changes
+2017-01-09 Merge branch 'origin/extend_integral_infinity'
+2017-01-09 Progress toward integral_interval_mul_infty.
+2017-01-09 Update to Coq 8.6.
+2017-01-06 some theory on powerRZ to submit for a Coq Pull Request
+2017-01-06 Merge branch 'master' into extend_integral_infinity
+2017-01-05 some progress for point singularities
+2016-11-24 Remove .mailmap from distributed archive.
+2016-11-24 New release.
+2016-11-23 Update to Coq 8.6.
+2016-11-14 Fix compilation and simplify proof.
+2016-11-14 Revert "numeric test to debug"
+2016-11-01 2 less admits: 1 for deciding that the two funs are equal and RInt_gen_le.
+2016-11-01 Removed one needless admit. Added higher-level pattern matching to get_RInt_gen_bounds
+2016-10-27 numeric test to debug
+2016-10-27 Made a first attempt at a tactic, which only works in one case so far. There remain some admits.
+2016-10-26 removed some preconditions by integrating some tests in computation
+2016-10-26 Some progress towards a tactic for RInt_gen.
+2016-10-24 Use new definition of at_point and simplify proofs.
+2016-10-21 Move to new version of RInt_gen.
+2016-10-20 Complete remainder_correct.
+2016-10-17 Move to new version of RInt.
+2016-10-11 Prove a bit more about remainder_correct.
+2016-09-28 Added correctness lemmas in preparation for improving the tactic. Some intermediary lemmas are still needed to remove admits.
+2016-09-28 first (missed) shot at a substitution rule lemma for definite integrals.
+2016-09-27 More numeric tests + proof of estimation of remainder + 2 missing RInt_gen lemmas
+2016-09-27 Defs and lemmas in Interval_integral for going to infinity+ numeric tests
+2016-09-26 Merge branch 'master' into extend_integral_infinity
+2016-09-26 Refactoring of Interval_integral and Interval_tactic. Proofs of the adaptive algorithm by induction were made clearer.
+2016-09-22 attempt to also take care of integrals from 0 to epsilon, but we are missing a substitution rule for integrals
+2016-09-22 Defined interval function computing Bertrand integral, and proved it correct.
+2016-09-22 some code cleaning and reorganisation
+2016-09-22 removed all admits in bertrand.v, now to do the interval version
+2016-09-21 Some auxiliary lemmas + some steps towards the limit of x^alpha ln^beta(x) Some elementary lemmas on usual functions are missing, which can be quite frustrating.
+2016-09-21 Generalized 'prod_to_single' lemma and made the UniformSpace version a consequence
+2016-09-21 proof of integration by parts + helper lemmas
+2016-09-21 (partial) treatment of the "Bertrand" integral.
+2016-08-31 New release.
+2016-08-25 Add a .mailmap file.
+2016-08-26 Recap one change.
+2016-08-26 Fix do_interval_parse & do_interval_intro_parse w.r.t error reporting.
+2016-08-26 Combine hypotheses of integrability and correctness of estimator into one.
+2016-08-25 Merge branch 'master' of git+ssh://scm.gforge.inria.fr/gitroot/coq-interval/coq-interval
+2016-08-25 now removed all admits!
+2016-08-24 wip: merging ex_RInt and contains proof
+2016-08-24 prrof of concept for new structure of proof, now to fill in the admits
+2016-08-18 Remove .check_tmp.aux as well in testsuite/check's teardown.
+2016-08-18 Add test-cases to ensure the chosen fail levels do not hinder Ltac composition.
+2016-08-18 Remove error "neither a constant value nor bounded by constant values".
+2016-08-18 Remove the extraneous final dots in Ltac failure messages.
+2016-08-18 Refine Interval_tactic.v with respect to Ltac failure level.
+2016-08-18 Declare BaseOps.{U, T} as Parameter Inline.
+2016-08-18 Refactor some taylor_model_int_sharp.v lemmas.
+2016-08-18 Move general lemmas to Interval_missing.v or coqapprox/coquelicot_compl.v.
+2016-07-31 removed admits on the boundedness of midpoint'. This does not solve the question of proving a <= m <= b
+2016-05-13 remove removable admits, erase comments. Still some problems to address.
+2016-05-13 Interval_tactic now patched to only use interval bounds. Seems to work on examples, a few admits left
+2016-05-13 finished modifications of Interval_integral
+2016-05-12 first attempt, ex_RInt proved, not correction
+2016-05-11 Add a rule for generating a dependency graph.
+2016-04-27 Remove useless dependencies.
+2016-04-26 Remove some unneeded lemmas.
+2016-04-26 Remove some dependencies on xreal_ssr_compat.
+2016-04-26 Fix compilation.
+2016-04-26 Remove some dependencies on Interval_generic.
+2016-04-26 Change F.add, F.sub, F.mul, F.div, and F.sqrt specifications to toR.
+2016-04-26 Move Xround away from Interval_generic_proof.
+2016-04-26 Move F.scale specification to toR.
+2016-04-26 Reuse FloatExt.le.
+2016-04-25 Convert specification of exact FP operations to using toX.
+2016-04-25 Remove some toR usage.
+2016-04-25 Remove unneeded hypothesis.
+2016-04-25 Remove unneeded lemmas.
+2016-04-25 Reuse the generic algorithm for naive computations of integrals.
+2016-04-25 Avoid a boolean function for an uncomputable property.
+2016-04-25 Remove dependency on FP-based from TM-based integral computation.
+2016-04-25 Move contains_RInt from taylor_model_int_sharp to Interval_interval.
+2016-04-25 Simplify proofs a bit.
+2016-04-22 Move R_extension theorems from interval_compl to Interval_interval.
+2016-04-22 Update copyright headers.
+2016-04-22 Factor and simplify proofs.
+2016-04-21 Avoid _simplify tactics.
+2016-04-21 Simplify proofs a bit.
+2016-04-21 Give a more useful specification to I.mask.
+2016-04-21 Restore contains_Xreal.
+2016-04-21 Simplify proofs a bit.
+2016-04-21 Simplify proof a bit.
+2016-04-21 Simplify proofs a bit.
+2016-04-21 Remove unneeded lemmas.
+2016-04-21 Remove unused lemmas.
+2016-04-21 Simplify proofs a bit.
+2016-04-21 Simplify proofs a bit.
+2016-04-21 Simplify proofs.
+2016-04-20 Strengthen theorem statements and simplify proofs.
+2016-04-20 Remove compilation warning.
+2016-04-20 Remove redundant scope.
+2016-04-20 Remove unneeded includes.
+2016-04-20 Remove unneeded definitions and lemmas.
+2016-04-20 Remove parameters that hold from interface properties only.
+2016-04-19 Simplify proof a bit by using a more abstract midpoint.
+2016-04-19 Use a weaker definition of subset.
+2016-04-19 Weaken theorem hypothesis.
+2016-04-19 Add a variant of midpoint that returns an interval.
+2016-04-08 New release.
+2016-04-08 Update copyright dates.
+2016-04-08 Merge files.
+2016-04-07 Remove unneeded definitions and lemmas.
+2016-04-07 Restrict some function arguments to real domain.
+2016-04-07 Remove some unneeded lemmas.
+2016-04-07 Turn the ExtendedR operations into notations.
+2016-04-07 Restrict approximates to functions over reals.
+2016-04-07 Remove unused lemmas.
+2016-04-07 Restrict i_validTM to functions over reals.
+2016-04-06 Partly get rid of toR_fun.
+2016-04-06 Avoid using subset_.
+2016-04-06 Remove some unused lemmas and definitions.
+2016-04-06 Simplify proofs by removing boolean predicates.
+2016-04-06 Remove unused hypothesis.
+2016-04-05 Use a more monadic approach for ExtendedR operations.
+2016-04-05 Remove unneeded lemma.
+2016-04-05 Removed unneeded lemmas.
+2016-04-05 Simplify some proofs.
+2016-04-05 Simplify some proofs.
+2016-04-05 Remove unneeded tactics.
+2016-04-05 Remove some unused definitions and lemmas.
+2016-04-04 Ensure compatibility with both Coq 8.4 and 8.5 (with Mathcomp 1.6).
+2016-04-04 Remove some unneeded definitions and lemmas.
+2016-04-04 Remove integral benchmark.
+2016-04-04 Merge branch 'mergeIntegralNewArchi+NewComp'
+2016-04-04 Simplify proof.
+2016-04-04 Remove some unneeded definitions and lemmas.
+2016-04-04 Clean the proof of TM_comp_correct a bit
+2016-04-04 TM_comp_correct: abstract [HM1']'s proof as a new version for TMset0_correct.
+2016-04-04 Prove the last admits for TM_comp_correct.
+2016-04-04 Avoid statement duplication.
+2016-04-04 Change I.meet so that it no longer propagates Inan (pessimization).
+2016-04-04 Remove unused definitions and lemmas.
+2016-03-31 Merge branch 'master'
+2016-03-31 Move proj_val and proj_fun.
+2016-03-31 Add header.
+2016-03-31 Remove an admit.
+2016-03-31 Remove possibly unsound cut.
+2016-03-31 Remove unsound lemma.
+2016-03-31 Fix compilation issues.
+2016-03-30 Enhance TM_comp's algo using Guillaume's suggestion & WIP for TM_comp_correct.
+2016-03-29 Detail.
+2016-03-29 Remove the already-commented theory poly_inst_seq.v.
+2016-03-29 Remove derive_compl.v as a new version of these proofs is in coquelicot_compl.v
+2016-03-29 Do some cleanup & Shorten def_power_int's proof using Xpower_intP.
+2016-03-29 Removed tiny admit in the spec of sqrt's TM.
+2016-03-29 Derivatives: Prove is_derive_n_atan & is_derive_n_tan.
+2016-03-29 Derivatives: Stenghten several lemmas and Remove 6 admits.
+2016-03-28 (whitespace-cleanup)
+2016-03-28 Remove 1 admit in TM_invsqrt_correct's proof.
+2016-03-28 Prove is_derive_n_pow, ex_derive_n_powerRZ, and TM_power_int_correct.
+2016-03-27 Prove 2 admits in Interval_taylor_model.v and that of size_poly_horner_tm.
+2016-03-27 Prove TM_mul_correct.
+2016-03-27 Remove 5 admits in taylor_model_int_sharp.v.
+2016-03-27 Prove one admit for TM_ln_correct.
+2016-03-27 Move 6 general lemmas to interval_compl.v & Prove 1 admit for TM_inv.
+2016-03-26 Prove TM_tan_correct.
+2016-03-26 Revert the latest enhancement in TM_sqrt's algorithm.
+2016-03-24 Prove definedPnT, definedPnTE, and TM_opp_correct.
+2016-03-24 Prove TM_sub_correct.
+2016-03-23 Remove several admits in Interval_taylor_model.v and Recap todo's.
+2016-03-23 Prove definedPn{V,l,r} and TM_add_correct.
+2016-03-23 Cleanup.
+2016-03-23 Update TM_tan's algo w.r.t the latest version of i_validTM and start the proof.
+2016-03-22 Refine the algorithm for TM_sqrt and TM_invsqrt. Proofs are WIP.
+2016-03-22 WIP for TM_ln_correct.
+2016-03-22 WIP for TM_inv_correct.
+2016-03-21 Rename I.neq0 into I.apart0 and Update TM_power_int to handle NaN cases.
+2016-03-21 Prove TM_exp_correct.
+2016-03-21 Add Boolean comparisons in interval_compl.v, and WIP for TM_[inv]sqrt_correct.
+2016-03-20 Fix compilation in branch mergeIntegralNewArchi (Coq 8.4.6, Ssreflect 1.5.0).
+2016-03-14 Weaken hypothesis of continuous_sqrt.
+2016-03-14 Merge Interval_integral_taylor into Interval_integral.
+2016-03-14 Rename all_integrals to naive_integral.
+2016-03-12 Merge auxiliary lemmas and remove unused lemmas.
+2016-03-12 Merge auxiliary lemma and remove unused definitions.
+2016-03-11 Remove unused lemmas.
+2016-03-11 Move theorem from Interval_tactic to Interval_integral.
+2016-03-11 Move theorem from Interval_tactic to Interval_integral.
+2016-03-11 Simplify real_correct.
+2016-03-11 Convert a few more instances of "FtoX toF".
+2016-03-11 Remove some other instances of "FtoX toF".
+2016-03-11 Start to remove the "FtoX toF" construct.
+2016-03-10 Add a toX member to Float Ops.
+2016-03-10 Mark arguments of Fmag as implicit.
+2016-03-10 Avoid polluting global namespace.
+2016-03-10 Remove file reals_compl.
+2016-03-10 Avoid lemma duplication.
+2016-03-10 Remove unused definitions.
+2016-03-10 Clean theorem statements a bit.
+2016-03-09 Remove unused lemmas and merge auxiliary lemmas.
+2016-03-09 Move Requires out of the way.
+2016-03-09 Clean proofs a bit.
+2016-03-08 Merge the integrability file into Interval_bisect.
+2016-03-08 Remove obsolete comments.
+2016-03-08 Move some helper definitions into their own file.
+2016-03-08 Move lemma across files.
+2016-03-08 Move lemma across files.
+2016-03-08 Add some missing proof headers.
+2016-03-08 Clean theorem statements a bit.
+2016-03-08 Remove unused lemmas.
+2016-03-08 Remove unused file.
+2016-03-08 Remove unused lemmas.
+2016-03-08 Simplify proofs a bit.
+2016-03-08 Remove unused lemmas.
+2016-03-03 Renamed integral_float_epsilon{,'} integral_float_epsilon ==> integral_float_absolute integral_float_epsilon' ==> integral_float_relative
+2016-03-02 Fix TM_sqrt & Add hyp 'def x' in 'Poly_nth' & Restart proving TM_sqrt_correct.
+2016-02-29 two new benchmarks: one from Laurent Fousse's thesis and one from Frédéric Chyzak
+2016-02-28 WIP for TM_power_int_correct.
+2016-02-28 Regroup sub-proofs of TM_power_int_correct and TM_atan_correct.
+2016-02-28 Prove TM_cos_correct.
+2016-02-28 Remove last admit in TM_sin.
+2016-02-25 Speed up interval_intro by reducing bound proofs a bit before calling vm_compute.
+2016-02-25 Hack the interval versions of sin, cos, and tan, so that they always work for point intervals.
+2016-02-24 Changed integral_float_epsilon{,'} so that there is no redundancy at depth 1
+2016-02-19 Simplify some proofs.
+2016-02-19 Clean code a bit.
+2016-02-19 Remove weaker variants.
+2016-02-19 Avoid depending on transcendental functions just for the toR function.
+2016-02-18 Clean a bit.
+2016-02-18 Move some benchmarks to the testsuite.
+2016-02-18 Add a forwarding operator so that constant values can be handled even in a nonempty context.
+2016-02-18 Fix some issues related to the default precision being too small to conclude.
+2016-02-18 whitespace
+2016-02-18 change integral_float_epsilon' to take into account Guillaume's remarks
+2016-02-16 Added a degree paramater i_integral_deg for Taylor models degrees in tactic.
+2016-02-16 Added tests for depth = 0 and diam roughEst < epsilon to integral_float_epsilon' This prevents redundant computations for edge cases.
+2016-02-16 Restate ex_derive_n_sin -> is_derive_2n_sin & is_derive_n_sin (idem for cos).
+2016-02-15 Add lemmas (size_fact_seq, size_falling_seq).
+2016-02-15 Prove last admits from Interval_tactic.
+2016-02-11 Update proof of TM_sin_correct and TM_cos_correct.
+2016-02-11 basic_rec.v: Prove nth_rec1up.
+2016-02-11 Remove lemma already present in Coquelicot.
+2016-02-11 Prove ex_derive_n_sqrt and ex_derive_n_invsqrt.
+2016-02-11 Prove ex_derive_n_power.
+2016-02-11 Prove ex_derive_n_ln.
+2016-02-11 Prove ex_derive_n_inv.
+2016-02-11 Prove ex_derive_n_sin and ex_derive_n_cos.
+2016-02-11 Fix some compilation issues.
+2016-02-10 Work in progress for validPoly_power_int.
+2016-02-09 Work in progress for validIPoly_power_int.
+2016-02-07 Simplify i_validTM_TLrem & i_validTM_Ztech w.r.t derivability hyps.
+2016-02-06 Revise the spec of Pol.primitive according to new archi and remove some admits.
+2016-02-06 Prove 1 admit to complete integralEnclosure_correct's proof.
+2016-02-05 Prove 6 admits in taylor_model_int_sharp.v.
+2016-02-05 Remove several old lemmas that are subsumed by I.*_propagate_* lemmas.
+2016-02-05 Prove 2 admits in taylor_model_int_sharp.v.
+2016-02-05 Fix compilation.
+2016-02-05 Complete taylor_integral_correct.
+2016-02-05 Remove useless section variables.
+2016-02-05 Update some integral benchmarks.
+2016-02-05 Remove useless dependencies.
+2016-02-05 Merge branch 'dev/simplify-spec-tm' into mergeIntegralNewArchi
+2016-02-05 Fix compilation issues.
+2016-02-05 Convert Interval_taylor_model.v to new i_validTM.
+2016-01-29 Introduced relative error instead of absolute in epsilon method
+2016-01-29 removed last admits in integrability
+2016-01-29 removed last admits in integral_pol
+2016-01-29 ideal validRPA + lemma on primitives + removed admits in integralEnclosureCorrect
+2016-01-29 removed last admit in coquelicot_compl
+2016-01-28 Changed X0 from Variable to Definition as midpoint of X in Interval_integral_taylor
+2016-01-28 Removed integral without epsilons and cleaned up comments. The version with epsilons is superior in that it vastly increases speed by removing needless computations at a very low cost.
+2016-01-28 Removed two admits in integrability, commented useless lemmas.
+2016-01-28 removed Search
+2016-01-28 Removed all but one admits in coquelicot_compl. Remains: continuous ln.
+2016-01-27 Updated benchmarks to reflect improvements from the "epsilon" method + fall back on naive
+2016-01-27 Updated tactic to reflect changes with taylor models. A good part of the current version is that integrability is shown automatically without cheating (through a clever ordering of the match in the base function)
+2016-01-27 Added new functions for computing integrals with Taylor models. We can now fall back on the naive method in case of failure. This allows to estimate RInt sqrt 0 1 for example.
+2016-01-27 reintegrated naive tactic with epsilons
+2016-01-27 typo
+2016-01-26 Tested and modified benchmarks with taylor model based tactic. Nice results!!
+2016-01-26 Removed record, patched tactic, added taylor models in tactic up to admits
+2016-01-26 Added continuity and integrability for Taylor models in integrability.v
+2016-01-26 slight displacement of rpas in taylor_model_int_sharp needed for integrals with taylor models
+2016-01-25 (WIP) generalized interval tactic to be able to instantiate base case differently.
+2016-01-25 R_int_le_strict instead of R_int_le in Interval_integral
+2016-01-25 some cleanup in Interval_integral, residue from merge
+2016-01-22 updated and improved benchmarks
+2016-01-22 added remaining benchmarks from thesis
+2016-01-22 first benchmarks from Laurent Fousse's thesis
+2016-02-03 Further simplify [i_validTM] by removing [dom] then Start proof refactoring.
+2016-02-02 poly_datatypes.v: Prove horner_mul.
+2016-01-28 Merge branch 'mergeIntegralNewArchi' of git+ssh://scm.gforge.inria.fr/gitroot/coq-interval/coq-interval into mergeIntegralNewArchi
+2016-01-28 Work in progress for horner_mul and TM_mul_correct with generic sizes.
+2016-01-22 Fix compilation.
+2016-01-22 Merge of mergeIntegralArchi and polysInIntegral. We now have: - no admits in the integral tactic (up to one or two continuity lemmas in integrability) - a good skeleton for a version of the integral tactic with taylor models
+2016-01-22 In Interval_interval_float_full, replace definitions by Include to reduce name inflation.
+2016-01-22 missing lemma about Xcmp in Interval_xreal
+2016-01-22 added predicate notXnan to Interval_xreal
+2016-01-22 missing lemmas about is_positive and is_negative
+2016-01-22 Complementary lemmas in Coquelicot.
+2016-01-22 Complementary lemmas about reals + patch between ssreflect seq and Coq's List
+2016-01-15 WIP: starting to integrate using taylor models
+2016-01-21 removed all admits with epsilons
+2016-01-20 WIP: remove admits and simplify code for epsilon version
+2016-01-20 type of an argument
+2016-01-15 Fix mul_coeff algo (poly_datatypes.v) & degree args (Interval_taylor_model.v).
+2016-01-15 Fix some compilation errors.
+2016-01-14 Added a precision parameter specifically to compute integrals.
+2016-01-14 Corrected function integral_float_epsilon (epsilon -> epsilon / 2, boolean comparison)
+2016-01-13 Add an i_integral_depth parameter to control integral subdivisions.
+2016-01-14 added a version of the integral with an epsilon and corresponding correction lemmas, with just a few admits
+2016-01-13 fixed compilation after merge
+2016-01-13 Merge branch 'temp' into mergeIntegralNewArchi
+2016-01-13 updated gitignore for ~
+2016-01-13 fixed compilation error of integrability.v
+2016-01-13 Speed up the inner abstract.
+2016-01-13 Fine-tune the reduction process: 6x speedup on bound computations for constants.
+2016-01-12 remove About F.real_correct
+2016-01-12 corrected get_bounds, tactic interval now works!
+2016-01-12 Removed dependency in parameter prec in integrability
+2016-01-10 Merge rpoly_scope into R_scope and WIP for TM_mul_correct.
+2016-01-10 Prove TM_div_mixed_r_correct_strong.
+2016-01-10 Remove the dependency on the Classical standard library.
+2016-01-09 Prove TM_any_correct & Change i_validTM by adding parameter [dom : R -> bool].
+2016-01-09 Add support results and WIP for TM_sqrt_correct.
+2016-01-08 Remove one admit w.r.t NaN propagation.
+2016-01-08 Redesign TM_cst, TM_var and the TM functor in Interval_taylor_model.v.
+2016-01-08 Fix compilation by admit.
+2016-01-08 Prove TM_{mul_mixed,div_mixed_r}_correct_strong.
+2016-01-08 Admit to make everything compile again.
+2016-01-08 a few admits removed in integrability
+2016-01-08 Prove TM_sub_correct.
+2016-01-08 Prove TM_opp_correct.
+2016-01-08 Add support lemmas on intvl and (re)prove Zumkeller_monot_rem, i_validTM_Ztech.
+2016-01-07 removed last admits from Interval_tactic, very painful..
+2016-01-06 WIP.
+2016-01-06 WIP for Zumkeller_monot_rem, i_validTM_Ztech.
+2016-01-06 removed one admit with great pain
+2016-01-06 almost finished proof of integrability for integral_float_signed
+2016-01-06 added elementary lemma about Xcmp
+2016-01-06 WIP for i_validTM_Ztech.
+2016-01-05 Fix position of non-implicit arg for ext lemma (TM_fun_eq).
+2016-01-05 Weaken i_validTM's last condition (when xf is not defined over X0).
+2016-01-05 Fix compilation using admits, Remove useless hyp in Bnd.ComputeBound_propagate.
+2016-01-05 almost finished proof that 'integral computes' -> 'function integrable'
+2016-01-05 Prove i_validTM_TLrem, Tackle TM_add_correct, Clean poly_datatypes.v.
+2016-01-05 Some progress in the proof of integrability, but induction to reformulate.
+2016-01-05 reduced proof of integrability to float integral + not Inan.
+2016-01-05 removed unnecessary hypothesis (F.real fl) for thin_correct_toR
+2016-01-05 taylor_model_int_sharp.v: WIP for i_validTM_Ztech.
+2016-01-04 cleanup and progress in Interval_tactic to automatically show integrability
+2016-01-04 rmvd unneeded lemmas on all_integrals. No admits in Interval_integral now.
+2016-01-04 some progress & cleanup in integrability
+2016-01-04 WIP.
+2016-01-02 Fix link.
+2016-01-02 New release.
+2015-12-30 Address one todo (avoid using the eexists tactic).
+2015-12-29 poly_datatypes.v: Prove 4 holes.
+2015-12-29 Prove {Derive,ex_derive}_horner & validPoly_atan (validIPoly_atan already OK).
+2015-12-29 WIP for TM_atan_correct: Prove lemmas size_*, nth_*, horner_*.
+2015-12-28 Prove nth_grec1up (summary thm), Def eqNai (bool pred), Prove grec1_propagate.
+2015-12-28 Prove (Xreal_atan, etc.), (R_atan_correct, etc.); WIP for TM_atan_correct.
+2015-12-28 Make notDef_Xnan a constructor of validIPoly (IPoly_nan).
+2015-12-27 Prove ITaylor_Lagrange & i_validTM_TLrem, using 1 admitted lemma (notDef_Xnan).
+2015-12-27 s/Pol.eval/Pol.horner/
+2015-12-26 Prove max1n, Add nth_default_alt in PolyIntOps & Prove 2 holes in poly_bound.v.
+2015-12-26 Prove Pol.mul_mixed_correct and Pol.div_mixed_r_correct.
+2015-12-26 Start proving TM_atan_correct.
+2015-12-26 reals_tac.v: Rework elim_rinv.
+2015-12-26 reals_tac.v: Fix add_eq and elim_rinv.
+2015-12-25 Add file reals_tac.v with Ltac simpl_R.
+2015-12-25 Don't Inline the PolyOps Parameters.
+2015-12-25 Remove commented Module Type TaylorPolyOps.
+2015-12-25 Replace [Include Type _ with _] with [Include _ with _]; Remove Inline clauses.
+2015-12-24 Refactor basic_rec and prove the missing correctness lemmas in poly_datatypes.
+2015-12-23 Prove Pol.lift_correct and Pol.tail_correct.
+2015-12-23 Prove Pol.set_nth_correct.
+2015-12-23 Redefine deriv using foldri (new) and prove Pol.deriv_correct.
+2015-12-21 Prove Pol.eval_correct using foldr_correct (stronger version) & R_mask_correct.
+2015-12-21 poly_datatypes.v: Cosmetics.
+2015-12-20 Prove Pol.mul_trunc_correct and Pol.mul_tail_correct.
+2015-12-19 Prove mul_correct (& mul_coeffE, mul_coeff_resize, nth_default_alt, leq_addLR).
+2015-12-19 Generalize mkseq_correct and provide foldr_correct as well as foldl_correct.
+2015-12-19 Use a local notation for RelP (to avoid beta redex after section cooking).
+2015-12-18 Ensure compatibility with Coq 8.5 and adapt to Mathcomp 1.6.
+2015-12-18 Redefine Pol.opp and prove its correctness using map_correct.
+2015-12-17 Generalize map2 for sub; Prove cont0, only0, Pol.add_correct, Pol.sub_correct.
+2015-12-17 Cleanup notations (poly_datatypes.v); setup implicit arguments (poly_bound*.v).
+2015-12-17 Move leq_subnK, big_nat_leq_idx to seq_compl.v and Prove hornerE_wide.
+2015-12-17 poly_datatypes.v: Cleanup and refactoring in progress.
+2015-12-17 Move SeqPolyInt (poly_inst_seq.v -> poly_datatypes.v).
+2015-12-13 seq_compl: Prove fold_correct and mkseq_correct.
+2015-12-12 Extend seq_compl with nth_{map,map2}_dflt lemmas and Prove map2_correct.
+2015-12-11 Don't require {coeff,rpa}_inst.v anymore as they've been removed from the repo.
+2015-12-08 New architecture for interval polynomials (WIP).
+2015-12-09 Fix compilation.
+2015-12-09 Attempt to def TM_atan using TM_integral (cf. end of taylor_model_int_sharp.v).
+2015-12-09 Add a generic definition of prim in Interval_univariate, Interval_taylor_model.
+2015-12-09 The entire library now compiles.
+2015-12-09 Merge Thomas' proof of TM_integral_correct, assuming (xF x <> Xnan) over iX.
+2015-12-08 Import coquelicot_compl/integral_pol and start integrating TM_integral_correct.
+2015-12-08 Ignore backup files.
+2015-12-08 Extend poly_datatypes w.r.t Thomas' branch for importing integral_pol.v.
+2015-12-07 WIP
+2015-12-07 Refactoring in progress.
+2015-12-07 WIP
+2015-12-05 Do a bit of cleanup and remove some admits.
+2015-12-04 small renaming
+2015-12-04 Finished all proofs in Interval_integral, except one. The remaining proof needs the fact that I.join is symmetrical, which it isn't as concerns its specification. I have no easy fix in mind, even though I am confident that the actual implementation of all_integrals satisfies all_integrals_correct.
+2015-12-03 Fill some proof holes.
+2015-12-03 Start refactoring in order to simplify the TM specs and proofs.
+2015-12-02 first attempt at an inversion lemma for Xnan
+2015-12-02 bug at line 998, rejecting statement takes an abnormal amount of time
+2015-10-08 Added a way to extend f : R -> R into xF : ExtendedR -> ExtendedR + correction
+2015-12-01 proved a more general lemma which implies the former
+2015-11-26 minor edits, comments
+2015-11-24 began to attack admits in integral_correct
+2015-11-24 Merge branch 'integrability' into integral
+2015-11-24 commit before merge to use contains_eval
+2015-11-24 removed some admits, but behind main branch..
+2015-11-24 completed proof of integral_correct, debugging tactic now
+2015-11-24 Interval_integral imports integrability
+2015-11-24 proof of integrability
+2015-11-24 Up to seemingly reasonable admits, proved continuity.
+2015-11-23 First attempt to build the complete proof by induction on the program. The statement of the intermediary lemma continuousProg may be too strong. To be continued.
+2015-11-23 added binary operators. Some doubts remain on some admitted lemmas
+2015-11-23 finished proof of continuity for unary ops under some assumptions, but big progress has been made
+2015-11-20 Merge branch 'master' into dev/new-rec
+2015-11-19 not much success, minor attempts to improve
+2015-11-18 Some work done on continuity instead of integrability. It is easier to prove that if f is continuous, cos f is continuous rather than if f is integrable, cos f is integrable
+2015-11-16 first attempts to show integrability. Trying to break down into smaller problems.
+2015-10-13 minor change to prepare proof
+2015-10-13 used join instead of convex_hull + updated integral_correct
+2015-10-13 First attempt at stating a lemma about integrability, probably not there yet
+2015-10-13 Attempt at a better definition of integral function for interval bounds.
+2015-10-12 removed iEx_RInt which was too general an assumption
+2015-10-12 New release.
+2015-10-12 Remove an assumption by adding a dependency on Coquelicot.
+2015-10-12 Add a header to all the source files.
+2015-10-08 potentially resolved unwanted dependencies
+2015-10-08 Filled some blanks and slightly changed integral_correct, modified. tactic file. It is now more general and needs for f to be integrable between any x1 \in ia and x2 \in ib. This is only fair if we're going to approximate all such integrals.
+2015-10-08 Added two missing lemmas about extended reals: - Lemma le_lower_refl (r : R) : le_lower (Xreal r) (Xreal r). - Lemma le_upper_refl (r : R) : le_upper (Xreal r) (Xreal r). They could not be put directly into Interval_xreal.v because the functions le_lower and le_upper are not defined in that file. Maybe this should all move back to Interval_xreal.v?
+2015-10-08 Added a way to extend f : R -> R into xF : ExtendedR -> ExtendedR + correction
+2015-10-07 Generalize and improve integral_correct.
+2015-10-06 Add some architecture for proving bounds on integrals.
+2015-09-25 Update documentation.
+2015-09-25 Implement constantification of bounds for other kinds of inequalities.
+2015-09-24 Remove obsolete comment.
+2015-09-24 Get rid of outer absolute values in the goal.
+2015-09-24 Further simplify the proof script of example-20140221.v.
+2015-09-01 Improve support for Coq 8.5 compilation.
+2015-07-14 Simplify the proof script of example-20140221.v.
+2015-09-14 New release.
+2015-03-02 Ensure compatibility with both Coq 8.4 and 8.5.
+2015-02-18 Adapt to Flocq 2.5.
+2015-01-05 Add Cody and Waite's approximation of exp as an example.
+2014-11-24 New release.
+2014-11-01 Look for hypotheses bounded by non-float yet constant values.
+2014-11-01 Ignore more files.
+2014-11-01 Avoid calling get_float twice for inner constants.
+2014-10-27 Refactoring: Use the predicate not_empty whenever possible.
+2014-10-26 Implement TM_ln in CoqApprox & Use it in the CoqInterval tactic.
+2014-10-25 Add ln in UnivariateApprox, TM, TaylorValuator (naive implementation).
+2014-10-23 Support ln in the tactic.
+2014-10-23 Prove Xderive_pt_ln.
+2014-10-23 Adjust intermediate precisions for ln.
+2014-10-22 Add an interval extension of ln.
+2014-10-22 Add a floating-point evaluator for ln.
+2014-10-22 Provide a power series for ln(1+x)/x.
+2014-10-22 Add Xln.
+2014-10-18 Add tsize_grec1 in PolyOps.
+2014-10-13 Remove inconsistent quotes around $COQC.
+2014-10-13 Improve documentation.
+2014-07-09 Implement order-n Taylor Models for tan, atan.
+2014-07-09 Fix gloop1 and grec1down & Add comments accordingly.
+2014-07-06 Define & Prove a more generic kind of order-1 recurrences than loop1/rec1.
+2014-09-02 New release.
+2014-09-02 Use Flocq 2.4.
+2014-09-01 Update remake.
+2014-08-01 Properly preprocess goals using Rgt.
+2014-07-29 Fix get_bounds in Interval_tactic.
+2014-07-29 Add failing testcase.
+2014-07-28 Update the README file.
+2014-07-28 Add a warning when the tactic silently uses the whole real line for some term.
+2014-07-28 Speed-up one example [i_bisect_diff => i_bisect_taylor].
+2014-07-28 Copy the powerRZ example from README to testsuite/example-20071016.v.
+2014-07-25 Improve range of I.sin from [-pi/2;pi/2] to [-2pi;2pi].
+2014-07-25 Improve range of I.cos from [-pi;pi] to [-2pi;2pi].
+2014-07-24 Silently use the whole real line if no hypothesis talks about a given term.
+2014-07-24 Add support for goal containing <>.
+2014-07-24 Recognize >= and > in the goal.
+2014-07-24 Fix get_bounds in Interval_tactic.
+2014-07-23 Match PI earlier in the tactic.
+2014-07-23 Add pi in IntervalOps & Adapt the tactic to handle PI.
+2014-06-10 Add another example using i_bisect_taylor.
+2014-06-10 Refactor: Remove a superfluous let-in (as well as some old comments).
+2014-06-10 Refactor: Use CoqApprox' theorems about the size of TMs.
+2014-06-10 CoqApprox: Add theorems about the size of TMs.
+2014-06-10 Do some cleanup in example-20140221.v
+2014-06-09 Rephrase ComputeBound by using the notation for non-dependent product.
+2014-06-04 CoqApprox: Improve Ztech: Replace 1 Horner evaluation with (Pol.tnth P 0).
+2014-05-31 Remove lemma powerRZ_pow, which is subsumed by Interval_missing.pow_powerRZ.
+2014-05-31 CoqApprox: Rename TM_const into TM_any.
+2014-05-29 Remove the coqc flag "-dont-load-proofs".
+2014-05-29 Update example-20071016.v.
+2014-05-27 Enhance Horner's scheme by looking at the first 3 coefficients.
+2014-05-27 Add poly_bound.v in Remakefile.in.
+2014-05-27 Add Inline annotations in most of CoqApprox' interfaces.
+2014-05-27 Add zero in IntervalOps.
+2014-05-26 CoqApprox: Update headers.
+2014-05-23 Remove commented old code in taylor_model_int_sharp.v.
+2014-05-23 CoqApprox: Replace teval with ComputeBound when multiplying TMs.
+2014-05-23 CoqApprox: Refactor ComputeBound_correct to rely on I.extension.
+2014-05-22 CoqApprox: Remove ComputeBound_nth0 from interface thx to ComputeBound_correct.
+2014-05-13 CoqApprox: Generalize TM_comp w.r.t the ComputeBound function.
+2014-04-23 Do some cleanup in testsuite/example-20140221.v.
+2014-04-23 Optimize TM.mul/TM.div in mixed context & Replace TM_const with tighter TM_cst.
+2014-04-03 Prepare for release.
+2014-04-03 Prove atan_fast0i_correct and simplify its hypotheses.
+2014-04-03 Strengthen abs_ge_0 and prove sqr_ge_0.
+2014-04-03 Prove atan_fast0_correct.
+2014-04-03 Prove atan_atanc.
+2014-04-03 Prove atanc_opp.
+2014-04-03 Define atanc (= atan(x) / x).
+2014-04-03 Prove Un_cv_atanc.
+2014-04-03 Prove Un_decreasing_atanc.
+2014-04-02 Prove correctness of specializations mantissa_sqrt and exponent_div2_floor.
+2014-04-02 Prove sqrt_correct under some assumptions.
+2014-03-28 Adjust proofs to Flocq master.
+2014-03-26 Take into account the library split between Ssreflect and MathComp.
+2014-03-26 Remove axioms on Hilbert's epsilon and functional extensionality.
+2014-03-24 Prove atan_fast_correct.
+2014-03-24 Prove atan_inv.
+2014-03-24 Prove atan_plus_PI4.
+2014-03-24 Move proofs around.
+2014-03-24 Prove Fsub_exact_correct.
+2014-03-22 Prove pi4_correct assuming atan_fast0i_correct.
+2014-03-21 Remove pointless argument.
+2014-03-19 Prove tan_correct.
+2014-03-19 Prove tan_fastP_correct.
+2014-03-19 Prove Xneg_involutive.
+2014-03-19 Weaken hypotheses of sin_cos_reduce_correct.
+2014-03-19 Reduce some proof duplication.
+2014-03-19 Factor identical functions.
+2014-03-19 Prove sin_fast0_correct.
+2014-03-19 Define sinc and prove some facts about it.
+2014-03-19 Fix incorrect code for sin around zero.
+2014-03-19 Fix broken constants.
+2014-03-17 Fix compilation with ssreflect 1.5.
+2014-03-17 Add compatibility layer for changes to Rplus_lt_reg.
+2014-03-14 Precompute some integer constants.
+2014-02-28 Reduce bookkeeping in example.
+2014-02-28 Add a simple example (< 5s) involving Rabs in an inner sub-expression.
+2014-02-27 Update documentation.
+2014-02-27 Remove cleanup from example.
+2014-02-27 Add support for pow.
+2014-02-27 Fix usage of xalgorithm as a preprocessing tactic.
+2014-02-27 Add support for intro patterns to interval_intro.
+2014-02-27 Fix the CoqApprox implementation of TM.power_int & Update the proofs.
+2014-02-26 Implement TM.power_int & Specialize it to get TM.sqr.
+2014-02-24 Prove cos_fast0_correct.
+2014-02-24 Prove Un_cv_subseq.
+2014-02-24 Prove Un_decreasing_cos.
+2014-02-24 Add TM.tan and TM.atan in the interface.
+2014-02-24 Prove atan_correct for intervals.
+2014-02-24 Prove tan_correct for intervals.
+2014-02-24 Add Flt helper to Intervl_interval_float.
+2014-02-23 Add missing "apply TM.abs_correct" in Interval_bisect.v.
+2014-02-23 Merge branch 'master' of git+ssh://scm.gforge.inria.fr//gitroot/gappa/interval
+2014-02-23 Implement & Prove TM.abs.
+2014-02-23 Prove cos_correct for intervals.
+2014-02-23 Prove abs_ge_0 for intervals.
+2014-02-23 Check tactic interval_intro/i_bisect_taylor as well.
+2014-02-23 Prove expn_fast0_correct.
+2014-02-23 Prove Un_decreasing_exp.
+2014-02-23 Move theorem to Interval_missing.
+2014-02-23 Prove Fmul_exact_correct.
+2014-02-23 Implement/Prove div as well as inv/sqrt/cos/sin (in a generic way).
+2014-02-23 Fix the args order of TM.eval in Ltac.
+2014-02-22 Refactoring: Fix the args order of TM.approximates as well as TM.eval.
+2014-02-22 Add missing fields in the Interval_univariate.v interface.
+2014-02-22 Add one example (due to John Harrison) in the testsuite.
+2014-02-22 A bit of cleanup.
+2014-02-22 Fix pad2 & Implement opp/sub/mul in CoqApprox as well as in the interface.
+2014-02-21 Fix compilation issue [A.TaylorValuator.dummy -> A.TaylorValuator.TM.dummy].
+2014-02-21 Merge branch 'master' of git+ssh://scm.gforge.inria.fr//gitroot/gappa/interval
+2014-02-21 Change approximates & Simplify/Prove all interface members accordingly.
+2014-02-20 Fix src/clean target.
+2014-02-20 Generalize bisection checkers so that they are no longer limited to a single function.
+2014-02-20 Avoid polluting the user namespace.
+2014-02-20 Add option "i_bisect_taylor var deg" to interval.
+2014-02-19 Try fitting Taylor models inside the tactic.
+2014-02-19 Strengthen tactic lemmas by replacing Xreal 0 with Xnan.
+2014-02-19 Factor some common parts out of the existing tactics.
+2014-02-19 Drop hyp (I.subset X Y) in eval_correct thanks to a dummy else branch in eval.
+2014-02-18 Merge coqapprox files into the build system.
+2014-02-18 Start proving expn_fast0_correct.
+2014-02-18 Add coq_makefile-based file.
+2014-02-18 Add Interval_univariate.v & Interval_taylor_model.v.
+2014-02-18 Add dev version of CoqApprox' theories (as of tamadi-r1659).
+2014-02-13 Prove add_correct.
+2014-02-13 Ignore Remakefile.
+2014-02-13 Finish proof of mantissa_shr_correct.
+2014-02-12 Partly prove mantissa_shr_correct.
+2014-02-11 Prove lemma mantissa_div_correct.
+2013-12-21 New release.
+2013-12-21 Fix install rule on case-insensitive filesystems.
+2013-12-21 Update remake.
+2013-06-05 New release.
+2013-06-05 Update remake.
+2013-06-05 Remove the custom definition of atan now that it has been added to Coq 8.4.
+2013-05-28 Add lower_correct and upper_correct to IntervalOps.
+2013-05-28 Add Xlower and Xupper for recovering interval bounds.
+2013-05-28 Allow the usage of COQBIN at configure time.
+2013-04-01 New release.
+2013-04-01 Switch build system to remake.
+2013-04-01 Merge branch 'coq-trunk'
+2013-04-01 New release.
+2012-09-27 Make sure that interval_intro and interval uses the same definition of depth when bisecting.
+2012-09-24 Fix compilation for Coq 8.4.
+2012-09-24 Merge tag 'interval-0.15.0' into coq-trunk
+2012-07-16 Prove join_correct.
+2012-07-06 New release.
+2012-07-06 Add mantissa_scale2_correct and prove scale2_correct.
+2012-07-06 Finish proof of mantissa_digits_correct.
+2012-07-05 Add mantissa_sub_correct signature and prove add_exact_aux_correct.
+2012-07-05 Properly handle abs and its derivative inside the tactic.
+2012-07-05 Remove long-forgotten commented code.
+2012-05-16 Add support for powerRZ in the tactic.
+2012-05-16 Prove Xderive_pt_power_int.
+2012-05-16 Add function FloatInterval.power_int that extends powerRZ.
+2012-05-16 Remove useless absolute value in square computation.
+2012-02-05 Add new examples.
+2012-02-05 Generalize the solver constraint so that positivity can be checked too.
+2012-02-04 Add sign_strict to IntervalOps.
+2012-02-04 Fix slow detection of useless output for interval_intro.
+2011-12-08 New release.
+2011-12-08 Update to Flocq 2.0.
+2011-11-26 Update to Flocq 2.0.
+2011-11-24 Update to Flocq 2.0.
+2011-11-22 Update to Coq trunk.
+2011-11-16 Modularize the tactics so that their instance can be changed without modifying the library.
+2011-09-07 Updated div_mixed_r_correct proof.
+2011-09-07 Updated mul_mixed_correct proof.
+2011-09-07 Fixed handling of error messages with Coq 8.3.
+2011-06-12 Proved sin_correct.
+2011-06-11 Proved round_aux_correct.
+2011-06-11 Proved adjust_mantissa_correct.
+2011-06-11 Added mantissa_one_correct and mantissa_add_correct.
+2011-06-11 Generalized need_change and need_change_radix.
+2011-06-11 Added mantissa_even_correct.
+2011-06-11 Proved exp_correct.
+2011-06-11 Proved inv_correct.
+2011-06-10 Proved sqr_correct.
+2011-04-07 Avoided GNU extension.
+2011-03-30 Partly proved BigIntRadix2.mantissa_digits_correct.
+2011-03-30 Proved BigIntRadix2.mantissa_shl_correct.
+2011-03-30 Proved StdZRadix2.mantissa_digits_correct.
+2011-03-30 Used Flocq integer square root.
+2011-03-29 Proved Specific_float.div_correct.
+2011-03-17 Release 0.13.0
+2011-03-17 Fixed compilation with Coq 8.3.
+2011-01-17 Release 0.12.1
+2011-01-17 Fixed compilation with Flocq 1.2.
+2010-11-22 New release.
+2010-11-22 Proved Fscale2_correct.
+2010-11-04 Proved Fcmp_aux2_correct.
+2010-11-03 Proved Fround_at_prec_pos_Eq.
+2010-11-03 Finished proof of Fround_at_prec_correct.
+2010-11-03 Proved adjust_pos_correct.
+2010-11-02 Merge branch 'master' into flocq
+2010-11-02 Modified FtoR_split transformation.
+2010-11-02 Fixed naming.
+2010-10-29 Started proof of Fround_at_prec_correct.
+2010-10-29 Proved need_change_correct.
+2010-10-28 Fixed division by zero.
+2010-10-28 Switched to Flocq's brackets.
+2010-10-28 Imported Flocq's rounding.
+2010-10-28 Imported Flocq's Rcompare.
+2010-10-27 Proved shift_correct.
+2010-10-26 Imported Flocq's rounding predicates.
+2010-10-26 Removed obsolete lemmas.
+2010-10-26 Removed some axioms.
+2010-10-26 Partly converted to Flocq's digit counting.
+2010-10-26 Converted to Flocq's radix.
+2010-10-26 Removed obsolete lemmas.
+2010-10-26 Removed obsolete lemma.
+2010-10-26 Converted Fdiv algorithm to Flocq.
+2010-10-26 Merge branch 'master' into flocq
+2010-10-26 Added dependency check for Flocq.
+2010-10-26 Updated to new Flocq interface.
+2010-10-21 Added missing autogen.sh.
+2010-10-21 New release.
+2010-10-21 Improved testsuite.
+2010-08-19 Imported some basic theorems.
+2010-08-19 Added parts of the proof of square root.
+2010-07-13 Partly tried to rely on Flocq for sqrt.
+2010-01-07 Added .gitignore file.
+2010-01-07 Added testsuite.
+2010-01-07 Prevented computations from being performed several times.
+2010-01-07 Improved directory structure.
+2010-01-07 Imported version 0.10.
+2008-12-19 Imported version 0.9.
+2008-08-07 Imported version 0.8.
+2008-03-10 Imported version 0.7.
+2008-03-07 Imported version 0.6.
+2008-03-04 Imported version 0.5.
+2008-03-03 Imported version 0.4.
+2007-12-14 Imported version 0.3.
+2007-10-23 Imported version 0.2.
+2007-10-16 Imported version 0.1.

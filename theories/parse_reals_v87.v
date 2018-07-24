@@ -65,7 +65,7 @@ have IQRp : forall p,
 elim c.
 { by rewrite /bigQ2R /Q2R /= /Rdiv Rmult_0_l. }
 { done. }
-{ move=> [|p|p] /=.
+{ move=> [ |p|p] /=.
   { by rewrite /bigQ2R /Q2R /= /Rdiv Rmult_0_l. }
   { by rewrite /bigQ2R IQRp /IZR. }
   by rewrite /bigQ2R /IZR -IQRp -Q2R_opp. }

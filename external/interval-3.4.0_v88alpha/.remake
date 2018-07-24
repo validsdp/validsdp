@@ -1,0 +1,47 @@
+Remakefile : Remakefile.in config.status
+all : src/Interval_bigint_carrier.vo src/Interval_bisect.vo src/Interval_definitions.vo src/Interval_float_sig.vo src/Interval_generic.vo src/Interval_generic_ops.vo src/Interval_generic_proof.vo src/Interval_integral.vo src/Interval_interval.vo src/Interval_interval_float.vo src/Interval_interval_float_full.vo src/Interval_missing.vo src/Interval_specific_ops.vo src/Interval_specific_sig.vo src/Interval_stdz_carrier.vo src/Interval_tactic.vo src/Interval_taylor_model.vo src/Interval_transcend.vo src/Interval_univariate.vo src/Interval_xreal.vo src/Interval_xreal_derive.vo src/bertrand.vo src/coqapprox/Rstruct.vo src/coqapprox/basic_rec.vo src/coqapprox/coquelicot_compl.vo src/coqapprox/integral_pol.vo src/coqapprox/interval_compl.vo src/coqapprox/poly_bound.vo src/coqapprox/poly_bound_quad.vo src/coqapprox/poly_datatypes.vo src/coqapprox/seq_compl.vo src/coqapprox/taylor_model_int_sharp.vo src/coqapprox/taylor_poly.vo src/coqapprox/taylor_thm.vo src/coqapprox/xreal_ssr_compat.vo src/various_integrals.vo
+check : testsuite/check
+clean : src/clean testsuite/clean
+configure config.status : configure.in
+deps.dot : src/Interval_bigint_carrier.v src/Interval_bisect.v src/Interval_definitions.v src/Interval_float_sig.v src/Interval_generic.v src/Interval_generic_ops.v src/Interval_generic_proof.v src/Interval_integral.v src/Interval_interval.v src/Interval_interval_float.v src/Interval_interval_float_full.v src/Interval_missing.v src/Interval_specific_ops.v src/Interval_specific_sig.v src/Interval_stdz_carrier.v src/Interval_tactic.v src/Interval_taylor_model.v src/Interval_transcend.v src/Interval_univariate.v src/Interval_xreal.v src/Interval_xreal_derive.v src/bertrand.v src/coqapprox/Rstruct.v src/coqapprox/basic_rec.v src/coqapprox/coquelicot_compl.v src/coqapprox/integral_pol.v src/coqapprox/interval_compl.v src/coqapprox/poly_bound.v src/coqapprox/poly_bound_quad.v src/coqapprox/poly_datatypes.v src/coqapprox/seq_compl.v src/coqapprox/taylor_model_int_sharp.v src/coqapprox/taylor_poly.v src/coqapprox/taylor_thm.v src/coqapprox/xreal_ssr_compat.v src/various_integrals.v
+dist : configure
+install :
+src/Interval_bigint_carrier.vo : src/Interval_bigint_carrier.v src/Interval_definitions.vo src/Interval_generic.vo src/Interval_generic_proof.vo src/Interval_specific_sig.vo
+src/Interval_bisect.vo : src/Interval_bisect.v src/Interval_definitions.vo src/Interval_interval.vo src/Interval_missing.vo src/Interval_taylor_model.vo src/Interval_xreal.vo src/Interval_xreal_derive.vo src/coqapprox/coquelicot_compl.vo
+src/Interval_definitions.vo : src/Interval_definitions.v src/Interval_xreal.vo
+src/Interval_float_sig.vo : src/Interval_definitions.vo src/Interval_float_sig.v src/Interval_missing.vo src/Interval_xreal.vo
+src/Interval_generic.vo : src/Interval_definitions.vo src/Interval_generic.v src/Interval_xreal.vo
+src/Interval_generic_ops.vo : src/Interval_definitions.vo src/Interval_float_sig.vo src/Interval_generic.vo src/Interval_generic_ops.v src/Interval_generic_proof.vo src/Interval_missing.vo src/Interval_xreal.vo
+src/Interval_generic_proof.vo : src/Interval_definitions.vo src/Interval_generic.vo src/Interval_generic_proof.v src/Interval_missing.vo src/Interval_xreal.vo
+src/Interval_integral.vo : src/Interval_float_sig.vo src/Interval_integral.v src/Interval_interval.vo src/Interval_missing.vo src/Interval_taylor_model.vo src/Interval_xreal.vo src/coqapprox/coquelicot_compl.vo src/coqapprox/interval_compl.vo
+src/Interval_interval.vo : src/Interval_definitions.vo src/Interval_interval.v src/Interval_missing.vo src/Interval_xreal.vo
+src/Interval_interval_float.vo : src/Interval_definitions.vo src/Interval_float_sig.vo src/Interval_interval.vo src/Interval_interval_float.v src/Interval_missing.vo src/Interval_xreal.vo
+src/Interval_interval_float_full.vo : src/Interval_definitions.vo src/Interval_float_sig.vo src/Interval_interval.vo src/Interval_interval_float.vo src/Interval_interval_float_full.v src/Interval_transcend.vo src/Interval_xreal.vo
+src/Interval_missing.vo : src/Interval_missing.v
+src/Interval_specific_ops.vo : src/Interval_definitions.vo src/Interval_float_sig.vo src/Interval_generic.vo src/Interval_generic_proof.vo src/Interval_missing.vo src/Interval_specific_ops.v src/Interval_specific_sig.vo src/Interval_xreal.vo
+src/Interval_specific_sig.vo : src/Interval_definitions.vo src/Interval_generic.vo src/Interval_generic_proof.vo src/Interval_specific_sig.v
+src/Interval_stdz_carrier.vo : src/Interval_definitions.vo src/Interval_generic.vo src/Interval_generic_proof.vo src/Interval_specific_sig.vo src/Interval_stdz_carrier.v
+src/Interval_tactic.vo : src/Interval_bigint_carrier.vo src/Interval_bisect.vo src/Interval_definitions.vo src/Interval_float_sig.vo src/Interval_integral.vo src/Interval_interval.vo src/Interval_interval_float_full.vo src/Interval_missing.vo src/Interval_specific_ops.vo src/Interval_tactic.v src/Interval_xreal.vo src/bertrand.vo src/coqapprox/coquelicot_compl.vo src/various_integrals.vo
+src/Interval_taylor_model.vo : src/Interval_definitions.vo src/Interval_interval.vo src/Interval_taylor_model.v src/Interval_univariate.vo src/Interval_xreal.vo src/coqapprox/Rstruct.vo src/coqapprox/interval_compl.vo src/coqapprox/poly_bound.vo src/coqapprox/poly_bound_quad.vo src/coqapprox/poly_datatypes.vo src/coqapprox/taylor_model_int_sharp.vo
+src/Interval_transcend.vo : src/Interval_definitions.vo src/Interval_float_sig.vo src/Interval_interval.vo src/Interval_interval_float.vo src/Interval_missing.vo src/Interval_transcend.v src/Interval_xreal.vo
+src/Interval_univariate.vo : src/Interval_interval.vo src/Interval_univariate.v src/Interval_xreal.vo
+src/Interval_xreal.vo : src/Interval_missing.vo src/Interval_xreal.v
+src/Interval_xreal_derive.vo : src/Interval_missing.vo src/Interval_xreal.vo src/Interval_xreal_derive.v
+src/bertrand.vo : src/Interval_float_sig.vo src/Interval_interval.vo src/Interval_missing.vo src/Interval_xreal.vo src/bertrand.v src/coqapprox/coquelicot_compl.vo src/coqapprox/interval_compl.vo
+src/clean :
+src/coqapprox/Rstruct.vo : src/coqapprox/Rstruct.v
+src/coqapprox/basic_rec.vo : src/coqapprox/basic_rec.v src/coqapprox/seq_compl.vo
+src/coqapprox/coquelicot_compl.vo : src/Interval_missing.vo src/coqapprox/Rstruct.vo src/coqapprox/coquelicot_compl.v src/coqapprox/poly_datatypes.vo
+src/coqapprox/integral_pol.vo : src/coqapprox/Rstruct.vo src/coqapprox/integral_pol.v src/coqapprox/poly_datatypes.vo
+src/coqapprox/interval_compl.vo : src/Interval_interval.vo src/Interval_missing.vo src/Interval_xreal.vo src/coqapprox/Rstruct.vo src/coqapprox/interval_compl.v src/coqapprox/taylor_thm.vo src/coqapprox/xreal_ssr_compat.vo
+src/coqapprox/poly_bound.vo : src/Interval_interval.vo src/Interval_missing.vo src/coqapprox/Rstruct.vo src/coqapprox/poly_bound.v src/coqapprox/poly_datatypes.vo src/coqapprox/seq_compl.vo
+src/coqapprox/poly_bound_quad.vo : src/Interval_interval.vo src/Interval_missing.vo src/Interval_xreal.vo src/coqapprox/Rstruct.vo src/coqapprox/interval_compl.vo src/coqapprox/poly_bound.vo src/coqapprox/poly_bound_quad.v src/coqapprox/poly_datatypes.vo src/coqapprox/seq_compl.vo
+src/coqapprox/poly_datatypes.vo : src/Interval_interval.vo src/Interval_missing.vo src/Interval_xreal.vo src/coqapprox/Rstruct.vo src/coqapprox/basic_rec.vo src/coqapprox/interval_compl.vo src/coqapprox/poly_datatypes.v src/coqapprox/seq_compl.vo
+src/coqapprox/seq_compl.vo : src/coqapprox/seq_compl.v
+src/coqapprox/taylor_model_int_sharp.vo : src/Interval_definitions.vo src/Interval_interval.vo src/Interval_missing.vo src/Interval_xreal.vo src/Interval_xreal_derive.vo src/coqapprox/Rstruct.vo src/coqapprox/basic_rec.vo src/coqapprox/coquelicot_compl.vo src/coqapprox/integral_pol.vo src/coqapprox/interval_compl.vo src/coqapprox/poly_bound.vo src/coqapprox/poly_datatypes.vo src/coqapprox/seq_compl.vo src/coqapprox/taylor_model_int_sharp.v src/coqapprox/taylor_poly.vo src/coqapprox/xreal_ssr_compat.vo
+src/coqapprox/taylor_poly.vo : src/Interval_interval.vo src/coqapprox/basic_rec.vo src/coqapprox/poly_datatypes.vo src/coqapprox/taylor_poly.v
+src/coqapprox/taylor_thm.vo : src/Interval_missing.vo src/coqapprox/taylor_thm.v
+src/coqapprox/xreal_ssr_compat.vo : src/Interval_definitions.vo src/Interval_missing.vo src/Interval_xreal.vo src/coqapprox/Rstruct.vo src/coqapprox/xreal_ssr_compat.v
+src/various_integrals.vo : src/Interval_float_sig.vo src/Interval_interval.vo src/Interval_missing.vo src/Interval_xreal.vo src/bertrand.vo src/coqapprox/coquelicot_compl.vo src/coqapprox/interval_compl.vo src/various_integrals.v
+testsuite/check : src/Interval_tactic.vo
+testsuite/clean :

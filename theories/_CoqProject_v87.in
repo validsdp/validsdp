@@ -23,7 +23,6 @@ iteri_ord.v
 bigop_tactics.v
 parse_reals_@COQ_VERSION@.v
 parse_reals.v
-ssrmultinomials_complements.v
-validsdp.v
+posdef_check.v
 
 COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R . @PACKAGE_NAME@"
