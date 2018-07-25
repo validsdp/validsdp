@@ -789,21 +789,18 @@ suff->: Q'' = castmx (HszQ, HszQ) (cholesky.MF2R (cholesky_infnan.MFI2F Qb)).
   apply eq_bigr => l Hl.
   by rewrite /h !(castmxE, cast_ord_comp, cast_ord_id, mxE). }
 apply/matrixP => i j; rewrite !(mxE, castmxE) /= /map_seqmx /Q'.
-Ltac tweak_map def tac :=
-  erewrite nth_map with (x1 := def); last tac.
 have Hrow : forall i : 'I_(size Q), (size (nth [::] Q i) = size Q)%N.
   by admit.
-tweak_map ([::] : seq R) ltac:(by rewrite size_map).
-tweak_map R0 ltac:(tweak_map ([::] : seq F.type)
-  ltac:(done; by rewrite size_map Hrow)).
-tweak_map ([::] : seq F.type) ltac:(done).
-tweak_map F.zero ltac:(by rewrite Hrow).
-tweak_map ([::] : seq FI) ltac:(by rewrite size_map).
-tweak_map (F2FI F.zero)
-  ltac:(tweak_map ([::] : seq F.type) ltac:(done);
-    by rewrite size_map Hrow).
-tweak_map ([::] : seq F.type) ltac:(done).
-tweak_map F.zero ltac:(by rewrite Hrow).
+rewrite (nth_map ([::] : seq R)); last by rewrite size_map.
+rewrite (nth_map R0);
+  last by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
+rewrite (nth_map ([::] : seq F.type)) //.
+rewrite (nth_map F.zero); last by rewrite Hrow.
+rewrite (nth_map ([::] : seq FI)); last by rewrite size_map.
+rewrite (nth_map (F2FI F.zero));
+  last by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
+rewrite (nth_map ([::] : seq F.type)) //.
+rewrite (nth_map F.zero); last by rewrite Hrow.
 have HFin' : forall (i j : 'I_(size Q)),
   F.real (F2FI (nth F.zero(*?*) (nth [::] Q i) j)).
 { by admit. }
