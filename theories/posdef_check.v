@@ -736,7 +736,7 @@ Definition posdefcheck_eff_wrapup (Q : seq (seq (s_float bigZ bigZ))) :=
 
 Definition posdef_seqF (mat : seq (seq F.type)) : Prop :=
   let m := seq.size mat in
-  posdef (spec_seqmx (H0:=(fun x => x)) m m (map (map toR) mat)).
+  posdef (spec_seqmx (H0 := id) m m (map (map toR) mat)).
 
 Theorem posdefcheck_eff_wrapup_correct Q :
   @posdefcheck_eff_wrapup Q -> posdef_seqF Q.
@@ -789,20 +789,21 @@ suff->: Q'' = castmx (HszQ, HszQ) (cholesky.MF2R (cholesky_infnan.MFI2F Qb)).
   apply eq_bigr => l Hl.
   by rewrite /h !(castmxE, cast_ord_comp, cast_ord_id, mxE). }
 apply/matrixP => i j; rewrite !(mxE, castmxE) /= /map_seqmx /Q'.
-Tactic Notation "tweak_map" constr(def) tactic3(tac) :=
+Ltac tweak_map def tac :=
   erewrite nth_map with (x1 := def); last tac.
-Tactic Notation "tweak_map" "_" tactic3(tac) :=
-  erewrite nth_map; last tac.
 have Hrow : forall i : 'I_(size Q), (size (nth [::] Q i) = size Q)%N.
   by admit.
-tweak_map ([::] : seq R) by rewrite size_map.
-tweak_map R0 (tweak_map ([::] : seq F.type) done; by rewrite size_map Hrow).
-tweak_map ([::] : seq F.type) done.
-tweak_map F.zero by rewrite Hrow.
-tweak_map ([::] : seq FI) by rewrite size_map.
-tweak_map (F2FI F.zero) (tweak_map ([::] : seq F.type) done; by rewrite size_map Hrow).
-tweak_map ([::] : seq F.type) done.
-tweak_map F.zero by rewrite Hrow.
+tweak_map ([::] : seq R) ltac:(by rewrite size_map).
+tweak_map R0 ltac:(tweak_map ([::] : seq F.type)
+  ltac:(done; by rewrite size_map Hrow)).
+tweak_map ([::] : seq F.type) ltac:(done).
+tweak_map F.zero ltac:(by rewrite Hrow).
+tweak_map ([::] : seq FI) ltac:(by rewrite size_map).
+tweak_map (F2FI F.zero)
+  ltac:(tweak_map ([::] : seq F.type) ltac:(done);
+    by rewrite size_map Hrow).
+tweak_map ([::] : seq F.type) ltac:(done).
+tweak_map F.zero ltac:(by rewrite Hrow).
 have HFin' : forall (i j : 'I_(size Q)),
   F.real (F2FI (nth F.zero(*?*) (nth [::] Q i) j)).
 { by admit. }
@@ -816,9 +817,12 @@ Require matrices.
 Ltac posdef_check :=
   match goal with
   | [ |- posdef_seqF ?Q ] =>
-    apply @posdefcheck_eff_wrapup_correct;
-    by vm_compute
+    abstract (apply @posdefcheck_eff_wrapup_correct;
+      vm_cast_no_check (erefl true))
   end.
+
+(* Eval vm_compute in posdef_check matrices.m4. Bug. *)
+Time Eval vm_compute in posdefcheck_eff_wrapup matrices.m4.
 
 Goal posdef_seqF matrices.m4.
 Time posdef_check.
