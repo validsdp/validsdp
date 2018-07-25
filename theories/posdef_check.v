@@ -1,25 +1,23 @@
+(* (setq coq-prog-name "~/forge/git/validsdp/coq/bin/coqtop") *)
 (** * Main tactic for multivariate polynomial positivity. *)
 
 Require Import ZArith.
 From Flocq Require Import Core. Require Import Datatypes.
 From Interval Require Import Interval_definitions Interval_xreal.
 From Interval Require Import Interval_missing.
+From Interval Require Import Interval_specific_ops. (* for Float *)
 From CoqEAL.theory Require Import ssrcomplements.
 From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint rational binrat.
 Require Import Reals Flocq.Core.Raux QArith CBigZ CBigQ Psatz FSetAVL.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
-From SsrMultinomials Require Import mpoly.
-Require Import ssrmultinomials_complements.
 Require Import Rstruct.
 Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog coqinterval_infnan.
-From CoqEAL.refinements Require Import multipoly. Import PolyAVL.
 From ValidSDP Require Import zulp.
-Require Import misc.
-From ValidSDP Require Export soswitness.
+From ValidSDP Require Import misc.
 
 Import GRing.Theory.
 Import Num.Theory.
@@ -34,19 +32,6 @@ Require Export parse_reals. (** [Import] would not suffice... because
 that file defines [Coercion bigQ2R : BigQ.t_ >-> R] that is used by the
 tactics. *)
 
-Inductive p_abstr_poly :=
-  (* | Const of Poly.t *)
-  (* | Mult_scalar of Poly.Coeff.t * abstr_poly *)
-  | PConst of p_real_cst
-  | PVar of nat
-  | POpp of p_abstr_poly
-  | PAdd of p_abstr_poly & p_abstr_poly
-  | PSub of p_abstr_poly & p_abstr_poly
-  | PMul of p_abstr_poly & p_abstr_poly
-  | PPowN of p_abstr_poly & binnat.N
-  | PPown of p_abstr_poly & nat
-  | PCompose of p_abstr_poly & seq p_abstr_poly.
-
 Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
   match s with
   | [::] => True
@@ -57,16 +42,16 @@ Lemma all_prop_nthP T (P : T -> Prop) (s : seq T) (x0 : T) :
   (forall i, (i < size s)%N -> P (nth x0 s i)) <-> all_prop P s.
 Proof.
 elim: s => [//|h t Ht] /=; split.
-{ move=> H1; split; [by apply (H1 O)|].
+{ move=> H1; split; [by apply (H1 O)| ].
   by apply Ht => i Hi; apply (H1 i.+1). }
-by move=> [Hh Ht'] [|i] Hi //=; apply Ht.
+by move=> [Hh Ht'] [ |i] Hi //=; apply Ht.
 Qed.
 
 Lemma all_prop_forall T1 T2 (P : T1 -> T2 -> Prop) (s : seq T1) :
   all_prop (fun x : T1 => forall y : T2, P x y) s ->
   forall y : T2, all_prop (fun x : T1 => P x y) s.
 Proof.
-elim: s => [|x s IHs] H y =>//=.
+elim: s => [ |x s IHs] H y =>//=.
 by have /= [H1 H2] := H; split; last exact: IHs.
 Qed.
 
@@ -75,57 +60,13 @@ Lemma eq_map_all_prop T1 T2 (f1 f2 : T1 ->  T2) (s : seq T1) :
   [seq f1 i | i <- s] =
   [seq f2 i | i <- s].
 Proof.
-elim: s => [|x s IHs] H //=.
+elim: s => [ |x s IHs] H //=.
 have /= [-> H2] := H; congr cons; exact: IHs.
 Qed.
 
 Lemma all_prop_cat (T : Type) (a : T -> Prop) (s1 s2 : seq T) :
   all_prop a (s1 ++ s2) <-> all_prop a s1 /\ all_prop a s2.
-Proof. by elim: s1 => [|x s1 IHs] //=; intuition. Qed.
-
-Section Defix.
-Variable (P : p_abstr_poly -> Prop).
-Let P' := all_prop P.
-Variable (f : forall p : p_real_cst, P (PConst p)).
-Variable (f0 : forall n : nat, P (PVar n)) (f1 : forall p : p_abstr_poly, P p -> P (POpp p)).
-Variable (f2 : forall p : p_abstr_poly, P p -> forall p0 : p_abstr_poly, P p0 -> P (PAdd p p0)).
-Variable (f3 : forall p : p_abstr_poly, P p -> forall p0 : p_abstr_poly, P p0 -> P (PSub p p0)).
-Variable (f4 : forall p : p_abstr_poly, P p -> forall p0 : p_abstr_poly, P p0 -> P (PMul p p0)).
-Variable (f5 : forall p : p_abstr_poly, P p -> forall n : BinNums.N, P (PPowN p n)).
-Variable (f6 : forall p : p_abstr_poly, P p -> forall n : nat, P (PPown p n)).
-Variable (f7 : forall p : p_abstr_poly, P p -> forall l : seq p_abstr_poly, P' l -> P (PCompose p l)).
-
-Fixpoint p_abstr_poly_ind' (p : p_abstr_poly) : P p :=
-  let fix p_abstr_poly_ind2 (l : seq p_abstr_poly) : P' l :=
-  match l as l0 return (P' l0) with
-  | [::] => I
-  | p :: l' => conj (p_abstr_poly_ind' p) (p_abstr_poly_ind2 l')
-  end in
-  match p as p0 return (P p0) with
-  | PConst p0 => f p0
-  | PVar n => f0 n
-  | POpp p0 => f1 (p_abstr_poly_ind' p0)
-  | PAdd p0 p1 => f2 (p_abstr_poly_ind' p0) (p_abstr_poly_ind' p1)
-  | PSub p0 p1 => f3 (p_abstr_poly_ind' p0) (p_abstr_poly_ind' p1)
-  | PMul p0 p1 => f4 (p_abstr_poly_ind' p0) (p_abstr_poly_ind' p1)
-  | PPowN p0 n => f5 (p_abstr_poly_ind' p0) n
-  | PPown p0 n => f6 (p_abstr_poly_ind' p0) n
-  | PCompose p0 l => f7 (p_abstr_poly_ind' p0) (p_abstr_poly_ind2 l)
-  end.
-End Defix.
-
-Fixpoint interp_p_abstr_poly (vm : seq R) (ap : p_abstr_poly) {struct ap} : R :=
-  match ap with
-  | PConst c => interp_p_real_cst c
-  | POpp p => Ropp (interp_p_abstr_poly vm p)
-  | PAdd p q => Rplus (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  | PSub p q => Rminus (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  | PMul p q => Rmult (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  | PPowN p n => powerRZ (interp_p_abstr_poly vm p) (Z.of_N n)
-  | PPown p n => pow (interp_p_abstr_poly vm p) n
-  | PVar i => seq.nth R0 vm i
-  | PCompose p qi => interp_p_abstr_poly (map (interp_p_abstr_poly vm) qi) p
-  end.
+Proof. by elim: s1 => [ |x s1 IHs] //=; intuition. Qed.
 
 (** [list_add] was taken from CoqInterval *)
 Ltac list_add a l :=
@@ -175,293 +116,11 @@ Ltac iter_tac tac l :=
     end
   in aux l.
 
-(* OLD version
-
-(** [equate] was taken from CPDT *)
-Ltac equate x y :=
-  let dummy := constr:(erefl x : x = y) in idtac.
-
-(** Trick (evar-making tactic with continuation passing style) *)
-Ltac newvar T k :=
-  let x := fresh "dummy" in
-  evar (x : T);
-  let x' := (eval unfold x in x) in
-  clear x;
-  k x'.
- *)
-
-(** Define an opaque function to represent abstract real variables *)
-Definition x_ (nx : nat) : R.
-exact R0.
-Qed.
-
-(** Tactic with continuation passing style *)
-(* Erik: This new version of [newvar] does not create [evar]s anymore,
-   so CPS style might be removed *)
-Ltac newvar T nx k :=
-  let x' := constr:(x_ nx) in
-  k x'.
-
-Ltac deb tac := idtac.
-(* Ltac deb tac ::= tac. *)
-
-Ltac fold_get_poly get_poly lq vm k :=
-  deb ltac:(idtac "fold_get_poly on .." lq vm "..");
-  let z0 := constr:((@Datatypes.nil p_abstr_poly, vm)) in
-  let rec aux lq vm k :=
-      match lq with
-      | Datatypes.nil => k z0
-      | Datatypes.cons ?q1 ?lq1 =>
-        aux lq1 vm ltac:(fun res =>
-          match res with
-       (* | not_polynomial => k not_polynomial *)
-          | (?lq2, ?vm1) =>
-            get_poly q1 vm1 ltac:(fun res =>
-              match res with
-           (* | not_polynomial => k not_polynomial *)
-              | (?q2, ?vm2) =>
-                let res := constr:((Datatypes.cons q2 lq2, vm2)) in k res
-              end)
-          end)
-      end in
-  aux lq vm k.
-
-Ltac check_unexpected_case f0 :=
-  let err := fail 999 "Unexpected state. Please report this to the ValidSDP maintainers." in
-  match f0 with
-  | Rplus => err
-  | Rminus => err
-  | Ropp => err
-  | Rmult => err
-  | powerRZ => err
-  | pow => err
-  | Rdiv => err
-  | _ => idtac
-  end.
-
-(** [get_comp_poly tac0 tac1 t vm tac2 k] will check if [t] matches [?f ?x] *)
-Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
-  deb ltac:(idtac "get_comp_poly on .. .." t vm ".. ..");
-  let rec aux2 f0 f qi nx xx vm k := (* Second step *)
-      (* f0 := initial value of f;
-         f := function to be parsed (head of term t);
-         qi := list of polynomial arguments;
-         nx := next index of abstract var (initially 0);
-         xx := list of abstract variables (initially empty);
-         vm := list of ambient variables;
-         k := continuation;
-       *)
-      deb ltac:(idtac "get_comp_poly.aux2 on" f0 f qi nx xx vm "..");
-      check_unexpected_case f0;
-      match type of f with
-      | R =>
-        let f := (eval unfold f0 in f) in
-        let xx := reverse R xx in
-        get_poly_pure f xx ltac:(fun res =>
-          match res with
-          | not_polynomial => k not_polynomial
-          | (?p, _) => (* Ignore the returned xx (that shouldn't have changed) *)
-            fold_get_poly get_poly_cur qi vm ltac:(fun res =>
-              match res with
-           (* | not_polynomial => k not_polynomial *)
-              | (?qi, ?vm) =>
-                let res := constr:((PCompose p qi, vm)) in
-                (* (* Used with OLD version of newvar *)
-                   let dummy := R0 in
-                   iter_tac ltac:(fun it => equate it dummy) xx; *)
-                k res
-              end)
-          end)
-      | forall x : R, _ =>
-        newvar R nx ltac:(fun x => let fx := constr:(f x) in
-                                let xx := constr:(Datatypes.cons x xx) in
-                                let nx := constr:(S nx) in
-                                aux2 f0 fx qi nx xx vm k)
-      end in
-  let rec aux1 t0 t qi vm k := (* First step *)
-      (* t0 := initial value of t;
-         t := term to be parsed;
-         qi := list of polynomial arguments (initially empty);
-         vm := list of ambient variables;
-         k := continuation;
-       *)
-      deb ltac:(idtac "get_comp_poly.aux1 on" t0 t qi vm "..");
-      match t with
-      | ?p ?q =>
-        let qi1 := constr:(Datatypes.cons q qi) in
-        aux1 t0 p qi1 vm k
-      | ?f =>
-        aux2 f f qi O (@Datatypes.nil R) vm ltac:(fun res =>
-        match res with
-        | not_polynomial => (* If second step fails, return a PVar *)
-          match list_add t0 vm with
-          | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
-          end
-        | ?res => k res
-        end)
-      end in
-  (* Ensure [t] is a function applied to a real *)
-  match t with
-  | ?fp ?xn =>
-    match type of xn with
-    | R => aux1 t t (@Datatypes.nil R) vm k
-    | _ => tac_var t vm k
-    end
-  | _ => tac_var t vm k
-  end.
-
-(** [get_poly_pure t vm k] creates no var.
-    Return [not_polynomial] if [t] isn't poly over [vm] *)
-Ltac get_poly_pure t vm k :=
-  deb ltac:(idtac "get_poly_pure on" t vm "..");
-  let rec aux t vm k :=
-    let aux_u o a k :=
-      aux a vm ltac:(fun res =>
-        match res with
-        | (?u, ?vm) => let res := constr:((o u, vm)) in k res
-        | not_polynomial => k not_polynomial
-        end) in
-    let aux_u' o a b k :=
-      aux a vm ltac:(fun res =>
-        match res with
-        | (?u, ?vm) => let res := constr:((o u b, vm)) in k res
-        | not_polynomial => k not_polynomial
-        end) in
-    let aux_b o a b k :=
-      aux b vm ltac:(fun res =>
-        match res with
-        | (?v, ?vm) =>
-          aux a vm ltac:(fun res =>
-            match res with
-            | (?u, ?vm) => let res := constr:((o u v, vm)) in k res
-            | not_polynomial => k not_polynomial
-            end)
-        | not_polynomial => k not_polynomial
-        end) in
-    match t with
-    | Rplus ?a ?b => aux_b PAdd a b k
-    | Rminus ?a ?b => aux_b PSub a b k
-    | Ropp ?a => aux_u POpp a k
-    | Rmult ?a ?b => aux_b PMul a b k
- (* | Rsqr ?a => aux (Rmult a a) l *)
-    | powerRZ ?a ?b =>
-      match b with
-      | Z.pos ?p => aux_u' PPowN a (N.pos p) k
-      | _ => fail 999 "Only constant, positive exponents are allowed"
-      end
-    | pow ?a ?n => aux_u' PPown a n k
-    | Rdiv ?a ?b => aux (Rmult a (Rinv b)) vm k (* Both are convertible *)
-    | _ =>
-      match get_real_cst t with
-      | assert_false =>
-        (* Differs w.r.t. get_poly *)
-        get_comp_poly get_poly_pure get_poly_pure t vm ltac:(fun t vm k =>
-          match list_idx t vm with
-          | not_found => deb ltac:(idtac t "doesn't_belong_to" vm);
-            k not_polynomial
-          | (?n, ?vm) => deb ltac:(idtac t "belongs_to" vm "with_idx" n);
-            let res := constr:((PVar n, vm)) in k res
-          end) ltac:(fun res => k res) (* also if res = not_polynomial *)
-      | ?c => let res := constr:((PConst c, vm)) in k res
-      end
-    end in
-  aux t vm k.
-
-Ltac get_poly t vm k :=
-  deb ltac:(idtac "get_poly on" t vm "..");
-  let rec aux t vm k :=
-    let aux_u o a k :=
-      aux a vm ltac:(fun res =>
-        match res with
-        | (?u, ?vm) => let res := constr:((o u, vm)) in k res
-     (* | not_polynomial => k not_polynomial *)
-        end) in
-    let aux_u' o a b k :=
-      aux a vm ltac:(fun res =>
-        match res with
-        | (?u, ?vm) => let res := constr:((o u b, vm)) in k res
-     (* | not_polynomial => k not_polynomial *)
-        end) in
-    let aux_b o a b k :=
-      aux b vm ltac:(fun res =>
-        match res with
-        | (?v, ?vm) =>
-          aux a vm ltac:(fun res =>
-            match res with
-            | (?u, ?vm) => let res := constr:((o u v, vm)) in k res
-         (* | not_polynomial => k not_polynomial *)
-            end)
-     (* | not_polynomial => k not_polynomial *)
-        end) in
-    match t with
-    | Rplus ?a ?b => aux_b PAdd a b k
-    | Rminus ?a ?b => aux_b PSub a b k
-    | Ropp ?a => aux_u POpp a k
-    | Rmult ?a ?b => aux_b PMul a b k
- (* | Rsqr ?a => aux (Rmult a a) l *)
-    | powerRZ ?a ?b =>
-      match b with
-      | Z.pos ?p => aux_u' PPowN a (N.pos p) k
-      | _ => fail 999 "Only constant, positive exponents are allowed"
-      end
-    | pow ?a ?n => aux_u' PPown a n k
-    | Rdiv ?a ?b => aux (Rmult a (Rinv b)) vm k (* Both are convertible *)
-    | _ =>
-      match get_real_cst t with
-      | assert_false =>
-        get_comp_poly get_poly get_poly_pure t vm ltac:(fun t vm k =>
-          match list_add t vm with
-          | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
-          end) ltac:(fun res => k res) (* also if res = not_polynomial *)
-      | ?c => let res := constr:((PConst c, vm)) in k res
-      end
-    end in
-  aux t vm k.
-
-Inductive abstr_poly :=
-  | Const of bigQ
-  | Var of nat
-  | Add of abstr_poly & abstr_poly
-  | Sub of abstr_poly & abstr_poly
-  | Mul of abstr_poly & abstr_poly
-  | PowN of abstr_poly & binnat.N
-  | Compose of abstr_poly & seq abstr_poly.
-
-Section Defix'.
-Variable (P : abstr_poly -> Prop).
-Let P' := all_prop P.
-Variable (f : forall t : bigQ, P (Const t)).
-Variable (f0 : forall n : nat, P (Var n)).
-Variable (f1 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Add a a0)).
-Variable (f2 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Sub a a0)).
-Variable (f3 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Mul a a0)).
-Variable (f4 : forall a : abstr_poly, P a -> forall n : BinNums.N, P (PowN a n)).
-Variable (f5 : forall a : abstr_poly, P a -> forall l : seq abstr_poly, P' l -> P (Compose a l)).
-
-Fixpoint abstr_poly_ind' (p : abstr_poly) : P p :=
-  let fix abstr_poly_ind2 (l : seq abstr_poly) : P' l :=
-  match l as l0 return (P' l0) with
-  | [::] => I
-  | p :: l' => conj (abstr_poly_ind' p) (abstr_poly_ind2 l')
-  end in
-  match p as p0 return (P p0) with
-  | Const t => f t
-  | Var n => f0 n
-  | Add a0 a1 => f1 (abstr_poly_ind' a0) (abstr_poly_ind' a1)
-  | Sub a0 a1 => f2 (abstr_poly_ind' a0) (abstr_poly_ind' a1)
-  | Mul a0 a1 => f3 (abstr_poly_ind' a0) (abstr_poly_ind' a1)
-  | PowN a0 n => f4 (abstr_poly_ind' a0) n
-  | Compose a0 l => f5 (abstr_poly_ind' a0) (abstr_poly_ind2 l)
-  end.
-End Defix'.
-
 Fixpoint all_type (T : Type) (a : T -> Type) (s : seq T) : Type :=
   match s with
   | [::] => True
   | x :: s' => a x * all_type a s'
   end.
-
-(*/-*)
 
 Lemma all_type_nth T (P : T -> Type) (s : seq T) (x0 : T):
   all_type P s -> forall i, (i < size s)%N -> P (nth x0 s i).
@@ -470,210 +129,15 @@ Proof. by elim: s => [//|? ? /= Hi [? ?] [//|?] ?]; apply Hi. Qed.
 Lemma nth_all_type T (P : T -> Type) (s : seq T) (x0 : T):
   (forall i, (i < size s)%N -> P (nth x0 s i)) -> all_type P s.
 Proof.
-elim: s => [//|h t Ht H]; split; [by apply (H O)|].
+elim: s => [//|h t Ht H]; split; [by apply (H O)| ].
 by apply Ht => i Hi; apply (H (S i)).
-Qed.
-
-Section Defix''.
-Variable (P : abstr_poly -> Type).
-Let P' := all_type P.
-Variable (f : forall t : bigQ, P (Const t)).
-Variable (f0 : forall n : nat, P (Var n)).
-Variable (f1 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Add a a0)).
-Variable (f2 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Sub a a0)).
-Variable (f3 : forall a : abstr_poly, P a -> forall a0 : abstr_poly, P a0 -> P (Mul a a0)).
-Variable (f4 : forall a : abstr_poly, P a -> forall n : BinNums.N, P (PowN a n)).
-Variable (f5 : forall a : abstr_poly, P a -> forall l : seq abstr_poly, P' l -> P (Compose a l)).
-
-Fixpoint abstr_poly_rect' (p : abstr_poly) : P p :=
-  let fix abstr_poly_rect2 (l : seq abstr_poly) : P' l :=
-  match l as l0 return (P' l0) with
-  | [::] => I
-  | p :: l' => (abstr_poly_rect' p, abstr_poly_rect2 l')
-  end in
-  match p as p0 return (P p0) with
-  | Const t => f t
-  | Var n => f0 n
-  | Add a0 a1 => f1 (abstr_poly_rect' a0) (abstr_poly_rect' a1)
-  | Sub a0 a1 => f2 (abstr_poly_rect' a0) (abstr_poly_rect' a1)
-  | Mul a0 a1 => f3 (abstr_poly_rect' a0) (abstr_poly_rect' a1)
-  | PowN a0 n => f4 (abstr_poly_rect' a0) n
-  | Compose a0 l => f5 (abstr_poly_rect' a0) (abstr_poly_rect2 l)
-  end.
-End Defix''.
-
-Fixpoint abstr_poly_of_p_abstr_poly (p : p_abstr_poly) : abstr_poly :=
-  match p with
-  | PConst c => Const (bigQ_of_p_real_cst c)
-  | PVar n => Var n
-  | POpp x => Sub (Const 0%bigQ) (abstr_poly_of_p_abstr_poly x)
-  | PAdd x y => Add (abstr_poly_of_p_abstr_poly x) (abstr_poly_of_p_abstr_poly y)
-  | PSub x y => Sub (abstr_poly_of_p_abstr_poly x) (abstr_poly_of_p_abstr_poly y)
-  | PMul x y => Mul (abstr_poly_of_p_abstr_poly x) (abstr_poly_of_p_abstr_poly y)
-  | PPowN x n => PowN (abstr_poly_of_p_abstr_poly x) n
-  | PPown x n => PowN (abstr_poly_of_p_abstr_poly x) (N.of_nat n)
-  | PCompose p qi => Compose (abstr_poly_of_p_abstr_poly p) (map abstr_poly_of_p_abstr_poly qi)
-  end.
-
-Fixpoint interp_abstr_poly (vm : seq R) (p : abstr_poly) {struct p} : R :=
-  match p with
-  | Const c => bigQ2R c
-  | Add p q => Rplus (interp_abstr_poly vm p) (interp_abstr_poly vm q)
-  | Sub p q => Rminus (interp_abstr_poly vm p) (interp_abstr_poly vm q)
-  | Mul p q => Rmult (interp_abstr_poly vm p) (interp_abstr_poly vm q)
-  | PowN p n => powerRZ (interp_abstr_poly vm p) (Z.of_N n)
-  | Var i => seq.nth R0 vm i
-  | Compose p qi => interp_abstr_poly (map (interp_abstr_poly vm) qi) p
-  end.
-
-Lemma abstr_poly_of_p_abstr_poly_correct (vm : seq R) (p : p_abstr_poly) :
-  interp_abstr_poly vm (abstr_poly_of_p_abstr_poly p) =
-  interp_p_abstr_poly vm p.
-Proof.
-elim/p_abstr_poly_ind': p vm => //.
-{ move=> *; apply bigQ_of_p_real_cst_correct. }
-{ move=> p IHp vm /=.
-  by rewrite (IHp vm) /bigQ2R /Q2R Rsimpl /Rminus Rplus_0_l. }
-{ by move=> p1 IHp1 p2 IHp2 vm; rewrite /= (IHp1 vm) (IHp2 vm). }
-{ by move=> p1 IHp1 p2 IHp2 vm; rewrite /= (IHp1 vm) (IHp2 vm). }
-{ by move=> p1 IHp1 p2 IHp2 vm; rewrite /= (IHp1 vm) (IHp2 vm). }
-{ by move=> p IHp n vm; rewrite /= (IHp vm). }
-{ by move=> p IHp n vm; rewrite /= pow_powerRZ nat_N_Z (IHp vm). }
-move=> pp IHpp qqi IHqqi vm; rewrite /=.
-rewrite IHpp; f_equal.
-rewrite -map_comp.
-rewrite (eq_map_all_prop (f2 := interp_p_abstr_poly vm)) //.
-exact: (all_prop_forall (P := fun p vm =>
-  interp_abstr_poly vm (abstr_poly_of_p_abstr_poly p) = interp_p_abstr_poly vm p)).
 Qed.
 
 (** Tip to leverage a Boolean condition *)
 Definition sumb (b : bool) : {b = true} + {b = false} :=
   if b is true then left erefl else right erefl.
 
-Fixpoint interp_poly_ssr (n : nat) (ap : abstr_poly) {struct ap} : {mpoly rat[n]} :=
-  match ap with
-  | Const t => (bigQ2rat t)%:MP_[n]
-  | Var i =>
-    match n with
-    | O => 0%:MP_[O]
-    | S n' => 'X_(inord i)
-    end
-  | Add a0 a1 => (interp_poly_ssr n a0 + interp_poly_ssr n a1)%R
-  | Sub a0 a1 => (interp_poly_ssr n a0 - interp_poly_ssr n a1)%R
-  | Mul a0 a1 => (interp_poly_ssr n a0 * interp_poly_ssr n a1)%R
-  | PowN a0 n' => mpoly_exp (interp_poly_ssr n a0) n'
-  | Compose a0 qi =>
-    let qi' := map (interp_poly_ssr n) qi in
-    match sumb (size qi' == size qi) with
-    | right prf => 0%:MP_[n]
-    | left prf =>
-      comp_mpoly (tcast (eqP prf) (in_tuple qi'))
-                 (interp_poly_ssr (size qi) a0)
-    end
-  end.
-
-Fixpoint interp_poly_eff n (ap : abstr_poly) : effmpoly bigQ :=
-  match ap with
-  | Const c => @mpolyC_eff bigQ n c
-  | Var i => @mpvar_eff bigQ n 1%bigQ 1 (N.of_nat i)
-  | Add p q => mpoly_add_eff (interp_poly_eff n p) (interp_poly_eff n q)
-  | Sub p q => mpoly_sub_eff (interp_poly_eff n p) (interp_poly_eff n q)
-  | Mul p q => mpoly_mul_eff (interp_poly_eff n p) (interp_poly_eff n q)
-  | PowN p m => mpoly_exp_eff (n := n) (interp_poly_eff n p) m
-  | Compose p qi =>
-    let qi' := map (interp_poly_eff n) qi in
-    comp_mpoly_eff (n := n) qi' (interp_poly_eff (size qi) p)
-  end.
-
-Fixpoint vars_ltn n (ap : abstr_poly) : bool :=
-  match ap with
-  | Const _ => true
-  | Var i => (i < n)%N
-  | Add p q | Sub p q | Mul p q => vars_ltn n p && vars_ltn n q
-  | PowN p _ => vars_ltn n p
-  | Compose p qi => all (vars_ltn n) qi && vars_ltn (size qi) p
-  end.
-
-Lemma vars_ltn_ge (n n' : nat) (ap : abstr_poly) :
-  (n <= n')%N -> vars_ltn n ap -> vars_ltn n' ap.
-Proof.
-move=> Hn'; elim/abstr_poly_ind': ap.
-{ by []. }
-{ by move=> i /= Hi; move: Hn'; apply leq_trans. }
-{ by move=> a0 Ha0 a1 Ha1 /= /andP [] Hn0 Hn1; rewrite Ha0 // Ha1. }
-{ by move=> a0 Ha0 a1 Ha1 /= /andP [] Hn0 Hn1; rewrite Ha0 // Ha1. }
-{ by move=> a0 Ha0 a1 Ha1 /= /andP [] Hn0 Hn1; rewrite Ha0 // Ha1. }
-{ by []. }
-move=> a Ha; case=> [//|h t] /= [] Hh Ht /andP [] /andP [] Hh' Ht' Ha'.
-rewrite Hh //= Ha' andb_true_r.
-apply/(all_nthP (Const 0)) => i Hi.
-move: Ht => /all_prop_nthP; apply=> //.
-by move: Ht' => /all_nthP; apply.
-Qed.
-
-Lemma interp_poly_ssr_correct (l : seq R) (n : nat) (ap : abstr_poly) :
-  size l = n -> vars_ltn n ap ->
-  let p := map_mpoly rat2R (interp_poly_ssr n ap) in
-  interp_abstr_poly l ap = p.@[fun i : 'I_n => nth R0 l i].
-Proof.
-elim/abstr_poly_ind': ap l n => //.
-{ by move=> ? ? ? _ _ /=; rewrite map_mpolyC mevalC bigQ2R_rat. }
-{ move=> ? ? [|?] ? //= ?.
-  by rewrite map_mpolyX mevalX; f_equal; rewrite inordK. }
-{ move=> p Hp q Hq l n Hn /= /andP [] Hnp Hnq.
-  by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphD. }
-{ move=> p Hp q Hq l n Hn /= /andP [] Hnp Hnq.
-  by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphB. }
-{ move=> p Hp q Hq l n Hn /= /andP [] Hnp Hnq.
-  by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphM. }
-{ move=> p Hp m l n Hn /= Hnp; rewrite (Hp _ _ Hn Hnp).
-  rewrite -{1}[m]spec_NK /binnat.implem_N bin_of_natE nat_N_Z.
-  by rewrite -Interval_missing.pow_powerRZ misc.pow_rexp !rmorphX. }
-move=> p Hp qi Hqi l n Hn /= /andP [Hqi' Hp'].
-case (sumb _) => [e|]; [|by rewrite size_map eqxx].
-set qi' := map _ _.
-rewrite (Hp qi' (size qi)); [|by rewrite /qi' /= size_map|by []].
-rewrite (map_mpoly_comp (@ratr_inj _)) comp_mpoly_meval /=.
-apply meval_eq => i.
-rewrite tnth_map tcastE /tnth /= (set_nth_default 0%R (tnth_default _ _));
-  [|by rewrite /= size_map; case i].
-rewrite (nth_map (Const 0)) => //.
-move: Hqi => /all_prop_nthP Hqi.
-move: Hqi' => /all_nthP Hqi'.
-rewrite (Hqi _ _ _ _ n) => //; [|by apply Hqi'].
-by rewrite (nth_map (Const 0)).
-Qed.
-
-Lemma interp_poly_ssr_correct' vm p :
-  let n := size vm in
-  let p' := abstr_poly_of_p_abstr_poly p in
-  let p'' := map_mpoly rat2R (interp_poly_ssr n p') in
-  vars_ltn n p' ->
-  interp_p_abstr_poly vm p = p''.@[fun i : 'I_n => nth R0 vm i].
-Proof.
-move=> *; rewrite -interp_poly_ssr_correct //.
-by rewrite abstr_poly_of_p_abstr_poly_correct.
-Qed.
-
 (** ** Part 0: Definition of operational type classes *)
-
-Class sempty_of setT := sempty : setT.
-Class sadd_of T setT := sadd : T -> setT -> setT.
-Class smem_of T setT := smem : T -> setT -> bool.
-
-Class mul_monom_of monom := mul_monom_op : monom -> monom -> monom.
-
-Class list_of_poly_of T monom polyT := list_of_poly_op :
-  polyT -> seq (monom * T).
-
-Class polyC_of T polyT := polyC_op : T -> polyT.
-
-Class polyX_of monom polyT := polyX_op : monom -> polyT.
-
-Class poly_sub_of polyT := poly_sub_op : polyT -> polyT -> polyT.
-
-Class poly_mul_of polyT := poly_mul_op : polyT -> polyT -> polyT.
 
 Notation map_mx2_of B :=
   (forall {T T'} {m n : nat}, map_mx_of T T' (B T m n) (B T' m n)) (only parsing).
@@ -685,28 +149,12 @@ Section generic_soscheck.
 Context {n : nat}.  (** number of variables of polynomials *)
 Context {T : Type}.  (** type of coefficients of polynomials *)
 
-Context {monom : Type} {polyT : Type}.
-Context `{!mul_monom_of monom, !list_of_poly_of T monom polyT}.
-Context `{!polyC_of T polyT, !polyX_of monom polyT, !poly_sub_of polyT}.
-
-Context {set : Type}.
-Context `{!sempty_of set, !sadd_of monom set, !smem_of monom set}.
-
 Context `{!zero_of T, !opp_of T, !leq_of T}.
 Context {ord : nat -> Type} {mx : Type -> nat -> nat -> Type}.
-Context `{!fun_of_of monom ord (mx monom)}.
-Context `{!fun_of_of polyT ord (mx polyT)}.
 Context {I0n : forall n, I0_class ord n.+1}.
 Context {succ0n : forall n, succ0_class ord n.+1}.
 Context {natof0n : forall n, nat_of_class ord n.+1}.
 Context `{!I0_class ord 1}.
-
-Definition max_coeff (p : polyT) : T :=
-  foldl (fun m mc => max m (max mc.2 (-mc.2)%C)) 0%C (list_of_poly_op p).
-
-Context `{!trmx_of (mx polyT)}.
-(* Multiplication of matrices of polynomials. *)
-Context `{!hmul_of (mx polyT)}.
 
 Context {fs : Float_round_up_infnan_spec}.
 Let F := FIS fs.
@@ -723,75 +171,16 @@ Section generic_soscheck_size.
 Context {s : nat}.
 Context `{!I0_class ord s, !succ0_class ord s, !nat_of_class ord s}.
 
-Definition check_base (p : polyT) (z : mx monom s 1) : bool :=
-  let sm :=
-    iteri_ord s
-      (fun i =>
-         iteri_ord s
-           (fun j => sadd (mul_monom_op (fun_of_op z i I0)
-                                        (fun_of_op z j I0))))
-      sempty in
-  all (fun mc => smem mc.1 sm) (list_of_poly_op p).
-
-(* Prove that p >= 0 by proving that Q - s \delta I is a positive
-   definite matrix with \delta >= max_coeff(p - z^T Q z) *)
-Definition soscheck (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
-  check_base p z &&
-  let r :=
-    let p' :=
-      let zp := map_mx_op polyX_op z in
-      let Q' := map_mx_op (polyC_op \o F2T) Q in
-      let p'm := (zp^T *m Q' *m zp)%HC in
-      (* TODO: profiling pour voir si nécessaire d'améliorer la ligne
-       * ci dessus (facteur 40 en Caml, mais peut être du même ordre de
-       * grandeur que la décomposition de Cholesky
-       * (effectivement, sur d'assez gros exemples, ça semble être le cas)) *)
-      fun_of_op p'm I0 I0 in
-    let pmp' := poly_sub_op p p' in
-    max_coeff pmp' in
-  posdef_check_itv (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
-                   (@float_infnan_spec.finite fs) Q (T2F r).
-
 Definition posdefcheck (Q : mx F s s) : bool :=
   posdef_check (@float_infnan_spec.fieps fs) (@float_infnan_spec.fieta fs)
                (@float_infnan_spec.finite fs) Q.
 
 End generic_soscheck_size.
 
-Context `{!poly_mul_of polyT}.
-
 Context {s : nat}.
 Context `{!I0_class ord s, !succ0_class ord s, !nat_of_class ord s}.
 
-Variant sz_witness :=
-  | Wit : polyT -> forall s, mx monom s.+1 1 -> mx F s.+1 s.+1 -> sz_witness.
-
-(* Prove that /\_i pi >= 0 -> p >= 0 by proving that
-   - \forall i, pi >= 0 with zi, Qi as above
-   - p - \sum_i si pi >= 0 with z and Q as above *)
-Definition soscheck_hyps
-    (pszQi : seq (polyT * sz_witness))
-    (p : polyT) (z : mx monom s 1) (Q : mx F s s) : bool :=
-  let p' :=
-      foldl
-        (fun p' (pszQ : polyT * sz_witness) =>
-           match pszQ.2 with
-             | Wit s _ _ _ => poly_sub_op p' (poly_mul_op s pszQ.1)
-           end) p pszQi in
-  soscheck p' z Q
-  && all
-       (fun pzQ : polyT * sz_witness =>
-          match pzQ.2 with
-            | Wit s _ z Q => soscheck s z Q
-          end) pszQi.
-
-Context `{!eq_of monom, !zero_of monom}.
-
-Definition has_const (z : mx monom s 1) := (fun_of_op z I0 I0 == (0:monom))%C.
-
 End generic_soscheck.
-
-Module S := FSetAVL.Make MultinomOrd.
 
 Section eff_soscheck.
 
@@ -802,29 +191,6 @@ Context {T : Type}.  (** type of coefficients of polynomials *)
 
 Context `{!zero_of T, !one_of T, !opp_of T, !add_of T, !sub_of T, !mul_of T, !eq_of T}.
 
-Let monom := seqmultinom.
-
-Let polyT := effmpoly T.
-
-Global Instance mul_monom_eff : mul_monom_of monom := mnm_add_seq.
-
-Global Instance list_of_poly_eff : list_of_poly_of T monom polyT :=
-  list_of_mpoly_eff (T:=T).
-
-Global Instance polyC_eff : polyC_of T polyT := @mpolyC_eff _ n.
-
-Global Instance polyX_eff : polyX_of monom polyT := mpolyX_eff.
-
-Global Instance poly_sub_eff : poly_sub_of polyT := mpoly_sub_eff.
-
-Let set := S.t.
-
-Global Instance sempty_eff : sempty_of set := S.empty.
-
-Global Instance sadd_eff : sadd_of monom set := S.add.
-
-Global Instance smem_eff : smem_of monom set := S.mem.
-
 Context `{!leq_of T}.
 
 Let ord := ord_instN.
@@ -833,42 +199,12 @@ Let mx := @hseqmx.
 
 Context {s : nat}.
 
-Global Instance fun_of_seqmx_monom : fun_of_of monom ord (mx monom) :=
-  @fun_of_seqmx _ [::].
-
-Definition check_base_eff : polyT -> mx monom s.+1 1 -> bool :=
-  check_base (I0_class0:=I0_instN).
-
-Definition max_coeff_eff : polyT -> T := max_coeff.
-
 Context {fs : Float_round_up_infnan_spec}.
 Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion *)
 Context {T2F : T -> F}.  (* overapproximation *)
 
-Global Instance fun_of_seqmx_polyT : fun_of_of polyT ord (mx polyT) :=
-  @fun_of_seqmx _ mp0_eff.
-
-Global Instance mulseqmx_polyT : hmul_of (mx polyT) :=
-  @mul_seqmx _ mp0_eff mpoly_add_eff mpoly_mul_eff.
-
-Definition soscheck_eff : polyT -> mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
-  soscheck (F2T:=F2T) (T2F:=T2F).
-
 Definition posdefcheck_eff : mx F s.+1 s.+1 -> bool := posdefcheck.
-
-Global Instance poly_mul_eff : poly_mul_of polyT := mpoly_mul_eff.
-
-Definition soscheck_hyps_eff :
-  seq (polyT * sz_witness) ->
-  polyT -> mx monom s.+1 1 -> mx F s.+1 s.+1 -> bool :=
-  soscheck_hyps (set:=set) (F2T:=F2T) (T2F:=T2F)
-                (I0n:=fun n => O) (succ0n:=fun n => S) (natof0n:=fun _ => id).
-
-Global Instance monom_eq_eff : eq_of monom := mnmc_eq_seq.
-
-Definition has_const_eff {n : nat} : mx monom s.+1 1 -> bool :=
-  has_const (zero_of1 := @mnm0_seq n).
 
 End eff_soscheck.
 
@@ -880,29 +216,6 @@ Section theory_soscheck.
 
 Context {n : nat} {T : comRingType}.
 
-Let monom := 'X_{1..n}.
-
-Let polyT := mpoly n T.
-
-Global Instance mul_monom_ssr : mul_monom_of monom := mnm_add.
-
-Global Instance list_of_poly_ssr : list_of_poly_of T monom polyT :=
-  list_of_mpoly.
-
-Global Instance polyC_ssr : polyC_of T polyT := fun c => mpolyC n c.
-
-Global Instance polyX_ssr : polyX_of monom polyT := fun m => mpolyX T m.
-
-Global Instance poly_sub_ssr : poly_sub_of polyT := fun p q => (p - q)%R.
-
-Let set := seq monom.
-
-Global Instance sempty_ssr : sempty_of set := [::].
-
-Global Instance sadd_ssr : sadd_of monom set := fun e s => e :: s.
-
-Global Instance smem_ssr : smem_of monom set := fun e s => e \in s.
-
 Local Instance zero_ssr : zero_of T := 0%R.
 Local Instance opp_ssr : opp_of T := fun x => (-x)%R.
 
@@ -912,40 +225,14 @@ Let ord := ordinal.
 
 Let mx := matrix.
 
-Definition max_coeff_ssr : polyT -> T := max_coeff.
-
 Context {fs : Float_round_up_infnan_spec}.
 Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion for finite values *)
 Context {T2F : T -> F}.  (* overapproximation *)
 
-Global Instance trmx_instPolyT_ssr : trmx_of (mx polyT) :=
-  @matrix.trmx polyT.
-
-Global Instance hmul_mxPolyT_ssr : hmul_of (mx polyT) := @mulmx _.
-
 Global Instance map_mx_ssr : map_mx2_of mx := fun T T' m n f => @map_mx T T' f m n.
 
-Definition check_base_ssr (s : nat) :
-  polyT -> 'cV[monom]_s.+1 -> bool := check_base.
-
-Definition soscheck_ssr (s : nat) :
-  polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
-  soscheck (F2T:=F2T) (T2F:=T2F).
-
 Definition posdefcheck_ssr (s : nat) : 'M[F]_s.+1 -> bool := posdefcheck.
-
-Global Instance poly_mul_ssr : poly_mul_of polyT := fun p q => (p * q)%R.
-
-Definition soscheck_hyps_ssr (s : nat) :
-  seq (polyT * sz_witness) ->
-  polyT -> 'cV[monom]_s.+1 -> 'M[F]_s.+1 -> bool :=
-  soscheck_hyps (F2T:=F2T) (T2F:=T2F).
-
-Global Instance monom_eq_ssr : eq_of monom := eqtype.eq_op.
-Global Instance monom0_ssr : zero_of monom := mnm0.
-
-Definition has_const_ssr (s : nat) : 'cV[monom]_s.+1 -> bool := has_const.
 
 (** *** Proofs *)
 
@@ -959,58 +246,6 @@ given there is no canonical structure that merges comRingType & numDomainType *)
 Hypothesis max_l : forall x y : T, T2R x <= T2R (max x y).
 Hypothesis max_r : forall x y, T2R y <= T2R (max x y).
 
-Lemma max_coeff_pos (p : polyT) : 0 <= T2R (max_coeff p).
-Proof.
-rewrite /max_coeff; set f := fun _ => _; set l := _ p; clearbody l.
-suff : forall x, 0 <= T2R x -> 0 <= T2R (foldl f x l).
-{ by apply; rewrite GRing.raddf0; right. }
-elim l => [//|h t IH x Hx /=]; apply IH; rewrite /f.
-apply (Rle_trans _ _ _ Hx), max_l.
-Qed.
-
-Lemma max_coeff_correct (p : polyT) (m : monom) :
-  Rabs (T2R p@_m) <= T2R (max_coeff p).
-Proof.
-case_eq (m \in msupp p);
-  [|rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 Rabs_R0;
-    by apply max_coeff_pos].
-rewrite /max_coeff /list_of_poly_of /list_of_poly_ssr /list_of_mpoly.
-have Hmax : forall x y, Rabs (T2R x) <= T2R (max y (max x (- x)%C)).
-{ move=> x y; apply Rabs_le; split.
-  { rewrite -(Ropp_involutive (T2R x)); apply Ropp_le_contravar.
-    change (- (T2R x))%Re with (- (T2R x))%Ri.
-    rewrite -GRing.raddfN /=.
-    apply (Rle_trans _ _ _ (max_r _ _) (max_r _ _)). }
-  apply (Rle_trans _ _ _ (max_l _ _) (max_r _ _)). }
-rewrite -(path.mem_sort mnmc_le) /list_of_poly_op.
-elim: (path.sort _) 0%C=> [//|h t IH] z; move/orP; elim.
-{ move/eqP-> => /=; set f := fun _ => _; set l := map _ _.
-  move: (Hmax p@_h z); set z' := max z _; generalize z'.
-  elim l => /= [//|h' l' IH' z'' Hz'']; apply IH'.
-  apply (Rle_trans _ _ _ Hz''), max_l. }
-by move=> Ht; apply IH.
-Qed.
-
-Lemma check_base_correct s (p : polyT) (z : 'cV_s.+1) : check_base p z ->
-  forall m, m \in msupp p -> exists i j, (z i ord0 + z j ord0 == m)%MM.
-Proof.
-rewrite /check_base /list_of_poly_of /list_of_poly_ssr /sadd /sadd_ssr.
-rewrite /smem /smem_ssr /sempty /sempty_ssr; set sm := iteri_ord _ _ _.
-move/allP=> Hmem m Hsupp.
-have : m \in sm.
-{ apply (Hmem (m, p@_m)).
-  by rewrite -/((fun m => (m, p@_m)) m); apply map_f; rewrite path.mem_sort. }
-pose P := fun (_ : nat) (sm : set) =>
-            m \in sm -> exists i j, (z i ord0 + z j ord0)%MM == m.
-rewrite {Hmem} -/(P 0%N sm) {}/sm; apply iteri_ord_ind => // i s0.
-rewrite {}/P /nat_of /nat_of_ssr => Hi Hs0; set sm := iteri_ord _ _ _.
-pose P := fun (_ : nat) (sm : set) =>
-            m \in sm -> exists i j, (z i ord0 + z j ord0)%MM == m.
-rewrite -/(P 0%N sm) {}/sm; apply iteri_ord_ind => // j s1.
-rewrite {}/P /nat_of /nat_of_ssr in_cons => Hj Hs1.
-by move/orP; elim; [move/eqP->; exists i, j|].
-Qed.
-
 Require Import bigop_tactics.
 
 Lemma posdefcheck_correct s Q :
@@ -1020,148 +255,9 @@ Proof.
 rewrite /posdefcheck_ssr /posdefcheck.
 apply posdef_check_correct.
 Qed.
-  
-Lemma soscheck_correct s p z Q : @soscheck_ssr s p z Q ->
-  forall x, 0%R <= (map_mpoly T2R p).@[x]
-            /\ (has_const_ssr z -> 0%R < (map_mpoly T2R p).@[x]).
-Proof.
-rewrite /has_const_ssr /has_const /eq_op /monom_eq_ssr /zero_op /monom0_ssr.
-rewrite /soscheck_ssr /soscheck /fun_of_op /fun_of_ssr /map_mx_ssr /map_mx_op.
-set zp := matrix.map_mx _ z.
-set Q' := matrix.map_mx _ _.
-set p' := _ (_ *m _) _ _.
-set pmp' := poly_sub_op _ _.
-set r := max_coeff _.
-pose zpr := matrix.map_mx [eta mpolyX real_ringType] z.
-pose Q'r := matrix.map_mx (map_mpoly T2R) Q'.
-pose mpolyC_R := fun c : R => mpolyC n c.
-pose map_mpolyC_R := fun m : 'M_s.+1 => matrix.map_mx mpolyC_R m.
-move/andP=> [Hbase Hpcheck].
-have : exists E : 'M_s.+1,
-  Mabs E <=m: matrix.const_mx (T2R r)
-  /\ map_mpoly T2R p = (zpr^T *m (Q'r + map_mpolyC_R E) *m zpr) ord0 ord0.
-{ pose zij := fun i j => (z i ord0 + z j ord0)%MM.
-  pose I_sp1_2 := prod_finType (ordinal_finType s.+1) (ordinal_finType s.+1).
-  pose nbij := fun i j => size [seq ij <- index_enum I_sp1_2 |
-                                zij ij.2 ij.1 == zij i j].
-  pose E := (\matrix_(i, j) (T2R pmp'@_(zij i j) / INR (nbij i j))%Re).
-  exists E.
-  have Pnbij : forall i j, (0 < nbij i j)%N.
-  { move=> i j; rewrite /nbij filter_index_enum; rewrite <-cardE.
-    by apply/card_gt0P; exists (j, i); rewrite /in_mem /=. }
-  have Pr := max_coeff_pos _ : 0%R <= T2R r.
-  split.
-  { move=> i j; rewrite !mxE Rabs_mult.
-    have NZnbij : INR (nbij i j) <> 0%Re.
-    { by change 0%Re with (INR 0); move/INR_eq; move: (Pnbij i j); case nbij. }
-    rewrite Rabs_Rinv // (Rabs_pos_eq _ (pos_INR _)).
-    apply (Rmult_le_reg_r (INR (nbij i j))).
-    { apply Rnot_ge_lt=> H; apply NZnbij.
-      by apply Rle_antisym; [apply Rge_le|apply pos_INR]. }
-    rewrite Rmult_assoc Rinv_l // Rmult_1_r.
-    have nbij_ge_1 : 1 <= INR (nbij i j).
-    { move: NZnbij; case nbij=>// nb _; rewrite S_INR -{1}(Rplus_0_l 1).
-      apply Rplus_le_compat_r, pos_INR. }
-    apply (Rle_trans _ (T2R r)); [by apply max_coeff_correct|].
-    rewrite -{1}(Rmult_1_r (T2R r)); apply Rmult_le_compat_l=>//. }
-  apply/mpolyP => m; rewrite mcoeff_map_mpoly /= mxE.
-  set M := (Q'r + _)%R.
-  under big ? _ rewrite mxE big_distrl /=; under big ? _ rewrite mxE.
-  rewrite pair_bigA /= (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
-  have -> : M = map_mpolyC_R (matrix.map_mx (T2R \o F2T) Q + E)%R.
-  { apply/matrixP=> i j; rewrite /map_mpolyC_R /mpolyC_R.
-    by rewrite !mxE mpolyCD map_mpolyC. }
-  move {M}; set M := map_mpolyC_R _.
-  under big ? _ rewrite (GRing.mulrC (zpr _ _)) -GRing.mulrA mxE mcoeffCM.
-  under big ? _ rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX.
-  rewrite (bigID (fun ij => zij ij.2 ij.1 == m)) /= GRing.addrC.
-  rewrite big1 ?GRing.add0r; last first.
-  { by move=> ij; move/negbTE=> ->; rewrite GRing.mul0r. }
-  under big ? Hi rewrite Hi GRing.mul1r 2!mxE.
-  rewrite big_split /= GRing.addrC.
-  pose nbm := size [seq ij <- index_enum I_sp1_2 | zij ij.2 ij.1 == m].
-  under big ? Hi
-    (move/eqP in Hi; rewrite mxE /nbij Hi -/nbm mcoeffB GRing.raddfB /=).
-  rewrite misc.big_sum_pred_const -/nbm /Rdiv !unfoldR.
-  rewrite mulrDl mulrDr -addrA.
-  rewrite -{1}(GRing.addr0 (T2R _)); f_equal.
-  { rewrite GRing.mulrC -GRing.mulrA; case_eq (m \in msupp p).
-    { move=> Hm; move: (check_base_correct Hbase Hm).
-      move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
-      apply Rgt_not_eq, Rlt_gt.
-      rewrite -unfoldR; change 0%Re with (INR 0); apply lt_INR.
-      rewrite /nbm filter_index_enum; rewrite <-cardE.
-      by apply/ltP/card_gt0P; exists (j, i); rewrite /in_mem /=. }
-    by rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 GRing.mul0r. }
-  rewrite /p' mxE.
-  under big ? _ (rewrite mxE big_distrl /=; under big ? _ rewrite mxE).
-  rewrite pair_bigA /= (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
-  under big ? _ rewrite (GRing.mulrC (zp _ _)) -GRing.mulrA mxE mcoeffCM.
-  under big ? _ rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX.
-  rewrite GRing.raddf_sum /= (bigID (fun ij => zij ij.2 ij.1 == m)) /=.
-  under big ? Hi rewrite Hi GRing.mul1r.
-  set b := bigop _ _ _; rewrite big1; last first; [|rewrite {}/b GRing.addr0].
-  { by move=> ij; move/negbTE => ->; rewrite GRing.mul0r GRing.raddf0. }
-  rewrite -big_filter /nbm /I_sp1_2; case [seq i <- _ | _].
-  { by rewrite big_nil GRing.addr0 GRing.oppr0 GRing.mul0r. }
-  move=> h t; rewrite GRing.mulrC -GRing.mulrA /GRing.mul /= Rinv_l.
-  { by rewrite Rmult_1_r GRing.addNr. }
-  case size; [exact R1_neq_R0|].
-  move=> n'; apply Rgt_not_eq, Rlt_gt.
-  by apply/RltP; rewrite unfoldR ltr0Sn. }
-move=> [E [HE ->]] x.
-set M := _ *m _.
-replace (meval _ _)
-with ((matrix.map_mx (meval x) M) ord0 ord0); [|by rewrite mxE].
-replace 0%R with ((@matrix.const_mx _ 1 1 R0) ord0 ord0); [|by rewrite mxE].
-rewrite /M !map_mxM -map_trmx map_mxD.
-replace (matrix.map_mx _ (map_mpolyC_R E)) with E;
-  [|by apply/matrixP => i j; rewrite !mxE /= mevalC].
-replace (matrix.map_mx _ _) with (matrix.map_mx (T2R \o F2T) Q);
-  [|by apply/matrixP => i j;
-    rewrite !mxE /= map_mpolyC mevalC].
-have Hposdef : posdef (map_mx (T2R \o F2T) Q + E).
-{ apply (posdef_check_itv_correct Hpcheck).
-  apply Mle_trans with (Mabs E).
-  { right; rewrite !mxE /=; f_equal.
-    by rewrite T2R_F2T GRing.addrC GRing.addKr. }
-  apply (Mle_trans HE) => i j; rewrite !mxE.
-  by apply T2F_correct; move: Hpcheck; move/andP; elim. }
-split; [by apply /Mle_scalar /posdef_semipos|].
-move=> /eqP z0; apply /Mlt_scalar /Hposdef.
-move/matrixP => H; move: {H}(H ord0 ord0).
-rewrite /GRing.zero /= /const_mx /map_mx !mxE.
-by rewrite z0 mpolyX0 meval1 => /eqP; rewrite GRing.oner_eq0.
-Qed.
 
 Hypothesis T2R_multiplicative : multiplicative T2R.
 Canonical T2R_morphism_struct := AddRMorphism T2R_multiplicative.
-
-Lemma soscheck_hyps_correct s p pzQi z Q :
-  @soscheck_hyps_ssr s pzQi p z Q ->
-  forall x,
-    all_prop (fun pzQ => 0%R <= (map_mpoly T2R pzQ.1).@[x]) pzQi ->
-    (0%R <= (map_mpoly T2R p).@[x]
-     /\ (has_const_ssr z -> 0%R < (map_mpoly T2R p).@[x])).
-Proof.
-move: p z Q.
-elim: pzQi => [|pzQ0 pzQi Hind] p z Q;
-  rewrite /soscheck_hyps_ssr /soscheck_hyps /=.
-{ rewrite andbC /=  => H x _; apply (soscheck_correct H). }
-case pzQ0 => p0 zQ0.
-case zQ0 => s0 sz0 z0 Q0 /=.
-set p' := poly_sub_op p (poly_mul_op s0 p0).
-move=> /and3P [] Hsoscheck Hsoscheck0 Hall x [] Hp0 Hall_prop.
-have : 0 <= (map_mpoly T2R p').@[x]
-       /\ (has_const_ssr z -> 0 < (map_mpoly T2R p').@[x]).
-{ by apply (Hind p' z Q); [by apply /andP; split|]. }
-rewrite !rmorphB !rmorphM /=.
-move=> [] H1 H2; split=> [|H3]; [move: H1|move: (H2 H3)].
-{ rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_le_0.
-  by apply Rle_trans, Rmult_le_pos; [apply (soscheck_correct Hsoscheck0)|]. }
-rewrite /GRing.add /GRing.opp -Rcomplements.Rminus_lt_0.
-by apply Rle_lt_trans, Rmult_le_pos; [apply (soscheck_correct Hsoscheck0)|].
-Qed.
 
 End theory_soscheck.
 
@@ -1264,7 +360,7 @@ rewrite ifF /=; last first.
 rewrite BigN.spec_N_of_Z // Z2Pos.id // BigZ.spec_of_Z.
 case E: nr.
 { move=> /= Hnr; rewrite F.div_correct /Xround real_FtoX_toR //=.
-  rewrite /Xdiv' ifF; [|by apply Req_bool_false, R1_neq_R0].
+  rewrite /Xdiv' ifF; [ |by apply Req_bool_false, R1_neq_R0].
   rewrite /Rdiv Rinv_1 Rmult_1_r /round /rnd_of_mode /=.
   set x := proj_val _; apply (Rle_trans _ x); last first.
   { by apply round_UP_pt, FLX_exp_valid. }
@@ -1272,7 +368,7 @@ case E: nr.
   apply (Rmult_le_reg_r (IZR (int2Z d))).
   { by rewrite -[0%Re]/(IZR 0); apply IZR_lt. }
   rewrite -mult_IZR Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc.
-  rewrite Rstruct.mulVr ?Rmult_1_r; [by right|].
+  rewrite Rstruct.mulVr ?Rmult_1_r; [by right| ].
   rewrite -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
   by move: Hd; rewrite H. }
 rewrite /= ifF /=; last first.
@@ -1290,13 +386,13 @@ rewrite Z2Pos.id; last first.
   move: (BigQ_red_den_neq0_aux nrnr); case (BigQ.red _)=>[//|? d'] H [] _ <-.
   by case (Z_le_lt_eq_dec _ _ (BigN.spec_pos d'))=>// H'; exfalso; apply H. }
 move=> Hnd; rewrite /round /rnd_of_mode /=.
-set x := _ / _; apply (Rle_trans _ x); [|by apply round_UP_pt, FLX_exp_valid].
+set x := _ / _; apply (Rle_trans _ x); [ |by apply round_UP_pt, FLX_exp_valid].
 rewrite /x -!Z2R_int2Z; do 2 rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
 apply (Rmult_le_reg_r (IZR (int2Z d))).
 { by rewrite -[0%Re]/(IZR 0); apply IZR_lt. }
 set lhs := _ * _; rewrite Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc -mult_IZR.
 rewrite Hnd {}/lhs /GRing.mul /= Rmult_assoc.
-rewrite Rstruct.mulVr ?Rmult_1_r; [right|]; last first.
+rewrite Rstruct.mulVr ?Rmult_1_r; [right| ]; last first.
 { rewrite -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
   by move: Hd; rewrite H. }
 rewrite mult_IZR Rmult_assoc Rinv_r ?Rmult_1_r //.
@@ -1310,7 +406,7 @@ Lemma rat2R_FIS2rat :
  forall x0 : FIS fs, rat2R (FIS2rat x0) = FS_val (FI2FS x0).
 Proof.
 move=> x; rewrite -bigQ2R_rat /bigQ2R.
-case: x => -[|m e] H /=.
+case: x => -[ |m e] H /=.
 { move/mantissa_boundedP in H.
   case: H => H.
   by rewrite Q2R_0.
@@ -1333,8 +429,8 @@ rewrite refinesE /r_ratBigQ /FIS2rat /FIS2bigQ /=.
 rewrite refinesE /eqFIS in ref_a.
 rewrite /F2bigQ.
 case: a1 ref_a => [a Ha]; case: a2 => [b Hb] /= ref_a.
-case: a Ha ref_a => [|m e] Ha ref_a;
-case: b Hb ref_a => [|m' e'] Hb ref_b =>//.
+case: a Ha ref_a => [ |m e] Ha ref_a;
+case: b Hb ref_a => [ |m' e'] Hb ref_b =>//.
 by symmetry in ref_b; rewrite real_FtoX_toR in ref_b.
 by rewrite real_FtoX_toR in ref_b.
 move/(congr1 proj_val) in ref_b.
@@ -1391,7 +487,7 @@ apply/idP/idP.
   rewrite !toR_Float in HeqF.
   apply/(signif_digits_correct _ e').
   rewrite /mantissa_bounded /x_bounded in H *; right.
-  have {H} [|[r H1 H2]] := H e; first by rewrite real_FtoX_toR.
+  have {H} [ |[r H1 H2]] := H e; first by rewrite real_FtoX_toR.
   exists r =>//.
   rewrite real_FtoX_toR // toR_Float; congr Xreal.
   move/(congr1 proj_val) in H1.
@@ -1403,7 +499,7 @@ apply/idP/idP.
   rewrite !toR_Float in HeqF.
   apply/(signif_digits_correct _ e).
   rewrite /mantissa_bounded /x_bounded in H *; right.
-  have {H} [|[r H1 H2]] := H e'; first by rewrite real_FtoX_toR.
+  have {H} [ |[r H1 H2]] := H e'; first by rewrite real_FtoX_toR.
   exists r =>//.
   rewrite real_FtoX_toR // toR_Float; congr Xreal.
   move/(congr1 proj_val) in H1.
@@ -1415,7 +511,7 @@ Instance : refines (eqF ==> eqFI) F2FI F2FI.
 rewrite refinesE => f f' ref_f.
 rewrite /F2FI /eqFI /=.
 rewrite /eqF in ref_f.
-case: f ref_f => [|m e] ref_f; case: f' ref_f => [|m' e'] ref_f //.
+case: f ref_f => [ |m e] ref_f; case: f' ref_f => [ |m' e'] ref_f //.
 by symmetry in ref_f; rewrite real_FtoX_toR in ref_f.
 by rewrite real_FtoX_toR in ref_f.
 rewrite /= (eqF_signif_digits ref_f).
@@ -1448,7 +544,7 @@ case Ea: (BigQ.red a); case Eb: (BigQ.red b).
 { move: H; rewrite Ea Eb /=.
   case E: (_ =? _)%bigN.
   { by move: (BigQ_red_den_neq0 b); rewrite Eb E. }
-  case=> ->; rewrite -Z2Pos.inj_1 Z2Pos.inj_iff; [by move<-|done|].
+  case=> ->; rewrite -Z2Pos.inj_1 Z2Pos.inj_iff; [by move<-|done| ].
   by apply BigQ.N_to_Z_pos; rewrite -Z.eqb_neq -BigN.spec_eqb. }
 { move: H; rewrite Ea Eb /=.
   case E: (_ =? _)%bigN.
@@ -1460,7 +556,7 @@ case E: (_ =? _)%bigN.
 { by move: (BigQ_red_den_neq0 a); rewrite Ea E. }
 case E': (_ =? _)%bigN.
 { by move: (BigQ_red_den_neq0 b); rewrite Eb E'. }
-case=>->; rewrite Z2Pos.inj_iff; [by move->| |];
+case=>->; rewrite Z2Pos.inj_iff; [by move->| | ];
   by apply BigQ.N_to_Z_pos; rewrite -Z.eqb_neq -BigN.spec_eqb.
 Transparent F.div.
 Qed.
@@ -1515,92 +611,11 @@ Context `{!refines (rAC ==> rAC ==> rAC) (fun x y => x + -y)%R sub_op}.
 Context `{!refines (rAC ==> rAC ==> rAC) *%R *%C}.
 Context `{!refines (rAC ==> rAC ==> eq) eqtype.eq_op eq_op}.
 
-Instance zero_instMnm : zero_of 'X_{1..n} := mnm0.
-
-Instance zero_mpoly : zero_of (mpoly n A) := 0%R.
-
 (* Goal forall n, nat_R n.+1 n.+1 <=> nat_R_S_R (nat_Rxx n). *)
-
-Instance refine_check_base {s} :
-  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> eq)
-    (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
-Proof.
-rewrite refinesE=> p p' rp z z' rz.
-rewrite /check_base_ssr /check_base_eff /check_base.
-set sm := iteri_ord _ _ _.
-set sm' := iteri_ord _ _ _.
-set l := _ p; set l' := _ p'.
-suff : forall (m : 'X_{1..n}) m', Rseqmultinom m m' ->
-  smem_ssr m sm = smem_eff m' sm'.
-{ move=> H; apply refinesP, refines_bool_eq; rewrite refinesE.
-  have : list_R (prod_R Rseqmultinom rAC) l l'.
-  { rewrite /l /l'; apply refinesP; eapply refines_apply.
-    { by apply ReffmpolyC_list_of_mpoly_eff. }
-    by rewrite refinesE. }
-  apply all_R=> mc mc' rmc.
-  move: (H mc.1 mc'.1); rewrite /smem_ssr /smem_eff /smem=>H'.
-  rewrite H'; [by apply bool_Rxx|].
-  by apply refinesP; refines_apply1. }
-move=> m m' rm.
-rewrite /sm /sm'.
-set f := fun _ => _; set f' := fun _ => iteri_ord _ _.
-set P := fun s s' => smem_ssr m s = smem_eff m' s'; rewrite -/(P _ _).
-apply iteri_ord_ind2 => [//|i i' se se' Hi Hi' Hse|//].
-rewrite /P in Hse; rewrite {}/P {}/f {}/f'.
-set f := fun _ => _; set f' := fun _ => _ _.
-set P := fun s s' => smem_ssr m s = smem_eff m' s'; rewrite -/(P _ _).
-apply iteri_ord_ind2=> [//|j j' se'' se''' Hj Hj' Hse''|//].
-rewrite /P in Hse''; rewrite {}/P {}/f {}/f'.
-rewrite /smem_ssr /smem /sadd /sadd_ssr in_cons.
-rewrite /smem_ssr /smem in Hse''; rewrite Hse''.
-rewrite /smem_eff /sadd_eff.
-apply/idP/idP.
-{ move/orP=> [].
-  { move=>/eqP H; apply S.mem_1, S.add_1.
-    apply/mnmc_eq_seqP/eqP/esym.
-    set mm' := mul_monom_op _ _.
-    apply/eqP;  move: H=>/eqP; set mm := mul_monom_op _ _.
-    suff: (m == mm) = (m' == mm'); [by move=>->|].
-    apply Rseqmultinom_eq; [by rewrite refinesE|].
-    rewrite /mm /mm' /mul_monom_op /mul_monom_ssr /mul_monom_eff.
-    refines_apply1; first refines_apply1; first refines_apply1;
-      first refines_apply1; try by rewrite refinesE.
-    refines_apply1; first refines_apply1; by rewrite refinesE. }
-  by move/S.mem_2=> H; apply S.mem_1, S.add_2. }
-move/S.mem_2.
-set mm := mul_monom_op _ _; case Em' : (m' == mm).
-{ case eqP=>//= Hm HIn; apply S.mem_1.
-  move: HIn; apply S.add_3=>_; apply /Hm /eqP.
-  rewrite /is_true -Em'; apply Rseqmultinom_eq.
-  { by rewrite refinesE. }
-  refines_apply1; first refines_apply1; first refines_apply1;
-    first refines_apply1; try by rewrite refinesE.
-  refines_apply1; first refines_apply1; by rewrite refinesE. }
-move/S.add_3=>H; apply/orP; right; apply S.mem_1, H.
-  by move/mnmc_eq_seqP; rewrite eq_sym Em'.
-Qed.
 
 Context `{!leq_of A}.
 Context `{!leq_of C}.
 Context `{!refines (rAC ==> rAC ==> bool_R) leq_op leq_op}.
-
-Instance refine_max_coeff :
-  refines (ReffmpolyC (n:=n) rAC ==> rAC) max_coeff_ssr max_coeff_eff.
-Proof.
-rewrite refinesE=> p p' rp.
-rewrite /max_coeff_ssr /max_coeff_eff /max_coeff.
-apply refinesP; refines_apply1.
-refines_apply1.
-refines_apply1.
-apply refines_abstr2 => m m' rm mc mc' rmc.
-do 2! refines_apply1; refines_abstr => *.
-rewrite /max !ifE; eapply refines_if_expr; tc.
-by move=> _ _; eapply refinesP; tc.
-by move=> _ _; eapply refinesP; tc.
-do 2! refines_apply1; refines_abstr => *.
-rewrite /max !ifE; eapply refines_if_expr; tc.
-all: by move=> _ _; eapply refinesP; tc.
-Qed.
 
 Context {fs : Float_round_up_infnan_spec}.
 Let F := FIS fs.
@@ -1647,200 +662,18 @@ eapply (refine_posdef_check' (fs := fs) (eqFIS := eqFIS)).
 exact: eqFIS_P.
 exact: id.
 Qed.
-  
-Local Instance refine_soscheck {s} :
-  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==>
-          RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==> bool_R)
-    (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
-    (soscheck_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
-Proof.
-rewrite refinesE=> p p' rp z z' rz Q Q' rQ.
-rewrite /soscheck_ssr /soscheck_eff /soscheck.
-suff_eq bool_Rxx.
-apply f_equal2.
-{ apply refinesP; refines_apply. }
-eapply refinesP, refines_bool_eq.
-eapply refines_apply.
-eapply refines_apply.
-eapply (refine_posdef_check_itv' (fs := fs) (eqFIS := eqFIS)).
-exact: eqFIS_P.
-exact: id.
-eapply refines_apply. tc.
-eapply refines_apply. tc.
-eapply refines_apply. tc.
-eapply refines_apply.
-eapply refines_apply.
-eapply refines_apply. tc.
-eapply refines_apply.
-eapply refines_apply. tc.
-eapply refines_apply. tc.
-eapply refines_apply.
-eapply refines_apply. tc.
-refines_abstr; simpl. (* elim comp *)
-eapply refines_apply; tc.
-by rewrite refinesE.
-all: tc.
-by rewrite refinesE /Rord.
-by rewrite refinesE /Rord.
-Qed.
-
-Variant RWit (w : sz_witness) (w' : sz_witness) : Type :=
-| RWit_spec :
-    forall s p z Q p' z' Q' (_ : w = Wit p z Q) (_ : w' = Wit p' z' Q')
-           (_ : ReffmpolyC (n:=n) rAC p p')
-           (_ : RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) z z')
-           (_ : RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) Q Q'),
-      RWit w w'.
-
-Lemma refine_soscheck_hyps :
-  refines (list_R (prod_R (ReffmpolyC rAC) RWit) ==>
-           ReffmpolyC rAC ==> 
-           RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==>
-           RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==>
-           bool_R)
-    (soscheck_hyps_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
-    (soscheck_hyps_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
-Proof.
-rewrite refinesE=> p p' rp pszQ pszQ' rpszQ z z' rz Q Q' rQ.
-rewrite /soscheck_hyps_ssr /soscheck_hyps_eff /soscheck_hyps.
-apply andb_R.
-{ apply refinesP; refines_apply.
-  rewrite refinesE => p'0 p'0' rp'0 pszQi pszQi' rpszQi.
-  move: rpszQi; case pszQi, pszQi' => /=; case s0, s1 => rpszQi.
-  apply refinesP; refines_apply; inversion rpszQi; rewrite refinesE //.
-  by inversion X4; inversion H2; inversion H4. }
-apply (all_R (T_R := prod_R (ReffmpolyC rAC) RWit)) => //.
-case=> p0 w; case=> p0' w' rpw /=.
-inversion rpw; inversion X4; rewrite H2 H4 /=.
-apply refinesP; refines_apply.
-Qed.
-
-Lemma refine_has_const :
-  refines (RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> bool_R)
-    (has_const_ssr (s:=s)) (has_const_eff (n:=n)).
-Proof.
-rewrite refinesE=> z z' rz.
-rewrite /has_const_ssr /has_const_eff /has_const.
-rewrite /eq_op /monom_eq_ssr /monom_eq_eff.
-suff_eq bool_Rxx.
-set z00 := fun_of_op z _ _; set z'00 := fun_of_op z' _ _.
-suff : z00 == monom0_ssr = (z'00 == @mnm0_seq n).
-{ by move->; apply/idP/idP; [apply/mnmc_eq_seqP|move/mnmc_eq_seqP]. }
-apply Rseqmultinom_eq.
-{ eapply refines_apply; [eapply refines_apply|].
-  { eapply refines_apply; tc. }
-  { by rewrite refinesE. }
-  by rewrite refinesE. }
-apply refine_mnm0.
-Qed.
 
 End refinement_soscheck.
-
-Section refinement_interp_poly.
 
 (* TODO: PR CoqEAL ? *)
 Lemma nth_lt_list_R T1 T2 (T_R : T1 -> T2 -> Type) (x01 : T1) (x02 : T2) s1 s2 :
   size s1 = size s2 ->
   (forall n, (n < size s1)%N -> T_R (nth x01 s1 n) (nth x02 s2 n)) -> list_R T_R s1 s2.
 Proof.
-elim: s1 s2 => [|hs1 ts1 Hind]; [by move=> [//|]|].
-move=> [//|hs2 ts2 /= Hs H]; apply list_R_cons_R; [by apply (H O)|].
+elim: s1 s2 => [ |hs1 ts1 Hind]; [by move=> [//| ]| ].
+move=> [//|hs2 ts2 /= Hs H]; apply list_R_cons_R; [by apply (H O)| ].
 by apply Hind; [apply eq_add_S|move=> n Hn; apply (H (S n))].
 Qed.
-
-(* TODO: begin PR CoqEAL Multipoly ? *)
-Lemma size_seq_ReffmpolyC (A : ringType) (C : Type) (rAC : A -> C -> Type)
-      (n k : nat) (lq : k.-tuple {mpoly A[n]}) (lq' : seq (effmpoly C)) :
-  seq_ReffmpolyC rAC lq lq' -> size lq' = k.
-Proof.
-move=> [b [[Hb _] Hb']]; rewrite -Hb; apply esym, nat_R_eq, (size_R Hb').
-Qed.
-
-Lemma nth_seq_ReffmpolyC (A : ringType) (C : Type) (rAC : A -> C -> Type)
-      (n k : nat) (lq : k.-tuple {mpoly A[n]}) (lq' : seq (effmpoly C)) :
-  seq_ReffmpolyC rAC lq lq' ->
-  forall i, refines (ReffmpolyC rAC) lq`_i (nth mp0_eff lq' i).
-Proof.
-move=> [b [[Hb Hb'] Hb'']] i; apply (refines_trans _ (Hb' i)).
-rewrite refinesE; apply nth_R; [|by []|apply nat_Rxx].
-apply refinesP, refine_M_hrel_mp0_eff.
-Qed.
-
-Lemma seq_ReffmpolyC_spec (A : ringType) (C : Type) (rAC : A -> C -> Type)
-      (n k : nat) (lq : k.-tuple {mpoly A[n]}) (lq' : seq (effmpoly C)) :
-  ((size lq' = k)
-   * (forall i, refines (ReffmpolyC rAC) lq`_i (nth mp0_eff lq' i)))%type ->
-  seq_ReffmpolyC rAC lq lq'.
-Proof.
-move=> [Hs H].
-have H' : forall i, ReffmpolyC rAC lq`_i (nth mp0_eff lq' i).
-{ by move=> i; move: (H i); rewrite refinesE. }
-exists [seq projT1 (H' i) | i <- iota O k]; split; [split|].
-{ by rewrite size_map size_iota. }
-{ move=> i; case (ltnP i k) => Hk.
-  { rewrite (nth_map O) ?size_iota // nth_iota //= refinesE.
-    by case (H' _) => /= ? [? _]. }
-  rewrite nth_default ?size_tuple // nth_default ?size_map ?size_iota //.
-  apply refine_mp0_eff. }
-apply (nth_lt_list_R (x01:=mp0_eff) (x02:=mp0_eff)).
-{ by rewrite size_map size_iota. }
-move=> i; rewrite size_map size_iota => Hi.
-rewrite (nth_map O) ?size_iota // nth_iota //.
-by case (H' _) => /= ? [].
-Qed.
-(* TODO: end PR CoqEAL Multipoly *)
-
-Lemma refine_interp_poly n ap : vars_ltn n ap ->
-  refines (ReffmpolyC r_ratBigQ) (interp_poly_ssr n ap) (interp_poly_eff n ap).
-Proof.
-elim/abstr_poly_rect': ap n => //.
-{ move=> c ? /= _; eapply refines_apply;
-    [eapply ReffmpolyC_mpolyC_eff; try by tc|].
-  by rewrite refinesE. }
-{ move=> i [|n] //= Hn.
-  rewrite -(GRing.scale1r (mpolyX _ _)) -/(mpvar 1 1 (inord i)).
-  eapply refines_apply; first eapply refines_apply; first eapply refines_apply.
-  { by apply ReffmpolyC_mpvar_eff. }
-  { tc. }
-  { by rewrite refinesE. }
-  by rewrite refinesE /Rord0 -bin_of_natE bin_of_natK inordK. }
-{ move=> p Hp q Hq n /= /andP [] Hlp Hlq.
-  rewrite /GRing.add /=.
-  eapply refines_apply; first eapply refines_apply.
-  { by apply ReffmpolyC_mpoly_add_eff; tc. }
-  { by apply Hp. }
-  by apply Hq. }
-{ move=> p Hp q Hq n /= /andP [] Hlp Hlq.
-  set p' := _ _ p; set q' := _ _ q.
-  rewrite -[(_ - _)%R]/(mpoly_sub p' q').
-  eapply refines_apply; first eapply refines_apply.
-  { by apply ReffmpolyC_mpoly_sub_eff; tc. }
-  { by apply Hp. }
-  by apply Hq. }
-{ move=> p Hp q Hq n /= /andP [] Hlp Hlq.
-  rewrite /GRing.mul /=.
-  eapply refines_apply; first eapply refines_apply.
-  { by apply ReffmpolyC_mpoly_mul_eff; tc. }
-  { by apply Hp. }
-  by apply Hq. }
-{ move=> p Hp m n /= Hlp.
-  eapply refines_apply; first eapply refines_apply.
-  { by apply ReffmpolyC_mpoly_exp_eff; tc. }
-  { by apply Hp. }
-  by rewrite refinesE. }
-move=> p Hp qi Hqi n /= /andP [Hnqi Hnp].
-case (sumb _) => [e|]; [|by rewrite size_map eqxx].
-eapply refines_apply; [|by apply Hp].
-eapply refines_apply; [by apply ReffmpolyC_comp_mpoly_eff; tc|].
-rewrite refinesE; apply seq_ReffmpolyC_spec; split; [by rewrite size_map|].
-move=> i; rewrite ssrcomplements.tval_tcast in_tupleE.
-case (ltnP i (size qi)) => Hi.
-{ rewrite !(nth_map (Const 0)) //.
-  by apply (all_type_nth _ Hqi Hi); move: Hnqi => /all_nthP; apply. }
-rewrite !nth_default ?size_map //; apply ReffmpolyC_mp0_eff.
-Qed.
-
-End refinement_interp_poly.
 
 (** ** Part 4: The final tactic *)
 
@@ -1848,32 +681,11 @@ Lemma map_R_nth (T1 T2 : Type) (x0 : T2) (T_R : T1 -> T2 -> Type) (f : T2 -> T1)
   (forall i, (i < size l)%N -> T_R (f (nth x0 l i)) (nth x0 l i)) ->
   list_R T_R [seq f x | x <- l] l.
 Proof.
-elim: l=> [|a l IH H]; first by simpl.
+elim: l=> [ |a l IH H]; first by simpl.
 constructor 2.
 { by move: (H 0%N) => /=; apply. }
 apply IH=> i Hi.
 by move: (H i.+1)=> /=; apply; rewrite ltnS.
-Qed.
-
-Lemma listR_seqmultinom_map (n : nat)
-  (z : seq (seq BinNums.N)) :
-  let za := [seq [:: x] | x <- z] in
-  (all (fun m => size m == n) z) ->
-  list_R (list_R (Rseqmultinom (n := n)))
-    (map_seqmx (spec (spec_of := multinom_of_seqmultinom_val n)) za)
-    za.
-Proof.
-move=> za H.
-apply (map_R_nth (x0:=[::]))=> i Hi.
-rewrite size_map in Hi.
-apply (map_R_nth (x0:=[::]))=> j Hj.
-rewrite /spec.
-apply refinesP, refine_multinom_of_seqmultinom_val.
-move /all_nthP in H.
-rewrite /za (nth_map [::]) //.
-suff -> : j = 0%N by simpl; apply H.
-move: Hj; rewrite /za (nth_map [::]) //=.
-by rewrite ltnS leqn0; move/eqP->.
 Qed.
 
 Lemma eqFIS_P x y : reflect (eqFIS x y) (eq_instFIS x y).
@@ -1909,170 +721,6 @@ Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
 
 (** *** The main tactic. *)
 
-Inductive p_abstr_ineq :=
-| ILe of p_abstr_poly & p_abstr_poly
-| IGe of p_abstr_poly & p_abstr_poly
-| ILt of p_abstr_poly & p_abstr_poly
-| IGt of p_abstr_poly & p_abstr_poly
-.
-
-Inductive p_abstr_hyp :=
-| Hineq of p_abstr_ineq
-| Hand of p_abstr_hyp & p_abstr_hyp
-.
-
-Inductive p_abstr_goal :=
-  | Gineq of p_abstr_ineq
-  | Ghyp of p_abstr_hyp & p_abstr_goal
-  .
-
-Fixpoint interp_p_abstr_ineq (vm : seq R) (i : p_abstr_ineq) {struct i} : Prop :=
-  match i with
-  | ILe p q => Rle (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  | IGe p q => Rge (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  | ILt p q => Rlt (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  | IGt p q => Rgt (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
-  end.
-
-Fixpoint interp_p_abstr_hyp (vm : seq R) (h : p_abstr_hyp) : Prop :=
-  match h with
-  | Hineq i => interp_p_abstr_ineq vm i
-  | Hand a b => interp_p_abstr_hyp vm a /\ interp_p_abstr_hyp vm b
-  end.
-
-Fixpoint interp_p_abstr_goal (vm : seq R) (g : p_abstr_goal) {struct g} : Prop :=
-  match g with
-  | Gineq i => interp_p_abstr_ineq vm i
-  | Ghyp h g => interp_p_abstr_hyp vm h -> interp_p_abstr_goal vm g
-  end.
-
-(** (li, p, true) stands for /\_i 0 <= li -> 0 < p
-    (li, p, false) stands for /\_i 0 <= li -> 0 <= p *)
-Definition abstr_goal := (seq p_abstr_poly * p_abstr_poly * bool)%type.
-
-Definition sub_p_abstr_poly p q :=
-  match p, q with
-  | PConst PConstR0, q => POpp q
-  | p, PConst PConstR0 => p
-  | _, _ => PSub p q
-  end.
-
-Lemma sub_p_abstr_poly_correct vm p q :
-  interp_p_abstr_poly vm (sub_p_abstr_poly p q) =
-  interp_p_abstr_poly vm p - interp_p_abstr_poly vm q.
-Proof.
-case: p=> [p|n|p|p p'|p p'|p p'|p n|p n|p pi];
-case: q=> [q|d|q|q q'|q q'|q q'|q d|q d|q qi] //;
-try (case: p =>//=; case: q =>//= *; ring).
-by case: p =>//= *; ring.
-by case: q =>//= *; ring.
-Qed.
-
-Fixpoint seq_p_abstr_poly_of_hyp h :=
-  match h with
-  | Hineq i =>
-    match i with
-    | ILt p q | ILe p q => [:: sub_p_abstr_poly q p]
-    | IGt p q | IGe p q => [:: sub_p_abstr_poly p q]
-    end
-  | Hand a b =>
-    seq_p_abstr_poly_of_hyp a ++ seq_p_abstr_poly_of_hyp b
-  end.
-
-Fixpoint abstr_goal_of_p_abstr_goal_aux
-  (accu : seq p_abstr_poly) (g : p_abstr_goal) {struct g} : abstr_goal :=
-  match g with
-  | Gineq i =>
-    match i with
-    | ILt p q => (accu, (sub_p_abstr_poly q p), true)
-    | IGt p q => (accu, (sub_p_abstr_poly p q), true)
-    | ILe p q => (accu, (sub_p_abstr_poly q p), false)
-    | IGe p q => (accu, (sub_p_abstr_poly p q), false)
-    end
-  (* Note: strict hyps are weakened to large hyps *)
-  | Ghyp h g =>
-    abstr_goal_of_p_abstr_goal_aux (accu ++ seq_p_abstr_poly_of_hyp h) g
-  end.
-
-Definition abstr_goal_of_p_abstr_goal := abstr_goal_of_p_abstr_goal_aux [::].
-
-Definition interp_abstr_goal (vm : seq R) (g : abstr_goal) : Prop :=
-  match g with
-  | (l, p, true) =>
-      all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re l ->
-      0 < interp_p_abstr_poly vm p
-  | (l, p, false) =>
-      all_prop (fun p => 0 <= interp_p_abstr_poly vm p)%Re l ->
-      0 <= interp_p_abstr_poly vm p
-  end.
-
-Ltac tac := rewrite /= !sub_p_abstr_poly_correct; psatzl R.
-
-(*/-*)
-Theorem abstr_goal_of_p_abstr_goal_correct vm (g : p_abstr_goal) :
-  interp_abstr_goal vm (abstr_goal_of_p_abstr_goal g) ->
-  interp_p_abstr_goal vm g.
-Proof.
-rewrite /abstr_goal_of_p_abstr_goal.
-have : all_prop (fun p => 0 <= interp_p_abstr_poly vm p) [::] by simpl.
-elim: g [::] => [p|h g IHg] l.
-{ case: p => p q /=; do [case: l => [|x l]; last move=> Hxl /(_ Hxl); tac]. }
-move=> /= Hl Hlhg Hh.
-apply: IHg Hlhg.
-apply/all_prop_cat; split =>//; clear - Hh.
-elim: h Hh => [i Hi|a A b B H]  /=.
-{ by case: i Hi =>//= p q; tac. }
-have {H} [H1 H2] := H.
-by apply/all_prop_cat; split =>//=; auto.
-Qed.
-
-Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
-  (szQi : seq (seq (seq BinNums.N * bigQ)
-               * (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))))
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
-  let '(papi, pap, strict) := abstr_goal_of_p_abstr_goal g in
-  let n := size vm in
-  let ap := abstr_poly_of_p_abstr_poly pap in
-  let bp := interp_poly_eff n ap in
-  let apl := [seq abstr_poly_of_p_abstr_poly p | p <- papi] in
-  let bpl := [seq interp_poly_eff n p | p <- apl] in
-  let s := size zQ.1 in
-  let s' := s.-1 in
-  let z := map (fun x => [:: x]) zQ.1 in
-  let Q := map (map F2FI) zQ.2 in
-  let szQl :=
-    map (fun szQ =>
-           let s := mpoly_of_list_eff szQ.1 in
-           let sz := size szQ.2.1 in
-           let z := map (fun x => [:: x]) szQ.2.1 in
-           let Q := map (map F2FI) szQ.2.2 in
-           Wit (mx := @hseqmx) (fs := fs) s (s := sz.-1) z Q)
-        szQi in
-  let pszQl := zip bpl szQl in
-  [&&
-   n != 0%N,
-   all (fun m => size m == n) zQ.1,
-   all (fun szQ => all (fun m => size m == n) szQ.2.1) szQi,
-   all (fun szQ => match szQ with
-                     | Wit s _ _ _ => P.for_all (fun k _ => size k == n) s
-                   end) szQl,
-   s != 0%N,
-   size Q == s,
-   all (fun e => size e == s) Q,
-   all (fun szQ => size szQ.2.1 != 0%N) szQi,
-   all (fun szQ => size szQ.2.2 == size szQ.2.1) szQi,
-   all (fun szQ => (all (fun e => size e == size szQ.2.1) szQ.2.2)) szQi,
-   vars_ltn n ap,
-   all (vars_ltn n) apl,
-   size papi == size szQl,
-   strict ==> has_const_eff (s:=s.-1) (n:=n) z &
-   soscheck_hyps_eff
-     (n := n) (s := s')
-     (fs := coqinterval_infnan.coqinterval_round_up_infnan)
-     (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
-     (T2F := F2FI \o bigQ2F')
-     pszQl bp z Q].
-
 Definition posdefcheck_eff_wrapup (Q : seq (seq (s_float bigZ bigZ))) :=
   let s := size Q in
   let s' := s.-1 in
@@ -2099,37 +747,71 @@ set s' := s.-1.
 set Q' := map (map F2FI) Q.
 pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) (s'.+1) (s'.+1) Q'.
 case/and4P => Hs HQ'1 HQ'2 Hposdef.
-have Hs' : s'.+1 = s by rewrite prednK => [//|]; rewrite lt0n.
+have Hs' : s'.+1 = s by rewrite prednK => [//| ]; rewrite lt0n.
 rewrite /posdef_seqF.
 set Q'' := spec_seqmx _ _ _.
-Check posdefcheck_correct.
-have HQb : posdef (cholesky.MF2R (cholesky_infnan.MFI2F Qb)).
-{ apply posdefcheck_correct with (Q0 := Qb).
-  move: Hposdef; apply etrans.
+have Hpos : posdefcheck_ssr Qb.
+{ move: Hposdef; apply etrans.
   apply refines_eq, refines_bool_eq.
-refines_apply1.
-(* Set Printing All. *)
-(* Check posdefcheck_correct. *)
-(* have -> : Q'' = cholesky.MF2R (cholesky_infnan.MFI2F Qb). *)
-(* { rewrite /Q''. *)
-(* Search "" spec_seqmx. *)
-
-  
-(* Check posdefcheck_correct. *)
-(* Search "" toR. *)
-(* Print cholesky_infnan.MFI2F. *)
-(* Print FIS2FS. *)
-(* F2FI_correct  forall f : F.type, F.real (F2FI f) -> FI2FS (F2FI f) = toR f *)
-(* (cholesky.MF2R (cholesky_infnan.MFI2F Q0)) *)
-(* Print F2FI. *)
-(* Set Printing All. *)
-
-
-(* Search "" posdefcheck_ssr. *)
-(* Search "" soscheck_hyps_eff. *)
-(* Check refine_soscheck. *)
+  refines_apply1; rewrite refinesE.
+  eapply Rseqmx_spec_seqmx. (* EMD: should be inferred? *)
+  apply/andP; split.
+  { by rewrite (eqP HQ'1) Hs'. }
+  { by rewrite Hs'. } }
+have HQb : posdef (cholesky.MF2R (cholesky_infnan.MFI2F Qb)).
+{ by apply posdefcheck_correct with (Q0 := Qb). }
+have Hfin := posdef_check_f1 Hpos.
+have := HQb.
+have HszQ : s'.+1 = size Q by rewrite Hs'.
+suff->: Q'' = castmx (HszQ, HszQ) (cholesky.MF2R (cholesky_infnan.MFI2F Qb)).
+{ rewrite /posdef.
+  intros Hforall v Hv i j.
+  move/(_ (castmx (esym HszQ, erefl 1%N) v)) in Hforall.
+  have Hv' : castmx (esym HszQ, erefl 1%N) v <> 0%R.
+  { move/matrixP in Hv.
+    move/matrixP => Kv'.
+    apply Hv => k l.
+    move/(_ (cast_ord (esym HszQ) k) l) in Kv'.
+    rewrite castmxE /= !(cast_ord_id, cast_ord_comp) in Kv'.
+    by rewrite Kv' !mxE. }
+  move/(_ Hv' i j): Hforall.
+  congr Rlt; rewrite !mxE.
+  set h := (fun j : 'I_(size Q) => cast_ord (esym HszQ) j).
+  have hBij : {on [pred _ | true], bijective h}.
+  { exists (fun i : 'I_(s'.+1) => cast_ord HszQ i).
+    { by move=> k _; rewrite cast_ord_comp cast_ord_id. }
+    { by move=> k _; rewrite /h cast_ord_comp cast_ord_id. } }
+  rewrite (reindex h hBij).
+  apply eq_bigr => k Hk.
+  rewrite /h !(castmxE, cast_ord_comp, cast_ord_id, mxE).
+  congr Rmult.
+  rewrite (reindex h hBij).
+  apply eq_bigr => l Hl.
+  by rewrite /h !(castmxE, cast_ord_comp, cast_ord_id, mxE). }
+apply/matrixP => i j; rewrite !(mxE, castmxE) /= /map_seqmx /Q'.
+Tactic Notation "tweak_map" constr(def) tactic3(tac) :=
+  erewrite nth_map with (x1 := def); last tac.
+Tactic Notation "tweak_map" "_" tactic3(tac) :=
+  erewrite nth_map; last tac.
+have Hrow : forall i : 'I_(size Q), (size (nth [::] Q i) = size Q)%N.
+  by admit.
+tweak_map ([::] : seq R) by rewrite size_map.
+tweak_map R0 (tweak_map ([::] : seq F.type) done; by rewrite size_map Hrow).
+tweak_map ([::] : seq F.type) done.
+tweak_map F.zero by rewrite Hrow.
+tweak_map ([::] : seq FI) by rewrite size_map.
+tweak_map (F2FI F.zero) (tweak_map ([::] : seq F.type) done; by rewrite size_map Hrow).
+tweak_map ([::] : seq F.type) done.
+tweak_map F.zero by rewrite Hrow.
+have HFin' : forall (i j : 'I_(size Q)),
+  F.real (F2FI (nth F.zero(*?*) (nth [::] Q i) j)).
+{ by admit. }
+have H1 := HFin' i j.
+have H2 := F2FI_correct H1.
+by rewrite -H2.
 Admitted.
 
+(*
 Theorem soscheck_hyps_eff_wrapup_correct
   (vm : seq R) (g : p_abstr_goal)
   (szQi : seq (seq (seq BinNums.N * bigQ)
@@ -2385,6 +1067,7 @@ Check soscheck_hyps_eff_wrapup_correct.
 
 About s_float.
 Check (s_float bigZ bigZ).
+ *)
 
 Require matrices.
 
