@@ -789,8 +789,13 @@ suff->: Q'' = castmx (HszQ, HszQ) (cholesky.MF2R (cholesky_infnan.MFI2F Qb)).
   apply eq_bigr => l Hl.
   by rewrite /h !(castmxE, cast_ord_comp, cast_ord_id, mxE). }
 apply/matrixP => i j; rewrite !(mxE, castmxE) /= /map_seqmx /Q'.
+have HQ': size Q' = size Q by rewrite size_map.
 have Hrow : forall i : 'I_(size Q), (size (nth [::] Q i) = size Q)%N.
-  by admit.
+{ move=> k.
+  move/(all_nthP [::])/(_ k): HQ'2.
+  rewrite -(eqP HQ'1) HQ'.
+  move/(_ (@ltn_ord _ k))/eqP; apply etrans.
+  by rewrite /Q' (nth_map [::]) // size_map. }
 rewrite (nth_map ([::] : seq R)); last by rewrite size_map.
 rewrite (nth_map R0);
   last by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
@@ -802,12 +807,18 @@ rewrite (nth_map (F2FI F.zero));
 rewrite (nth_map ([::] : seq F.type)) //.
 rewrite (nth_map F.zero); last by rewrite Hrow.
 have HFin' : forall (i j : 'I_(size Q)),
-  F.real (F2FI (nth F.zero(*?*) (nth [::] Q i) j)).
-{ by admit. }
+  F.real (F2FI (nth F.zero (nth [::] Q i) j)).
+{ move=> k l.
+  clear - Hfin HszQ HQ' Hrow.
+  move/(_ (cast_ord (esym HszQ) k) (cast_ord (esym HszQ) l)): Hfin.
+  rewrite /Qb /= mxE /map_seqmx /= (nth_map [::]) ?HQ'//.
+  rewrite /Q' /= (nth_map [::]) ?HQ'//.
+  rewrite (nth_map (F2FI F.zero)) ?size_map ?Hrow ?HQ'//.
+  by rewrite (nth_map F.zero) ?Hrow ?HQ'. }
 have H1 := HFin' i j.
 have H2 := F2FI_correct H1.
 by rewrite -H2.
-Admitted.
+Qed.
 
 Require matrices.
 
