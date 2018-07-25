@@ -660,42 +660,41 @@ case (Pos.succ_pred_or x); intro Hx.
   rewrite !BigN.spec_shiftl, spec_to_Z, Ezx in H1;
   simpl Z.sgn in H1;
   rewrite Hx, Hv in H1; simpl in H1; compute in H1; rewrite H in H1; try discriminate H1; try lia.
-Admitted.
-(*   rewrite <- Hx at 1. *)
-(* rewrite Pos2Z.inj_succ. *)
-(* replace (Z.succ (Z.pos (Pos.pred x)) - 1)%Z  with (Z.pos (Pos.pred x)) by lia. *)
-(* intros [Hl _]. *)
-(* unfold mantissa_shrp. *)
-(* replace  (shift radix 1 x) with (xO ((Z.to_pos radix) ^ (Pos.pred x))); last first. *)
-(*   apply Pos2Z.inj. *)
-(*   rewrite <- (Pos.mul_1_r (_ ^ _)), <- (Pos.mul_xO_r _ xH). *)
-(*   rewrite Pos.mul_comm, <- Pos.pow_succ_r, Hx, shift_correct. *)
-(*   rewrite !Z.pow_pos_fold, Pos2Z.inj_pow, radix_to_pos; lia. *)
-(* simpl. *)
-(* replace *)
-(*   (BigN.shiftl y 1 ?= BigN.shiftl 1 (BigZ.to_N z))%bigN *)
-(* with *)
-(*    (MtoP y ?= 2 ^ Pos.pred x)%positive. *)
-(*   revert Hl. *)
-(*   rewrite <-Z.pow_pos_fold, <- radix_to_pos, <- Pos2Z.inj_pow_pos. *)
-(*   simpl. *)
-(*   case Pos.compare_spec; try easy. *)
-(*     intro H; lia. *)
-(*   now destruct k. *)
-(* rewrite BigN.spec_compare, !BigN.spec_shiftl. *)
-(* rewrite Z.shiftl_1_l. *)
-(* unfold EtoZ in Ezx. *)
-(* rewrite spec_to_Z, Ezx. *)
-(* unfold MtoP; rewrite Hv. *)
-(* rewrite Z.mul_1_l. *)
-(* rewrite <- Hx at 2. *)
-(* rewrite Pos2Z.inj_succ. *)
-(* rewrite Z.pow_succ_r, Z.mul_comm; try lia. *)
-(* replace (Z.shiftl (Z.pos v) [1]%bigN)  with *)
-(*    (Zpos v * 2)%Z by (simpl; rewrite Pos2Z.inj_mul; lia). *)
-(* rewrite <- Pos2Z.inj_pow; try easy. *)
-(* now rewrite <- Zmult_compare_compat_r. *)
-(* Qed. *)
+  rewrite <- Hx at 1.
+  rewrite Pos2Z.inj_succ.
+  replace (Z.succ (Z.pos (Pos.pred x)) - 1)%Z  with (Z.pos (Pos.pred x)) by lia.
+intros [Hl _].
+unfold mantissa_shrp.
+replace  (shift radix 1 x) with (xO ((Z.to_pos radix) ^ (Pos.pred x))); last first.
+  apply Pos2Z.inj.
+  rewrite <- (Pos.mul_1_r (_ ^ _)), <- (Pos.mul_xO_r _ xH).
+  rewrite Pos.mul_comm, <- Pos.pow_succ_r, Hx, shift_correct.
+  rewrite !Z.pow_pos_fold, Pos2Z.inj_pow, radix_to_pos; lia.
+simpl.
+replace
+  (BigN.shiftl y 1 ?= BigN.shiftl 1 (BigZ.to_N z))%bigN
+with
+   (MtoP y ?= 2 ^ Pos.pred x)%positive.
+  revert Hl.
+  rewrite <-Z.pow_pos_fold, <- radix_to_pos, <- Pos2Z.inj_pow_pos.
+  simpl.
+  case Pos.compare_spec; try easy.
+    intro H; lia.
+  now destruct k.
+rewrite BigN.spec_compare, !BigN.spec_shiftl.
+rewrite Z.shiftl_1_l.
+unfold EtoZ in Ezx.
+rewrite spec_to_Z, Ezx.
+unfold MtoP; rewrite Hv.
+rewrite Z.mul_1_l.
+rewrite <- Hx at 2.
+rewrite Pos2Z.inj_succ.
+rewrite Z.pow_succ_r, Z.mul_comm; try lia.
+replace (Z.shiftl (Z.pos v) [1]%bigN)  with
+  (Zpos v * 2)%Z by (cbn; rewrite Pos2Z.inj_mul; lia).
+rewrite <- Pos2Z.inj_pow; try easy.
+now rewrite <- Zmult_compare_compat_r.
+Qed.
 
 Lemma mantissa_div_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
