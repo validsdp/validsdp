@@ -15,7 +15,7 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
 majmin=`echo "$coq_version" | cut -d . -f "1 2"`
-if test "v$majmin" != "v8.6" -a "v$majmin" != "v8.7" -a "v$majmin" != "v8.9+alpha"; then
+if test "v$majmin" != "v8.6" -a "v$majmin" != "v8.7" -a "v$majmin" != "v8.8+alpha"; then
   AC_MSG_ERROR([Coq version must be 8.6.x or 8.7.x (you have version $coq_version).])
 fi
 AC_MSG_RESULT($coq_version)
@@ -93,22 +93,22 @@ dnl   [ AC_MSG_RESULT([no])
 dnl     AC_MSG_ERROR([ *** Unable to find library Multinomials >= 1.0 (https://github.com/math-comp/multinomials/)])])
 dnl rm -f conftest.v conftest.vo conftest.err
 
-AC_MSG_CHECKING([for OSDP])
-AS_IF(
-  [ req_maj="0"
-    req_min="5"
-    req_pat="2"
-    osdp_version=`ocamlfind query -format %v osdp 2>/dev/null`
-    major=`echo $osdp_version | cut -d . -f 1`
-    minor=`echo $osdp_version | cut -d . -f 2`
-    patch=`echo $osdp_version | cut -d . -f 3 | cut -d - -f 1`
-    test "0$major" -gt "0$req_maj" || { test "0$major" -eq "0$req_maj" && \
-      test "0$minor" -gt "0$req_min" || { test "0$minor" -eq "0$req_min" && \
-        test "0$patch" -ge "0$req_pat"; }; } ],
-  [ AC_MSG_RESULT($osdp_version) ],
-  [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library OSDP >= $req_maj.$req_min.$req_pat (https://cavale.enseeiht.fr/osdp/)])])
-rm -f conftest.v conftest.vo conftest.err
+# AC_MSG_CHECKING([for OSDP])
+# AS_IF(
+#   [ req_maj="0"
+#     req_min="5"
+#     req_pat="2"
+#     osdp_version=`ocamlfind query -format %v osdp 2>/dev/null`
+#     major=`echo $osdp_version | cut -d . -f 1`
+#     minor=`echo $osdp_version | cut -d . -f 2`
+#     patch=`echo $osdp_version | cut -d . -f 3 | cut -d - -f 1`
+#     test "0$major" -gt "0$req_maj" || { test "0$major" -eq "0$req_maj" && \
+#       test "0$minor" -gt "0$req_min" || { test "0$minor" -eq "0$req_min" && \
+#         test "0$patch" -ge "0$req_pat"; }; } ],
+#   [ AC_MSG_RESULT($osdp_version) ],
+#   [ AC_MSG_RESULT([no])
+#     AC_MSG_ERROR([ *** Unable to find library OSDP >= $req_maj.$req_min.$req_pat (https://cavale.enseeiht.fr/osdp/)])])
+# rm -f conftest.v conftest.vo conftest.err
 
 if test "$COQ_VERSION" != "v86"; then
   AC_MSG_CHECKING([for coq-bignums])
