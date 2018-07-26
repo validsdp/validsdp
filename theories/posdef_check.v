@@ -85,6 +85,13 @@ Local Notation fs := coqinterval_infnan.coqinterval_round_up_infnan (only parsin
 
 (** *** The main tactic. *)
 
+Section posdef_check_eff_wrapup.
+
+Variable fs : Float_round_up_infnan_spec.
+Variable F2FI : F.type -> FIS fs.
+Hypothesis F2FI_correct : forall f : F.type,
+  finite (F2FI f) -> FIS2FS (F2FI f) = proj_val (F.toX f) :> R.
+
 Definition posdefcheck_eff_wrapup (Q : seq (seq (s_float bigZ bigZ))) :=
   let s := size Q in
   let s' := s.-1 in
@@ -95,7 +102,7 @@ Definition posdefcheck_eff_wrapup (Q : seq (seq (s_float bigZ bigZ))) :=
    all (fun e => size e == s) Q &
    posdefcheck_eff
      (s := s')
-     (fs := coqinterval_infnan.coqinterval_round_up_infnan)
+     (fs := fs)
      Q].
 
 Definition posdef_seqF (mat : seq (seq F.type)) : Prop :=
@@ -165,13 +172,13 @@ rewrite (nth_map R0);
   last by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
 rewrite (nth_map ([::] : seq F.type)) //.
 rewrite (nth_map F.zero); last by rewrite Hrow.
-rewrite (nth_map ([::] : seq FI)); last by rewrite size_map.
+rewrite (nth_map ([::] : seq (FIS fs))); last by rewrite size_map.
 rewrite (nth_map (F2FI F.zero));
   last by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
 rewrite (nth_map ([::] : seq F.type)) //.
 rewrite (nth_map F.zero); last by rewrite Hrow.
 have HFin' : forall (i j : 'I_(size Q)),
-  F.real (F2FI (nth F.zero (nth [::] Q i) j)).
+  finite (F2FI (nth F.zero (nth [::] Q i) j)).
 { move=> k l.
   clear - Hfin HszQ HQ' Hrow.
   move/(_ (cast_ord (esym HszQ) k) (cast_ord (esym HszQ) l)): Hfin.
@@ -184,17 +191,24 @@ have H2 := F2FI_correct H1.
 by rewrite -H2.
 Qed.
 
-Require matrices.
+End posdef_check_eff_wrapup.
+
+Lemma F2FI_correct' (f : F.type) :
+  @finite coqinterval_infnan.coqinterval_round_up_infnan (F2FI f) ->
+  FI2FS (F2FI f) = toR f :> R.
+Proof. by apply F2FI_correct. Qed.
 
 Ltac posdef_check :=
   match goal with
   | [ |- posdef_seqF ?Q ] =>
-    abstract (apply @posdefcheck_eff_wrapup_correct;
+    abstract (apply (posdefcheck_eff_wrapup_correct F2FI_correct');
       vm_cast_no_check (erefl true))
   end.
 
 (*Eval vm_compute in posdef_check matrices.m4. Bug !*)
 Time Eval vm_compute in posdefcheck_eff_wrapup matrices.m4.
+
+Require matrices.
 
 Goal posdef_seqF matrices.m4.
 Time posdef_check.
