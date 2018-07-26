@@ -191,8 +191,6 @@ rewrite <- (Rabs_right (xy - round _ _ _ _));
 rewrite Rabs_minus_sym; apply Hexy'; lra.
 Qed.
 
-About FLT_exp_valid.
-
 Lemma fplus_spec_l (x y : F) : Rabs (frnd (x + y) - (x + y)) <= Rabs x.
 Proof.
 apply (Rle_trans _ (Rabs (y - (x + y)))).
