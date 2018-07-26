@@ -795,16 +795,16 @@ have Hrow : forall i : 'I_(size Q), (size (nth [::] Q i) = size Q)%N.
   move/(all_nthP [::])/(_ k): HQ'2.
   rewrite -(eqP HQ'1) HQ'.
   move/(_ (@ltn_ord _ k))/eqP; apply etrans.
-  by rewrite /Q' (nth_map [::]) // size_map. }
+  by rewrite /Q' (nth_map [::]) => [|//]; rewrite size_map. }
 rewrite (nth_map ([::] : seq R)); last by rewrite size_map.
 rewrite (nth_map R0);
-  last by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
-rewrite (nth_map ([::] : seq F.type)) //.
+  [|by rewrite (nth_map ([::] : seq F.type)) => [|//]; rewrite  size_map Hrow].
+rewrite (nth_map ([::] : seq F.type)) => [|//].
 rewrite (nth_map F.zero); last by rewrite Hrow.
 rewrite (nth_map ([::] : seq FI)); last by rewrite size_map.
 rewrite (nth_map (F2FI F.zero));
-  last by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
-rewrite (nth_map ([::] : seq F.type)) //.
+  [|by rewrite (nth_map ([::] : seq F.type)) => [|//]; rewrite size_map Hrow].
+rewrite (nth_map ([::] : seq F.type)) => [|//].
 rewrite (nth_map F.zero); last by rewrite Hrow.
 have HFin' : forall (i j : 'I_(size Q)),
   F.real (F2FI (nth F.zero (nth [::] Q i) j)).
