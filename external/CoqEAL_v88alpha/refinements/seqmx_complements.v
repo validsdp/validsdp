@@ -90,8 +90,6 @@ End seqmx_op.
 
 (** ** Refinement proofs *)
 
-Require Import Equivalence RelationClasses Morphisms.
-
 Section seqmx_theory.
 
 Context {A : Type}.
@@ -161,6 +159,8 @@ case: j IHs => [|j] IHs //=; case: k IHs => [|k] IHs //=.
 by rewrite size_store_aux.
 Qed.
 
+Require Import Equivalence RelationClasses Morphisms.
+
 Global Instance store_ssr : store_of A ordinal (matrix A) :=
   fun m n (M : 'M[A]_(m, n)) (i : 'I_m) (j : 'I_n) v =>
   \matrix_(i', j')
@@ -225,77 +225,8 @@ Qed.
 
 (** ** Parametricity *)
 
-Definition fun_of_seqmx_R     : forall (A₁ A₂ : Type) (A_R : A₁ -> A₂ -> Type) (H₁ : zero_of A₁) (H₂ : zero_of A₂),
-       (fun A₁0 A₂0 : Type => id) A₁ A₂ A_R H₁ H₂ ->
-       (fun (A₁0 A₂0 : Type) (A_R0 : A₁0 -> A₂0 -> Type) (I₁ I₂ : nat -> Type)
-          (I_R : forall x₁ x₂ : nat, nat_R x₁ x₂ -> I₁ x₁ -> I₂ x₂ -> Type)
-          (B₁ B₂ : nat -> nat -> Type)
-          (B_R : forall x₁ x₂ : nat,
-                 nat_R x₁ x₂ ->
-                 forall x0₁ x0₂ : nat, nat_R x0₁ x0₂ -> B₁ x₁ x0₁ -> B₂ x₂ x0₂ -> Type)
-          (H : forall m n : nat, B₁ m n -> I₁ m -> I₁ n -> A₁0)
-          (H0 : forall m n : nat, B₂ m n -> I₂ m -> I₂ n -> A₂0) =>
-        forall (m₁ m₂ : nat) (m_R : nat_R m₁ m₂) (n₁ n₂ : nat) 
-          (n_R : nat_R n₁ n₂) (H1 : B₁ m₁ n₁) (H2 : B₂ m₂ n₂),
-        B_R m₁ m₂ m_R n₁ n₂ n_R H1 H2 ->
-        forall (H3 : I₁ m₁) (H4 : I₂ m₂),
-        I_R m₁ m₂ m_R H3 H4 ->
-        forall (H5 : I₁ n₁) (H6 : I₂ n₂),
-        I_R n₁ n₂ n_R H5 H6 -> A_R0 (H m₁ n₁ H1 H3 H5) (H0 m₂ n₂ H2 H4 H6)) A₁ A₂ A_R
-         (fun _ : nat => nat) (fun _ : nat => nat)
-         (fun (x₁ x₂ : nat) (_ : nat_R x₁ x₂) => nat_R) hseqmx hseqmx
-         ((fun (A₁0 A₂0 : Type) (A_R0 : A₁0 -> A₂0 -> Type) (H H0 : nat) 
-             (_ : nat_R H H0) (H1 H2 : nat) (_ : nat_R H1 H2) =>
-           (fun (A₁1 A₂1 : Type) (A_R1 : A₁1 -> A₂1 -> Type) => list_R (list_R A_R1)) A₁0
-             A₂0 A_R0) A₁ A₂ A_R) fun_of_seqmx fun_of_seqmx
- := 
-fun (A₁ A₂ : Type) (A_R : A₁ -> A₂ -> Type) (H₁ : zero_of A₁) (H₂ : zero_of A₂)
-  (H_R : (fun A₁0 A₂0 : Type => id) A₁ A₂ A_R H₁ H₂) (m₁ m₂ : nat) 
-  (m_R : nat_R m₁ m₂) (n₁ n₂ : nat) (n_R : nat_R n₁ n₂) (M₁ : hseqmx m₁ n₁)
-  (M₂ : hseqmx m₂ n₂)
-  (M_R : (fun (A₁0 A₂0 : Type) (A_R0 : A₁0 -> A₂0 -> Type) (H H0 : nat) 
-            (_ : nat_R H H0) (H1 H2 : nat) (_ : nat_R H1 H2) =>
-          (fun (A₁1 A₂1 : Type) (A_R1 : A₁1 -> A₂1 -> Type) => list_R (list_R A_R1)) A₁0
-            A₂0 A_R0) A₁ A₂ A_R m₁ m₂ m_R n₁ n₂ n_R M₁ M₂) (i₁ : (fun _ : nat => nat) m₁)
-  (i₂ : (fun _ : nat => nat) m₂)
-  (i_R : (fun (x₁ x₂ : nat) (_ : nat_R x₁ x₂) => nat_R) m₁ m₂ m_R i₁ i₂)
-  (j₁ : (fun _ : nat => nat) n₁) (j₂ : (fun _ : nat => nat) n₂) =>
-[eta nth_R
-       ((fun (A₁0 A₂0 : Type) (A_R0 : A₁0 -> A₂0 -> Type) (zero_of₁ : zero_of A₁0)
-           (zero_of₂ : zero_of A₂0) => id) A₁ A₂ A_R H₁ H₂ H_R)
-       (nth_R (list_R_nil_R A_R) M_R i_R) (n₂:=j₂)].
-Definition row_seqmx_R     : forall (A₁ A₂ : Type) (A_R : A₁ -> A₂ -> Type),
-       (fun (I₁ I₂ : nat -> Type)
-          (I_R : forall x₁ x₂ : nat, nat_R x₁ x₂ -> I₁ x₁ -> I₂ x₂ -> Type)
-          (B₁ B₂ : nat -> nat -> Type)
-          (B_R : forall x₁ x₂ : nat,
-                 nat_R x₁ x₂ ->
-                 forall x0₁ x0₂ : nat, nat_R x0₁ x0₂ -> B₁ x₁ x0₁ -> B₂ x₂ x0₂ -> Type)
-          (H : forall m n : nat, I₁ m -> B₁ m n -> B₁ 1 n)
-          (H0 : forall m n : nat, I₂ m -> B₂ m n -> B₂ 1 n) =>
-        forall (m₁ m₂ : nat) (m_R : nat_R m₁ m₂) (n₁ n₂ : nat) 
-          (n_R : nat_R n₁ n₂) (H1 : I₁ m₁) (H2 : I₂ m₂),
-        I_R m₁ m₂ m_R H1 H2 ->
-        forall (H3 : B₁ m₁ n₁) (H4 : B₂ m₂ n₂),
-        B_R m₁ m₂ m_R n₁ n₂ n_R H3 H4 ->
-        B_R 1 1 (nat_R_S_R nat_R_O_R) n₁ n₂ n_R (H m₁ n₁ H1 H3) (H0 m₂ n₂ H2 H4))
-         (fun _ : nat => nat) (fun _ : nat => nat)
-         (fun (x₁ x₂ : nat) (_ : nat_R x₁ x₂) => nat_R) hseqmx hseqmx
-         ((fun (A₁0 A₂0 : Type) (A_R0 : A₁0 -> A₂0 -> Type) (H H0 : nat) 
-             (_ : nat_R H H0) (H1 H2 : nat) (_ : nat_R H1 H2) =>
-           (fun (A₁1 A₂1 : Type) (A_R1 : A₁1 -> A₂1 -> Type) => list_R (list_R A_R1)) A₁0
-             A₂0 A_R0) A₁ A₂ A_R) row_seqmx row_seqmx
- := 
-fun (A₁ A₂ : Type) (A_R : A₁ -> A₂ -> Type) (m₁ m₂ : nat) (m_R : nat_R m₁ m₂) 
-  (n₁ n₂ : nat) (n_R : nat_R n₁ n₂) (i₁ : (fun _ : nat => nat) m₁)
-  (i₂ : (fun _ : nat => nat) m₂)
-  (i_R : (fun (x₁ x₂ : nat) (_ : nat_R x₁ x₂) => nat_R) m₁ m₂ m_R i₁ i₂)
-  (M₁ : hseqmx m₁ n₁) (M₂ : hseqmx m₂ n₂)
-  (M_R : (fun (A₁0 A₂0 : Type) (A_R0 : A₁0 -> A₂0 -> Type) (H H0 : nat) 
-            (_ : nat_R H H0) (H1 H2 : nat) (_ : nat_R H1 H2) =>
-          (fun (A₁1 A₂1 : Type) (A_R1 : A₁1 -> A₂1 -> Type) => list_R (list_R A_R1)) A₁0
-            A₂0 A_R0) A₁ A₂ A_R m₁ m₂ m_R n₁ n₂ n_R M₁ M₂) =>
-list_R_cons_R (nth_R (list_R_nil_R A_R) M_R i_R) (list_R_nil_R (list_R A_R)).
+Parametricity fun_of_seqmx.
+Parametricity row_seqmx.
 Parametricity store_seqmx.
 Parametricity trmx_seqmx.
 Parametricity heq_seqmx.

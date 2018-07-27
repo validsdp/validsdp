@@ -113,7 +113,6 @@ VERNAC COMMAND EXTEND Abstraction CLASSIFIED AS SIDEFF
   ]
 END
 
-(*
 VERNAC COMMAND EXTEND TranslateModule CLASSIFIED AS SIDEFF
 | [ "Parametricity" "Module" global(qid) ] ->
   [
@@ -136,7 +135,6 @@ VERNAC COMMAND EXTEND TranslateModule CLASSIFIED AS SIDEFF
     ignore (translate_module_command ~name arity qid)
   ]
 END
-*)
 
 VERNAC COMMAND EXTEND Realizer CLASSIFIED AS SIDEFF
 | [ "Realizer" constr(c) "as" ident(name) ":=" constr(t) ] ->

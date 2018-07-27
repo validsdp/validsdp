@@ -61,23 +61,17 @@ module CoqConstants = struct
     List.iter extract_type_sort [eq_r.ind; eq_r.refl; eq_rect];
     extract_pred_sort eq_rect
 
-  let param_papp evdref r args =
-    let open EConstr in
-    mkApp (Evarutil.e_new_global evdref r, args)
-
   let eq evdref args =
-    param_papp evdref (Coqlib.build_coq_eq_data ()).ind args
+    Program.papp evdref Program.coq_eq_ind args
 
   let eq_refl evdref args =
-    param_papp evdref (Coqlib.build_coq_eq_data ()).refl args
+    Program.papp evdref Program.coq_eq_refl args
 
   let transport evdref args =
-    param_papp evdref
-      (Coqlib.coq_reference "paramcoq" ["Init"; "Logic"] "eq_rect")
-      args
+    Program.papp evdref Program.coq_eq_rect args
 
   let proof_irrelevance evdref args =
-    param_papp evdref Coqlib.(coq_reference msg ["Logic"; "ProofIrrelevance"] "proof_irrelevance") args
+    Program.papp evdref (fun () -> Coqlib.coq_reference msg ["Logic"; "ProofIrrelevance"] "proof_irrelevance") args
 end
 
 let program_mode = ref false
@@ -443,12 +437,9 @@ and translate order evd env (t : constr) : constr =
     debug [`Translate] "input =" env !evd t;
     debug_string [`Translate] (Printf.sprintf "input has cast : %b" (has_cast !evd t));
     debug_mode := false;
-    (* Format.printf "****** translate 446@."; *)
     let env_R = translate_env order evd env in
-    (* Format.printf "****** translate 448@."; *)
     debug_mode := true;
     debug [`Translate] "output =" env_R !evd res;
-    (* Format.printf "****** translate 451@."; *)
     debug_string [`Translate] (Printf.sprintf "output has cast : %b" (has_cast !evd res))
   end;
   res
@@ -617,9 +608,7 @@ and translate_cofix order evd env t =
   in
 
   (* env_rec is the environement under fipoints. *)
-  (* Format.printf "****** avant env_rec 618@."; *)
   let env_rec = push_rec_types (lna, tl, bl) env in
-  (* Format.printf "****** apres env_rec 618@."; *)
   (* n : fix index *)
   let process_body n =
     let lams, body = decompose_lam_assum !evd bl.(n) in
@@ -681,7 +670,6 @@ and translate_fix order evd env t =
       letfix name fix typ n k acc
   in
   let rec letfixs n acc =
-    (* Format.printf "****** letfixs %d acc@." n; *)
     if n = 0 then acc
     else
       let n = n - 1 in
@@ -721,24 +709,10 @@ and translate_fix order evd env t =
      let lift_rel_context n = Termops.map_rel_context_with_binders (liftn n) in
      compose_prod_assum (lift_rel_context (nfun * order) ft_R) (substl sub bk_R)) ftbk_R
   in
-  (* env_rec is the environement under fipoints. *)
-  (* let _ = *)
-  (*   let f = *)
-  (*     Array.iteri *)
-  (*       (fun i c -> *)
-  (*         Format.printf "term i: %d@." i; *)
-  (*         debug_undefined_evars !evd c *)
-  (*       ) in *)
-  (*   f tl; f bl *)
-  (* in *)
-  (* Format.printf "****** avant env_rec 721@."; *)
   let env_rec = push_rec_types (lna, tl, bl) env in
-  (* Format.printf "****** apres env_rec 721@."; *)
   (* n : fix index *)
   let process_body n =
     let lams, body = decompose_lam_assum !evd bl.(n) in
-    (* Format.printf "********************* undefined_evars in body:@."; *)
-    (* debug_undefined_evars !evd body; *)
     let narg =  Context.Rel.length lams in
     (* rec_arg gives the position of the recursive argument *)
     let rec_arg = narg - (fst ln).(n) in
@@ -762,18 +736,9 @@ and translate_fix order evd env t =
             debug [`Fix] "c = " env !evd term;
             debug [`Fix] "typ = " env !evd typ;
             let term_R  = translate order evd env term in
-            (* Format.printf "************** 767 undefined_evars term_R:@."; *)
-            (* debug_undefined_evars !evd term_R; *)
             let theta = inst_args depth args in
-            (* Format.printf "************** 770 undefined_evars theta:@."; *)
-            (* debug_undefined_evars !evd theta; *)
             (* depth + narg is the position of fixpoints in env *)
-            let res =
             rewrite_fixpoints order evd env (depth + narg) fix term theta typ typ_R term_R
-            in
-            (* Format.printf "************** 776 undefined_evars res:@."; *)
-            (* debug_undefined_evars !evd res; *)
-            res
                               
     and test_admissible env c args predicate branches =
        isRel !evd c && List.mem c args && Array.for_all (noccurn !evd (destRel !evd c)) branches &&
@@ -873,23 +838,14 @@ and translate_fix order evd env t =
         mkCase (ci_R, p_R, c_R, bl_R)
     in
     let (_, ft_R, bk, bk_R) = ftbk_R.(n) in
-    (* Format.printf "*********************************************** 869 undefined_evars in bk:@."; *)
-    (* debug_undefined_evars !evd bk; *)
     let nfun_letins = nfun + narg - nrealargs.(n) in
     (* lift to insert fixpoints variables before arguments
      * plus possible letins that were not in the type.
      * *)
     let bk = liftn nfun_letins (narg + 1) bk in
-    (* Format.printf "*********************************************** 876 undefined_evars in bk:@."; *)
     (* debug_undefined_evars !evd bk; *)
     let bk_R = liftn (nfun_letins * (order + 1)) ((order + 1) * narg + order + 1) bk_R in
-    (* Format.printf "*********************************************** 879 undefined_evars in bk_R:@."; *)
-    (* debug_undefined_evars !evd bk_R; *)
-    (* Format.printf "*********************************************** 881 undefined_evars in body:@."; *)
-    (* debug_undefined_evars !evd body; *)
     let body_R = traverse_cases env_lams 0 args bk bk_R body in
-    (* Format.printf "*********************************************** 884 undefined_evars in body_R:@."; *)
-    (* debug_undefined_evars !evd body_R; *)
     let res = compose_lam_assum lams_R body_R in
     if List.exists (fun x -> List.mem x [`Fix]) debug_flag then begin
       let env_R = translate_env order evd env_rec in
@@ -897,17 +853,7 @@ and translate_fix order evd env t =
     end;
     res
   in
-  (* Format.printf "****** apres env_rec 868@."; *)
   let bl_R = Array.init nfun process_body in
-  (* let _ = *)
-  (*   Array.iteri *)
-  (*     (fun i t -> *)
-  (*       Format.printf "********************* undefined_evars in process_body %d:@." i; *)
-  (*       debug_undefined_evars !evd t; *)
-  (*     ) *)
-  (*     bl_R *)
-  (* in *)
-  (* Format.printf "****** apres env_rec 870@."; *)
   let bl_R =
     (* example: if order = 2 and nfun = 3, then permut_sub is : [1;2;7;3;4;8;5;6;9] *)
     let suc_order = order + 1 in
@@ -920,9 +866,7 @@ and translate_fix order evd env t =
           let x = liftn size_of_sub (size_of_sub + 1) x in
           substl permut_sub x) bl_R
   in
-  (* Format.printf "****** apres env_rec 883@."; *)
   let res = mkFix (ln_R, (lna_R, tl_R, bl_R)) in
-  (* Format.printf "****** apres env_rec 885@."; *)
   letfixs nfun res
 
 (* for debugging only  *)
@@ -963,7 +907,6 @@ and rewrite_fixpoints order evdr env (depth : int) (fix : fixpoint) source targe
     front @ fixs @ back
   in
   let env_rc = rel_context env in
-  debug_rel_context [`Fix] "env_rc = " env env_rc;
   let env_rc = instantiate_fixpoint_in_rel_context (List.map fromDecl env_rc) in
   let path = CoqConstants.eq evdr [| typ; source; target|] in
   debug [`Fix] "path" env !evdr path;
@@ -971,20 +914,13 @@ and rewrite_fixpoints order evdr env (depth : int) (fix : fixpoint) source targe
   let gen_path_type = it_mkProd_or_LetIn path  gen_rc in
   debug [`Fix] "gen_path_type" env !evdr gen_path_type;
   let evd, hole = new_evar_compat Environ.empty_env !evdr gen_path_type in
-  (* Format.printf "************************* 972 Evd.as_undefined !evdr: %B@." (Evd.has_undefined !evdr); *)
-  (* Format.printf "************************* 972 hole undef in !evdr:@."; *)
-  (* debug_undefined_evars !evdr hole; *)
-  (* Format.printf "************************* 972 Evd.as_undefined evd: %B@." (Evd.has_undefined evd); *)
-  (* Format.printf "************************* 972 hole undef in evd:@."; *)
-  (* debug_undefined_evars evd hole; *)
-  debug [`Fix] "hole = " env evd hole;
   evdr := evd;
   let let_gen acc = mkLetIn (Name (Id.of_string "gen_path"), hole, gen_path_type, acc) in
   let env_R' =
     let decl_gen_path = Context.Rel.Declaration.LocalDef (Name (Id.of_string "gen_path"),hole,gen_path_type) in
     push_rel decl_gen_path env_R in
   let res1 =
-   (fold_nat (fun k acc ->
+    (fold_nat (fun k acc ->
     let pred_sub =
       (range (fun x -> lift 1 (prime evd order (k+1+x) target)) (order-1 - k))
       @ [ mkRel 1 ]
@@ -1005,10 +941,6 @@ and rewrite_fixpoints order evdr env (depth : int) (fix : fixpoint) source targe
              base;
              pred; acc; endpoint; path |]) (lift 1 acc) order) in
   let res = let_gen @@ res1 in
-  (* Format.printf "************************* 1002 undef in res:@."; *)
-  (* debug_undefined_evars !evdr res; *)
-  (* Format.printf "************************* 1004 undef in (Evarutil.nf_evar res):@."; *)
-  (* debug_undefined_evars !evdr (Evarutil.nf_evar !evdr res); *)
   debug [`Fix] "res1 = " env_R' !evdr res1;
   debug [`Fix] "gen_path_type" env_R !evdr gen_path_type;
   debug [`Fix] "res = " env_R !evdr res;
@@ -1186,7 +1118,6 @@ let rec translate_mind_body name order evdr env kn b inst =
 
 
 and translate_mind_param order evd env (l : Context.Rel.t) =
-  (* let etoc c = to_constr ~abort_on_undefined_evars:false !evd c in *)
   let etoc c = to_constr !evd c in
   let rec aux env acc = function
      | [] -> acc
@@ -1237,7 +1168,6 @@ and translate_mind_inductive name order evdr env ikn mut_entry inst (env_params,
   let trans_consname s = translate_id order (Id.of_string ((Id.to_string name)^"_"^(Id.to_string s))) in
   {
     mind_entry_typename = name;
-    (* mind_entry_arity = to_constr ~abort_on_undefined_evars:false !evdr arity_R; *)
     mind_entry_arity = to_constr !evdr arity_R;
     mind_entry_template = (match e.mind_arity with TemplateArity _ -> true | _ -> false);
     mind_entry_consnames = List.map trans_consname (Array.to_list e.mind_consnames);
@@ -1301,7 +1231,6 @@ and translate_mind_inductive name order evdr env ikn mut_entry inst (env_params,
         let result = List.mapi for_each_constructor l in
         debug_string [`Inductive] "after substitution:";
         List.iter (debug [`Inductive] "" Environ.empty_env Evd.empty) result;
-        (* List.map (to_constr ~abort_on_undefined_evars:false !evdr) result *)
         List.map (to_constr !evdr) result
       end
   }

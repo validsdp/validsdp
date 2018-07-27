@@ -7,11 +7,13 @@ binnat.v
 binint.v
 poly_op.v
 seqpoly.v
+karatsuba.v
 poly_div.v
 binord.v
 seqmx.v
 seqmx_complements.v
 hpoly.v
+bareiss.v
 rational.v
 boolF2.v
 trivial_seq.v

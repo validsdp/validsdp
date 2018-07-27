@@ -57,8 +57,7 @@ let all = [`ProofIrrelevance;
            `Module;
            `Realizer; `Opacity]
 
-(* let debug_flag = [`Time; `Module; `Realizer; `Translate; `Cast; `Inductive; `Module] *)
-let debug_flag = [`Fix; `Abstraction; `Time; `Module; `Realizer; `Translate; `Inductive; `Module]
+let debug_flag = [`Time; `Module; `Realizer; `Translate; `Cast; `Inductive; `Module]
 
 let debug_mode = ref false
 let set_debug_mode =
@@ -87,15 +86,6 @@ let debug_env flags (s : string) env evd =
 
 
 
-let debug_undefined_evars evd c =
-  let ev = Evarutil.undefined_evars_of_term evd c in
-  Feedback.(msg_notice (Pp.int (Evar.Set.cardinal ev) ++ Pp.str " undefined evars:"));
-  Evar.Set.iter
-    (fun e ->
-      Feedback.(msg_notice (Pp.str "evar: "
-                            ++ Evar.print e)))
-    ev
-
 let debug flags (s : string) env evd c =
   if !debug_mode && List.exists (fun x -> List.mem x flags) debug_flag then
     try
@@ -109,7 +99,7 @@ let debug flags (s : string) env evd c =
 
 let debug_evar_map flags s evd =
   if !debug_mode && List.exists (fun x -> List.mem x flags) debug_flag then (
-    Feedback.msg_info Pp.(str s ++ Termops.pr_evar_universe_context (Evd.evar_universe_context evd)))
+    Feedback.msg_info Pp.(str s ++ Termops.pr_evar_map ~with_univs:true None evd))
 
 let debug_string flags s =
   if !debug_mode && List.exists (fun x -> List.mem x flags) debug_flag then

@@ -82,7 +82,7 @@ let declare_abstraction ?(opaque = false) ?(continuation = default_continuation)
     let evdr = ref evd in
     let a_R = translate arity evdr env a in
     debug [`Abstraction] "a_R = " env !evdr a_R;
-    debug_evar_map Debug.all "abstraction, evar_map =" !evdr;
+    debug_evar_map Debug.all "abstraction, evar_map = " !evdr;
     !evdr, a_R
   in
   let evd = !evdr in
@@ -126,7 +126,6 @@ let translate_inductive_command sigma arity c name =
   let (sigma, c) = Constrintern.interp_open_constr env sigma c in
   let (ind, _) as pind, _ =
     try
-      (* Inductive.find_rectype env (to_constr ~abort_on_undefined_evars:false sigma c) *)
       Inductive.find_rectype env (to_constr sigma c)
     with Not_found ->
       error (Pp.(str "Unable to locate an inductive in " ++ Printer.pr_econstr_env env sigma c))
@@ -195,8 +194,7 @@ let rec list_continuation final f l _ = match l with [] -> final ()
 
 let rec translate_module_command ?name arity r  =
   check_nothing_ongoing ();
-  (* let qid = CAst.with_val (fun x -> x) (Libnames.qualid_of_reference r) in *)
-  let qid = r in
+  let _, qid = Libnames.qualid_of_reference r in
   try
     let globdir = Nametab.locate_dir qid in
     match globdir with
@@ -327,7 +325,6 @@ let translateFullName ~fullname arity (kername : Names.KerName.t) : string =
   if fullname then
     (String.concat "_o_" (plstr@[nstr]))
   else nstr
-
 
 let command_constant ?(continuation = default_continuation) ~fullname arity constant names =
   let poly, opaque =
