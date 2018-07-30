@@ -205,10 +205,9 @@ Ltac posdef_check :=
       vm_cast_no_check (erefl true))
   end.
 
-(*Eval vm_compute in posdef_check matrices.m4. Bug !*)
-Time Eval vm_compute in posdefcheck_eff_wrapup matrices.m4.
-
 Require matrices.
+
+(*Eval vm_compute in posdef_check matrices.m4. Bug !*)
 
 Goal posdef_seqF matrices.m4.
 Time posdef_check.
