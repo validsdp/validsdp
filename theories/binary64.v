@@ -130,6 +130,68 @@ exists {| bounded_val := e; bounded_prop := He' |}.
 now rewrite Rmult_comm.
 Qed.
 
+Lemma round_N_small beta fexp' choice' x ex :
+  bpow beta (ex - 1) <= Rabs x < bpow beta ex ->
+  (ex < fexp' ex)%Z -> round beta fexp' (Znearest choice') x = 0.
+Proof.
+intros Hx Hex.
+destruct (Rle_or_lt 0 x) as [Px|Nx].
+{ now revert Hex; apply round_N_small_pos; revert Hx; rewrite Rabs_pos_eq. }
+rewrite <-(Ropp_involutive x), round_N_opp, <-Ropp_0; f_equal.
+now revert Hex; apply round_N_small_pos; revert Hx; rewrite Rabs_left.
+Qed.
+
+Lemma frnd_spec_b (x : R) :
+  exists (d : b_eps) (e : b_eta),
+    x = (1 + d) * round radix2 fexp (Znearest choice) x + e :> R
+    /\ d * e = 0.
+Proof.
+set (r := round _ _ _ _).
+destruct (Req_dec x 0) as [Zx|Nzx].
+{ exists (bounded_0 eps_pos).
+  exists (bounded_0 (Rlt_le _ _ eta_pos)).
+  simpl; split; [|now rewrite Rmult_0_r].
+  now unfold r; rewrite Zx, round_0, Rmult_0_r, Rplus_0_r; [|apply valid_rnd_N]. }
+destruct (Rle_or_lt (bpow radix2 (emin + prec - 1)) (Rabs x)) as [Hlrge|Hsmll].
+{ set (d := (x - r) / r).
+  assert (Nzr :  r <> 0).
+  { assert (Hr : bpow radix2 (emin + prec - 1) <= Rabs r).
+    { apply (Rle_trans _ (bpow radix2 (mag radix2 x - 1))).
+      { apply bpow_le, (Zplus_le_reg_r _ _ 1); ring_simplify.
+        now apply mag_ge_bpow. }
+      apply round_bounded_large;
+        [now apply FLT_exp_valid|now apply valid_rnd_N| |].
+      { unfold fexp, FLT_exp; rewrite Z.max_l; [unfold prec; lia|].
+        now apply (Zplus_le_reg_r _ _ prec); ring_simplify; apply mag_ge_bpow. }
+      now split; [apply bpow_mag_le|apply bpow_mag_gt]. }
+    intro Zr; revert Hr; rewrite Zr, Rabs_R0; apply Rlt_not_le, bpow_gt_0. }
+  assert (Hd : Rabs d <= eps).
+  { unfold d, Rdiv; rewrite Rabs_mult, (Rabs_Rinv _ Nzr).
+    apply (Rmult_le_reg_r (Rabs r)); [now apply Rabs_pos_lt|].
+    rewrite Rmult_assoc, Rinv_l; [rewrite Rmult_1_r|now apply Rabs_no_R0].
+    unfold r; rewrite Rabs_minus_sym.
+    apply (Rle_trans _ _ _ (relative_error_N_FLT_round _ _ _ Pprec _ _ Hlrge)).
+    apply Rmult_le_compat_r; [now apply Rabs_pos|].
+    rewrite bpow_plus, bpow_1; unfold eps, prec; simpl; lra. }
+  exists (Build_bounded Hd).
+  exists (bounded_0 (Rlt_le _ _ eta_pos)).
+  simpl; split; [rewrite Rplus_0_r|now rewrite Rmult_0_r].
+  now unfold d; field. }
+assert (Hxmr : Rabs (x - r) <= eta).
+{ rewrite Rabs_minus_sym.
+  apply (Rle_trans _ (/2 * ulp radix2 fexp x)).
+  { now apply error_le_half_ulp, FLT_exp_valid. }
+  unfold ulp; rewrite (Req_bool_false _ _ Nzx).
+  unfold cexp, fexp, FLT_exp; rewrite Z.max_r.
+  { apply (Rmult_le_reg_r (bpow radix2 1075)); [now apply bpow_gt_0|].
+    unfold eta; rewrite Rmult_assoc, <- !bpow_plus, bpow_1; simpl; lra. }
+  apply (Zplus_le_reg_r _ _ prec); ring_simplify.
+  now apply (mag_le_bpow _ _ _ Nzx), (Rlt_le_trans _ _ _ Hsmll), bpow_le. }
+exists (bounded_0 eps_pos).
+exists (Build_bounded Hxmr).
+now simpl; split; [ring|rewrite Rmult_0_l].
+Qed.
+
 Lemma fplus_spec (x y : F) :
   exists d : b_eps, frnd (x + y) = (1 + d) * (x + y) :> R.
 Proof.
@@ -191,8 +253,79 @@ rewrite <- (Rabs_right (xy - round _ _ _ _));
 rewrite Rabs_minus_sym; apply Hexy'; lra.
 Qed.
 
-About FLT_exp_valid.
-
+Lemma fplus_spec_b (x y : F) :
+  exists d : b_eps, x + y = (1 + d) * frnd (x + y) :> R.
+Proof.
+unfold frnd; simpl.
+set (r := round _ _ _ _).
+destruct (Req_dec (x + y) 0) as [Zxy|Nzxy].
+{ exists (bounded_0 eps_pos).
+  now unfold r; rewrite Zxy, round_0, Rmult_0_r; [|apply valid_rnd_N]. }
+destruct (Rle_or_lt (bpow radix2 (emin + prec - 1)) (Rabs (x + y)))
+  as [Hlrge|Hsmll].
+{ set (d := ((x + y) - r) / r).
+  assert (Nzr :  r <> 0).
+  { assert (Hr : bpow radix2 (emin + prec - 1) <= Rabs r).
+    { apply (Rle_trans _ (bpow radix2 (mag radix2 (x + y) - 1))).
+      { apply bpow_le, (Zplus_le_reg_r _ _ 1); ring_simplify.
+        now apply mag_ge_bpow. }
+      apply round_bounded_large;
+        [now apply FLT_exp_valid|now apply valid_rnd_N| |].
+      { unfold fexp, FLT_exp; rewrite Z.max_l; [unfold prec; lia|].
+        now apply (Zplus_le_reg_r _ _ prec); ring_simplify; apply mag_ge_bpow. }
+      now split; [apply bpow_mag_le|apply bpow_mag_gt]. }
+    intro Zr; revert Hr; rewrite Zr, Rabs_R0; apply Rlt_not_le, bpow_gt_0. }
+  assert (Hd : Rabs d <= eps).
+  { unfold d, Rdiv; rewrite Rabs_mult, (Rabs_Rinv _ Nzr).
+    apply (Rmult_le_reg_r (Rabs r)); [now apply Rabs_pos_lt|].
+    rewrite Rmult_assoc, Rinv_l; [rewrite Rmult_1_r|now apply Rabs_no_R0].
+    unfold r; rewrite Rabs_minus_sym.
+    apply (Rle_trans _ _ _ (relative_error_N_FLT_round _ _ _ Pprec _ _ Hlrge)).
+    apply Rmult_le_compat_r; [now apply Rabs_pos|].
+    rewrite bpow_plus, bpow_1; unfold eps, prec; simpl; lra. }
+  exists (Build_bounded Hd).
+  now simpl; unfold d; field. }
+exists (bounded_0 eps_pos).
+rewrite Rplus_0_r, Rmult_1_l.
+set (xy := x + y).
+assert (Hxy' : Rabs (r - xy) <= / 2 * ulp radix2 fexp xy).
+{ now apply error_le_half_ulp, FLT_exp_valid. }
+assert (Hxy'' : format (r - xy)).
+{ now apply plus_error;
+  [apply FLT_exp_valid|apply FLT_exp_monotone|apply FS_prop|apply FS_prop]. }
+symmetry; apply Rminus_diag_uniq.
+destruct (Req_dec (r - xy) 0) as [Zxy|Nzxy']; [assumption|].
+set (exy := mag radix2 (r - xy)).
+assert (Hexy : (exy <= fexp exy)%Z).
+{ apply (Zle_trans _ emin); [|now apply Z.le_max_r].
+  apply (Zle_trans _ (cexp radix2 fexp xy)).
+  { apply (mag_le_bpow _ _ _ Nzxy'), (Rle_lt_trans _ _ _ Hxy').
+    apply (Rmult_lt_reg_l 2); [lra|rewrite <- Rmult_assoc, Rinv_r; [|lra]].
+    rewrite ulp_neq_0; [|easy].
+    change 2%R with (Rplus 1%R 1%R).
+    rewrite Rmult_plus_distr_r, Rmult_1_l.
+    rewrite <- Rplus_0_r at 1.
+    apply Rplus_lt_compat_l, bpow_gt_0. }
+  unfold cexp, fexp, FLT_exp.
+  rewrite Zmax_right; [now apply Zle_refl|].
+  apply (Zplus_le_reg_r _ _ prec); ring_simplify.
+  apply (mag_le_bpow _ _ _ Nzxy).
+  apply (Rlt_le_trans _ _ _ Hsmll), bpow_le; omega. }
+destruct (Rtotal_order 0 (r - xy)) as [Pxy|[Zxy|Nxy]]; [|now apply eq_sym|].
+{ rewrite <- (round_generic radix2 fexp Zfloor (r - xy) Hxy'').
+  apply round_DN_small_pos with exy; [|assumption].
+  destruct exy as (exy', Hexy'); simpl.
+  rewrite <- (Rabs_pos_eq (r - xy)); [|now apply Rlt_le].
+  now apply Hexy', Rgt_not_eq, Rlt_gt. }
+apply Rminus_diag_eq, Rminus_diag_uniq_sym.
+rewrite <- (round_generic radix2 fexp Zfloor (xy - r));
+[|now replace (xy - r) with (- (r - xy)) by ring; apply generic_format_opp].
+apply round_DN_small_pos with exy; [|assumption].
+destruct exy as (exy', Hexy'); simpl.
+rewrite <- (Rabs_right (xy - r)); [|lra].
+rewrite Rabs_minus_sym; apply Hexy'; lra.
+Qed.
+  
 Lemma fplus_spec_l (x y : F) : Rabs (frnd (x + y) - (x + y)) <= Rabs x.
 Proof.
 apply (Rle_trans _ (Rabs (y - (x + y)))).
@@ -355,7 +488,9 @@ Definition binary64 : Float_spec :=
     frnd
     frnd_F
     frnd_spec
+    frnd_spec_b
     fplus_spec
+    fplus_spec_b
     fplus_spec_l
     fplus_spec2
     fmult_spec2

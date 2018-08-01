@@ -113,6 +113,41 @@ exists (bounded_0 (Rlt_le _ _ eta_pos)).
 now rewrite Rmult_comm, Rplus_0_r, Rmult_0_r.
 Qed.
 
+Lemma frnd_spec_b_aux (x : R) :
+  exists (d : b_eps), x = (1 + d) * round radix2 fexp (Znearest choice) x :> R.
+Proof.
+set (r := round _ _ _ _).
+destruct (Req_dec r 0) as [Zr|Nzr].
+{ exists (bounded_0 eps_pos).
+  rewrite Zr; simpl; rewrite !Rmult_0_r.
+  revert Zr; apply eq_0_round_0_FLX; [apply Pprec|apply valid_rnd_N]. }
+set (d := (x - r) / r).
+assert (Hd : Rabs d <= eps).
+{ unfold d, Rdiv; rewrite Rabs_mult, (Rabs_Rinv _ Nzr).
+  apply (Rmult_le_reg_r (Rabs r)); [now apply Rabs_pos_lt|].
+  rewrite Rmult_assoc, Rinv_l; [rewrite Rmult_1_r|now apply Rabs_no_R0].
+  unfold r; rewrite Rabs_minus_sym.
+  apply (Rle_trans _ _ _
+                   (relative_error_N_FLX_round radix2 prec Pprec choice x)).
+  apply Rmult_le_compat_r; [now apply Rabs_pos|right].
+  unfold eps, prec; rewrite bpow_plus, (Rmult_comm (bpow _ _)), <-Rmult_assoc.
+  rewrite bpow_1; simpl; lra. }
+exists (Build_bounded Hd).
+now simpl; unfold d; field.
+Qed.
+
+Lemma frnd_spec_b (x : R) :
+  exists (d : b_eps) (e : b_eta),
+    x = (1 + d) * round radix2 fexp (Znearest choice) x + e :> R
+    /\ d * e = 0.
+Proof.
+assert (Hd := frnd_spec_b_aux x).
+destruct Hd as (d, Hd).
+exists d.
+exists (bounded_0 (Rlt_le _ _ (eta_pos))).
+now simpl; rewrite Rplus_0_r, Rmult_0_r; split; [|reflexivity].
+Qed.
+  
 Lemma fplus_spec (x y : F) :
   exists d : b_eps, frnd (x + y) = (1 + d) * (x + y) :> R.
 Proof.
@@ -131,6 +166,14 @@ exists {| bounded_val := d; bounded_prop := Hd3 |}.
 now rewrite Rmult_comm.
 Qed.
 
+Lemma fplus_spec_b (x y : F) :
+  exists d : b_eps, x + y = (1 + d) * frnd (x + y) :> R.
+Proof.
+assert (Hd := frnd_spec_b_aux (x + y)).
+destruct Hd as (d, Hd).
+now exists d.
+Qed.
+  
 Lemma fplus_spec_l (x y : F) : Rabs (frnd (x + y) - (x + y)) <= Rabs x.
 Proof.
 apply (Rle_trans _ (Rabs (y - (x + y)))).
@@ -441,7 +484,9 @@ Definition flx64 : Float_spec :=
     frnd
     frnd_F
     frnd_spec
+    frnd_spec_b
     fplus_spec
+    fplus_spec_b
     fplus_spec_l
     fplus_spec2
     fmult_spec2

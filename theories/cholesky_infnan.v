@@ -21,7 +21,7 @@ Open Scope ring_scope.
 Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
 
-Require Import gamma fsum fcmdotprod real_matrix cholesky float_infnan_spec.
+Require Import fsum fcmsum real_matrix cholesky float_infnan_spec.
 
 Section Cholesky_infnan.
 
@@ -127,9 +127,9 @@ Proof.
 elim: k c a b => [//|k IHk] c a b.
 rewrite /stilde_infnan /= -/stilde_infnan => H.
 have HH := stilde_infnan_fc H.
-rewrite (IHk _ _ _ H) /stilde /fcmdotprod_l2r /=.
+rewrite (IHk _ _ _ H) /stilde /fcmsum_l2r /=.
 apply fsum_l2r_rec_eq => [|i]; rewrite !ffunE //.
-rewrite (fiminus_spec HH) /fminus /fplus /=.
+rewrite (fiminus_spec HH) /fminus /fplus /= /fmult frnd_F.
 by rewrite (fimult_spec (fiminus_spec_fr HH)).
 Qed.
 
@@ -189,12 +189,12 @@ End Cholesky_def_infnan.
 (** If [A] contains no infinity or NaN, then [MFI2F A] = [A] and
     [posdef (MF2R (MFI2F A))] means that [A] is positive definite. *)
 Lemma corollary_2_4_with_c_upper_bound_infnan :
-  forall n, 4 * INR n.+2 * eps fs < 1 ->
+  forall n, 3 * INR n.+2 * eps fs < 1 ->
   forall A : 'M[FIS fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
   (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->
   forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->
   forall c : R,
-  (/2 * gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
+  (INR n.+2 * eps fs / (1 - INR n.+2 * eps fs) * (\tr (MF2R (MFI2F A)))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
   forall At : 'M[FIS fs]_n.+1,
@@ -203,21 +203,21 @@ Lemma corollary_2_4_with_c_upper_bound_infnan :
   forall Rt : 'M[FIS fs]_n.+1, cholesky_success_infnan At Rt ->
   posdef (MF2R (MFI2F A)).
 Proof.
-move=> n H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt Rt HARt.
+move=> n H3n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt Rt HARt.
 have SymFIA : MF2R (MFI2F A)^T = MF2R (MFI2F A) by rewrite map_trmx SymA.
 move: (cholesky_success_infnan_cholesky_success HARt).
-apply (corollary_2_4_with_c_upper_bound H4n SymFIA Pdiag Hmaxdiag Hc).
+apply (corollary_2_4_with_c_upper_bound H3n SymFIA Pdiag Hmaxdiag Hc).
 by split; [move=> i j Hij; rewrite !mxE (proj1 HAt)|by apply HAt].
 Qed.
 
 Lemma corollary_2_7_with_c_r_upper_bounds_infnan :
-  forall n, 4 * INR n.+2 * eps fs < 1 ->
+  forall n, 3 * INR n.+2 * eps fs < 1 ->
   forall A : 'M[FIS fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
   (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->
   forall Rad : 'M[FIS fs]_n.+1, 0 <=m: MF2R (MFI2F Rad) ->
   forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->
   forall c : R,
-  (/2 * gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
+  (INR n.+2 * eps fs / (1 - INR n.+2 * eps fs) * (\tr (MF2R (MFI2F A)))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
   forall r : R, (forall (i j : 'I_n.+1), ((MFI2F Rad) i j <= r)%Re) ->
@@ -229,11 +229,11 @@ Lemma corollary_2_7_with_c_r_upper_bounds_infnan :
   forall Xt : 'M_n.+1,
   Mabs (Xt - MF2R (MFI2F A)) <=m: MF2R (MFI2F Rad) -> posdef Xt.
 Proof.
-move=> n H4n A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At HAt
+move=> n H3n A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At HAt
          Rt HARt.
 have SymFIA : MF2R (MFI2F A)^T = MF2R (MFI2F A) by rewrite map_trmx SymA.
 move: (cholesky_success_infnan_cholesky_success HARt).
-apply (corollary_2_7_with_c_r_upper_bounds H4n SymFIA Pdiag PRad Hmaxdiag
+apply (corollary_2_7_with_c_r_upper_bounds H3n SymFIA Pdiag PRad Hmaxdiag
                                            Hc Hr).
 by split; [move=> i j Hij; rewrite !mxE (proj1 HAt)|by apply HAt].
 Qed.

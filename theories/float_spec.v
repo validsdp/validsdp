@@ -52,10 +52,19 @@ Record Float_spec := {
     exists (d : b_eps) (e : b_eta),
       (frnd x = (1 + d) * x + e :> R /\ d * e = 0)%Re;
 
+  (* TODO: could be infered from tighter forward bound eps / (1 + eps) *)
+  frnd_spec_b x :
+    exists (d : b_eps) (e : b_eta),
+      (x = (1 + d) * frnd x + e :> R /\ d * e = 0)%Re;
+
   (** Addition. *)
   fplus (x y : FS) : FS := frnd (x + y);
 
   fplus_spec x y : exists d : b_eps, (fplus x y = (1 + d) * (x + y) :> R)%Re;
+
+  (* TODO: could be infered from tighter forward bound eps / (1 + eps) *)
+  fplus_spec_b (x y : FS) :
+    exists d : b_eps, (x + y = (1 + d) * fplus x y :> R)%Re;
 
   (** This is only true in rounding to nearest. *)
   fplus_spec_l x y : (Rabs (fplus x y - (x + y)) <= Rabs x)%Re;
@@ -116,6 +125,21 @@ exists d; rewrite Hde; destruct (Rmult_integral _ _ Hde0) as [Zd|Ze].
   apply Rcomplements.Rabs_eq_0, Rle_antisym; [|now apply Rabs_pos].
   now revert HeLedx; rewrite Zd, Rmult_0_l, Rabs_R0. }
 now rewrite Ze, Rplus_0_r.
+Qed.
+
+Lemma frnd_spec_b_max x :
+  Rabs (frnd fs x - x) <= Rmax (eps fs * Rabs (frnd fs x)) (eta fs).
+Proof.
+assert (Hde := frnd_spec_b fs x).
+destruct Hde as (d, (e, (Hde, Hde0))).
+rewrite Rabs_minus_sym; rewrite Hde at 1.
+replace (_ - _)%Re with (d * frnd fs x + e)%Re; [|ring].
+assert (H := Rmult_integral _ _ Hde0); destruct H as [Hd|He].
+{ rewrite Hd, Rmult_0_l, Rplus_0_l.
+  apply (Rle_trans _ _ _ (bounded_prop _)), Rmax_r. }
+rewrite He, Rplus_0_r, Rabs_mult.
+assert (H := Rmax_l (eps fs * Rabs (frnd fs x)) (eta fs)); revert H.
+apply Rle_trans, Rmult_le_compat_r; [apply Rabs_pos|apply bounded_prop].
 Qed.
 
 Lemma fplus_spec_r (x y : FS fs) : (Rabs (fplus x y - (x + y)) <= Rabs y)%Re.

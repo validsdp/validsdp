@@ -4,9 +4,8 @@ misc.v
 real_matrix.v
 bounded.v
 float_spec.v
-gamma.v
 fsum.v
-fcmdotprod.v
+fcmsum.v
 binary64.v
 cholesky.v
 float_infnan_spec.v
