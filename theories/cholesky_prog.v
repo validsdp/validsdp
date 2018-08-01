@@ -11,7 +11,6 @@ From Interval Require Import Interval_specific_ops.
 Require Import Rstruct misc.
 Require Import coqinterval_infnan zulp.
 Require Import iteri_ord float_infnan_spec real_matrix cholesky cholesky_infnan.
-Require Import gamma fsum.
 
 (** * Application: program for Cholesky decomposition *)
 
@@ -113,23 +112,22 @@ Definition tr_up A := foldl_diag addup 0%C A.
 Variables eps eta : T.
 
 (** [compute_c_aux (A : 'M_n) maxdiag] over-approximates
-[/2 * gamma (2 * (n + 1)) * \tr A + 4 * eta * n * (2 * (n + 1) + maxdiag)] *)
+[(n + 2) eps / (1 - (n + 2) eps) * \tr A + 4 * eta * n * (2 * (n + 1) + maxdiag)] *)
 Definition compute_c_aux (A : mx T n n) (maxdiag : T) : T :=
-let np1 := nat2Fup n.+1 in
-let dnp1 := nat2Fup (2 * n.+1)%N in
-let tnp1 := mulup dnp1 eps in
-let g := divup (mulup np1 eps) (- (addup tnp1 (-1%C)))%C in
+let np2 := nat2Fup n.+1 in
+let np2eps := mulup np2 eps in
+let g := divup np2eps (- (addup np2eps (-1%C)))%C in
 addup
   (mulup g (tr_up A))
   (mulup
     (mulup (mulup (nat2Fup 4) eta) (nat2Fup n))
-    (addup dnp1 maxdiag)).
+    (addup (nat2Fup (2 * n.+1)%N) maxdiag)).
 
 Variable is_finite : T -> bool.
 
 Definition compute_c (A : mx T n n) :
   option T :=
-  let nem1 := addup (mulup ((nat2Fup (2 * n.+1)%N)) eps) (-1%C)%C in
+  let nem1 := addup (mulup ((nat2Fup (n.+1)%N)) eps) (-1%C)%C in
   if is_finite nem1 && (nem1 < 0)%C then
     let c := compute_c_aux A (max_diag A) in
     if is_finite c then Some c else None
@@ -137,7 +135,7 @@ Definition compute_c (A : mx T n n) :
 
 (** [test_n] checks that [n] is not too large *)
 Definition test_n n : bool :=
-  let f := mulup (mulup (nat2Fup 4%N) (nat2Fup n.+1)) eps in
+  let f := mulup (mulup (nat2Fup 3%N) (nat2Fup n.+1)) eps in
   is_finite f && (f < 1)%C.
 
 Definition posdef_check (A : mx T n n) : bool :=
@@ -578,12 +576,12 @@ Qed.
 (** If [A] contains no infinity or NaN, then [MFI2F A] = [A] and
     [posdef (MF2R (MFI2F A))] means that [A] is positive definite. *)
 Lemma corollary_2_4_with_c_upper_bound :
-  4 * INR n.+2 * eps fs < 1 ->
+  3 * INR n.+2 * eps fs < 1 ->
   forall A : 'M[FIS fs]_n.+1, MF2R (MFI2F A^T) = MF2R (MFI2F A) ->
   (forall i : 'I_n.+1, 0 <= (MFI2F A) i i) ->
   forall maxdiag : R, (forall i : 'I_n.+1, (MFI2F A) i i <= maxdiag) ->
   forall c : R,
-  (/2 * gamma.gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
+  (INR n.+2 * eps fs / (1 - INR n.+2 * eps fs) * (\tr (MF2R (MFI2F A)))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
   forall At : 'M[FIS fs]_n.+1,
@@ -593,7 +591,7 @@ Lemma corollary_2_4_with_c_upper_bound :
   (forall i, (0 < (MFI2F R) i i)%Re) ->
   posdef (MF2R (MFI2F A)).
 Proof.
-move=> H4n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt R HAR.
+move=> H3n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt R HAR.
 apply corollary_2_4_with_c_upper_bound_infnan with maxdiag c At R^T =>//.
 split.
 - by apply cholesky_spec_correct, cholesky_correct.
@@ -693,7 +691,7 @@ Qed.
 Definition test_n_ssr : nat -> bool :=
   test_n (fieps fs) (@finite fs).
 
-Lemma test_n_correct : test_n_ssr n.+1 -> 4 * INR n.+2 * eps fs < 1.
+Lemma test_n_correct : test_n_ssr n.+1 -> 3 * INR n.+2 * eps fs < 1.
 Proof.
 rewrite /test_n_ssr /test_n; set f := _ (fieps _).
 move/andP => [Ff Hf]; have Ffeps := fimult_up_spec_fr Ff.
@@ -717,40 +715,38 @@ Definition compute_c_aux_ssr : 'M[FIS fs]_n.+1 -> FIS fs -> FIS fs :=
   compute_c_aux (fieps fs) (fieta fs).
 
 Lemma compute_c_aux_correct (A : 'M[FIS fs]_n.+1) maxdiag :
-  (INR (2 * n.+2) * eps fs < 1) ->
-  (finite (addup (mulup ((nat2Fup (2 * n.+2)%N)) (fieps fs)) (- (1)))%C) ->
-  (FIS2FS (addup (mulup ((nat2Fup (2 * n.+2)%N)) (fieps fs)) (- (1)))%C < 0) ->
+  (INR n.+2 * eps fs < 1) ->
+  (finite (addup (mulup ((nat2Fup (n.+2)%N)) (fieps fs)) (- (1)))%C) ->
+  (FIS2FS (addup (mulup ((nat2Fup (n.+2)%N)) (fieps fs)) (- (1)))%C < 0) ->
   (forall i, 0 <= FIS2FS (A i i)) ->
   (0 <= FIS2FS maxdiag) ->
   finite (compute_c_aux_ssr A maxdiag) ->
-  (/2 * gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
+  (INR n.+2 * eps fs / (1 - INR n.+2 * eps fs) * (\tr (MF2R (MFI2F A)))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + FIS2FS maxdiag)
   <= FIS2FS (compute_c_aux_ssr A maxdiag))%R.
 Proof.
 have Pnp2 := pos_INR (n.+2)%N.
-have P2np2 := pos_INR (2 * n.+2)%N.
 have Pe := eps_pos fs.
 move=> Heps Fnem1 Nnem1 Pdiag Pmaxdiag Fc.
 rewrite /compute_c_aux_ssr /compute_c_aux.
 move: (fiplus_up_spec Fc); apply Rle_trans, Rplus_le_compat.
 { have Fl := fiplus_up_spec_fl Fc.
   move: (fimult_up_spec Fl); apply Rle_trans, Rmult_le_compat.
-  { by apply Rmult_le_pos; [lra|apply gamma_pos]. }
+  { apply Rmult_le_pos; [apply INR_eps_pos|].
+    apply Rlt_le, Rinv_0_lt_compat; lra. }
   { by apply big_sum_pos_pos => i; rewrite !mxE. }
-  { rewrite /gamma mult_INR -!(Rmult_assoc (/2)) Rinv_l; [|lra].
-    rewrite Rmult_1_l.
-    have Fll := fimult_up_spec_fl Fl.
+  { have Fll := fimult_up_spec_fl Fl.
     have F1mne := fiopp_spec_f Fnem1.
     move: (fidiv_up_spec Fll F1mne); apply Rle_trans, Rmult_le_compat.
-    { apply Rmult_le_pos; [apply pos_INR|apply eps_pos]. }
-    { apply Rlt_le, Rinv_0_lt_compat; rewrite -mult_INR.
-      by set ne := Rmult _ _; apply (Rplus_lt_reg_r ne); ring_simplify. }
+    { apply INR_eps_pos. }
+    { apply Rlt_le, Rinv_0_lt_compat; lra. }
     { have Flr := fidiv_up_spec_fl Fll F1mne.
       move: (fimult_up_spec Flr); apply /Rle_trans /Rmult_le_compat => //.
       { apply float_of_nat_up_spec, (fimult_up_spec_fl Flr). }
       apply fieps_spec. }
-    rewrite (fiopp_spec F1mne) -mult_INR; apply Rinv_le.
-    { by rewrite -Ropp_0; apply Ropp_lt_contravar. }
+    apply Rinv_le.
+    { rewrite (fiopp_spec (fiopp_spec_f Fnem1)) /=; lra. }
+    rewrite (fiopp_spec (fiopp_spec_f Fnem1)).
     rewrite -Ropp_minus_distr; apply Ropp_le_contravar.
     move: (fiplus_up_spec Fnem1); apply Rle_trans; apply Rplus_le_compat.
     { have Fne := fiplus_up_spec_fl Fnem1.
@@ -787,11 +783,11 @@ Definition compute_c_ssr : 'M[FIS fs]_n.+1 -> option (FIS fs) :=
   compute_c (fieps fs) (fieta fs) (@finite fs).
 
 Lemma compute_c_correct (A : 'M[FIS fs]_n.+1) :
-  (INR (2 * n.+2) * eps fs < 1) ->
+  (INR n.+2 * eps fs < 1) ->
   (forall i, finite (A i i)) ->
   (forall i, (0 <= FIS2FS (A i i))%R) ->
   forall c : FIS fs, compute_c_ssr A = Some c ->
-  (/2 * gamma fs (2 * n.+2) * (\tr (MF2R (MFI2F A)))
+  (INR n.+2 * eps fs / (1 - INR n.+2 * eps fs) * (\tr (MF2R (MFI2F A)))
    + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + FIS2FS (max_diag_ssr A))
    <= FIS2FS c)%R.
 Proof.
@@ -848,9 +844,7 @@ move: H; move/eqP/eqP.
 rewrite /posdef_check_ssr /posdef_check.
 case/and3P => [Hn Hsym Htpdiag].
 move/test_n_correct in Hn.
-have Hn' : 2 * INR n.+2 * eps fs < 1.
-{ move: (neps_pos fs n.+1); rewrite !Rmult_assoc; lra. }
-have Hn'' : INR (2 * n.+2) * eps fs < 1 by rewrite mult_INR.
+have Hn' : INR n.+2 * eps fs < 1; [lra|].
 move/is_sym_correct in Hsym.
 move: Htpdiag.
 set cc := compute_c _ _ _ _; case_eq cc => // c' Hc'.

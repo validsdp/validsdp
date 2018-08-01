@@ -110,21 +110,32 @@ Section Big_misc.
 
 Ltac simpl_re := rewrite /GRing.add /GRing.zero /=.
 
+From mathcomp Require Import tuple.
+
+(** If something exists for each item, we can build an array. *)
+Lemma ffun_exists n d P :
+  (forall i : 'I_n, exists e : d, P i e) ->
+  exists ea : d ^ n, forall i, P i (ea i).
+Proof.
+move => H.
+elim: n P H => /= [|n IH] P H.
+{ by exists (Finfun (tcast (sym_eq (card_ord 0)) [tuple])) => [] [] //. }
+have [i|y Hy] := (IH (P \o (lift ord0))).
+{ by have [y ?] := (H (lift ord0 i)); exists y. }
+have [x Hx] := H ord0.
+exists [ffun i => if unlift ord0 i is Some j then y j else x] => i.
+rewrite ffunE; case: unliftP => [j ->|-> //]; apply Hy.
+Qed.
+
 (** If something exists for each item, we can build an array. *)
 Lemma big_exists R (idx : R) op d (d0 : d) n F F' :
   (forall i : 'I_n, exists e : d, F i = F' i e) ->
   exists ea : d ^ n, \big[op/idx]_i F i = \big[op/idx]_i F' i (ea i).
 Proof.
-move => H.
-suff [ea P]: exists ea : d ^ n, forall i : 'I_n, F i = F' i (ea i).
-{ by exists ea; apply: eq_bigr. }
-elim: n F F' H => //= [F F' _|n IH F F' H].
-{ by exists [ffun => d0] => [[]]. }
-have [i|y Hy] := (IH (F \o (lift ord0)) (F' \o (lift ord0))).
-{ by have [y Hy] := (H (lift ord0 i)); exists y. }
-have [x Hx] := H ord0.
-exists [ffun i => if unlift ord0 i is Some j then y j else x] => i.
-rewrite ffunE; case: unliftP => [j ->|-> //]; apply Hy.
+move=> H.
+suff [ea Hea] : exists ea : d^n, forall i, F i = F' i (ea i).
+{ by exists ea; apply eq_bigr => i _; apply Hea. }
+by apply (@ffun_exists n d (fun i e => F i = F' i e)).
 Qed.
 
 Lemma big_Rabs_pos_eq idx op n F : (forall i : 'I_n, 0 <= F i) ->
@@ -190,6 +201,13 @@ Lemma big_Rabs_triang n (F : 'I_n -> R) :
   (Rabs (\sum_i (F i)) <= \sum_i (Rabs (F i)))%Re.
 Proof. elim/big_rec2: _ => [|i y x _]; split_Rabs; simpl_re; lra. Qed.
 
+Lemma Rle_big_compat n (F F' : 'I_n -> R) :
+  (forall i, F i <= F' i) -> \sum_i F i <= \sum_i F' i.
+Proof.
+move=> H; apply big_rec2 => [|i s1 s2 _ Hs12]; [by right|].
+by rewrite /GRing.add /=; apply Rplus_le_compat.
+Qed.  
+  
 End Big_misc.
 
 (** *** A maximum on tuples. *)
