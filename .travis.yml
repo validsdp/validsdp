@@ -14,6 +14,8 @@ env:
   - PARAMCOQ_URL="https://github.com/aa755/paramcoq.git"
   - COQEAL_URL="https://github.com/CoqEAL/CoqEAL.git"
   - COQEAL_VERSION="d205c98bc36e284759956bee6c8886d548e2e9d0"
+  - yellow="\\e[33;1m"
+  - dflt="\\e[0m"
   matrix:
   - COQ_IMAGE="erikmd/coq:8.7.2_mathcomp-1.7.0" PARAMCOQ_VERSION="b824b9bbc01e9b9d901efe445186270d6ae85b78"
   - COQ_IMAGE="erikmd/coq:8.8.1_mathcomp-1.7.0" PARAMCOQ_VERSION="760bd033bc12c94a6d68588691aebe04be2ab1cd"
@@ -33,25 +35,28 @@ install: |
     eval $(opam config env)
     # In case of timeout, prepend "travis_wait" (10->20mn) or append flag "-v"
     opam install -y -j ${NJOBS} coq-flocq.3.0.0 coq-interval.3.4.0 osdp camlp4
-    : Compile Multinomials
+    : Building Multinomials...
     git clone -n ${MULTINOM_URL} $HOME/multinomials
     cd $HOME/multinomials
     git checkout ${MULTINOM_VERSION}
     make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install
-    : Compile Paramcoq
+    : Building Paramcoq...
     git clone -n ${PARAMCOQ_URL} $HOME/paramcoq
     cd $HOME/paramcoq
     git checkout ${PARAMCOQ_VERSION}
     make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install
-    : Compile CoqEAL
+    : Building CoqEAL...
     git clone -n ${COQEAL_URL} $HOME/coqeal
     cd $HOME/coqeal
     git checkout ${COQEAL_VERSION}
     pushd theory && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install && popd
     pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && popd'
-script: |
-  docker start COQ
-  docker exec COQ -u coq /bin/bash -c '
+script:
+- echo -e "${yellow}Building ValidSDP...${dflt}" && echo -en 'travis_fold:start:main.build\\r'
+- docker start COQ
+- |
+  # Building ValidSDP
+  docker exec -u coq COQ /bin/bash -c '
     export PS4='\''+ \e[33;1m($0 @ line $LINENO) \$\e[0m '\'' # quotes must be escaped
     set -e # exit on failure
     set -x # trace for debug
@@ -59,5 +64,6 @@ script: |
     ./autogen.sh
     ./configure
     make install'
-  docker stop COQ
-  docker rm COQ
+- docker stop COQ
+- docker rm COQ
+- echo -en 'travis_fold:end:main.build\\r'
