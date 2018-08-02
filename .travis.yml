@@ -30,6 +30,7 @@ script: |
     export HOME=/home/coq  # should rather downgrade perms
     # cd $HOME && . .profile
     eval $(opam config env)
+    # In case of timeout, prepend "travis_wait" (10->20mn) or append flag "-v"
     opam install -y -j ${NJOBS} coq-flocq.3.0.0 coq-interval.3.4.0 osdp camlp4
     # Compile Multinomials
     git clone -n ${MULTINOM_URL} $HOME/multinomials
