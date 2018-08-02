@@ -18,8 +18,9 @@ env:
   - COQ_IMAGE="erikmd/coq:8.7.2_mathcomp-1.7.0" PARAMCOQ_VERSION="b824b9bbc01e9b9d901efe445186270d6ae85b78"
   - COQ_IMAGE="erikmd/coq:8.8.1_mathcomp-1.7.0" PARAMCOQ_VERSION="760bd033bc12c94a6d68588691aebe04be2ab1cd"
 
-script: |
-  docker run --rm -it -v ${TRAVIS_BUILD_DIR}:/home/coq/validsdp -e TRAVIS_EVENT_TYPE="${TRAVIS_EVENT_TYPE}" -e NJOBS=${NJOBS} -e MULTINOM_URL=${MULTINOM_URL} -e MULTINOM_VERSION=${MULTINOM_VERSION} -e PARAMCOQ_URL=${PARAMCOQ_URL} -e PARAMCOQ_VERSION=${PARAMCOQ_VERSION} -e COQEAL_URL=${COQEAL_URL} -e COQEAL_VERSION=${COQEAL_VERSION} -u root ${COQ_IMAGE} /bin/bash -c '
+install: |
+  # Prepare the COQ docker container with all dependencies
+  docker run --name=COQ -v ${TRAVIS_BUILD_DIR}:/home/coq/validsdp -e TRAVIS_EVENT_TYPE="${TRAVIS_EVENT_TYPE}" -e NJOBS=${NJOBS} -e MULTINOM_URL=${MULTINOM_URL} -e MULTINOM_VERSION=${MULTINOM_VERSION} -e PARAMCOQ_URL=${PARAMCOQ_URL} -e PARAMCOQ_VERSION=${PARAMCOQ_VERSION} -e COQEAL_URL=${COQEAL_URL} -e COQEAL_VERSION=${COQEAL_VERSION} -u root ${COQ_IMAGE} /bin/bash -c '
     export PS4='\''+ \e[33;1m($0 @ line $LINENO) \$\e[0m '\'' # quotes must be escaped
     set -e # exit on failure
     set -x # trace for debug
@@ -32,24 +33,31 @@ script: |
     eval $(opam config env)
     # In case of timeout, prepend "travis_wait" (10->20mn) or append flag "-v"
     opam install -y -j ${NJOBS} coq-flocq.3.0.0 coq-interval.3.4.0 osdp camlp4
-    # Compile Multinomials
+    : Compile Multinomials
     git clone -n ${MULTINOM_URL} $HOME/multinomials
     cd $HOME/multinomials
     git checkout ${MULTINOM_VERSION}
     make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install
-    # Compile Paramcoq
+    : Compile Paramcoq
     git clone -n ${PARAMCOQ_URL} $HOME/paramcoq
     cd $HOME/paramcoq
     git checkout ${PARAMCOQ_VERSION}
     make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install
-    # Compile CoqEAL
+    : Compile CoqEAL
     git clone -n ${COQEAL_URL} $HOME/coqeal
     cd $HOME/coqeal
     git checkout ${COQEAL_VERSION}
     pushd theory && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install && popd
-    pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && popd
-    # Compile ValidSDP
+    pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && popd'
+script: |
+  docker start COQ
+  docker exec COQ -u coq /bin/bash -c '
+    export PS4='\''+ \e[33;1m($0 @ line $LINENO) \$\e[0m '\'' # quotes must be escaped
+    set -e # exit on failure
+    set -x # trace for debug
     cd $HOME/validsdp
     ./autogen.sh
     ./configure
     make install'
+  docker stop COQ
+  docker rm COQ
