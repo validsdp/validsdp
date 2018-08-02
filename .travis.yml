@@ -22,7 +22,7 @@ env:
 
 install: |
   # Prepare the COQ docker container with all dependencies
-  docker run --name=COQ -i -v ${TRAVIS_BUILD_DIR}:/home/coq/validsdp -e TRAVIS_EVENT_TYPE="${TRAVIS_EVENT_TYPE}" -e NJOBS=${NJOBS} -e MULTINOM_URL=${MULTINOM_URL} -e MULTINOM_VERSION=${MULTINOM_VERSION} -e PARAMCOQ_URL=${PARAMCOQ_URL} -e PARAMCOQ_VERSION=${PARAMCOQ_VERSION} -e COQEAL_URL=${COQEAL_URL} -e COQEAL_VERSION=${COQEAL_VERSION} -u root ${COQ_IMAGE} /bin/bash -c '
+  docker run --name=COQ -e TRAVIS_EVENT_TYPE="${TRAVIS_EVENT_TYPE}" -e NJOBS=${NJOBS} -e MULTINOM_URL=${MULTINOM_URL} -e MULTINOM_VERSION=${MULTINOM_VERSION} -e PARAMCOQ_URL=${PARAMCOQ_URL} -e PARAMCOQ_VERSION=${PARAMCOQ_VERSION} -e COQEAL_URL=${COQEAL_URL} -e COQEAL_VERSION=${COQEAL_VERSION} -u root ${COQ_IMAGE} /bin/bash -c '
     export PS4='\''+ \e[33;1m($0 @ line $LINENO) \$\e[0m '\'' # quotes must be escaped
     set -e # exit on failure
     set -x # trace for debug
@@ -51,12 +51,13 @@ install: |
     git checkout ${COQEAL_VERSION}
     pushd theory && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install && popd
     pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && popd'
+  docker commit COQ coq-deps
+  docker rm COQ
+
 script:
-- docker start COQ
 - echo -e "${yellow}Building ValidSDP...${dflt}" && echo -en 'travis_fold:start:main.build\\r'
 - |
-  # Building ValidSDP
-  docker exec COQ /bin/bash -c '
+  docker run --rm -v ${TRAVIS_BUILD_DIR}:/home/coq/validsdp coq-deps /bin/bash -c '
     export PS4='\''+ \e[33;1m($0 @ line $LINENO) \$\e[0m '\'' # quotes must be escaped
     set -e # exit on failure
     set -x # trace for debug
@@ -66,6 +67,5 @@ script:
     ./autogen.sh
     ./configure
     make install'
+
 - echo -en 'travis_fold:end:main.build\\r'
-- true | docker attach COQ  # OK thx to 'docker run -i', faster than 'docker stop COQ'
-- docker rm COQ || true
