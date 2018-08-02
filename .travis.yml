@@ -1,0 +1,56 @@
+sudo: required
+
+language: generic
+
+services:
+  - docker
+
+env:
+  global:
+  - NJOBS="2"
+  - COQ_IMAGE="erikmd/coq:8.7.2_mathcomp-1.7.0"
+  - MULTINOM_URL="https://github.com/math-comp/multinomials.git"
+  - MULTINOM_VERSION="5b46e50983ee68dd1b6932e7e4a3bfc1113e7360"
+  - PARAMCOQ_URL="https://github.com/aa755/paramcoq.git"
+  - PARAMCOQ_VERSION="b824b9bbc01e9b9d901efe445186270d6ae85b78"
+  - COQEAL_URL="https://github.com/CoqEAL/CoqEAL.git"
+  - COQEAL_VERSION="d205c98bc36e284759956bee6c8886d548e2e9d0"
+
+jobs:
+  include:
+    - script: |
+        # Automated test with image erikmd/coq:8.7.2_mathcomp-1.7.0
+        docker run --rm -it -v ${TRAVIS_BUILD_DIR}:/home/coq/validsdp -e TRAVIS_EVENT_TYPE="${TRAVIS_EVENT_TYPE}" -e NJOBS=${NJOBS} -e MULTINOM_URL=${MULTINOM_URL} -e MULTINOM_VERSION=${MULTINOM_VERSION} -e PARAMCOQ_URL=${PARAMCOQ_URL} -e PARAMCOQ_VERSION=${PARAMCOQ_VERSION} -e COQEAL_URL=${COQEAL_URL} -e COQEAL_VERSION=${COQEAL_VERSION} -u root ${COQ_IMAGE} /bin/bash -c '
+        export PS4='\''+ \e[33;1m($0 @ line $LINENO) \$\e[0m '\'' # quotes must be escaped
+        set -e # exit on failure
+        set -x # trace for debug
+        echo "Build triggered by ${TRAVIS_EVENT_TYPE}"
+        apt-get update
+        apt-get install -y --no-install-recommends autoconf automake libgmp-dev sdpa  # emacs25-nox less rlwrap
+        apt-get clean && rm -rf /var/lib/apt/lists/*
+        export HOME=/home/coq  # should rather downgrade perms
+        # cd $HOME && . .profile
+        eval $(opam config env)
+        opam install -y -j ${NJOBS} coq-flocq.3.0.0 coq-interval.3.4.0 osdp camlp4
+        # Compile Multinomials
+        git clone -n ${MULTINOM_URL} $HOME/multinomials
+        cd $HOME/multinomials
+        git checkout ${MULTINOM_VERSION}
+        make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install
+        # Compile Paramcoq
+        git clone -n ${PARAMCOQ_URL} $HOME/paramcoq
+        cd $HOME/paramcoq
+        git checkout ${PARAMCOQ_VERSION}
+        make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install
+        # Compile CoqEAL
+        git clone -n ${COQEAL_URL} $HOME/coqeal
+        cd $HOME/coqeal
+        git checkout ${COQEAL_VERSION}
+        pushd theory && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install && popd
+        pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && popd
+        # Compile ValidSDP
+        cd $HOME/validsdp
+        > plugins/soswitness/test-suite/soswitnesstac.v  # caml_osdp: compiled without CSDP support
+        ./autogen.sh
+        ./configure
+        make install'
