@@ -58,12 +58,11 @@ AC_MSG_CHECKING([for Flocq])
 AS_IF(
   [ echo "Require Import Flocq.Version BinNat." \
          "Goal (30000 <= Flocq_version)%N. easy. Qed." > conftest.v
-    cp conftest.v test.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find library Flocq >= 3.0 (http://flocq.gforge.inria.fr/)])])
-#rm -f conftest.v conftest.vo conftest.err
+rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Coq-interval])
 AS_IF(
@@ -117,7 +116,6 @@ AS_IF(
   [ AC_MSG_RESULT($osdp_version) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find library OSDP >= $req_maj.$req_min.$req_pat (https://cavale.enseeiht.fr/osdp/)])])
-rm -f conftest.v conftest.vo conftest.err
 
 if test "$COQ_VERSION" != "v86"; then
   AC_MSG_CHECKING([for coq-bignums])
