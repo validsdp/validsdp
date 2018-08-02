@@ -93,6 +93,15 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find library Multinomials >= 1.0 (https://github.com/math-comp/multinomials/)])])
 rm -f conftest.v conftest.vo conftest.err
 
+AC_MSG_CHECKING([for CoqEAL])
+AS_IF(
+  [ echo "From CoqEAL.refinements Require Import hrel refinements param binord binnat binint rational binrat multipoly." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find library CoqEAL (https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev)])])
+rm -f conftest.v conftest.vo conftest.err
+
 AC_MSG_CHECKING([for OSDP])
 AS_IF(
   [ req_maj="0"
