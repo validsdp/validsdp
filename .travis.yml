@@ -19,14 +19,13 @@ env:
 jobs:
   include:
     - script: |
-        # Automated test with image erikmd/coq:8.7.2_mathcomp-1.7.0
         docker run --rm -it -v ${TRAVIS_BUILD_DIR}:/home/coq/validsdp -e TRAVIS_EVENT_TYPE="${TRAVIS_EVENT_TYPE}" -e NJOBS=${NJOBS} -e MULTINOM_URL=${MULTINOM_URL} -e MULTINOM_VERSION=${MULTINOM_VERSION} -e PARAMCOQ_URL=${PARAMCOQ_URL} -e PARAMCOQ_VERSION=${PARAMCOQ_VERSION} -e COQEAL_URL=${COQEAL_URL} -e COQEAL_VERSION=${COQEAL_VERSION} -u root ${COQ_IMAGE} /bin/bash -c '
         export PS4='\''+ \e[33;1m($0 @ line $LINENO) \$\e[0m '\'' # quotes must be escaped
         set -e # exit on failure
         set -x # trace for debug
         echo "Build triggered by ${TRAVIS_EVENT_TYPE}"
         apt-get update
-        apt-get install -y --no-install-recommends autoconf automake libgmp-dev sdpa  # emacs25-nox less rlwrap
+        apt-get install -y --no-install-recommends autoconf automake libgmp-dev sdpa  # gosu emacs25-nox less rlwrap
         apt-get clean && rm -rf /var/lib/apt/lists/*
         export HOME=/home/coq  # should rather downgrade perms
         # cd $HOME && . .profile
@@ -50,7 +49,6 @@ jobs:
         pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && popd
         # Compile ValidSDP
         cd $HOME/validsdp
-        > plugins/soswitness/test-suite/soswitnesstac.v  # caml_osdp: compiled without CSDP support
         ./autogen.sh
         ./configure
         make install'
