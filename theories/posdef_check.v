@@ -8,7 +8,8 @@ From Interval Require Import Interval_missing.
 From Interval Require Import Interval_specific_ops. (* for Float *)
 From CoqEAL.theory Require Import ssrcomplements.
 From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint rational binrat.
-Require Import Reals Flocq.Core.Raux QArith CBigZ CBigQ Psatz FSetAVL.
+Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
+From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
@@ -27,10 +28,6 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope R_scope.
-
-Require Export parse_reals. (** [Import] would not suffice... because
-that file defines [Coercion bigQ2R : BigQ.t_ >-> R] that is used by the
-tactics. *)
 
 Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
   match s with

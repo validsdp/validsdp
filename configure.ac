@@ -15,21 +15,18 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
 majmin=`echo "$coq_version" | cut -d . -f "1 2"`
-if test "v$majmin" != "v8.6" -a "v$majmin" != "v8.7"; then
-  AC_MSG_ERROR([Coq version must be 8.6.x or 8.7.x (you have version $coq_version).])
+if test "v$majmin" != "v8.7" -a "v$majmin" != "v8.8"; then
+  AC_MSG_ERROR([Coq version must be 8.7.x or 8.8.x (you have version $coq_version).])
 fi
 AC_MSG_RESULT($coq_version)
 
 minor=`echo "$coq_version" | cut -d . -f 2`
-if test "$minor" -le 6; then
-  COQ_VERSION="v86"
-  BIGNUMS_FROM=""
-else
+if test "$minor" -le 7; then
   COQ_VERSION="v87"
-  BIGNUMS_FROM="From Bignums "
+else
+  COQ_VERSION="v88"
 fi
 AC_SUBST(COQ_VERSION)
-AC_SUBST(BIGNUMS_FROM)
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
@@ -117,22 +114,19 @@ AS_IF(
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find library OSDP >= $req_maj.$req_min.$req_pat (https://cavale.enseeiht.fr/osdp/)])])
 
-if test "$COQ_VERSION" != "v86"; then
-  AC_MSG_CHECKING([for coq-bignums])
-  AS_IF(
-    [ echo "Require Import Bignums.BigQ.BigQ." > conftest.v
-      $COQC conftest.v > conftest.err ],
-    [ AC_MSG_RESULT([yes]) ],
-    [ AC_MSG_RESULT([no])
-      AC_MSG_ERROR([ *** Unable to find library Bignums.BigQ.BigQ (opam package coq-bignums)])])
-  rm -f conftest.v conftest.vo conftest.err
-fi
+AC_MSG_CHECKING([for coq-bignums])
+AS_IF(
+  [ echo "Require Import Bignums.BigQ.BigQ." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find library Bignums.BigQ.BigQ (opam package coq-bignums)])])
+rm -f conftest.v conftest.vo conftest.err
 
 # Create files
-AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/Makefile theories/_CoqProject_${COQ_VERSION} theories/CBigZ.v theories/CBigQ.v theories/parse_reals.v])
+AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/_CoqProject])
 AC_OUTPUT
-chmod a-w Makefile plugins/soswitness/Makefile theories/Makefile theories/_CoqProject_${COQ_VERSION} theories/CBigZ.v theories/CBigQ.v theories/parse_reals.v
-ln -frsv theories/_CoqProject_${COQ_VERSION} theories/_CoqProject
+chmod a-w Makefile plugins/soswitness/Makefile theories/_CoqProject
 
 echo ""
 echo "  Now run 'make external' to build and install extra Coq dependencies"

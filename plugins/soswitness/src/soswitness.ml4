@@ -22,7 +22,7 @@ let coq_nat_S = lazy (init_constant datatypes_path "S")
 
 let rec mkNat n =
   if n <= 0 then Lazy.force coq_nat_O
-  else Term.mkApp (Lazy.force coq_nat_S, [|mkNat (n - 1)|])
+  else Constr.mkApp (Lazy.force coq_nat_S, [|mkNat (n - 1)|])
 
 let rec ofNat c = match snd (Term.decompose_app c) with
   | [] -> 0
@@ -32,14 +32,14 @@ let coq_list_ind = lazy (init_constant datatypes_path "list")
 let coq_list_nil = lazy (init_constant datatypes_path "nil")
 let coq_list_cons = lazy (init_constant datatypes_path "cons")
 
-let tyList tye = Term.mkApp (Lazy.force coq_list_ind, [|tye|])
+let tyList tye = Constr.mkApp (Lazy.force coq_list_ind, [|tye|])
                          
 let mkList tye mke l =
   let nil = Lazy.force coq_list_nil in
   let cons = Lazy.force coq_list_cons in
   let rec aux l = match l with
-    | [] -> Term.mkApp (nil, [|tye|])
-    | h :: t -> Term.mkApp (cons, [|tye; mke h; aux t|]) in
+    | [] -> Constr.mkApp (nil, [|tye|])
+    | h :: t -> Constr.mkApp (cons, [|tye; mke h; aux t|]) in
   aux l
                 
 let rec ofList ofe c = match snd (Term.decompose_app c) with
@@ -50,10 +50,10 @@ let rec ofList ofe c = match snd (Term.decompose_app c) with
 let coq_prod = lazy (init_constant datatypes_path "prod")
 let coq_pair = lazy (init_constant datatypes_path "pair")
 
-let tyPair tya tyb = Term.mkApp (Lazy.force coq_prod, [|tya; tyb|])
+let tyPair tya tyb = Constr.mkApp (Lazy.force coq_prod, [|tya; tyb|])
                         
 let mkPair tya tyb mka mkb (a, b) =
-  Term.mkApp (Lazy.force coq_pair, [|tya; tyb; mka a; mkb b|])
+  Constr.mkApp (Lazy.force coq_pair, [|tya; tyb; mka a; mkb b|])
                 
 let ofPair ofa ofb c = match snd (Term.decompose_app c) with
   | [_; _; a; b] -> ofa a, ofb b
@@ -68,9 +68,9 @@ let coq_positive_H = lazy (init_constant positive_path "xH")
 let rec mkPositive n =
   if n <= 1 then Lazy.force coq_positive_H
   else if n mod 2 = 0 then
-    Term.mkApp (Lazy.force coq_positive_O, [|mkPositive (n / 2)|])
+    Constr.mkApp (Lazy.force coq_positive_O, [|mkPositive (n / 2)|])
   else
-    Term.mkApp (Lazy.force coq_positive_I, [|mkPositive (n / 2)|])
+    Constr.mkApp (Lazy.force coq_positive_I, [|mkPositive (n / 2)|])
 
 let rec ofPositive c = match Term.decompose_app c with
   | c, [] -> 1
@@ -85,7 +85,7 @@ let coq_N_pos = lazy (init_constant nat_path "Npos")
 
 let mkN n =
   if n <= 0 then Lazy.force coq_N_0
-  else Term.mkApp (Lazy.force coq_N_pos, [|mkPositive n|])
+  else Constr.mkApp (Lazy.force coq_N_pos, [|mkPositive n|])
 
 let ofN c = match snd (Term.decompose_app c) with
   | [] -> 0
@@ -105,7 +105,7 @@ let mkInt31 n =
     if d <= 0 then acc else
       let q, r = Z.div_rem n (Z.of_int 2) in
       aux (d - 1) q ((if Z.(r = zero) then d0 else d1) :: acc) in
-  Term.mkApp (i31, Array.of_list (aux 31 n []))
+  Constr.mkApp (i31, Array.of_list (aux 31 n []))
   
 let ofInt31 c =
   let rec aux args acc = match args with
@@ -123,7 +123,7 @@ let coq_zn2z_WW = lazy (init_constant zn2z_path "WW")
 
 let rec tyZn2z hght =
   if hght <= 0 then Lazy.force coq_int31_ind
-  else Term.mkApp (Lazy.force coq_zn2z_ind, [|tyZn2z (hght - 1)|])
+  else Constr.mkApp (Lazy.force coq_zn2z_ind, [|tyZn2z (hght - 1)|])
                        
 let mkZn2z hght n =
   let w0 = Lazy.force coq_zn2z_W0 in
@@ -132,7 +132,7 @@ let mkZn2z hght n =
     if hght <= 0 then mkInt31 n else if Z.(n = zero) then w0 else
       let hght' = hght - 1 in
       let h, l = Z.div_rem n (Z.shift_left Z.one (31 * (1 lsl hght'))) in
-      Term.mkApp (wW, [|tyZn2z hght'; aux hght' h; aux hght' l|]) in
+      Constr.mkApp (wW, [|tyZn2z hght'; aux hght' h; aux hght' l|]) in
   aux hght n
   
 let ofZn2z hght c =
@@ -163,14 +163,14 @@ let mkBigN n =
   let hght = height Z.(shift_left one 31) 0 in
   let word = mkZn2z hght n in
   match hght with
-  | 0 -> Term.mkApp (Lazy.force coq_bigN_N0, [|word|])
-  | 1 -> Term.mkApp (Lazy.force coq_bigN_N1, [|word|])
-  | 2 -> Term.mkApp (Lazy.force coq_bigN_N2, [|word|])
-  | 3 -> Term.mkApp (Lazy.force coq_bigN_N3, [|word|])
-  | 4 -> Term.mkApp (Lazy.force coq_bigN_N4, [|word|])
-  | 5 -> Term.mkApp (Lazy.force coq_bigN_N5, [|word|])
-  | 6 -> Term.mkApp (Lazy.force coq_bigN_N6, [|word|])
-  | _ -> Term.mkApp (Lazy.force coq_bigN_Nn, [|mkNat (hght - 7); word|])
+  | 0 -> Constr.mkApp (Lazy.force coq_bigN_N0, [|word|])
+  | 1 -> Constr.mkApp (Lazy.force coq_bigN_N1, [|word|])
+  | 2 -> Constr.mkApp (Lazy.force coq_bigN_N2, [|word|])
+  | 3 -> Constr.mkApp (Lazy.force coq_bigN_N3, [|word|])
+  | 4 -> Constr.mkApp (Lazy.force coq_bigN_N4, [|word|])
+  | 5 -> Constr.mkApp (Lazy.force coq_bigN_N5, [|word|])
+  | 6 -> Constr.mkApp (Lazy.force coq_bigN_N6, [|word|])
+  | _ -> Constr.mkApp (Lazy.force coq_bigN_Nn, [|mkNat (hght - 7); word|])
   
 let ofBigN c = match Term.decompose_app c with
   | c, [i] when eq_cst c coq_bigN_N0 -> ofInt31 i
@@ -189,8 +189,8 @@ let coq_bigZ_Pos = lazy (init_constant bigZ_path "Pos")
 let coq_bigZ_Neg = lazy (init_constant bigZ_path "Neg")
 
 let mkBigZ n =
-  if Z.sign n >= 0 then Term.mkApp (Lazy.force coq_bigZ_Pos, [|mkBigN n|])
-  else Term.mkApp (Lazy.force coq_bigZ_Neg, [|mkBigN (Z.neg n)|])
+  if Z.sign n >= 0 then Constr.mkApp (Lazy.force coq_bigZ_Pos, [|mkBigN n|])
+  else Constr.mkApp (Lazy.force coq_bigZ_Neg, [|mkBigN (Z.neg n)|])
 
 let ofBigZ c = match Term.decompose_app c with
   | c, [n] when eq_cst c coq_bigZ_Pos -> ofBigN n
@@ -204,9 +204,9 @@ let coq_bigQ_Qq = lazy (init_constant bigQ_path "Qq")
 
 let mkBigQ q =
   if Z.(Q.den q = one) then
-    Term.mkApp (Lazy.force coq_bigQ_Qz, [|mkBigZ (Q.num q)|])
+    Constr.mkApp (Lazy.force coq_bigQ_Qz, [|mkBigZ (Q.num q)|])
   else
-    Term.mkApp (Lazy.force coq_bigQ_Qq, [|mkBigZ (Q.num q); mkBigN (Q.den q)|])
+    Constr.mkApp (Lazy.force coq_bigQ_Qq, [|mkBigZ (Q.num q); mkBigN (Q.den q)|])
                 
 let ofBigQ c = match snd (Term.decompose_app c) with
   | [n] (*Qz*) -> Q.of_bigint (ofBigZ n)
@@ -220,9 +220,9 @@ let coq_float_float = lazy (init_constant float_path "Float")
 
 let mkFloat f =
   let bigZ = Lazy.force coq_bigZ_ind in
-  let nan = Term.mkApp (Lazy.force coq_float_nan, [|bigZ; bigZ|]) in
-  let float = Term.mkApp (Lazy.force coq_float_float, [|bigZ; bigZ|]) in
-  let fl m e = Term.mkApp (float, [|mkBigZ m; mkBigZ e|]) in
+  let nan = Constr.mkApp (Lazy.force coq_float_nan, [|bigZ; bigZ|]) in
+  let float = Constr.mkApp (Lazy.force coq_float_float, [|bigZ; bigZ|]) in
+  let fl m e = Constr.mkApp (float, [|mkBigZ m; mkBigZ e|]) in
   match classify_float f with
   | FP_normal ->
      let m, e = frexp f in
@@ -253,7 +253,7 @@ let ofParameters p = match Term.decompose_app p with
 let error msg = CErrors.errorlabstrm "" msg
 let errorpp msg = CErrors.error msg
  *)
-exception SosFail of int * Pp.std_ppcmds
+exception SosFail of int * Pp.t
 let fail level msg = raise (SosFail(level, msg))
 let failpp level msg = raise (SosFail(level, Pp.str msg))
 let maxlevel = 999
@@ -396,11 +396,11 @@ let soswitness intro options c =
   (* Reconstruct the output (translate it from OCaml to Coq). *)
   let ty_seqmultinom_list = tyList ty_seqmultinom in
   let ty_bigZ = Lazy.force coq_bigZ_ind in
-  let ty_float = Term.mkApp (Lazy.force coq_float_ind, [|ty_bigZ; ty_bigZ|]) in
+  let ty_float = Constr.mkApp (Lazy.force coq_float_ind, [|ty_bigZ; ty_bigZ|]) in
   let ty_float_list = tyList ty_float in
   let ty_float_matrix = tyList ty_float_list in
   let ty_witness = tyPair ty_seqmultinom_list ty_float_matrix in
-  let mk_witness (zQ : int list list * float list list) : Term.constr =
+  let mk_witness (zQ : int list list * float list list) : Constr.t =
     mkPair
       ty_seqmultinom_list ty_float_matrix
       (mkList ty_seqmultinom (mkList ty_N mkN))
@@ -457,7 +457,7 @@ let soswitness_opts ?(intro=false) gl c id opts =
                { options.Sos.sdp with Osdp.Sdp.verbose = n } } )
       { Sos.default with
         Sos.sdp =
-          { Sos.default.sdp with Osdp.Sdp.solver = Osdp.Sdp.Sdpa } } opts in
+          { Osdp.Sdp.default with Osdp.Sdp.solver = Osdp.Sdp.Sdpa } } opts in
   try soswitness intro options gl c id
   with SosFail (level, msg) -> failtac level msg
      | Failure msg -> failtac maxlevel (Pp.str msg)

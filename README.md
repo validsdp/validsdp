@@ -4,20 +4,20 @@ ValidSDP
 Dependencies
 ------------
 
-- [Coq](https://coq.inria.fr) version 8.6.x
-- [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.6.1)
-- [Flocq](http://flocq.gforge.inria.fr/) (tested with version 2.5.2)
-- [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.0)
-- [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.2.0)
-- [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 0.5.3)
-- [multinomials](https://github.com/math-comp/multinomials.git) (tested with version 1.0)
-- [paramcoq](https://github.com/CohenCyril/paramcoq.git) (dev. version)
-- [CoqEAL](https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev) (dev. version)
+- [Coq](https://coq.inria.fr) version 8.8.x or 8.7.x
+- [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.7.0)
+- [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.0.0)
+- [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.2)
+- [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.4.0)
+- [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 0.6.0)
+- [multinomials](https://github.com/math-comp/multinomials.git) (tested with version 1.0 (branch v1.x))
+- [paramcoq](https://github.com/CohenCyril/paramcoq.git) (branch v8.7 or v8.8 according to Coq version)
+- [CoqEAL](https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev) (branch paramcoq-dev)
 
 Remark
 ------
 
-For the libraries tagged above as "dev. version" you may get more info
+For paramcoq and CoqEAL you may get more info
 (the SHA-1 of the corresponding commits) by cloning our Git repository
 and running `git submodule status`. However these libraries need not
 be retrieved and installed manually: they are available in the
@@ -36,11 +36,15 @@ Once OPAM is installed, run:
     $ opam pin -n -k version add coq 8.6.1
     $ opam install --jobs=2 coq coq-interval coq-mathcomp-field coq-mathcomp-multinomials osdp camlp4
 
+N.B. : Opam package for multinomials doesn't support Coq 8.8 currently,
+it can be installed manually from
+https://github.com/math-comp/multinomials/tree/v1.x
+
 To ensure that you have these dependencies properly installed, run:
 
     $ ./configure
 
-Then, to build and install paramcoq, CoqEAL, and multinomials, run:
+Then, to build and install paramcoq and CoqEAL, run:
 
     $ make external
 

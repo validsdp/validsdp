@@ -8,30 +8,21 @@ MODULES =\
 all: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
-src/soswitness.ml4: src/soswitness_@COQ_VERSION@.ml4
-	cp -f src/soswitness_@COQ_VERSION@.ml4 src/soswitness.ml4
-	chmod a-w src/soswitness.ml4
-
-theories/soswitness.v: theories/soswitness_@COQ_VERSION@.v
-	cp -f theories/soswitness_@COQ_VERSION@.v theories/soswitness.v
-	chmod a-w theories/soswitness.v
-
 Makefile.coq: Makefile $(MODULES)
 	@ocamlfind query zarith >/dev/null
 	@ocamlfind query osdp >/dev/null
-#	@ocamlfind query glpk >/dev/null
+	@ocamlfind query ocplib-simplex >/dev/null
 	coq_makefile -I src \
 	  -I "$(shell ocamlfind query zarith)" -I "$(shell ocamlfind query ocplib-simplex)" -I "$(shell ocamlfind query osdp)" \
 	  -R theories $(NAME) $(MODULES) -o $@
 	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
-#	& glpk.cmxa
 
 install: Makefile.coq
 	$(MAKE) -f Makefile.coq install
 
 clean: Makefile.coq
 	-$(MAKE) -f Makefile.coq clean
-	rm -f src/soswitness.ml4 theories/soswitness.v Makefile.coq Makefile.coq.conf
+	rm -f Makefile.coq Makefile.coq.conf
 
 dist: $(MODULES) Makefile
 	T=$$(mktemp -d ../../dist1.XXX) && S=$$T/plugins/soswitness && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ../../dist1 && ln -rsv $$T ../../dist1
