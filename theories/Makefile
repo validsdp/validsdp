@@ -1,4 +1,4 @@
-COQ_PROJ := _CoqProject_@COQ_VERSION@
+COQ_PROJ := _CoqProject
 COQ_MAKEFILE := Makefile.coq
 COQ_MAKE := +$(MAKE) -f $(COQ_MAKEFILE)
 

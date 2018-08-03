@@ -27,7 +27,7 @@ Require Import Interval.Interval_bigint_carrier.
 Require Import Interval.Interval_definitions.
 Require Import Interval.Interval_specific_ops.
 Module F := SpecificFloat BigIntRadix2.
-Require Import CBigZ.
+From Bignums Require Import BigZ.
 (* Print Module F. *)
 Local Open Scope bigZ_scope.
 Require Import mathcomp.algebra.matrix.
@@ -38,7 +38,7 @@ Import Refinements.Op.
 
 Require Import iteri_ord.
 Require Import cholesky_prog.
-Require Import CBigQ.
+From Bignums Require Import BigQ.
 Require Import Interval.Interval_xreal.
 
 Require Import cholesky_prog.
