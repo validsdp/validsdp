@@ -455,7 +455,9 @@ let soswitness_opts ?(intro=false) gl c id opts =
              Sos.verbose = n;
              Sos.sdp =
                { options.Sos.sdp with Osdp.Sdp.verbose = n } } )
-      Sos.default opts in
+      { Sos.default with
+        Sos.sdp =
+          { Sos.default.sdp with Osdp.Sdp.solver = Osdp.Sdp.Sdpa } } opts in
   try soswitness intro options gl c id
   with SosFail (level, msg) -> failtac level msg
      | Failure msg -> failtac maxlevel (Pp.str msg)
