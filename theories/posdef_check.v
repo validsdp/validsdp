@@ -205,10 +205,180 @@ Ltac posdef_check :=
       vm_cast_no_check (erefl true))
   end.
 
+(* This code generate an anomaly :
 Require matrices.
+Eval vm_compute in posdef_check matrices.m4. *)
 
-(*Eval vm_compute in posdef_check matrices.m4. Bug !*)
+From Bignums Require Import BigZ BigN.
+Require Import Int63.
+Require Import Float.
+Require Import Bool ZArith.
+Require Import primitive_floats_infnan.
 
-Goal posdef_seqF matrices.m4.
-Time posdef_check.
+Definition BigZ2int63 (n : BigZ.t_) : option (bool * Int63Native.int) :=
+  match n with
+  | BigZ.Pos (BigN.N0 n) => Some (false, n)
+  | BigZ.Neg (BigN.N0 n) => Some (true, n)
+  | _ => None
+  end.
+
+Lemma BigZ2int63_correct n :
+  match BigZ2int63 n with
+  | None => True
+  | Some (false, n') => to_Z n' = BigZ.to_Z n
+  | Some (true, n') => Z.opp (to_Z n') = BigZ.to_Z n
+  end.
+Proof.
+  unfold BigZ2int63.
+  destruct n, t ; auto.
 Qed.
+
+Lemma Bir_mantissa_sign_correct n :
+  match BigZ2int63 n with
+  | None => True
+  | Some (sn, n') =>
+    if (n' == 0)%int63 then Bir.mantissa_sign n = Interval_specific_sig.Mzero
+    else Bir.mantissa_sign n = Interval_specific_sig.Mnumber sn (BigN.N0 n')
+  end.
+Proof.
+  unfold BigZ2int63.
+  destruct n, t; auto;
+    case_eq (t == 0)%int63;
+    intro Ht.
+  - apply eqb_correct in Ht.
+    now rewrite Ht.
+  - apply eqb_false_correct in Ht.
+    unfold Bir.mantissa_sign.
+    rewrite ifF.
+    + reflexivity.
+    + apply not_true_is_false.
+      intro H.
+      apply Ht.
+      cbv in H.
+      revert H.
+      case_eq (t ?= 0)%int63 ; try discriminate.
+      rewrite compare_spec.
+      rewrite Z.compare_eq_iff.
+      intros H _.
+      now apply to_Z_inj.
+  - apply eqb_correct in Ht.
+    now rewrite Ht.
+  - apply eqb_false_correct in Ht.
+    unfold Bir.mantissa_sign.
+    rewrite ifF.
+    + reflexivity.
+    + apply not_true_is_false.
+      intro H.
+      apply Ht.
+      cbv in H.
+      revert H.
+      case_eq (0 ?= t)%int63; try discriminate.
+      * rewrite compare_spec.
+        rewrite Z.compare_eq_iff.
+        intros H _.
+        now apply to_Z_inj.
+      * rewrite compare_spec.
+        rewrite Z.compare_gt_iff.
+        intro Hl.
+        exfalso.
+        revert Hl.
+        apply Zle_not_lt.
+        apply leb_spec.
+        apply leb_0.
+Qed.
+
+Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=
+  match f with
+  | Fnan => nan
+  | Float m e =>
+    match (BigZ2int63 m, BigZ2int63 e) with
+    | (Some (sm, m), Some (se, e)) =>
+      let f := of_int63 m in
+      let f := if sm then (-f)%float else f in
+      let shexp := if se then (shift - e)%int63 else (shift + e)%int63 in
+      ldshiftexp f shexp
+    | _ => nan
+    end
+  end.
+
+Lemma BigZFloat2Prim_correct (f : F.type) :
+  is_true (is_finite (BigZFloat2Prim f)) -> FI2FS (BigZFloat2Prim f) = proj_val (F.toX f) :> R.
+Proof.
+  case f.
+  - now cbn.
+  - intros m e.
+    assert (Hm := BigZ2int63_correct m).
+    assert (He := BigZ2int63_correct e).
+    unfold BigZFloat2Prim.
+    unfold F.toX, FtoX, F.toF.
+    assert (Hbms := Bir_mantissa_sign_correct m).
+    revert Hbms Hm He.
+    destruct (BigZ2int63 m); destruct (BigZ2int63 e) ;
+      [ | now destruct p | discriminate | discriminate ].
+    destruct p as (sm, m').
+    destruct p0 as (se, e').
+    case_eq (m' == 0)%int63.
+    + intros Hm' Hbms _ _ _.
+      rewrite Hbms.
+      apply eqb_correct in Hm'.
+      rewrite Hm'.
+      simpl.
+      rewrite <- (EF2Prim_Prim2EF (of_int63 0)%float).
+      rewrite of_int63_spec.
+      replace [|0|]%int63 with Z0 by reflexivity.
+      simpl.
+      unfold FlocqNativeLayer.Prim2B.
+      destruct sm.
+      * rewrite (FlocqNativeLayer.FF2B_proof_irr _ (Binary.F754_zero true) _ (FlocqNativeLayer.Prim2B_obligation_1 _ _) (eq_refl true)).
+        -- reflexivity.
+        -- rewrite ldshiftexp_spec.
+           reflexivity.
+      * rewrite (FlocqNativeLayer.FF2B_proof_irr _ (Binary.F754_zero false) _ (FlocqNativeLayer.Prim2B_obligation_1 _ _) (eq_refl true)).
+        -- reflexivity.
+        -- rewrite ldshiftexp_spec.
+           reflexivity.
+    + intros Hm' Hbms.
+      rewrite Hbms.
+      apply eqb_false_correct in Hm'.
+      intros _.
+      clear Hbms m.
+      intro He.
+      assert (H : (if se then (shift - e')%int63 else (shift + e')%int63) = of_Z (Z.add [|shift|]%int63 [e]%bigZ)).
+      {
+        destruct se.
+        - rewrite <- to_Z_eq.
+          rewrite of_Z_spec.
+          rewrite sub_spec.
+          rewrite <- Z.add_opp_r.
+          now rewrite He.
+        - rewrite <- to_Z_eq.
+          rewrite of_Z_spec.
+          rewrite add_spec.
+          now rewrite He.
+      }
+      rewrite H.
+      clear H He.
+      destruct sm; intro Hm.
+      * rewrite <- (EF2Prim_Prim2EF (- of_int63 m')%float).
+        rewrite FPopp_EFopp.
+        rewrite of_int63_spec.
+        rewrite <- (EF2Prim_Prim2EF (ldshiftexp _ _)).
+        rewrite ldshiftexp_spec.
+        rewrite Prim2EF_EF2Prim.
+        -- admit.
+        -- admit.
+      * admit.
+Admitted.
+
+Ltac primitive_posdef_check :=
+  match goal with
+  | [ |- posdef_seqF ?Q ] =>
+    abstract (apply (@posdefcheck_eff_wrapup_correct primitive_float_round_up_infnan _ BigZFloat2Prim_correct);
+      vm_cast_no_check (erefl true))
+  end.
+
+(*Goal posdef_seqF matrices.m12.
+Time posdef_check.
+Undo.
+Time primitive_posdef_check.
+Qed.*)

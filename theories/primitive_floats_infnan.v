@@ -390,3 +390,99 @@ Section Primitive_float_infnan.
 
 End Primitive_float_infnan.
 
+Require Import Psatz.
+
+Section Primitive_float_round_up_infnan.
+  Definition fieps := ldexp one (-53)%Z.
+  Lemma fieps_spec : eps primitive_float_infnan <= FI2FS fieps.
+    unfold fieps.
+    cbn.
+    unfold Defs.F2R.
+    simpl.
+    apply (Rmult_le_reg_r (IZR (Z.pow_pos 2 105))).
+    {
+      apply IZR_lt.
+      apply Zpower_pos_gt_0.
+      lia.
+    }
+    rewrite Rmult_assoc, Rinv_l.
+    unfold Z.pow_pos.
+    simpl.
+    lra.
+    apply IZR_neq.
+    apply BigNumPrelude.Zlt0_not_eq.
+    apply Zpower_pos_gt_0.
+    lia.
+  Qed.
+
+  Definition fieta := ldexp one (-1074)%Z.
+  Lemma fieta_spec : eta primitive_float_infnan <= FI2FS fieta.
+    unfold fieta.
+    cbn.
+    unfold Defs.F2R.
+    simpl.
+    apply (Rmult_le_reg_r (IZR (Z.pow_pos 2 1074))).
+    {
+      apply IZR_lt.
+      apply Zpower_pos_gt_0.
+      lia.
+    }
+    rewrite Rmult_assoc, Rinv_l.
+    unfold Z.pow_pos.
+    simpl.
+    lra.
+    apply IZR_neq.
+    apply BigNumPrelude.Zlt0_not_eq.
+    apply Zpower_pos_gt_0.
+    lia.
+  Qed.
+
+  (* TODO: Place that in FloatValue *)
+  Definition ulp x := ldexp one (fexp prec emax (snd (frexp x))).
+  Definition up x := (x + ulp x)%float.
+
+  Definition fiplus_up x y := up (x + y)%float.
+
+  Lemma fiplus_up_spec x y : finite (fiplus_up x y) -> FI2FS x + FI2FS y <= FI2FS (fiplus_up x y).
+  Admitted.
+
+  Lemma fiplus_up_spec_fl x y : finite (fiplus_up x y) -> finite x.
+  Admitted.
+
+  Lemma fiplus_up_spec_fr x y : finite (fiplus_up x y) -> finite y.
+  Admitted.
+
+
+  Definition fimult_up x y := up (x * y)%float.
+
+  Lemma fimult_up_spec x y : finite (fimult_up x y) -> FI2FS x * FI2FS y <= FI2FS (fimult_up x y).
+  Admitted.
+
+  Lemma fimult_up_spec_fl x y : finite (fimult_up x y) -> finite x.
+  Admitted.
+
+  Lemma fimult_up_spec_fr x y : finite (fimult_up x y) -> finite y.
+  Admitted.
+
+
+  Definition fidiv_up x y := up (x / y)%float.
+
+  Lemma fidiv_up_spec x y : finite (fidiv_up x y) -> finite y -> FI2FS x / FI2FS y <= FI2FS (fidiv_up x y).
+  Admitted.
+
+  Lemma fidiv_up_spec_fl x y : finite (fidiv_up x y) -> finite y -> finite x.
+  Admitted.
+
+  Definition primitive_float_round_up_infnan : Float_round_up_infnan_spec :=
+    Build_Float_round_up_infnan_spec
+      fieps_spec
+      fieta_spec
+      fiplus_up_spec
+      fiplus_up_spec_fl
+      fiplus_up_spec_fr
+      fimult_up_spec
+      fimult_up_spec_fl
+      fimult_up_spec_fr
+      fidiv_up_spec
+      fidiv_up_spec_fl.
+End Primitive_float_round_up_infnan.
