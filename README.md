@@ -33,7 +33,7 @@ Once OPAM is installed, run:
 
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
-    $ opam pin -n -k version add coq 8.6.1
+    $ opam pin -n -k version add coq 8.7.2
     $ opam install --jobs=2 coq coq-interval coq-mathcomp-field coq-mathcomp-multinomials osdp camlp4
 
 N.B. : Opam package for multinomials doesn't support Coq 8.8 currently,
