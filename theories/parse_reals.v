@@ -1,5 +1,7 @@
+(* Require Coq >= 8.7 *)
 From Interval Require Import Interval_missing.
-Require Import Reals QArith CBigQ.
+Require Import Reals QArith.
+From Bignums Require Import BigQ.
 From mathcomp Require Import ssreflect.
 Require Import misc.
 
@@ -13,21 +15,10 @@ Inductive p_real_cst :=
 | PConstR0
 (* | PConstQz of bigZ *)
 | PConstQq of bigZ & bigN
-| PConstP2R of positive
+| PConstIZR of BinNums.Z
 | PConstRdiv of p_real_cst & positive
 | PConstRopp of p_real_cst
 | PConstRinv of positive.
-
-Ltac get_positive t :=
-  let rec aux t :=
-    match t with
-    | 1%Re => xH
-    | 2%Re => constr:(xO xH)
-    | 3%Re => constr:(xI xH)
-    | (2 * ?v)%Re => let w := aux v in constr:(xO w)
-    | (1 + 2 * ?v)%Re => let w := aux v in constr:(xI w)
-    end in
-  aux t.
 
 Ltac get_real_cst t :=
   let rec aux t :=
@@ -35,14 +26,12 @@ Ltac get_real_cst t :=
     (* | Z2R [?z]%bigZ *)
     | bigQ2R (?z # ?n)%bigQ => constr:(PConstQq z n)
     | R0 => PConstR0
-    | Rdiv ?x ?y => let x := aux x in
-                    let y := get_positive y in
-                    constr:(PConstRdiv x y)
+    | Rdiv ?x (IZR (BinNums.Zpos ?y)) => let x := aux x in
+                                         constr:(PConstRdiv x y)
     | Ropp ?x => let x := aux x in
                  constr:(PConstRopp x)
-    | Rinv ?x => let x := get_positive x in
-                 constr:(PConstRinv x)
-    | ?n => let p := get_positive n in constr:(PConstP2R p)
+    | Rinv (IZR (BinNums.Zpos ?x)) => constr:(PConstRinv x)
+    | IZR ?n => constr:(PConstIZR n)
     | _ => assert_false
     end in
   aux t.
@@ -52,10 +41,10 @@ Fixpoint interp_p_real_cst (p : p_real_cst) : R :=
   | PConstR0 => R0
 (* | PConstQz z => Z2R [z]%bigZ *)
   | PConstQq z n => bigQ2R (z # n)%bigQ
-  | PConstP2R p => P2R p
-  | PConstRdiv x y => Rdiv (interp_p_real_cst x) (P2R y)
+  | PConstIZR n => IZR n
+  | PConstRdiv x y => Rdiv (interp_p_real_cst x) (IPR y)
   | PConstRopp x => Ropp (interp_p_real_cst x)
-  | PConstRinv x => Rinv (P2R x)
+  | PConstRinv x => Rinv (IPR x)
   end.
 
 Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
@@ -63,7 +52,7 @@ Fixpoint bigQ_of_p_real_cst (c : p_real_cst) : bigQ :=
   match c with
   | PConstR0 => 0%bigQ
   | PConstQq z n => (z # n)%bigQ
-  | PConstP2R p => BigQ.of_Q (inject_Z (Z.pos p))
+  | PConstIZR n => BigQ.of_Q (inject_Z n)
   | PConstRdiv x y => (aux x / BigQ.of_Q (inject_Z (Z.pos y)))%bigQ
   | PConstRopp x => (- aux x)%bigQ
   | PConstRinv x => (1 / BigQ.of_Q (inject_Z (Z.pos x)))%bigQ
@@ -73,18 +62,21 @@ Lemma bigQ_of_p_real_cst_correct c :
   bigQ2R (bigQ_of_p_real_cst c) = interp_p_real_cst c.
 Proof.
 have IQRp : forall p,
-  Q2R [BigQ.Qz (BigZ.Pos (BigN.of_pos p))]%bigQ = P2R p.
+  Q2R [BigQ.Qz (BigZ.Pos (BigN.of_pos p))]%bigQ = IPR p.
 { by move=> p; rewrite /Q2R /= BigN.spec_of_pos /= Rsimpl. }
 elim c.
 { by rewrite /bigQ2R /Q2R /= /Rdiv Rmult_0_l. }
 { done. }
-{ exact: IQRp. }
-{ move=> c' Hc' p; rewrite /= -Hc' /bigQ2R /Rdiv -IQRp -Q2R_inv.
+{ move=> [|p|p] /=.
+  { by rewrite /bigQ2R /Q2R /= /Rdiv Rmult_0_l. }
+  { by rewrite /bigQ2R IQRp /IZR. }
+  by rewrite /bigQ2R /IZR -IQRp -Q2R_opp. }
+{ move=> c' Hc' p; rewrite /= -Hc' /Rdiv /bigQ2R /= -IQRp -Q2R_inv.
   { by rewrite -Q2R_mult; apply Q2R_Qeq; rewrite BigQ.spec_div. }
-  by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl; pos_P2R. }
+  by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl. }
 { move=> p Hp; rewrite /= -Hp /bigQ2R -Q2R_opp; apply Q2R_Qeq, BigQ.spec_opp. }
-{ move=> p; rewrite /bigQ2R /interp_p_real_cst -IQRp -Q2R_inv.
-  { apply Q2R_Qeq; rewrite -(Qmult_1_l (Qinv _)) -/([1]%bigQ).
-    by rewrite -BigQ.spec_inv -BigQ.spec_mul. }
-  by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl; pos_P2R. }
+move=> p; rewrite /bigQ2R /interp_p_real_cst -IQRp -Q2R_inv.
+{ apply Q2R_Qeq; rewrite -(Qmult_1_l (Qinv _)) -/([1]%bigQ).
+  by rewrite -BigQ.spec_inv -BigQ.spec_mul. }
+by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl.
 Qed.
