@@ -18,7 +18,6 @@ coqinterval_infnan.v
 cholesky_prog.v
 iteri_ord.v
 bigop_tactics.v
-parse_reals.v
 ssrmultinomials_complements.v
 matrices.v
 posdef_check.v
