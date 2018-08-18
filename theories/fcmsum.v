@@ -1,5 +1,10 @@
-(** * Backward error bounds on $c - \sum_{i=0}^n x_i$#c - \sum_{i=0}^n x_i#
+(** * Error bounds on $c - \sum_{i=0}^n x_i$#c - \sum_{i=0}^n x_i#
     With $c \in F$#c : F# and $x \in R^n$#x : R^n#. *)
+
+(** Bounds from:
+    Siegfried M. Rump, Claude-Pierre Jeannerod:
+    Improved Backward Error Bounds for LU and Cholesky Factorizations,
+    SIAM J. Matrix Analysis Applications, 35(2):684-698, 2014. *)
 
 Require Import Reals Flocq.Core.Raux.
 
@@ -7,8 +12,8 @@ Require Import misc.
 
 Require Import Psatz.
 
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
-Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.algebra.ssralg mathcomp.ssreflect.bigop.
+From mathcomp Require Import ssreflect ssrfun ssrnat.
+From mathcomp Require Import fintype finfun ssralg bigop.
 
 Require Import Rstruct.
 
@@ -42,8 +47,9 @@ Lemma fcmsum_l2r_eq k (c1 : F) (x1 : R ^ k) (c2 : F) (x2 : R ^ k) :
   fcmsum_l2r c1 x1 = fcmsum_l2r c2 x2 :> R.
 Proof. by move=> Hc Hx; apply fsum_l2r_rec_eq => [//|i]; rewrite !ffunE Hx. Qed.
 
-Theorem fcmsum_l2r_b_no_underflow n (c : F) (x : R^n) (rho : R) (l : nat) :
-  (forall i, Rabs (frnd (x i) - x i) <= eps * Rabs (x i)) ->  (* no underflow *)
+(** Theorem 3.1 in the paper. *)
+Theorem fcmsum_l2r_err_no_underflow n (c : F) (x : R^n) (rho : R) (l : nat) :
+  (forall i, Rabs (frnd (x i) - x i) <= eps * Rabs (x i)) ->  (** no underflow *)
   Rabs (rho - fcmsum_l2r c x) <= INR l * eps * Rabs rho ->
   let Delta := (rho - (c - \sum_i (x i : R)))%Re in
   Rabs Delta <= INR (n + l) * eps * (Rabs rho + \sum_i Rabs (x i)).
@@ -80,7 +86,7 @@ have HDelta2 : (Rabs Delta2 <= eps * delta2)%Re.
 { rewrite /Delta2 /delta2 Rabs_minus_sym; apply Hnounder. }
 have Herrs1 : (Rabs (s1hat - s1) <= eps * (Rabs Delta1 + delta1))%Re.
 { apply (Rle_trans _ (eps * Rabs s1hat)).
-  { move: (fplus_spec_b c (fopp (frnd (x ord0)))) => [] d.
+  { move: (fplus_spec_round c (fopp (frnd (x ord0)))) => [] d.
     rewrite /s1hat /s1 /fminus {1}/fopp /= /Rminus => ->; set fp := fplus _ _.
     replace (_ + - _)%Re with (-d * fp)%Re by ring.
     by rewrite Rabs_mult Rabs_Ropp; apply Rmult_le_compat_r;
@@ -132,7 +138,7 @@ rewrite -(Rmult_1_l (_ * _)%Re) Rmult_assoc; apply Rmult_le_compat_r.
 rewrite Hnl S_INR; move: (pos_INR npl'); lra.
 Qed.
 
-Lemma fcmsum_l2r_b_aux n (c : F) (x : R^n) (rho : R) (l : nat) :
+Lemma fcmsum_l2r_err_aux n (c : F) (x : R^n) (rho : R) (l : nat) :
   Rabs (rho - fcmsum_l2r c x) <= INR l * eps * Rabs rho ->
   let Delta := (rho - (c - \sum_i (x i : R)))%Re in
   Rabs Delta <= INR (n + l) * eps * (Rabs rho + \sum_i Rabs (x i))
@@ -150,7 +156,7 @@ apply (Rle_trans _ (Rabs (rho - (c - \sum_i (x' i : R)))
     [|rewrite /GRing.add /=; ring].
   apply (Rle_trans _ _ _ (Rabs_triang _ _)), Rplus_le_compat_l.
   apply big_Rabs_triang. }
-have HDelta' := @fcmsum_l2r_b_no_underflow n c x' rho l.
+have HDelta' := @fcmsum_l2r_err_no_underflow n c x' rho l.
 set dxx' := \sum__ Rabs _.
 have Hdxx' : dxx' <= INR n * eta.
 { rewrite /dxx' -big_sum_const; apply Rle_big_compat => i.
@@ -159,11 +165,11 @@ have Hdxx' : dxx' <= INR n * eta.
   rewrite -Rabs_Ropp; f_equal; ring. }
 apply (Rle_trans _ (INR (n + l) * eps * (Rabs rho + \big[+%R/0]_i Rabs (x' i))
                     + dxx')).
-{ apply Rplus_le_compat_r, fcmsum_l2r_b_no_underflow.
+{ apply Rplus_le_compat_r, fcmsum_l2r_err_no_underflow.
   { move=> i; have [d Hd] := proj2 (proj2 (Hx' i)); rewrite Hd.
     replace (_ - _)%Re with (d * x' i)%Re by ring.
-    rewrite Rabs_mult.
-    by apply Rmult_le_compat_r; [apply Rabs_pos|apply bounded_prop]. }
+    rewrite Rabs_mult; apply Rmult_le_compat_r; [apply Rabs_pos|].
+    by apply (Rle_trans _ _ _ (bounded_prop _)), epsd1peps_le_eps, eps_pos. }
   by move: Hl; apply Rle_trans; right; do 2 f_equal; apply fsum_l2r_rec_eq;
     [|move=> i; rewrite !ffunE /fopp /= (proj1 (Hx' i))]. }
 rewrite (Rplus_comm 1) (Rmult_plus_distr_r _ 1) Rmult_1_l -Rplus_assoc.
@@ -177,7 +183,7 @@ have {1}->: x' i = (x i + (x' i - x i))%Re; [ring|rewrite Rabs_minus_sym].
 apply Rabs_triang.
 Qed.
 
-Corollary fcmsum_l2r_b n (c : F) (x : R^n) (rho alpha : R) (l : nat) :
+Corollary fcmsum_l2r_err n (c : F) (x : R^n) (rho alpha : R) (l : nat) :
   0 <= alpha ->
   Rabs (rho - fcmsum_l2r c x) <= Rmax (INR l * eps * Rabs rho) alpha ->
   let Delta := (rho - (c - \sum_i (x i : R)))%Re in
@@ -188,7 +194,7 @@ move=> Halpha Hl Delta.
 case (Rle_or_lt alpha (INR l * eps * Rabs rho)) => Hmax.
 { apply (Rle_trans _ (INR (n + l) * eps * (Rabs rho + \big[+%R/0]_i Rabs (x i))
                       + (1 + INR (n + l) * eps) * (INR n * eta))).
-  { apply fcmsum_l2r_b_aux, (Rle_trans _ _ _ Hl).
+  { apply fcmsum_l2r_err_aux, (Rle_trans _ _ _ Hl).
     by rewrite Rmax_left; [right|]. }
   apply Rplus_le_compat_l, Rmult_le_compat_l.
   { apply Rplus_le_le_0_compat; [lra|].
@@ -202,7 +208,7 @@ have Hrhomshat : Rabs (rho - shat) <= alpha.
 { by apply (Rle_trans _ _ _ Hl); rewrite Rmax_right; [right|apply Rlt_le]. }
 apply (Rle_trans _ (alpha + (INR (n + l) * eps * (Rabs shat + \sum_i Rabs (x i))
                              + (1 + INR (n + l) * eps) * (INR n * eta)))).
-{ apply (Rplus_le_compat _ _ _ _ Hrhomshat), fcmsum_l2r_b_aux.
+{ apply (Rplus_le_compat _ _ _ _ Hrhomshat), fcmsum_l2r_err_aux.
   rewrite {1}/shat Rcomplements.Rminus_eq_0 Rabs_R0.
   apply Rmult_le_pos; [|by apply Rabs_pos].
   by apply Rmult_le_pos; [apply pos_INR|apply eps_pos]. }

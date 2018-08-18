@@ -77,6 +77,7 @@ omega.
 Qed.
 
 Let b_eps := bounded eps.
+Let b_epsd1peps := bounded (eps / (1 + eps)).
 
 Definition eta := bpow radix2 (-1075).
 
@@ -94,86 +95,67 @@ Definition frnd (x : R) : F :=
 
 Lemma frnd_F (x : F) : round radix2 fexp (Znearest choice) x = x :> R.
 Proof. apply round_generic; [apply valid_rnd_N|apply FS_prop]. Qed.
-  
+
+Lemma frnd_spec_aux (x : R) :
+  exists (d : b_epsd1peps),
+    round radix2 fexp (Znearest choice) x = (1 + d) * x :> R.
+Proof.
+assert (Peps := eps_pos).
+destruct (Req_dec x 0) as [Zx|Nzx].
+{ exists (bounded_0 (epsd1peps_pos eps_pos)).
+  simpl; rewrite Rplus_0_r, Rmult_1_l, Zx.
+  now rewrite round_0; [split|apply valid_rnd_N]. }
+set (ufpx := bpow radix2 (mag radix2 x - 1)%Z).  
+assert (Pufpx : 0 <= ufpx); [now apply bpow_ge_0|].
+assert (H_2_1 : Rabs (frnd x - x) <= eps * ufpx).
+{ apply (Rle_trans _ _ _ (error_le_half_ulp _ _ _ _)); right.
+  unfold ulp, cexp, fexp, FLX_exp, eps, ufpx; rewrite (Req_bool_false _ _ Nzx).
+  rewrite <-bpow_plus; unfold Zminus; rewrite Zplus_assoc, (bpow_plus _ _ (-1)).
+  rewrite Rmult_comm; f_equal; f_equal; unfold prec; ring. }
+assert (H_2_3 : ufpx + Rabs (frnd x - x) <= Rabs x).
+{ apply (Rplus_le_reg_r (- ufpx)); ring_simplify.
+  destruct (Rle_or_lt 0 x) as [Sx|Sx].
+  { apply (Rle_trans _ (Rabs (ufpx - x))).
+    { apply round_N_pt; [now apply FLX_exp_valid|].
+      apply generic_format_bpow; unfold fexp, FLX_exp, prec; lia. }
+    rewrite Rabs_minus_sym, Rabs_pos_eq.
+    { now rewrite Rabs_pos_eq; [right; ring|]. }
+    apply (Rplus_le_reg_r ufpx); ring_simplify.
+    now rewrite <-(Rabs_pos_eq _ Sx); apply bpow_mag_le. }
+  apply (Rle_trans _ (Rabs (- ufpx - x))).
+  { apply round_N_pt; [now apply FLX_exp_valid|].
+    apply generic_format_opp, generic_format_bpow.
+    unfold fexp, FLX_exp, prec; lia. }
+  rewrite Rabs_pos_eq; [now rewrite Rabs_left; [right|]|].
+  apply (Rplus_le_reg_r x); ring_simplify.
+  rewrite <-(Ropp_involutive x); apply Ropp_le_contravar; unfold ufpx.
+  rewrite <-mag_opp, <-Rabs_pos_eq; [apply bpow_mag_le|]; lra. }
+assert (H : Rabs ((frnd x - x) / x) <= eps / (1 + eps)).
+{ assert (H : 0 < ufpx + Rabs (frnd x - x)).
+  { apply Rplus_lt_le_0_compat; [apply bpow_gt_0|apply Rabs_pos]. }
+  apply (Rle_trans _ (Rabs (frnd x - x) / (ufpx + Rabs (frnd x - x)))).
+  { unfold Rdiv; rewrite Rabs_mult; apply Rmult_le_compat_l; [apply Rabs_pos|].
+    now rewrite (Rabs_Rinv _ Nzx); apply Rinv_le. }
+  apply (Rmult_le_reg_r ((ufpx + Rabs (frnd x - x)) * (1 + eps))).
+  { apply Rmult_lt_0_compat; lra. }
+  field_simplify; [unfold Rdiv; rewrite Rinv_1, !Rmult_1_r| |]; lra. }
+now exists (Build_bounded H); simpl; field.
+Qed.
+
 Lemma frnd_spec (x : R) :
-  exists (d : b_eps) (e : b_eta),
+  exists (d : b_epsd1peps) (e : b_eta),
     round radix2 fexp (Znearest choice) x = (1 + d) * x + e :> R
     /\ d * e = 0.
 Proof.
-destruct (relative_error_N_FLX_ex radix2 prec Pprec choice x) as (d, (Hd, Hr)).
-assert (Hd' : Rabs d <= eps).
-{ apply (Rle_trans _ _ _ Hd).
-  apply (Rmult_le_reg_l 2); [lra|].
-  rewrite <- Rmult_assoc, Rinv_r; [rewrite Rmult_1_l|lra].
-  change 2 with (bpow radix2 1).
-  unfold eps; rewrite <- bpow_plus.
-  now apply bpow_le. }
-exists {| bounded_val := d; bounded_prop := Hd' |}.
-exists (bounded_0 (Rlt_le _ _ eta_pos)).
-now rewrite Rmult_comm, Rplus_0_r, Rmult_0_r.
+destruct (frnd_spec_aux x) as (d, Hd).
+exists d, (bounded_0 (Rlt_le _ _ (eta_pos))); simpl.
+now rewrite Rplus_0_r, Rmult_0_r; split.
 Qed.
 
-Lemma frnd_spec_b_aux (x : R) :
-  exists (d : b_eps), x = (1 + d) * round radix2 fexp (Znearest choice) x :> R.
-Proof.
-set (r := round _ _ _ _).
-destruct (Req_dec r 0) as [Zr|Nzr].
-{ exists (bounded_0 eps_pos).
-  rewrite Zr; simpl; rewrite !Rmult_0_r.
-  revert Zr; apply eq_0_round_0_FLX; [apply Pprec|apply valid_rnd_N]. }
-set (d := (x - r) / r).
-assert (Hd : Rabs d <= eps).
-{ unfold d, Rdiv; rewrite Rabs_mult, (Rabs_Rinv _ Nzr).
-  apply (Rmult_le_reg_r (Rabs r)); [now apply Rabs_pos_lt|].
-  rewrite Rmult_assoc, Rinv_l; [rewrite Rmult_1_r|now apply Rabs_no_R0].
-  unfold r; rewrite Rabs_minus_sym.
-  apply (Rle_trans _ _ _
-                   (relative_error_N_FLX_round radix2 prec Pprec choice x)).
-  apply Rmult_le_compat_r; [now apply Rabs_pos|right].
-  unfold eps, prec; rewrite bpow_plus, (Rmult_comm (bpow _ _)), <-Rmult_assoc.
-  rewrite bpow_1; simpl; lra. }
-exists (Build_bounded Hd).
-now simpl; unfold d; field.
-Qed.
-
-Lemma frnd_spec_b (x : R) :
-  exists (d : b_eps) (e : b_eta),
-    x = (1 + d) * round radix2 fexp (Znearest choice) x + e :> R
-    /\ d * e = 0.
-Proof.
-assert (Hd := frnd_spec_b_aux x).
-destruct Hd as (d, Hd).
-exists d.
-exists (bounded_0 (Rlt_le _ _ (eta_pos))).
-now simpl; rewrite Rplus_0_r, Rmult_0_r; split; [|reflexivity].
-Qed.
-  
 Lemma fplus_spec (x y : F) :
-  exists d : b_eps, frnd (x + y) = (1 + d) * (x + y) :> R.
-Proof.
-set (xy := x + y).
-set (fxy := frnd xy).
-destruct (relative_error_N_FLX_ex radix2 prec Pprec choice xy)
-    as (d, (Hd1, Hd2)).
-assert (Hd3 : Rabs d <= eps).
-{ apply (Rle_trans _ _ _ Hd1).
-  apply (Rmult_le_reg_l 2); [lra|].
-  rewrite <- Rmult_assoc, Rinv_r; [rewrite Rmult_1_l|lra].
-  change 2 with (bpow radix2 1).
-  unfold eps; rewrite <- bpow_plus.
-  now apply bpow_le. }
-exists {| bounded_val := d; bounded_prop := Hd3 |}.
-now rewrite Rmult_comm.
-Qed.
+  exists d : b_epsd1peps, frnd (x + y) = (1 + d) * (x + y) :> R.
+Proof. now destruct (frnd_spec_aux (x + y)) as (d, Hd); exists d. Qed.
 
-Lemma fplus_spec_b (x y : F) :
-  exists d : b_eps, x + y = (1 + d) * frnd (x + y) :> R.
-Proof.
-assert (Hd := frnd_spec_b_aux (x + y)).
-destruct Hd as (d, Hd).
-now exists d.
-Qed.
-  
 Lemma fplus_spec_l (x y : F) : Rabs (frnd (x + y) - (x + y)) <= Rabs x.
 Proof.
 apply (Rle_trans _ (Rabs (y - (x + y)))).
@@ -198,27 +180,6 @@ apply round_le; [now apply FLX_exp_valid|now apply valid_rnd_N|].
 apply misc.sqr_ge_0.
 Qed.
 
-(** Sufficient condition : emin <= 2 * (1 - prec). *)
-Lemma fsqrt_spec (x : F) :
-  exists d : b_eps, frnd (sqrt x) = (1 + d) * (sqrt x) :> R.
-Proof.
-destruct (Rlt_or_le x 0) as [Nx|Px].
-{ exists (bounded_0 eps_pos).
-  simpl; rewrite (sqrt_neg x (Rlt_le x 0 Nx)), Rmult_0_r.
-  now rewrite round_0; [|apply valid_rnd_N]. }
-destruct (relative_error_N_FLX_ex radix2 prec Pprec choice
-                                    (sqrt x)) as (d, (Hd1, Hd2)).
-assert (Hd3 : Rabs d <= eps).
-{ apply (Rle_trans _ _ _ Hd1).
-  apply (Rmult_le_reg_l 2); [lra|].
-  rewrite <- Rmult_assoc, Rinv_r; [rewrite Rmult_1_l|lra].
-  change 2 with (bpow radix2 1).
-  unfold eps; rewrite <- bpow_plus.
-  now apply bpow_le. }
-exists {| bounded_val := d; bounded_prop := Hd3 |}.
-now rewrite Rmult_comm.
-Qed.
-
 Lemma exact_shift x e : format x -> format (x * bpow radix2 e).
 Proof.
 intro Fx.
@@ -232,28 +193,6 @@ apply (generic_format_F2R' _ _ _ f).
 intro Nzmx; unfold mx, ex; rewrite <- Fx.
 unfold f, ex; simpl; unfold cexp; rewrite (mag_mult_bpow _ _ _ Nzx).
 unfold fexp, FLX_exp; omega.
-Qed.
-
-Lemma ulp_exact_shift_pos x e :
-  0 < x ->
-  ulp radix2 fexp (x * bpow radix2 e) = ulp radix2 fexp x * bpow radix2 e.
-Proof.
-intro Px.
-unfold ulp; rewrite Req_bool_false;
-  [|now apply Rgt_not_eq, Rlt_gt, Rmult_lt_0_compat; [|apply bpow_gt_0]].
-rewrite Req_bool_false; [|now apply Rgt_not_eq, Rlt_gt].
-rewrite <- bpow_plus; f_equal; unfold cexp, fexp, FLX_exp.
-rewrite mag_mult_bpow; [|now apply Rgt_not_eq, Rlt_gt]; omega.
-Qed.
-
-Lemma succ_exact_shift_pos x e :
-  0 < x ->
-  succ radix2 fexp (x * bpow radix2 e) = succ radix2 fexp x * bpow radix2 e.
-Proof.
-intro Px.
-rewrite succ_eq_pos; [|now apply Rmult_le_pos; [left|apply bpow_ge_0]].
-rewrite succ_eq_pos; [|now left].
-now rewrite Rmult_plus_distr_r; f_equal; apply ulp_exact_shift_pos.
 Qed.
 
 (** Sufficient condition : emin <= 1 - prec. *)
@@ -291,28 +230,8 @@ apply (Zplus_le_reg_r _ _ (mxm1 mod 2 - mag radix2 x)%Z).
 now unfold mxm1; ring_simplify; apply Zlt_succ_le; simpl; apply Z_mod_lt.
 Qed.
 
-Lemma sqrt_bpow e : sqrt (bpow radix2 (2 * e)) = bpow radix2 e.
-Proof.
-change 2%Z with (1 + 1)%Z; rewrite Z.mul_add_distr_r, Z.mul_1_l, bpow_plus.
-apply sqrt_square, bpow_ge_0.
-Qed.
-
 Lemma mag_1 : mag radix2 1 = 1%Z :> Z.
-Proof.
-apply mag_unique_pos; rewrite bpow_1; simpl; lra.
-Qed.
-
-Lemma Rsqr_le_abs_0_alt x y : x² <= y² -> x <= Rabs y.
-Proof.
-intro H.
-apply (Rle_trans _ (Rabs x)); [apply Rle_abs|apply (Rsqr_le_abs_0 _ _ H)].
-Qed.
-
-Lemma ulp_FLX_1 : ulp radix2 fexp 1 = bpow radix2 (1 - prec).
-Proof.
-unfold ulp, fexp, FLX_exp, cexp; rewrite Req_bool_false; [|lra].
-now rewrite mag_1.
-Qed.
+Proof. apply mag_unique_pos; rewrite bpow_1; simpl; lra. Qed.
 
 Lemma succ_FLX_1 : succ radix2 fexp 1 = 1 + bpow radix2 (1 - prec).
 Proof.
@@ -321,7 +240,13 @@ rewrite Req_bool_false; [|lra]; rewrite mag_1.
 now unfold Z.sub, eps, prec; rewrite bpow_plus, bpow_1.
 Qed.
 
-Lemma fsqrt_spec_b_aux (x : F) :
+Lemma ulp_FLX_1 : ulp radix2 fexp 1 = bpow radix2 (1 - prec).
+Proof.
+unfold ulp, fexp, FLX_exp, cexp; rewrite Req_bool_false; [|lra].
+now rewrite mag_1.
+Qed.
+
+Lemma fsqrt_spec_aux (x : F) :
   1 <= x ->
   (x = 1 :> R \/ x = 1 + 2 * eps :> R \/ 1 + 4 * eps <= x).
 Proof.
@@ -350,16 +275,84 @@ rewrite H2eps, <- succ_FLX_1.
 now apply generic_format_succ; [apply FLX_exp_valid|apply format1].
 Qed.
 
-(** Sufficient condition : emin <= 1 - prec. *)
-Lemma fsqrt_spec_b (x : F) :
-  exists d : bounded (sqrt (1 + 2 * eps) - 1),
-    sqrt x = (1 + d) * frnd (sqrt x) :> R.
+Lemma sqrt_bpow e : sqrt (bpow radix2 (2 * e)) = bpow radix2 e.
+Proof.
+change 2%Z with (1 + 1)%Z; rewrite Z.mul_add_distr_r, Z.mul_1_l, bpow_plus.
+apply sqrt_square, bpow_ge_0.
+Qed.
+
+Lemma ulp_exact_shift_pos x e :
+  0 < x ->
+  ulp radix2 fexp (x * bpow radix2 e) = ulp radix2 fexp x * bpow radix2 e.
+Proof.
+intro Px.
+unfold ulp; rewrite Req_bool_false;
+  [|now apply Rgt_not_eq, Rlt_gt, Rmult_lt_0_compat; [|apply bpow_gt_0]].
+rewrite Req_bool_false; [|now apply Rgt_not_eq, Rlt_gt].
+rewrite <- bpow_plus; f_equal; unfold cexp, fexp, FLX_exp.
+rewrite mag_mult_bpow; [|now apply Rgt_not_eq, Rlt_gt]; omega.
+Qed.
+
+Lemma succ_exact_shift_pos x e :
+  0 < x ->
+  succ radix2 fexp (x * bpow radix2 e) = succ radix2 fexp x * bpow radix2 e.
+Proof.
+intro Px.
+rewrite succ_eq_pos; [|now apply Rmult_le_pos; [left|apply bpow_ge_0]].
+rewrite succ_eq_pos; [|now left].
+now rewrite Rmult_plus_distr_r; f_equal; apply ulp_exact_shift_pos.
+Qed.
+
+Lemma Rsqr_le_abs_0_alt x y : x² <= y² -> x <= Rabs y.
+Proof.
+intro H.
+apply (Rle_trans _ (Rabs x)); [apply Rle_abs|apply (Rsqr_le_abs_0 _ _ H)].
+Qed.
+
+(** Requires eps <= 1/2 *)
+Lemma fsqrt_spec_aux' :
+  eps / sqrt (1 + 4 * eps) <= 1 - 1 / sqrt (1 + 2 * eps).
+Proof.
+assert (Peps := eps_pos).
+unfold Rdiv; apply (Rplus_le_reg_r (/ sqrt (1 + 2 * eps))); ring_simplify.
+apply (Rmult_le_reg_r (sqrt (1 + 4 * eps) * sqrt (1 + 2 * eps))).
+{ apply Rmult_lt_0_compat; apply sqrt_lt_R0; lra. }
+field_simplify; [|split; apply Rgt_not_eq, Rlt_gt, sqrt_lt_R0; lra].
+unfold Rdiv; rewrite Rinv_1, !Rmult_1_r.
+apply Rsqr_incr_0_var; [|now apply Rmult_le_pos; apply sqrt_pos].
+rewrite <-sqrt_mult; [|lra|lra].
+rewrite Rsqr_sqrt; [|apply Rmult_le_pos; lra].
+unfold Rsqr; ring_simplify; unfold pow; rewrite !Rmult_1_r.
+rewrite !sqrt_def; [|lra|lra].
+apply (Rplus_le_reg_r (-eps * eps - 1 -4 * eps - 2 * eps ^ 3)); ring_simplify.
+apply Rsqr_incr_0_var.
+{ unfold Rsqr; ring_simplify.
+  unfold pow; rewrite !Rmult_1_r, !sqrt_def; [|lra|lra].
+  apply (Rplus_le_reg_r (-32 * eps ^ 4 - 24 * eps ^ 3 - 4 * eps ^ 2)).    
+  ring_simplify.
+  replace (_ + _) with (((4 * eps ^ 2 - 28 * eps + 9) * eps + 4) * eps ^ 3)
+    by ring.
+  apply Rmult_le_pos; [|now apply pow_le, eps_pos].
+  assert (Heps_le_half : eps <= 1 / 2).
+  { unfold eps, bpow, Rdiv; rewrite Rmult_1_l; apply Rinv_le; [lra|].
+    now apply IZR_le. }
+  apply (Rle_trans _ (-8 * eps + 4)); [lra|].
+  apply Rplus_le_compat_r, Rmult_le_compat_r; [apply eps_pos|].
+  now assert (H : 0 <= eps ^ 2); [apply pow2_ge_0|lra]. }
+assert (H : eps ^ 3 <= eps ^ 2).
+{ unfold pow; rewrite <-!Rmult_assoc, Rmult_1_r.
+  apply Rmult_le_compat_l; [apply misc.sqr_ge_0|apply Rlt_le, eps_lt_1]. }
+now assert (H' : 0 <= eps ^ 2); [apply pow2_ge_0|lra].
+Qed.
+
+Lemma fsqrt_spec (x : F) :
+  exists d : bounded (1 - 1 / sqrt (1 + 2 * eps)),
+    frnd (sqrt x) = (1 + d) * (sqrt x) :> R.
 Proof.
 assert (Peps := eps_pos).
 assert (Peps' : 0 < eps); [now unfold eps; apply bpow_gt_0|].
-assert (Pb : 0 <= sqrt (1 + 2 * eps) - 1).
-{ apply (Rplus_le_reg_l 1); ring_simplify; rewrite <- sqrt_1 at 1.
-  apply sqrt_le_1_alt; lra. }
+assert (Pb := om1ds1p2eps_pos eps_pos).
+assert (Pb' := s1p2epsm1_pos eps_pos).
 destruct (Rle_or_lt x 0) as [Nx|Px].
 { exists (bounded_0 Pb); simpl.
   now rewrite (sqrt_neg x Nx), round_0, Rmult_0_r; [|apply valid_rnd_N]. }
@@ -368,10 +361,10 @@ pose (t := sqrt x).
 assert (Ht : t = sqrt mu * bpow radix2 e).
 { unfold t; rewrite Hmu, sqrt_mult_alt; [|now apply (Rle_trans _ _ _ Rle_0_1)].
   now rewrite sqrt_bpow. }
-destruct (fsqrt_spec_b_aux _ HmuGe1) as [Hmu'|[Hmu'|Hmu']].
+destruct (fsqrt_spec_aux _ HmuGe1) as [Hmu'|[Hmu'|Hmu']].
 { exists (bounded_0 Pb); simpl; rewrite Rplus_0_r, Rmult_1_l.
   fold t; rewrite Ht, Hmu', sqrt_1, Rmult_1_l.
-  symmetry; apply round_generic; [now apply valid_rnd_N|].
+  apply round_generic; [now apply valid_rnd_N|].
   apply generic_format_bpow'; [now apply FLX_exp_valid|].
   unfold fexp, FLX_exp, prec; omega. }
 { assert (Hsqrtmu : 1 <= sqrt mu < 1 + eps); [rewrite Hmu'; split|].
@@ -394,9 +387,9 @@ destruct (fsqrt_spec_b_aux _ HmuGe1) as [Hmu'|[Hmu'|Hmu']].
       [now apply FLX_exp_valid|now apply valid_rnd_N|exact Fbpowe|].
     rewrite <- (Rmult_1_l (bpow _ _)) at 1.
     now apply Rmult_le_compat_r; [apply bpow_ge_0|]. }
-  exists (Build_bounded (or_intror (Rabs_pos_eq _ Pb))); simpl.
+  exists (bounded_opp (Build_bounded (or_intror (Rabs_pos_eq _ Pb)))); simpl.
   revert Hrt; unfold frnd, t; simpl; intro Hrt; rewrite Hrt.
-  fold t; rewrite Ht, Hmu'; ring. }
+  fold t; rewrite Ht, Hmu'; field; lra. }
 assert (Hsqrtmu : 1 + eps < sqrt mu).
 { apply (Rlt_le_trans _ (sqrt (1 + 4 * eps))); [|now apply sqrt_le_1_alt].
   assert (P1peps : 0 <= 1 + eps)
@@ -426,49 +419,30 @@ assert (Hulpt : ulp radix2 fexp t = 2 * eps * bpow radix2 e).
     rewrite Hmagt; unfold prec; omega. }
   rewrite Ht; apply Rmult_lt_0_compat; [|now apply bpow_gt_0].
   now apply (Rlt_le_trans _ 1); [lra|rewrite <- sqrt_1; apply sqrt_le_1_alt]. }
-assert (H2eps : 2 * eps = bpow radix2 (1 - prec)).
-{ now unfold Z.sub, eps; rewrite bpow_plus. }
-assert (Hrt : (1 + 2 * eps) * bpow radix2 e <= frnd t).
-{ apply round_N_ge_midp; [now apply FLX_exp_valid| |].
-  { rewrite H2eps, <- succ_FLX_1; apply exact_shift.
-    now apply generic_format_succ; [apply FLX_exp_valid|apply format1]. }
-  set (p := pred _ _ _).
-  assert (Hp : p = bpow radix2 e).
-  { rewrite <- (pred_succ radix2 _ (bpow radix2 e)).
-    { unfold p; f_equal; rewrite H2eps, <- succ_FLX_1.
-      rewrite <- succ_exact_shift_pos; [now rewrite Rmult_1_l|lra]. }
-    apply generic_format_bpow; unfold fexp, FLX_exp; unfold prec; omega. }
-  now rewrite Hp, Ht; apply (Rle_lt_trans _ ((1 + eps) * bpow radix2 e));
-    [right; field|apply Rmult_lt_compat_r; [apply bpow_gt_0|]]. }
-assert (Prt : 0 < frnd t).
-{ revert Hrt; apply Rlt_le_trans.
-  now apply Rmult_lt_0_compat; [lra|apply bpow_gt_0]. }
-assert (H : Rabs ((sqrt x - frnd (sqrt x)) / frnd (sqrt x))
-            <= sqrt (1 + 2 * eps) - 1).
+assert (Pt : 0 < t).
+{ rewrite Ht; apply Rmult_lt_0_compat; [lra|apply bpow_gt_0]. }
+assert (H : Rabs ((frnd (sqrt x) - sqrt x) / sqrt x)
+            <= 1 - 1 / sqrt (1 + 2 * eps)).
 { unfold Rdiv; rewrite Rabs_mult, (Rabs_pos_eq (/ _));
     [|now left; apply Rinv_0_lt_compat].
-  apply (Rle_trans _ ((eps * bpow radix2 e) / frnd t)).
+  apply (Rle_trans _ ((eps * bpow radix2 e) / t)).
   { unfold Rdiv; apply Rmult_le_compat_r; [now left; apply Rinv_0_lt_compat|].
-    rewrite Rabs_minus_sym; apply (Rle_trans _ _ _ (error_le_half_ulp _ _ _ _)).
+    apply (Rle_trans _ _ _ (error_le_half_ulp _ _ _ _)).
     fold t; rewrite Hulpt; right; field. }
-  apply (Rle_trans _ (eps / (1 + 2 * eps))).
-  { apply (Rle_trans _ (eps * bpow radix2 e / ((1 + 2 * eps) * bpow radix2 e))).
+  apply (Rle_trans _ (eps / sqrt (1 + 4 * eps))).
+  { apply (Rle_trans _ (eps * bpow radix2 e
+                                   / (sqrt (1 + 4 * eps) * bpow radix2 e))).
     { unfold Rdiv; apply Rmult_le_compat_l;
         [now apply Rmult_le_pos; [apply eps_pos|apply bpow_ge_0]|].
-      now apply Rinv_le; [|exact Hrt];
-        apply Rmult_lt_0_compat; [lra|apply bpow_gt_0]. }
-    right; field; split; apply Rgt_not_eq, Rlt_gt; [|apply bpow_gt_0]; lra. }
-  apply (Rplus_le_reg_r 1); ring_simplify.
-  rewrite <- (Rabs_pos_eq _ (sqrt_ge_0 _)); apply Rsqr_le_abs_0_alt.
-  replace (_ + 1) with ((1 + 3 * eps) / (1 + 2 * eps)); [|field; lra].
-  rewrite Rsqr_sqrt; [|lra]; rewrite Rsqr_div; [|lra].
-  apply (Rmult_le_reg_r ((1 + 2 * eps)²)); [apply Rlt_0_sqr; lra|].
-  unfold Rdiv; rewrite Rmult_assoc, Rinv_l;
-    [rewrite Rmult_1_r|apply Rgt_not_eq, Rlt_gt, Rlt_0_sqr; lra].
-  apply (Rplus_le_reg_r (-1 - 6 * eps - 9 * eps^2)); unfold Rsqr; ring_simplify.
-  now assert (H : 0 <= eps^2 /\ 0 <= eps^3); [split; apply pow_le|lra]. }
+      apply Rinv_le.
+      { apply Rmult_lt_0_compat; [apply sqrt_lt_R0; lra|apply bpow_gt_0]. }
+      now rewrite Ht; apply Rmult_le_compat_r;
+        [apply bpow_ge_0|apply sqrt_le_1_alt]. }
+    right; field; split; apply Rgt_not_eq, Rlt_gt;
+      [apply sqrt_lt_R0; lra|apply bpow_gt_0]. }
+  apply fsqrt_spec_aux'. }
 now exists (Build_bounded H); simpl; field; apply Rgt_not_eq, Rlt_gt.
-Qed.
+Qed.  
 
 Definition flx64 : Float_spec :=
   @Build_Float_spec
@@ -484,13 +458,10 @@ Definition flx64 : Float_spec :=
     frnd
     frnd_F
     frnd_spec
-    frnd_spec_b
     fplus_spec
-    fplus_spec_b
     fplus_spec_l
     fplus_spec2
     fmult_spec2
-    fsqrt_spec
-    fsqrt_spec_b.
+    fsqrt_spec.
 
 End Flx64.
