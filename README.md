@@ -1,6 +1,11 @@
 ValidSDP
 ========
 
+[![Build Status](https://travis-ci.com/validsdp/validsdp.svg?branch=master)](https://travis-ci.com/validsdp/validsdp)
+
+ValidSDP is a library for the Coq formal proof assistant.  It provides
+Coq tactics to prove multivariate inequalities using SDP solvers.
+
 Dependencies
 ------------
 
@@ -33,7 +38,7 @@ Once OPAM is installed, run:
 
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
-    $ opam pin -n -k version add coq 8.6.1
+    $ opam pin -n -k version add coq 8.7.2
     $ opam install --jobs=2 coq coq-interval coq-mathcomp-field coq-mathcomp-multinomials osdp camlp4
 
 N.B. : Opam package for multinomials doesn't support Coq 8.8 currently,

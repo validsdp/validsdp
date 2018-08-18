@@ -1,6 +1,4 @@
 -R . @PACKAGE_NAME@
-CBigZ.v
-CBigQ.v
 Rstruct.v
 misc.v
 real_matrix.v
