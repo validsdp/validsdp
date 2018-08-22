@@ -311,16 +311,11 @@ case x; case y; try now simpl.
 { now intros b m e e' b'; case b'. }
 { now intros b b'; case b'. }
 { now intros b b'; case b'; case b. }
-{ now intros b pl Hpl b' m e He; case b'. }
-intros b m e B b' m' e' B'; simpl; case b'; case b; try now simpl.
-{ case_eq (Z.compare e' e); try now simpl.
-  intro He; apply Z.compare_eq in He; rewrite Pos.compare_cont_antisym; simpl.
-  intro Hm; inversion Hm as (Hm'); apply Pcompare_Eq_eq in Hm'.
-  now rewrite He, Hm'. }
-case_eq (Z.compare e' e); try now simpl.
-intro He; apply Z.compare_eq in He.
-intro Hm; inversion Hm as (Hm'); apply Pcompare_Eq_eq in Hm'.
-now rewrite He, Hm'.
+intros s m e Hb s' m' e' Hb'; case s', s; simpl;
+  (destruct (Z.compare_spec e' e) as [He|He|He]; try discriminate;
+   rewrite He, Pos.compare_cont_spec; unfold Pos.switch_Eq;
+   destruct (Pos.compare_spec m' m) as [Hm|Hm|Hm]; try discriminate;
+   now rewrite Hm).
 Qed.
 
 Lemma ficompare_spec_eq_f x y : ficompare x y = Some Eq ->
@@ -331,8 +326,7 @@ case x; case y; try now simpl.
 { now intro b; case b. }
 { now intros b b'; simpl; case b'. }
 { now intros b m e He b'; simpl; case b'. }
-{ now intros b b'; case b'; case b. }
-now intros b pl Hpl b'; case b'.
+now intros b b'; case b'; case b.
 Qed.
 
 Definition binary64_infnan : Float_infnan_spec :=

@@ -136,7 +136,7 @@ Proof.
 set (xy := x + y).
 set (fxy := frnd xy).
 destruct (Rle_or_lt (bpow radix2 (emin + prec - 1)) (Rabs xy)) as [Hxy|Hxy].
-{ destruct (relative_error_N_FLT_ex radix2 emin prec Pprec choice xy Hxy)
+{ destruct (@relative_error_N_FLT_ex radix2 emin prec Pprec choice xy Hxy)
     as (d, (Hd1, Hd2)).
   assert (Hd3 : Rabs d <= eps).
   { apply (Rle_trans _ _ _ Hd1).
@@ -225,7 +225,7 @@ destruct (Rle_or_lt x 0) as [Nx|Px].
   now rewrite round_0; [|apply valid_rnd_N]. }
 destruct (Rle_or_lt (bpow radix2 (emin + prec - 1)) (Rabs (sqrt x)))
   as [Hsx|Hsx].
-{ destruct (relative_error_N_FLT_ex radix2 emin prec Pprec choice
+{ destruct (@relative_error_N_FLT_ex radix2 emin prec Pprec choice
                                     (sqrt x) Hsx) as (d, (Hd1, Hd2)).
   assert (Hd3 : Rabs d <= eps).
   { apply (Rle_trans _ _ _ Hd1).

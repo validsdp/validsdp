@@ -100,7 +100,7 @@ Lemma frnd_spec (x : R) :
     round radix2 fexp (Znearest choice) x = (1 + d) * x + e :> R
     /\ d * e = 0.
 Proof.
-destruct (relative_error_N_FLX_ex radix2 prec Pprec choice x) as (d, (Hd, Hr)).
+destruct (@relative_error_N_FLX_ex radix2 prec Pprec choice x) as (d, (Hd, Hr)).
 assert (Hd' : Rabs d <= eps).
 { apply (Rle_trans _ _ _ Hd).
   apply (Rmult_le_reg_l 2); [lra|].
@@ -118,7 +118,7 @@ Lemma fplus_spec (x y : F) :
 Proof.
 set (xy := x + y).
 set (fxy := frnd xy).
-destruct (relative_error_N_FLX_ex radix2 prec Pprec choice xy)
+destruct (@relative_error_N_FLX_ex radix2 prec Pprec choice xy)
     as (d, (Hd1, Hd2)).
 assert (Hd3 : Rabs d <= eps).
 { apply (Rle_trans _ _ _ Hd1).
@@ -163,7 +163,7 @@ destruct (Rlt_or_le x 0) as [Nx|Px].
 { exists (bounded_0 eps_pos).
   simpl; rewrite (sqrt_neg x (Rlt_le x 0 Nx)), Rmult_0_r.
   now rewrite round_0; [|apply valid_rnd_N]. }
-destruct (relative_error_N_FLX_ex radix2 prec Pprec choice
+destruct (@relative_error_N_FLX_ex radix2 prec Pprec choice
                                     (sqrt x)) as (d, (Hd1, Hd2)).
 assert (Hd3 : Rabs d <= eps).
 { apply (Rle_trans _ _ _ Hd1).

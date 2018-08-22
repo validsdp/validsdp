@@ -302,7 +302,7 @@ rewrite <- F2R_mult.
 simpl.
 rewrite Zplus_0_r.
 rewrite (F2R_change_exp beta (e - Zpos nb) _ e).
-2: generalize (Zgt_pos_0 nb) ; omega.
+2: now apply (Zplus_le_reg_r _ _ (Z.pos nb -e)%Z); ring_simplify.
 ring_simplify (e - (e - Zpos nb))%Z.
 rewrite <- 2!cond_Zopp_mult.
 apply (f_equal (fun v => F2R (Defs.Float beta (cond_Zopp s v) _))).

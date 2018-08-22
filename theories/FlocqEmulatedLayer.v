@@ -98,11 +98,11 @@ Lemma B2EF_build_nan : forall prec emax nan, E754_nan = B2EF (build_nan prec ema
 Qed.
 
 Theorem EFopp_Bopp : forall prec emax opp_nan (x : binary_float prec emax), EFopp (B2EF x) = B2EF (Bopp prec emax opp_nan x).
-  intros. destruct x; auto. simpl. apply B2EF_build_nan.
+  intros. destruct x; auto.
 Qed.
 
 Theorem EFabs_Babs : forall prec emax abs_nan (x : binary_float prec emax), EFabs (B2EF x) = B2EF (Babs prec emax abs_nan x).
-  intros. destruct x; auto. simpl. apply B2EF_build_nan.
+  intros. destruct x; auto.
 Qed.
 
 Theorem EFcompare_Bcompare : forall prec emax x y, EFcompare (B2EF x) (B2EF y) = Bcompare prec emax x y.
@@ -117,14 +117,12 @@ Qed.
 Theorem EFplus_Bplus : forall prec emax prec_gt_0_ Hmax plus_nan x y, EFplus prec emax (B2EF x) (B2EF y) = B2EF (Bplus prec emax prec_gt_0_ Hmax plus_nan mode_NE x y).
   intros.
   destruct x, y; auto; simpl; try (apply B2EF_build_nan); try (destruct (Bool.eqb _ _)); auto.
-  apply B2EF_build_nan.
   apply binary_normalize_equiv.
 Qed.
 
 Theorem EFminus_Bminus : forall prec emax prec_gt_0_ Hmax minus_nan x y, EFminus prec emax (B2EF x) (B2EF y) = B2EF (Bminus prec emax prec_gt_0_ Hmax minus_nan mode_NE x y).
   intros.
   destruct x, y; auto; simpl; try (apply B2EF_build_nan); try (destruct (Bool.eqb _ _)); auto.
-  apply B2EF_build_nan.
   apply binary_normalize_equiv.
 Qed.
 
