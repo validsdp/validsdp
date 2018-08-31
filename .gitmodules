@@ -2,11 +2,3 @@
 	path = external/CoqEAL
 	url = https://github.com/CoqEAL/CoqEAL.git
 	branch = paramcoq-dev
-[submodule "external/paramcoq_v87"]
-	path = external/paramcoq_v87
-	url = https://github.com/aa755/paramcoq.git
-	branch = v8.7
-[submodule "external/paramcoq_v88"]
-	path = external/paramcoq_v88
-	url = https://github.com/aa755/paramcoq.git
-	branch = v8.8
