@@ -34,17 +34,8 @@ install: |
     # “sudo apt-get update -y -q” is mandatory before “opam depext -i”
     travis_retry opam depext -i -y conf-gmp.1 conf-sdpa.1
     sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
-    opam install -y -j ${NJOBS} coq-flocq.3.0.0 coq-interval.3.4.0 osdp camlp4
-    : Building Multinomials...
-    git clone -n ${MULTINOM_URL} ~coq/multinomials
-    cd ~coq/multinomials
-    git checkout ${MULTINOM_VERSION}
-    make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install
-    : Building Paramcoq...
-    git clone -n ${PARAMCOQ_URL} ~coq/paramcoq
-    cd ~coq/paramcoq
-    git checkout ${PARAMCOQ_VERSION}
-    make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install
+    opam install -y -j ${NJOBS} coq-flocq.3.0.0 coq-interval.3.4.0 osdp camlp4 \
+      coq-mathcomp-multinomials.1.1 coq-paramcoq.1.1.0
     : Building CoqEAL...
     git clone -n ${COQEAL_URL} ~coq/coqeal
     cd ~coq/coqeal
