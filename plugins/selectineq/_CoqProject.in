@@ -1,0 +1,9 @@
+-R theories @PACKAGE_NAME@
+-I src
+
+theories/selectineq.v
+test-suite/selectineqtac.v
+
+src/g_selectineq.ml4
+src/selectineq_main.ml
+src/selectineq_plugin.mlpack

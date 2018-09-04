@@ -115,7 +115,7 @@ AS_IF(
 rm -f conftest.v conftest.vo conftest.err
 
 # Create files
-AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/_CoqProject])
+AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile plugins/selectineq/_CoqProject theories/_CoqProject])
 AC_OUTPUT
 chmod a-w Makefile plugins/soswitness/Makefile theories/_CoqProject
 

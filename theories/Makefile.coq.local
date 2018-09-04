@@ -23,3 +23,6 @@ doc:: html depend.png depend.html validsdp.vo
 
 test:: testsuite.v validsdp.v
 	$(COQC) $(COQDEBUG) $(COQFLAGS) $<
+
+dist::
+	T=$$(mktemp -d ../dist2.XXX) && S=$$T/theories && mkdir -p $$S && rsync -rlpgoDvR Makefile _CoqProject $(ALLSRCFILES) dependtodot.ml $$S && rm -f ../dist2 && ln -rsv $$T ../dist2
