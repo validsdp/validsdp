@@ -165,7 +165,8 @@ Theorem FPabs_Babs : forall abs_nan x, abs (B2Prim x) = B2Prim (Babs prec emax a
   prove_FP2B EFabs_Babs FPabs_EFabs abs_nan.
 Qed.
 
-Theorem FPcompare_Bcompare : forall x y, ((B2Prim x) ?= (B2Prim y))%float = Bcompare prec emax x y.
+Theorem FPcompare_Bcompare : forall x y,
+  ((B2Prim x) ?= (B2Prim y))%float = flatten_cmp_opt (Bcompare prec emax x y).
   intros. rewrite FPcompare_EFcompare. rewrite <- EFcompare_Bcompare. unfold B2Prim.
   rewrite !Prim2EF_EF2Prim by apply valid_binary_B2EF. reflexivity.
 Qed.
@@ -193,7 +194,7 @@ Qed.
 
 Lemma is_nan_spec : forall x, is_nan (B2Prim x) = Binary.is_nan prec emax x.
   intro.
-  destruct x, s; auto; unfold is_nan; rewrite FPcompare_Bcompare; unfold Bcompare; destruct (e ?= e)%Z; reflexivity.
+  now destruct x, s; auto; unfold is_nan; rewrite FPcompare_Bcompare; unfold Bcompare; destruct (e ?= e)%Z; simpl; rewrite ?Pcompare_refl.
 Qed.
 
 Lemma is_zero_spec : forall x, is_zero (B2Prim x) = match x with B754_zero _ => true | _ => false end.

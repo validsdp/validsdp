@@ -1,6 +1,6 @@
 (** * CoqInterval floats satisfy hypothesis in [Float_infnan_spec] *)
 
-Require Import Reals.
+Require Import Reals Float.
 Require Import CBigZ.
 Require Import ROmega.
 
@@ -748,17 +748,16 @@ rewrite round_generic.
 now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
-Definition ficompare (x y : FI) : option comparison :=
+Definition ficompare (x y : FI) : float_comparison :=
   match F.cmp x y with
-    | Xlt => Some Lt
-    | Xgt => Some Gt
-    | Xeq => Some Eq
-    | Xund =>
-      if ~~ F.real x && ~~ F.real y then Some Eq else None
+    | Xlt => FLt
+    | Xgt => FGt
+    | Xeq => FEq
+    | Xund => FNotComparable
   end.
 
 Lemma ficompare_spec x y : finite x -> finite y ->
-  ficompare x y = Some (Rcompare (FI2FS x) (FI2FS y)).
+  ficompare x y = flatten_cmp_opt (Some (Rcompare (FI2FS x) (FI2FS y))).
 Proof.
 unfold ficompare; rewrite F.cmp_correct.
 unfold finite; rewrite !FtoX_real !FI2FS_X2F_FtoX.
@@ -776,16 +775,15 @@ case: Rcompare_spec =>//= H0.
   by rewrite Rcompare_Gt.
 Qed.
 
-Lemma ficompare_spec_eq x y : ficompare x y = Some Eq -> FI2FS x = FI2FS y :> R.
+Lemma ficompare_spec_eq x y : ficompare x y = FEq -> FI2FS x = FI2FS y :> R.
 Proof.
-unfold ficompare; rewrite F.cmp_correct !F.real_correct.
+unfold ficompare; rewrite F.cmp_correct.
 unfold Xcmp.
-case Ex: (F.toX x) =>[ |rx]; case Ey: (F.toX y) =>[ |ry] //=;
-  first by rewrite Ex Ey.
+case Ex: (F.toX x) =>[ |rx]; case Ey: (F.toX y) =>[ |ry] //=.
 by case: Rcompare_spec =>//; rewrite Ex Ey =>->.
 Qed.
 
-Lemma ficompare_spec_eq_f x y : ficompare x y = Some Eq ->
+Lemma ficompare_spec_eq_f x y : ficompare x y = FEq ->
   (finite x <-> finite y).
 Proof.
 unfold ficompare, finite; rewrite F.cmp_correct !F.real_correct.

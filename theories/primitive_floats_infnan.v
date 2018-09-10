@@ -328,7 +328,7 @@ Section Primitive_float_infnan.
       now apply finite_notnan in Hf.
   Qed.
 
-  Lemma ficompare_spec x y : finite x -> finite y -> (x ?= y)%float = Some (Rcompare (FI2FS x) (FI2FS y)).
+  Lemma ficompare_spec x y : finite x -> finite y -> (x ?= y)%float = flatten_cmp_opt (Some (Rcompare (FI2FS x) (FI2FS y))).
     intros Hx Hy.
     rewrite <- (B2Prim_Prim2B nan_pl x).
     rewrite <- (B2Prim_Prim2B nan_pl y).
@@ -339,22 +339,22 @@ Section Primitive_float_infnan.
       now rewrite B2Prim_Prim2B.
   Qed.
 
-  Lemma ficompare_spec_eq x y : (x ?= y)%float = Some Eq -> FI2FS x = FI2FS y :> R.
+  Lemma ficompare_spec_eq x y : (x ?= y)%float = FEq -> FI2FS x = FI2FS y :> R.
     rewrite <- (B2Prim_Prim2B nan_pl x).
     rewrite <- (B2Prim_Prim2B nan_pl y).
     rewrite FPcompare_Bcompare.
     unfold FI2FS.
     rewrite !B2Prim_Prim2B.
-    apply binary64_infnan.ficompare_spec_eq.
+    now apply binary64_infnan.ficompare_spec_eq.
   Qed.
 
-  Lemma ficompare_spec_eq_f x y : (x ?= y)%float = Some Eq -> finite x <-> finite y.
+  Lemma ficompare_spec_eq_f x y : (x ?= y)%float = FEq -> finite x <-> finite y.
     rewrite <- (B2Prim_Prim2B nan_pl x).
     rewrite <- (B2Prim_Prim2B nan_pl y).
     rewrite FPcompare_Bcompare.
     unfold FI2FS.
     rewrite !finite_equiv.
-    apply binary64_infnan.ficompare_spec_eq_f.
+    now apply binary64_infnan.ficompare_spec_eq_f.
   Qed.
 
   Definition primitive_float_infnan : Float_infnan_spec :=
@@ -588,8 +588,6 @@ Section Primitive_float_round_up_infnan.
     intro Fuxy; apply (fiplus_spec_fr x y); revert Fuxy; apply fiplus_spec_fl.
   Qed.
 
-  Print EFfrexp.
-  
   Lemma EFfrexp_spec x :
     (FI2FS x <> 0%R :> R) ->
     snd (EFfrexp prec emax (Prim2EF x)) = mag radix2 (FI2FS x).
@@ -655,7 +653,7 @@ Section Primitive_float_round_up_infnan.
     intros n Hn; exists n; split; [now simpl|].
     destruct (Z.max_spec (n - prec) emin) as [(Hm, Hm')|(Hm, Hm')].
     { now revert Hn; unfold FLT_exp; rewrite Hm'. }
-    revert Hn Hprec; unfold FLT_exp, Prec_gt_0; rewrite Hm'; omega.
+    revert Hn Hprec; unfold FLT_exp, Prec_gt_0; rewrite Hm'; lia.
   Qed.
 
   Lemma bounded_generic_format m e :
@@ -778,8 +776,8 @@ Section Primitive_float_round_up_infnan.
     intros mrs'' e'''.
     case (Binary.shr_m mrs''); simpl; [reflexivity| |reflexivity].
     now intro mrs'''; case (_ <=? _)%Z.
-  Qed.    
-    
+  Qed.
+
   Lemma finite_bounded x :
     finite x ->
     Rabs (FI2FS x) < bpow radix2 emax.
@@ -793,14 +791,13 @@ Section Primitive_float_round_up_infnan.
       change (Prim2EF zero) with (E754_zero false); simpl.
       now rewrite Rabs_R0; apply IZR_lt. }
     { intros s _; simpl; case s; unfold finite, is_finite, is_infinity; simpl.
-      { replace (_ ?= _)%float with (Some Lt) by now compute.
-        replace (_ ?= _)%float with (Some Eq) by now compute.
+      { replace (_ ?= _)%float with FLt by now compute.
+        replace (_ ?= _)%float with FEq by now compute.
         now rewrite orb_true_r. }
-      replace (_ ?= _)%float with (Some Eq) by now compute.
+      replace (_ ?= _)%float with FEq by now compute.
       now rewrite orb_true_r. }
     { intros _; simpl; unfold finite, is_finite, is_nan.
-      now replace (_ ?= _)%float with (None : option comparison);
-        [|now compute]. }
+      now replace (_ ?= _)%float with FNotComparable; [|now compute]. }
     intros s m e; simpl; intros Bme _.
     assert (Bme' := Binary.bounded_lt_emax _ _ _ _ Bme).
     unfold Prim2B; rewrite Binary.B2R_FF2B.
@@ -977,9 +974,12 @@ Section Primitive_float_round_up_infnan.
   Proof.
     intro Vx.
     unfold is_nan; rewrite FPcompare_EFcompare; unfold EFcompare.
-    now rewrite (Prim2EF_EF2Prim _ Vx); case x.
-  Qed.      
-      
+    rewrite (Prim2EF_EF2Prim _ Vx); case x as [|s| |s m e]; try case s;
+      try now simpl.
+    - now case (e ?= e)%Z; [rewrite Pcompare_refl| |].
+    - now case (e ?= e)%Z; [rewrite Pcompare_refl| |].
+  Qed.
+
   Lemma is_infinity_EF2Prim x :
     valid_binary x = true ->
     is_infinity (EF2Prim x)
@@ -1001,7 +1001,7 @@ Section Primitive_float_round_up_infnan.
         (replace (Prim2EF infinity) with (E754_infinity false); [|now cbv]);
         (replace (Prim2EF neg_infinity) with (E754_infinity true); [|now cbv]).
   Qed.
-      
+
   Lemma is_finite_EF2Prim x :
     valid_binary x = true ->
     is_finite (EF2Prim x)
@@ -1017,7 +1017,7 @@ Section Primitive_float_round_up_infnan.
     rewrite (is_nan_EF2Prim _ Vx), (is_infinity_EF2Prim _ Vx).
     now case x.
   Qed.
-    
+
   Definition fimult_up x y := up (x * y)%float.
 
   Lemma fimult_up_spec x y : finite (fimult_up x y) -> FI2FS x * FI2FS y <= FI2FS (fimult_up x y).

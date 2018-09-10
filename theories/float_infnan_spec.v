@@ -1,6 +1,6 @@
 (** * Specification of floating-point operations with overflow. *)
 
-Require Import Reals Flocq.Core.Core.
+Require Import Reals Float Flocq.Core.Core.
 
 Require Import mathcomp.ssreflect.ssreflect.
 From mathcomp Require Import ssrfun ssrbool eqtype.
@@ -95,12 +95,12 @@ Record Float_infnan_spec := {
   fisqrt_spec_f x : finite x -> FIS2FS x >= 0 -> finite (fisqrt x);
 
   (** Comparison. *)
-  ficompare : FIS -> FIS -> option comparison;
+  ficompare : FIS -> FIS -> float_comparison;
 
   ficompare_spec x y : finite x -> finite y ->
-    ficompare x y = Some (Rcompare (FIS2FS x) (FIS2FS y));
-  ficompare_spec_eq x y : ficompare x y = Some Eq -> FIS2FS x = FIS2FS y :> R;
-  ficompare_spec_eq_f x y : ficompare x y = Some Eq -> (finite x <-> finite y)
+    ficompare x y = flatten_cmp_opt (Some (Rcompare (FIS2FS x) (FIS2FS y)));
+  ficompare_spec_eq x y : ficompare x y = FEq -> FIS2FS x = FIS2FS y :> R;
+  ficompare_spec_eq_f x y : ficompare x y = FEq -> (finite x <-> finite y)
 }.
 
 Section Derived_spec.
@@ -140,27 +140,26 @@ Qed.
 (** Equality *)
 Definition fieq (x y : FIS fs) : bool :=
   match ficompare x y with
-    | Some Eq => true
+    | FEq => true
     | _ => false
   end.
 
 Lemma fieq_spec x y : fieq x y = true -> FIS2FS x = FIS2FS y :> R.
 Proof.
 intro H; apply ficompare_spec_eq; revert H; unfold fieq.
-now case (ficompare _ _); [intro c; case c|].
+now case (ficompare _ _).
 Qed.
 
 Lemma fieq_spec_f x y : fieq x y = true -> (finite x <-> finite y).
 Proof.
-unfold fieq; set (c := ficompare _ _); case_eq c; [|now simpl].
-intros c' Hc; case_eq c'; [|now simpl|now simpl]; intros Hc' _.
-now apply ficompare_spec_eq_f; rewrite <-Hc', <-Hc.
+unfold fieq; set (c := ficompare _ _); case_eq c; try discriminate.
+now intros Hc _; apply ficompare_spec_eq_f.
 Qed.
 
 (** Comparison *)
 Definition filt (x y : FIS fs) : bool :=
   match ficompare x y with
-    | Some Lt => true
+    | FLt => true
     | _ => false
   end.
 
@@ -174,8 +173,8 @@ Qed.
 (** [filt x y] can differ from [not (file y x)] because of NaNs. *)
 Definition file (x y : FIS fs) : bool :=
   match ficompare x y with
-    | Some Lt => true
-    | Some Eq => true
+    | FLt => true
+    | FEq => true
     | _ => false
   end.
 
@@ -188,6 +187,8 @@ case_eq (Rcompare (FIS2FS x) (FIS2FS y)); [| |now simpl].
 now intros H _; left; apply Rcompare_Lt_inv.
 Qed.
 
+(* TODO: we could remove one match in this implem
+   (implementing max directly instead of going through file) *)
 Definition fimax x y := if file x y then y else x.
 
 Lemma fimax_spec_lel x y : finite x -> finite y -> FIS2FS x <= FIS2FS (fimax x y).

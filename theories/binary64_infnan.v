@@ -4,7 +4,7 @@
     record [Float_infnan_spec] corresponding to IEEE754 binary64 format with
     a rounding to nearest with overflows and NaN. *)
 
-Require Import Reals.
+Require Import Reals Float.
 
 Require Import float_spec binary64 float_infnan_spec.
 
@@ -297,13 +297,14 @@ replace (Bsqrt _ _ _ _ _ _ _ : binary_float prec emax) with (fisqrt x).
 now simpl.
 Qed.
 
-Definition ficompare (x y : FI) : option comparison := Bcompare 53 1024 x y.
+Definition ficompare (x y : FI) : float_comparison :=
+  flatten_cmp_opt (Bcompare 53 1024 x y).
 
 Lemma ficompare_spec x y : finite x -> finite y ->
-  ficompare x y = Some (Rcompare (FI2FS x) (FI2FS y)).
-Proof. apply Bcompare_correct. Qed.
+  ficompare x y = flatten_cmp_opt (Some (Rcompare (FI2FS x) (FI2FS y))).
+Proof. now intros Fx Fy; unfold ficompare; rewrite Bcompare_correct. Qed.
 
-Lemma ficompare_spec_eq x y : ficompare x y = Some Eq -> FI2FS x = FI2FS y :> R.
+Lemma ficompare_spec_eq x y : ficompare x y = FEq -> FI2FS x = FI2FS y :> R.
 Proof.
 unfold ficompare.
 case x; case y; try now simpl.
@@ -318,7 +319,7 @@ intros s m e Hb s' m' e' Hb'; case s', s; simpl;
    now rewrite Hm).
 Qed.
 
-Lemma ficompare_spec_eq_f x y : ficompare x y = Some Eq ->
+Lemma ficompare_spec_eq_f x y : ficompare x y = FEq ->
   (finite x <-> finite y).
 Proof.
 unfold ficompare.
