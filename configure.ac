@@ -15,9 +15,10 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
 majmin=`echo "$coq_version" | cut -d . -f "1 2"`
-if test "v$majmin" != "v8.6" -a "v$majmin" != "v8.7" -a "v$majmin" != "v8.8+alpha"; then
-  AC_MSG_ERROR([Coq version must be 8.6.x or 8.7.x (you have version $coq_version).])
-fi
+# FIXME to update in this branch or in master
+# if test "v$majmin" != "v8.6" -a "v$majmin" != "v8.7" -a "v$majmin" != "v8.8+alpha"; then
+#   AC_MSG_ERROR([Coq version must be 8.6.x or 8.7.x (you have version $coq_version).])
+# fi
 AC_MSG_RESULT($coq_version)
 
 minor=`echo "$coq_version" | cut -d . -f 2`
