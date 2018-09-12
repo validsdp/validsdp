@@ -1,29 +1,53 @@
 Require Import ValidSDP.selectineq.
 
-Open Scope N_scope.
+Require Import Reals.
+Inductive type := Cstrict (ub : R) | Clarge (ub : R).
+
+Ltac tac g k :=
+  let aux c lb := k (c lb) in
+  match g with
+  | Rle ?x ?y => aux Clarge y
+  | Rge ?x ?y => aux Clarge x
+  | Rlt ?x ?y => aux Cstrict y
+  | Rgt ?x ?y => aux Cstrict x
+  end.
+
+Ltac Running_Example expr (*point 1*) k :=
+  let conc := constr:((R0 <= expr)%R) in
+  tac (*point 3*) conc (*point 4*) ltac:(fun r => let v :=
+    match r with
+    | Clarge ?x => constr:((true, x))
+    | Cstrict ?x => constr:((false, x))
+    end in (*point 2*)
+    k v).
 
 Goal True.
-Proof.
-Fail soswitness of (([::], [::]) : seq (seq N * BigQ.t_) * seq (seq (seq N * BigQ.t_))) as y. (*?*)
-set (p := [:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]).
+Running_Example 12%R ltac:(fun res => idtac res).
+(* Should display (true, 12%R) *)
 
-Fail soswitness of (p, ([::] : seq (seq (seq N * BigQ.t_)))) as y.
-Fail soswitness of ([:: ([:: 0; 0; 0; 0], 3%bigZ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y.
-Fail soswitness of ([:: ([:: 0; 0; 0; 0], 3%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y.
+running_example 12%R easy
 
-Fail soswitness of (p, ([::] : seq (seq (seq N * BigQ.t_)))) as y with (s_sdpa :: nil).
-Fail soswitness of ([:: ([:: 0; 0; 0; 0], 3%bigZ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y with (s_sdpa :: nil).
-Fail soswitness of ([:: ([:: 0; 0; 0; 0], 3%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y with (s_sdpa :: nil).
+(*
+(* running_example0 12%R (ltac:(fun res => idtac res)). *)
+running_example1 12%R ltac:(fun res => idtac res).
+running_example2 12%R ltac:(fun res => idtac res).
+running_example3 12%R ltac:(fun res => idtac res).
+running_example4 12%R ltac:(fun res => idtac res).
+running_example 12%R ltac:(fun res => idtac res).
 
-(*Fail soswitness of ([:: ([:: 0; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ); ([:: 2; 1], (-12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y'.*)
+(* Bug tactic=tactic5 ? *)
+(* > running_example 12%R. *)
+(* Error: Syntax error: [tactic:tactic] expected after [constr:constr] (in [tactic:simple_tactic]). *)
 
-soswitness of ([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y.
-soswitness of ([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)], ([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]])) as y'.
-soswitness of ([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)], ([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]])) as y''.
+(* > running_example4 12%R. *)
+(* Syntax error: [tactic:tactic_expr level 4] expected after [constr:constr] (in [tactic:simple_tactic]). *)
+(* > running_example5 12%R. *)
+(* Syntax error: [tactic:binder_tactic] expected after [constr:constr] (in [tactic:simple_tactic]). *)
 
-soswitness of ([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) as Y with (s_sdpa :: s_verbose 1 :: nil).
-soswitness of ([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)], ([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]])) as Y' with (s_sdpa :: nil).
-soswitness of ([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)], ([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]])) as Y'' with (s_sdpa :: nil).
-soswitness_intro of ([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y'''.
-soswitness_intro of ([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)], ([:: [:: ([:: 1], 1%bigQ); ([:: 0], (-2)%bigQ)]])) as y''''.
-Abort.
+Fail running_example0 12%R easy; fail.
+Fail running_example1 12%R easy; fail.
+Fail running_example2 12%R easy; fail.
+Fail running_example3 12%R easy; fail.
+running_example4 12%R easy; fail.
+running_example 12%R easy; fail.
+ *)

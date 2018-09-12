@@ -2,20 +2,54 @@
     1. Retrieve the hyps of the context that are inequalities
     2. Store them in a Map composed of pairs (hyp, false = non-selected)
     3. Retrieve the (non-polynomial) vars of expr
-    4. Store them in a list vm
+    4. Store them in a List
     5. For each hyp (H, false) of the Map, test if a var from List appears in H
     6. If yes, change the hyp to (H, true) and restart at step 3 with (expr:=H)
     7. If no, select the list of (H, true), call it HypList,
        and behave as "validsdp_intro expr using (HypList) as H".
  *)
+(*
+TACTIC EXTEND running_example
+| [ "running_example" constr(expr) tactic3(t) ] ->
+   [ Proofview.Goal.nf_enter begin fun gl ->
 
+       Pfedit.get_current_context ()
+       Environ.env
+       let conc
+      Tactics.tclABSTRACT ~opaque:false None (Tacinterp.tactic_of_value ist t) end ]
+| [ "transparent_abstract" tactic3(t) "using" ident(id) ] -> [ Proofview.Goal.nf_enter begin fun gl ->
+      Tactics.tclABSTRACT ~opaque:false (Some id) (Tacinterp.tactic_of_value ist t) end ]
+END
 
+Require Import Reals.
+Inductive type := Cstrict (ub : R) | Clarge (ub : R).
 
+Ltac tac g k :=
+  let aux c lb := k (c lb) in
+  match g with
+  | Rle ?x ?y => aux Clarge y
+  | Rge ?x ?y => aux Clarge x
+  | Rlt ?x ?y => aux Cstrict y
+  | Rgt ?x ?y => aux Cstrict x
+  end.
 
+Ltac running_example expr (*point 1*) k :=
+  let conc := constr:((R0 <= expr)%R) in
+  tac (*point 3*) conc (*point 4*) ltac:(fun r => let v :=
+    match r with
+    | Clarge ?x => constr:((true, x))
+    | Cstrict ?x => constr:((false, x))
+    end in (*point 2*)
+    k v).
+
+Goal True.
+running_example 12%R ltac:(fun res => idtac res).
+(* Should display (true, 12%R) *)
+ *)
+(*
+================
 open Proofview
 
-let do2 i j = Goal.enter begin fun gl ->
-       
 (* The following tactic is meant to pack an hypothesis when no other
    data is already packed.
 
@@ -607,3 +641,4 @@ let selectineq_opts ?(intro=false) gl c id opts =
             failtac maxlevel Pp.(str msg)
 
             *)
+

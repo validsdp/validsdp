@@ -5,5 +5,6 @@ theories/selectineq.v
 test-suite/selectineqtac.v
 
 src/g_selectineq.ml4
+# src/selectineq_main.mli
 src/selectineq_main.ml
 src/selectineq_plugin.mlpack
