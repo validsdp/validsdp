@@ -1,5 +1,6 @@
 From Interval Require Import Interval_missing.
-Require Import Reals QArith CBigQ.
+Require Import Reals QArith.
+From Bignums Require Import BigQ.
 From mathcomp Require Import ssreflect.
 Require Import misc.
 

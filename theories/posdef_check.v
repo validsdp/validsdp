@@ -8,7 +8,8 @@ From Interval Require Import Interval_missing.
 From Interval Require Import Interval_specific_ops. (* for Float *)
 From CoqEAL.theory Require Import ssrcomplements.
 From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint rational binrat.
-Require Import Reals Flocq.Core.Raux QArith CBigZ CBigQ Psatz FSetAVL.
+Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
+From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.

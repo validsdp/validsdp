@@ -1,5 +1,6 @@
 Require Import Reals.
-Require Import ZArith CBigQ.
+Require Import ZArith.
+From Bignums Require Import BigQ.
 Require Import ROmega.
 From Flocq Require Import Core.Defs.
 From Flocq Require Import Core.Digits.

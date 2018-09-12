@@ -1,4 +1,5 @@
-Require Import Reals CBigZ Psatz ROmega CBigQ.
+Require Import Reals Psatz ROmega.
+From Bignums Require Import BigZ BigQ.
 From Flocq Require Import Core.Raux Core.Defs Core.Digits.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.

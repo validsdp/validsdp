@@ -1,6 +1,7 @@
 (** * Miscellaneous lemmas. *)
 
-Require Import Reals QArith CBigQ.
+Require Import Reals QArith.
+From Bignums Require Import BigQ.
 Require Import Flocq.Core.Raux.
 Require Import Interval.Interval_missing.
 Require Import Psatz.
