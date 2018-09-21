@@ -138,6 +138,12 @@ Lemma B2EF_Prim2B : forall pl x, B2EF (Prim2B pl x) = Prim2EF x.
   intros. unfold Prim2B. unfold B2EF. rewrite B2FF_FF2B. rewrite FF2EF_EF2FF. reflexivity.
 Qed.
 
+Lemma Prim2EF_B2Prim : forall x, Prim2EF (B2Prim x) = B2EF x.
+Proof.
+intro x; unfold B2Prim.
+now rewrite Prim2EF_EF2Prim; [|apply valid_binary_B2EF].
+Qed.
+
 (** Basic properties of the Binary64 format *)
 
 Lemma prec_gt_0 : FLX.Prec_gt_0 prec.
@@ -158,11 +164,11 @@ Ltac prove_FP2B EFop_Bop FPop_EFop op_nan :=
   reflexivity.
 
 Theorem FPopp_Bopp : forall opp_nan x, (-(B2Prim x))%float = B2Prim (Bopp prec emax opp_nan x).
-  prove_FP2B EFopp_Bopp FPopp_EFopp opp_nan.
+  prove_FP2B @EFopp_Bopp FPopp_EFopp opp_nan.
 Qed.
 
 Theorem FPabs_Babs : forall abs_nan x, abs (B2Prim x) = B2Prim (Babs prec emax abs_nan x).
-  prove_FP2B EFabs_Babs FPabs_EFabs abs_nan.
+  prove_FP2B @EFabs_Babs FPabs_EFabs abs_nan.
 Qed.
 
 Theorem FPcompare_Bcompare : forall x y,
@@ -172,25 +178,106 @@ Theorem FPcompare_Bcompare : forall x y,
 Qed.
 
 Theorem FPmult_Bmult : forall mult_nan x y, ((B2Prim x)*(B2Prim y))%float = B2Prim (Bmult prec emax eq_refl eq_refl mult_nan mode_NE x y).
-  prove_FP2B EFmult_Bmult FPmult_EFmult mult_nan.
+  prove_FP2B @EFmult_Bmult FPmult_EFmult mult_nan.
 Qed.
 
 Theorem FPplus_Bplus : forall plus_nan x y, ((B2Prim x)+(B2Prim y))%float = B2Prim (Bplus prec emax eq_refl eq_refl plus_nan mode_NE x y).
-  prove_FP2B EFplus_Bplus FPplus_EFplus plus_nan.
+  prove_FP2B @EFplus_Bplus FPplus_EFplus plus_nan.
 Qed.
 
 Theorem FPminus_Bminus : forall minus_nan x y, ((B2Prim x)-(B2Prim y))%float = B2Prim (Bminus prec emax eq_refl eq_refl minus_nan mode_NE x y).
-  prove_FP2B EFminus_Bminus FPminus_EFminus minus_nan.
+  prove_FP2B @EFminus_Bminus FPminus_EFminus minus_nan.
 Qed.
 
 Theorem FPdiv_Bdiv : forall div_nan x y, ((B2Prim x)/(B2Prim y))%float = B2Prim (Bdiv prec emax eq_refl eq_refl div_nan mode_NE x y).
-  prove_FP2B EFdiv_Bdiv FPdiv_EFdiv div_nan.
+  prove_FP2B @EFdiv_Bdiv FPdiv_EFdiv div_nan.
 Qed.
 
 Theorem FPsqrt_Bsqrt : forall sqrt_nan x, sqrt (B2Prim x) = B2Prim (Bsqrt prec emax eq_refl eq_refl sqrt_nan mode_NE x).
-  prove_FP2B EFsqrt_Bsqrt FPsqrt_EFsqrt sqrt_nan.
+  prove_FP2B @EFsqrt_Bsqrt FPsqrt_EFsqrt sqrt_nan.
 Qed.
 
+Require Import Flocq_complements.
+
+Theorem FPnormfr_mantissa_Bnormfr_mantissa :
+  forall x,
+  normfr_mantissa (B2Prim x) = Int63Op.of_Z (Z.of_N (Bnormfr_mantissa prec emax x)).
+Proof.
+intro x; unfold B2Prim.
+rewrite <-EFnormfr_mantissa_Bnormfr_mantissa.
+rewrite <-(Prim2EF_EF2Prim (B2EF x)) at 2; [|apply valid_binary_B2EF].
+rewrite <-normfr_mantissa_spec.
+now rewrite Int63Axioms.of_to_Z.
+Qed.
+
+Theorem FPldexp_Bldexp :
+  forall x e,
+  ldexp (B2Prim x) e = B2Prim (Bldexp prec emax prec_gt_0 Hmax mode_NE x e).
+Proof.
+intros x e; unfold B2Prim.
+rewrite <-EFldexp_Bldexp.
+rewrite <-(Prim2EF_EF2Prim (B2EF x)) at 2; [|apply valid_binary_B2EF].
+rewrite <-ldexp_spec.
+now rewrite EF2Prim_Prim2EF.
+Qed.
+
+Lemma Hemax : (3 <= emax)%Z.
+Proof. now compute. Qed.
+
+Theorem FPfrexp_Bfrexp :
+  forall x,
+  fst (frexp (B2Prim x)) = B2Prim (fst (Bfrexp prec emax prec_gt_0 Hemax x)) /\
+  snd (frexp (B2Prim x)) = snd (Bfrexp prec emax prec_gt_0 Hemax x).
+Proof.
+intro x; unfold B2Prim.
+rewrite <-(proj1 (EFfrexp_Bfrexp prec_gt_0 Hemax _)).
+rewrite <-(proj2 (EFfrexp_Bfrexp prec_gt_0 Hemax _)).
+rewrite <-(Prim2EF_EF2Prim (B2EF x)) at 2 4; [|apply valid_binary_B2EF].
+generalize (frexp_spec (EF2Prim (B2EF x))).
+case_eq (frexp (EF2Prim (B2EF x))); intros f z Hfz Hfrexp.
+now rewrite <-Hfrexp; simpl; rewrite EF2Prim_Prim2EF.
+Qed.
+
+Theorem FPone_Bone : one = B2Prim (Bone prec emax prec_gt_0 Hmax).
+Proof. now unfold B2Prim; rewrite <-EFone_Bone; compute. Qed.
+
+Theorem FPulp_Bulp :
+  forall x,
+  ulp (B2Prim x) = B2Prim (Bulp prec emax prec_gt_0 Hmax Hemax x).
+Proof.
+intros x; unfold B2Prim, ulp.
+rewrite <-EFulp_Bulp; unfold EFulp.
+generalize (frexp_spec (EF2Prim (B2EF x))).
+case_eq (frexp (EF2Prim (B2EF x))); intros f z Hfz.
+rewrite Prim2EF_EF2Prim; [|apply valid_binary_B2EF].
+intro Hfrexp; rewrite <-Hfrexp; unfold snd.
+change (EFone prec emax) with (Prim2EF one).
+now rewrite <-ldexp_spec, EF2Prim_Prim2EF.
+Qed.
+
+Theorem FPnext_up_Bsucc :
+  forall succ_nan x,
+  next_up (B2Prim x)
+  = B2Prim (Bsucc prec emax prec_gt_0 Hmax Hemax succ_nan x).
+Proof.
+intros succ_nan x; unfold B2Prim.
+rewrite <-EFsucc_Bsucc.
+rewrite <-(Prim2EF_EF2Prim (B2EF x)) at 2; [|apply valid_binary_B2EF].
+rewrite <-FPnext_up_EFsucc.
+now rewrite EF2Prim_Prim2EF.
+Qed.
+
+Theorem FPnext_down_Bpred :
+  forall pred_nan x,
+  next_down (B2Prim x)
+  = B2Prim (Bpred prec emax prec_gt_0 Hmax Hemax pred_nan x).
+Proof.
+intros pred_nan x; unfold B2Prim.
+rewrite <-EFpred_Bpred.
+rewrite <-(Prim2EF_EF2Prim (B2EF x)) at 2; [|apply valid_binary_B2EF].
+rewrite <-FPnext_down_EFpred.
+now rewrite EF2Prim_Prim2EF.
+Qed.
 
 Lemma is_nan_spec : forall x, is_nan (B2Prim x) = Binary.is_nan prec emax x.
   intro.
