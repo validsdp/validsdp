@@ -178,16 +178,16 @@ Add Ring BigZr : BigZring
   power_tac BigZpower [BigZ_to_N],
   div BigZdiv).
 
-(* Section TestRing. *)
-(* Let test : forall x y, 1 + x*y + x^2 + 1 == 1*1 + 1 + (y + 1*x)*x. *)
-(* Proof. *)
-(* intros. ring_simplify. reflexivity. *)
-(* Qed. *)
-(* Let test' : forall x y, 1 + x*y + x^2 - 1*1 - y*x + 1*(-x)*x == 0. *)
-(* Proof. *)
-(* intros. ring_simplify. reflexivity. *)
-(* Qed. *)
-(* End TestRing. *)
+Section TestRing.
+Let test : forall x y, 1 + x*y + x^2 + 1 == 1*1 + 1 + (y + 1*x)*x.
+Proof.
+intros. ring_simplify. reflexivity.
+Qed.
+Let test' : forall x y, 1 + x*y + x^2 - 1*1 - y*x + 1*(-x)*x == 0.
+Proof.
+intros. ring_simplify. reflexivity.
+Qed.
+End TestRing.
 
 (** [BigZ] also benefits from an "order" tactic *)
 
