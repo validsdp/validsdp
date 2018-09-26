@@ -589,7 +589,7 @@ Definition Bsucc succ_nan x :=
   match x with
   | B754_zero _ => Bldexp mode_NE Bone emin
   | B754_infinity false => x
-  | B754_infinity true => Bmax_float
+  | B754_infinity true => Bopp succ_nan Bmax_float
   | B754_nan _ _ _ => build_nan prec emax (succ_nan x)
   | B754_finite false _ _ _ =>
     Bplus prec emax prec_gt_0_ Hmax (fun _ => succ_nan) mode_NE x (Bulp x)
