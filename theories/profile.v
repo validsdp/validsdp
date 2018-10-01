@@ -22,7 +22,7 @@ Import Refinements.Op.
 
 Require Import cholesky_prog iteri_ord posdef_check.
 
-Load matrices.
+Require Import matrices.
 
 (* Profile each floating-point arithmetic operation. *)
 
