@@ -110,7 +110,7 @@ main() {
     make install
     popd
 
-    pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/theories"
+    pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/theory"
     make clean
     rm -f Makefile.coq Makefile.coq.conf
     make -j ${NJOBS}
