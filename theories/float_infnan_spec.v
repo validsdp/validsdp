@@ -188,28 +188,33 @@ case_eq (Rcompare (FIS2FS x) (FIS2FS y)); [| |now simpl].
 now intros H _; left; apply Rcompare_Lt_inv.
 Qed.
 
-Definition fimax x y := if file x y then y else x.
+Definition fimax (x y : FIS fs) :=
+  match ficompare y x with
+  | Some (Lt | Eq) => x
+  | _ => y
+  end.
 
 Lemma fimax_spec_lel x y : finite x -> finite y -> FIS2FS x <= FIS2FS (fimax x y).
 Proof.
-intros Fx Fy; unfold fimax, file; rewrite (ficompare_spec Fx Fy).
-case_eq (Rcompare (FIS2FS x) (FIS2FS y)); intro H.
+intros Fx Fy; unfold fimax; rewrite (ficompare_spec Fy Fx).
+case_eq (Rcompare (FIS2FS y) (FIS2FS x)); intro H; try apply Rle_refl.
+now left; apply Rcompare_Gt_inv.
+Qed.
+
+Lemma fimax_spec_ler x y : finite x -> finite y -> FIS2FS y <= FIS2FS (fimax x y).
+Proof.
+intros Fx Fy; unfold fimax, file; rewrite (ficompare_spec Fy Fx).
+case_eq (Rcompare (FIS2FS y) (FIS2FS x)); intro H.
 { now right; apply Rcompare_Eq_inv. }
 { now left; apply Rcompare_Lt_inv. }
 apply Rle_refl.
 Qed.
 
-Lemma fimax_spec_ler x y : finite x -> finite y -> FIS2FS y <= FIS2FS (fimax x y).
-Proof.
-intros Fx Fy; unfold fimax, file; rewrite (ficompare_spec Fx Fy) Rcompare_sym.
-unfold CompOpp; case_eq (Rcompare (FIS2FS y) (FIS2FS x)); intro H.
-{ apply Rle_refl. }
-{ now left; apply Rcompare_Lt_inv. }
-apply Rle_refl.
-Qed.
-
 Lemma fimax_spec_eq x y : fimax x y = x \/ fimax x y = y.
-Proof. now unfold fimax; case (file x y); [right|left]. Qed.
+Proof.
+unfold fimax.
+now case (ficompare y x); [intro c; case c; [left|left|right]|right].
+Qed.
 
 Lemma fimax_spec_f x y : finite x -> finite y -> finite (fimax x y).
 Proof. by case (fimax_spec_eq x y) => H; rewrite H. Qed.

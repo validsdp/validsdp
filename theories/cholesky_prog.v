@@ -644,16 +644,19 @@ set P' := fun j (s : FIS fs) => forall (i : 'I_n.+1), (i < j)%N ->
 suff : (finite (foldl_diag_ssr f (FIS0 fs) A)
         /\ P' n.+1 (foldl_diag_ssr f (FIS0 fs) A)).
 { by move=> H; elim H. }
+have Hf : f =2 @fimax fs.
+{ move=> x y; rewrite /f/fimax/leq_op/leq_instFIS/file.
+  by case (ficompare y x) => [[]|]. }
 set P := fun j s => finite s /\ P' j s; rewrite -/(P _ _).
 apply foldl_diag_correct; rewrite /P /P'.
 { move=> i z Hind; destruct Hind as (Hind, Hind'); split.
-  { by apply fimax_spec_f. }
+  { by rewrite Hf; apply fimax_spec_f. }
   move=> j Hj; case (ltnP j i) => Hji.
   { rewrite /f -/(fimax _ _); apply (Rle_trans _ _ _ (Hind' _ Hji)).
-    by apply fimax_spec_ler. }
+    by rewrite -/(f z (A i i)) Hf; apply fimax_spec_lel. }
   have H' : j = i.
   { by apply ord_inj, anti_leq; rewrite Hji Bool.andb_true_r. }
-  by rewrite H' /f -/(fimax _ _) mxE; apply fimax_spec_lel. }
+  by rewrite H' Hf mxE; apply fimax_spec_ler. }
 by split; [apply finite0|].
 Qed.
 
@@ -665,11 +668,14 @@ set f := fun m c : FIS fs => if (c <= m)%C then m else c.
 suff : (finite (foldl_diag_ssr f (FIS0 fs) A)
         /\ 0 <= FIS2FS (foldl_diag_ssr f (FIS0 fs) A)).
 { by move=> H; elim H. }
+have Hf : f =2 @fimax fs.
+{ move=> x y; rewrite /f/fimax/leq_op/leq_instFIS/file.
+  by case (ficompare y x) => [[]|]. }
 set P := fun (j : nat) s => @finite fs s /\ 0 <= FIS2FS s.
 apply foldl_diag_correct with (P0 := P); rewrite /P.
 { move=> i z Hind; destruct Hind as (Hind, Hind'); split.
-  { by case (fimax_spec_eq (A i i) z) => H; rewrite /f -/(fimax _ _) H. }
-  by rewrite /f -/(fimax _ _); apply (Rle_trans _ _ _ Hind'), fimax_spec_ler. }
+  { by rewrite Hf; case (fimax_spec_eq z (A i i)) => ->. }
+  by rewrite Hf; apply (Rle_trans _ _ _ Hind'), fimax_spec_lel. }
 by split; [apply finite0|rewrite FIS2FS0; right].
 Qed.
 
