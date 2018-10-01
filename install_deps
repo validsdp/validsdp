@@ -86,7 +86,7 @@ main() {
     git pull --ff-only origin master
     ./autogen.sh
     ./configure
-    ./remake -j ${NJOBS} -B
+    ./remake --jobs=${NJOBS} -B
     ./remake install -d
     popd
 
@@ -99,7 +99,7 @@ main() {
     pushd "${VALIDSDP_DIR}/external/interval-3.4.0_v88alpha"
     ./autogen.sh
     ./configure
-    ./remake -j ${NJOBS} -B
+    ./remake --jobs=${NJOBS} -B
     ./remake install -d
     popd
 
