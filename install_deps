@@ -1,0 +1,142 @@
+#!/bin/bash
+
+SUFFIX="unstable"
+NJOBS="7"
+COQ_DIR=""
+VALIDSDP_DIR=""
+FLOCQ_DIR=""
+
+usage() {
+    cat >&2 <<EOF
+
+Usage:
+  $0 [--suffix unstable] [--njobs 7] --coq …/validsdp_primitive-floats --flocq …/flocq --validsdp …/validsdp
+EOF
+}
+
+die_hard() {
+    printf "%b\n" "$*" >&2
+    exit 1
+}
+
+warn() {
+    printf "%b\n" "$*" >&2
+}
+
+parse_args() {
+    # Parsing arguments
+    for ((i=1; i<=$#; i++)); do
+        case "${!i}" in
+            "--suffix")
+                (( i++ ))
+                SUFFIX="${!i}"
+                ;;
+            "--njobs")
+                (( i++ ))
+                NJOBS="${!i}"
+                ;;
+            "--coq")
+                (( i++ ))
+                COQ_DIR="${!i}"
+                ;;
+            "--validsdp")
+                (( i++ ))
+                VALIDSDP_DIR="${!i}"
+                ;;
+            "--flocq")
+                (( i++ ))
+                FLOCQ_DIR="${!i}"
+                ;;
+            "--help")
+                usage
+                exit 0
+                ;;
+            *)
+                warn "Erreur: argument invalide '${!i}'."
+                exit 1
+                ;;
+        esac
+    done
+
+    [ -n "${COQ_DIR}" ] || { warn "Erreur: option --coq manquante."; usage; exit 1; }
+    [ -n "${FLOCQ_DIR}" ] || { warn "Erreur: option --flocq manquante."; usage; exit 1; }
+    [ -n "${VALIDSDP_DIR}" ] || { warn "Erreur: option --validsdp manquante."; usage; exit 1; }
+}
+
+main() {
+    set -ex
+
+    opam switch create -y 4.02.3+${SUFFIX} ocaml-base-compiler.4.02.3 || true
+    eval $(opam env)
+    opam install -y camlp5
+
+    pushd "${COQ_DIR}"
+    ./configure -annot -bin-annot -native-compiler no -prefix $HOME/.opam/4.02.3+unstable
+    make -j ${NJOBS}
+    make install
+    opam install -y base-num num
+    opam install -y --fake coq.8.8.1
+    popd
+
+    opam install -y -j ${NJOBS} coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1 coq-coquelicot.3.0.2
+
+    pushd "${FLOCQ_DIR}"
+    git checkout master
+    git pull --ff-only origin master
+    ./autogen.sh
+    ./configure
+    ./remake -j ${NJOBS} -B
+    ./remake install -d
+    popd
+
+    pushd "${VALIDSDP_DIR}/external/bignums_primitive-ints"
+    make clean
+    make -j ${NJOBS}
+    make install
+    popd
+
+    pushd "${VALIDSDP_DIR}/external/interval-3.4.0_v88alpha"
+    ./autogen.sh
+    ./configure
+    ./remake -j ${NJOBS} -B
+    ./remake install -d
+    popd
+
+    pushd "${VALIDSDP_DIR}/external/paramcoq_v88alpha"
+    make clean
+    rm -f Makefile.coq Makefile.coq.conf
+    make -j ${NJOBS}
+    make install
+    popd
+
+    pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/theories"
+    make clean
+    rm -f Makefile.coq Makefile.coq.conf
+    make -j ${NJOBS}
+    make install
+    popd
+
+    pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/refinements"
+    make clean
+    rm -f Makefile.coq Makefile.coq.conf
+    make -j ${NJOBS}
+    make install
+    popd
+
+    pushd "${VALIDSDP_DIR}"
+    ./autogen.sh
+    ./configure
+    pushd ./plugins/soswitness
+    make clean
+    make
+    make install
+    popd && pushd ./theories
+    make clean
+    make -j ${NJOBS}
+    make install
+    popd && popd
+}
+
+parse_args "$@"
+
+main
