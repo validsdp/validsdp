@@ -8,7 +8,6 @@ FLOCQ_DIR=""
 
 usage() {
     cat >&2 <<EOF
-
 Usage:
   $0 [--suffix unstable] [--njobs 7] --coq …/validsdp_primitive-floats --flocq …/flocq --validsdp …/validsdp
 EOF
@@ -68,7 +67,8 @@ main() {
 
     opam switch create -y 4.02.3+${SUFFIX} ocaml-base-compiler.4.02.3 || true
     eval $(opam env --switch=4.02.3+${SUFFIX} --set-switch)
-    opam install -y camlp5 ocamlfind
+
+    opam install -y camlp5 ocamlfind merlin zarith ocplib-simplex osdp
 
     pushd "${COQ_DIR}"
     make clean
