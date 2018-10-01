@@ -67,10 +67,11 @@ main() {
     set -ex
 
     opam switch create -y 4.02.3+${SUFFIX} ocaml-base-compiler.4.02.3 || true
-    eval $(opam env)
-    opam install -y camlp5
+    eval $(opam env --switch=4.02.3+${SUFFIX} --set-switch)
+    opam install -y camlp5 ocamlfind
 
     pushd "${COQ_DIR}"
+    make clean
     ./configure -annot -bin-annot -native-compiler no -prefix $HOME/.opam/4.02.3+unstable
     make -j ${NJOBS}
     make install
