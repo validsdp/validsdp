@@ -27,7 +27,6 @@ external::
 		echo; \
 	fi
 	@echo Installing external dependencies...
-	( cd external/paramcoq_@COQ_VERSION@ && $(MAKE) && $(MAKE) install )
 	( cd external/CoqEAL/theory && $(MAKE) && $(MAKE) install )
 	( cd external/CoqEAL/refinements && $(MAKE) && $(MAKE) install )
 
@@ -38,7 +37,6 @@ install::
 	$(MAKE) -C theories install
 
 clean::
-	([ -f external/paramcoq_@COQ_VERSION@/Makefile ] && $(MAKE) -C external/paramcoq_@COQ_VERSION@ clean )
 	([ -f external/CoqEAL/theory/Makefile ] && $(MAKE) -C external/CoqEAL/theory clean )
 	([ -f external/CoqEAL/refinements/Makefile ] && $(MAKE) -C external/CoqEAL/refinements clean )
 	$(MAKE) -C plugins/soswitness clean
