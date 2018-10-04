@@ -64,8 +64,8 @@ Lemma bounded_distrl (b1 b2 : bounded r) (r1 r2 : R) :
 Proof.
 have Pr1 := Rabs_pos r1. have Pr2 := Rabs_pos r2.
 case (Req_dec (Rabs r1 + Rabs r2) 0)%Re => Hr1.
-{ have Zr1 : (r1 = 0)%Re by apply Rabs_0; lra.
-  have Zr2 : (r2 = 0)%Re by apply Rabs_0; lra.
+{ have Zr1 : (r1 = 0)%Re by apply Rabs_eq_R0; lra.
+  have Zr2 : (r2 = 0)%Re by apply Rabs_eq_R0; lra.
   by exists bounded_0; rewrite Zr1 Zr2 /=; ring. }
 set (bv := ((b1 * r1 + b2 * r2) / (Rabs r1 + Rabs r2))%Re).
 suff H : (Rabs bv <= r)%Re.
@@ -111,7 +111,7 @@ Proof.
 move=> Hr12; case (Req_dec r2 0) => Hr2.
 { have Hr1 : r1 = 0.
   { rewrite Hr2 Rabs_R0 in Hr12.
-    by apply Rabs_0, Rle_antisym; [|apply Rabs_pos]. }
+    by apply Rabs_eq_R0, Rle_antisym; [|apply Rabs_pos]. }
   by exists bounded_0; rewrite Hr1 Hr2 !Rmult_0_r. }
 suff H : (Rabs (b * r1 / r2) <= r).
 { by exists (Build_bounded H); simpl; field. }
@@ -131,7 +131,7 @@ Lemma bounded_le_1 (r1 r2 : R) :
 Proof.
 move=> Hr12; case (Req_dec r2 0) => Hr2.
 { exists (bounded_0 Rle_0_1); rewrite Hr2 Rmult_0_r.
-  by apply Rabs_0, Rle_antisym; [lra|apply Rabs_pos]. }
+  by apply Rabs_eq_R0, Rle_antisym; [lra|apply Rabs_pos]. }
 suff H : (Rabs (r1 / r2) <= 1).
 { by exists (Build_bounded H); rewrite Rmult_assoc Rinv_l // Rmult_1_r. }
 rewrite Rabs_mult Rabs_Rinv //.
@@ -156,7 +156,7 @@ Lemma bounded_scale (r1 r2 : R) (b1 : bounded r1) :
 Proof.
 move=> Hr2; case (Rle_or_lt r1 0) => Hr1.
 { exists (bounded_0 (Rlt_le _ _ Hr2)); rewrite Rmult_0_l.
-  by apply Rabs_0, Rle_antisym;
+  by apply Rabs_eq_R0, Rle_antisym;
     [apply (Rle_trans _ _ _ (bounded_prop b1))|apply Rabs_pos]. }
 suff H : (Rabs (b1 * (r2 / r1)) <= r2).
 { exists (Build_bounded H); simpl; field; lra. }

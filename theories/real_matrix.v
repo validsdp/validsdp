@@ -123,7 +123,7 @@ Lemma Mabs_no_0 (A : 'M_(n, m)) : A <> 0 -> Mabs A <> 0.
 Proof.
 move=> HA HMA; apply HA; move: HMA.
 rewrite /Mabs /map_mx -matrixP => HMA; rewrite -matrixP => i j.
-move: (HMA i j); rewrite !mxE; apply Rabs_0.
+move: (HMA i j); rewrite !mxE; apply Rabs_eq_R0.
 Qed.
 
 Lemma Mabs_right (A : 'M_(n, m)) : 0 <=m: A -> Mabs A = A.
