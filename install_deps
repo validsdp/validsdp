@@ -1,6 +1,8 @@
 #!/bin/bash
 
-SUFFIX="unstable"
+switch="prim-float"
+compiler="4.05.0"
+# => see https://github.com/coq/coq/pull/7522
 NJOBS="7"
 COQ_DIR=""
 VALIDSDP_DIR=""
@@ -9,7 +11,7 @@ FLOCQ_DIR=""
 usage() {
     cat >&2 <<EOF
 Usage:
-  $0 [--suffix unstable] [--njobs 7] --coq …/validsdp_primitive-floats --flocq …/flocq --validsdp …/validsdp
+  $0 [--switch unstable] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --flocq …/flocq --validsdp …/validsdp
 EOF
 }
 
@@ -26,9 +28,13 @@ parse_args() {
     # Parsing arguments
     for ((i=1; i<=$#; i++)); do
         case "${!i}" in
-            "--suffix")
+            "--switch")
                 (( i++ ))
-                SUFFIX="${!i}"
+                switch="${!i}"
+                ;;
+            "--compiler")
+                (( i++ ))
+                compiler="${!i}"
                 ;;
             "--njobs")
                 (( i++ ))
@@ -65,14 +71,14 @@ parse_args() {
 main() {
     set -ex
 
-    opam switch create -y 4.02.3+${SUFFIX} ocaml-base-compiler.4.02.3 || true
-    eval $(opam env --switch=4.02.3+${SUFFIX} --set-switch)
+    opam switch create -y ${switch} ${compiler} || true
+    eval $(opam env --switch=${switch} --set-switch)
 
     opam install -y camlp5 ocamlfind merlin zarith ocplib-simplex osdp
 
     pushd "${COQ_DIR}"
     make clean
-    ./configure -annot -bin-annot -native-compiler no -prefix $HOME/.opam/4.02.3+unstable
+    ./configure -annot -bin-annot -native-compiler no -prefix $HOME/.opam/${switch}
     make -j ${NJOBS}
     make install
     opam install -y base-num num
