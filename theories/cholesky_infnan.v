@@ -21,7 +21,7 @@ Open Scope ring_scope.
 Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
 
-Require Import fsum fcmsum real_matrix cholesky float_infnan_spec.
+Require Import fsum_l2r fcmsum real_matrix cholesky float_infnan_spec.
 
 Section Cholesky_infnan.
 

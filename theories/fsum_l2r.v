@@ -1,9 +1,6 @@
-(** * Bounds on the rounding error of summation $\sum_{i=0}^n x_i$#\sum_{i=0}^n x_i# in any order *)
+(** * Bounds on the rounding error of summation $\sum_{i=0}^n a_i$#\sum_{i=0}^n x_i# from left to right *)
 
-(** Improved bounds from:
-    Claude-Pierre Jeannerod, Siegfried M. Rump:
-    On relative errors of floating-point operations: Optimal bounds and applications,
-    Math. Comput., 87(310):803-819, 2018. *)
+(** These bounds are a particular case of the ones in [fsum]. *)
 
 Require Import Reals Flocq.Core.Raux.
 
@@ -14,7 +11,7 @@ Require Import Psatz.
 From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat.
 From mathcomp Require Import fintype finfun ssralg bigop eqtype seq path.
 
-Require Import Rstruct.
+Require Import Rstruct fsum.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -28,106 +25,7 @@ Delimit Scope R_scope with Re.
 
 Require Export float_spec.
 
-Section order.
-
-Record nat_finset := {
-  nat_finset_seq :> seq nat ;
-  _ : sorted ltn nat_finset_seq
-}.
-
-Lemma nat_finset_seq_inj : injective nat_finset_seq.
-Proof.
-move=> [] s1 H1 [] s2 H2 /= Hs12.
-by move: H1; rewrite Hs12 => H1; rewrite (bool_irrelevance H1 H2).
-Qed.
-
-Definition disjoint (s1 s2 : nat_finset) := uniq (s1 ++ s2).
-
-Program Definition nat_finset_disjoint_merge s1 s2 (H : disjoint s1 s2) :=
-  @Build_nat_finset (merge leq s1 s2) _.
-Next Obligation.
-move: H; rewrite ltn_sorted_uniq_leq merge_uniq /disjoint => -> /=.
-apply (merge_sorted leq_total).
-{ by move: s1 => [] s1 /=; rewrite ltn_sorted_uniq_leq=> /andP []. }
-by move: s2 => [] s2 /=; rewrite ltn_sorted_uniq_leq=> /andP [].
-Qed.
-
-Lemma nat_finset_disjoint_merge_size s1 s2 (H : disjoint s1 s2) :
-  (size (nat_finset_disjoint_merge H) = size s1 + size s2)%N.
-Proof. by rewrite size_merge size_cat. Qed.
-
-Inductive binary_tree :=
-| Leaf : nat -> binary_tree
-| Node : binary_tree -> binary_tree -> binary_tree.
-
-Fixpoint leaves b :=
-  match b with
-  | Leaf n => [:: n]
-  | Node l r => merge leq (leaves l) (leaves r)
-  end.
-
-Lemma leaves_sorted t : sorted leq (leaves t).
-Proof. by elim: t => //= l Hl r Hr; apply (merge_sorted leq_total). Qed.
-
-Record order (s : nat_finset) := {
-  order_tree :> binary_tree ;
-  _ : leaves order_tree == s
-}.
-
-Lemma order_tree_inj s : injective (@order_tree s).
-Proof.
-move=> [] t1 H1 [] t2 H2 /= Ht12.
-by move: H1; rewrite Ht12 => H1; rewrite (bool_irrelevance H1 H2).
-Qed.
-
-Program Definition order_leaf n : order (@Build_nat_finset [:: n] _) :=
-  @Build_order _ (Leaf n) _.
-
-Program Definition order_node sl sr (H : disjoint sl sr)
-        (l : order sl) (r : order sr) : order (nat_finset_disjoint_merge H) :=
-  @Build_order _ (Node l r) _.
-Next Obligation. by move: l r => [] l /= /eqP -> [] r /= /eqP ->. Qed.
-
-Theorem order_ind (P : forall s, order s -> Prop) :
-  (forall i, P _ (order_leaf i)) ->
-  (forall sl sr (H : disjoint sl sr) (l : order sl) (r : order sr),
-      P _ l -> P _ r -> P _ (order_node H l r)) ->
-  forall s (o : order s), P _ o.
-Proof.
-move=> H0 Hind s [] t.
-elim: t s=> [i s Hi|l Hl r Hr s Hlr].
-{ move: (H0 i).
-  set s' := Build_nat_finset _.
-  have Hs' : s' = s.
-  { by apply nat_finset_seq_inj; move: Hi => /eqP <-. }
-  move: Hi; rewrite -Hs' => Hi.
-  have -> : order_leaf i = Build_order Hi; [|by []].
-  by apply order_tree_inj => /=. }
-have Hus : uniq s.
-{ by move: s {Hlr} => [] s /=; rewrite ltn_sorted_uniq_leq=> /andP []. }
-have Hsl : sorted ltn (leaves l).
-{ rewrite ltn_sorted_uniq_leq leaves_sorted Bool.andb_true_r.
-  by move: Hlr Hus=> /eqP <-; rewrite merge_uniq cat_uniq; move/andP=> []. }
-have Hsr : sorted ltn (leaves r).
-{ rewrite ltn_sorted_uniq_leq leaves_sorted Bool.andb_true_r.
-  move: Hlr Hus=> /eqP <-.
-  by rewrite merge_uniq cat_uniq; move/andP=> [] _ /andP [] _. }
-set sl := Build_nat_finset Hsl.
-set sr := Build_nat_finset Hsr.
-have Hdisj : disjoint sl sr.
-{ by move: Hlr Hus => /eqP <- /=; rewrite merge_uniq. }
-set ol := @Build_order sl l (eq_refl _).
-set or := @Build_order sr r (eq_refl _).
-move: (Hind sl sr Hdisj ol or (Hl sl (eq_refl _)) (Hr sr (eq_refl _))).
-have Hs : nat_finset_disjoint_merge Hdisj = s.
-{ by apply nat_finset_seq_inj; move: Hlr => /eqP. }
-move: Hlr; rewrite -Hs => Hlr.
-by have -> : order_node Hdisj ol or = Build_order Hlr; [apply order_tree_inj|].
-Qed.
-
-End order.
-
-Section Fsum.
+Section Fsum_l2r.
 
 Variable fs : Float_spec.
 
@@ -136,25 +34,121 @@ Notation frnd := (frnd fs).
 Notation eps := (eps fs).
 Notation eta := (eta fs).
 
-(** Sum [\sum x_i] computed in float according to a given evaluation [order]. *)
-Fixpoint fsum n (order : binary_tree) (x : F^n.+1) : F :=
-  match order with
-  | Leaf i => x (inord i)
-  | Node l r => fplus (fsum l x) (fsum r x)
+(** Sum [c + \sum x_i] computed in float from left to right. *)
+Fixpoint fsum_l2r_rec n (c : F) : F^n -> F :=
+  match n with
+    | 0%N => fun _ => c
+    | n'.+1 =>
+      fun a => fsum_l2r_rec (fplus c (a ord0)) [ffun i => a (lift ord0 i)]
   end.
 
-Lemma fsum_eq n1 n2 (x1 : F^n1.+1) (x2 : F^n2.+1) s (o : order s) :
-  (forall i, i \in (s : seq nat) -> x1 (inord i) = x2 (inord i) :> R) ->
-  fsum o x1 = fsum o x2 :> R.
+(** Sum [\sum x_i] computed in float from left to right. *)
+Definition fsum_l2r n : F^n -> F :=
+  match n with
+    | 0%N => fun _ => F0 fs
+    | n'.+1 =>
+      fun a => fsum_l2r_rec (a ord0) [ffun i => a (lift ord0 i)]
+  end.
+
+Lemma fsum_l2r_rec_eq n (c1 : F) (x1 : F^n) (c2 : F) (x2 : F^n) :
+  (c1 = c2 :> R) -> (forall i, x1 i = x2 i :> R) ->
+  fsum_l2r_rec c1 x1 = fsum_l2r_rec c2 x2 :> R.
 Proof.
-elim/order_ind: o n1 n2 x1 x2 => [i|sl sr Hslr l r IHl IHr] n1 n2 x1 x2 Hx12 /=.
-{ by apply Hx12; rewrite inE. }
-rewrite /fplus; do 2 apply f_equal; apply f_equal2.
-{ by apply IHl => i Hi; apply Hx12; rewrite mem_merge mem_cat Hi. }
-by apply IHr => i Hi; apply Hx12; rewrite mem_merge mem_cat Hi orbC.
+elim: n c1 x1 c2 x2 => [//|n IHn] c1 x1 c2 x2 Hc Hx.
+by apply IHn; [rewrite /fplus Hc Hx|move=> i; rewrite !ffunE].
 Qed.
 
-(* TODO: Theorems to update
+Lemma fsum_l2r_eq n (x1 : F^n) (x2 : F^n) :
+  (forall i, x1 i = x2 i :> R) -> fsum_l2r x1 = fsum_l2r x2 :> R.
+Proof.
+case: n x1 x2 => [//|n] x1 x2 Hx.
+by apply fsum_l2r_rec_eq; [|move=> i; rewrite !ffunE].
+Qed.
+
+Lemma fsum_l2r_rec_r n (c : F) (x : F^n.+1) :
+  fsum_l2r_rec c x
+  = fplus (fsum_l2r_rec c [ffun i : 'I_n => x (inord i)]) (x ord_max) :> R.
+Proof.
+elim: n c x => [|n IHn] c x; rewrite /fsum_l2r_rec.
+{ by simpl; apply f_equal, f_equal2; [by []|]; apply f_equal, ord_inj. }
+rewrite -/fsum_l2r_rec (IHn (fplus _ _) _) ffunE.
+rewrite /fplus; do 2 apply f_equal; apply f_equal2.
+{ apply fsum_l2r_rec_eq => [|i]; rewrite !ffunE; do 2 apply f_equal.
+  { apply Rplus_eq_compat_l; do 2 apply f_equal.
+    by apply ord_inj; rewrite inordK. }
+  apply ord_inj; rewrite inordK /=.
+  { by apply f_equal2; [by []|apply inordK, (ltn_trans (ltn_ord i))]. }
+    apply ltn_trans with i.+2; [by []|].
+  rewrite -addn2 -(addn2 n) ltn_add2r; apply ltn_ord. }
+by do 2 apply f_equal; apply ord_inj.
+Qed.
+
+Lemma fsum_l2r_r n (x : F^n.+1) :
+  fsum_l2r x
+  = fplus (fsum_l2r [ffun i : 'I_n => x (inord i)]) (x ord_max) :> R.
+Proof.
+case: n x => [|n] x.
+{ by rewrite /fplus /F0 /= Rplus_0_l frnd_F; apply f_equal, f_equal, ord_inj. }
+rewrite /fsum_l2r fsum_l2r_rec_r.
+rewrite /fplus; do 2 apply f_equal; apply f_equal2.
+{ apply fsum_l2r_rec_eq => [|i]; rewrite !ffunE; do 2 apply f_equal.
+  { by apply ord_inj; rewrite inordK. }
+  apply ord_inj; rewrite !lift0 inordK.
+  { rewrite inordK // -addn2 -(addn2 n) leq_add2r; apply ltnW, ltn_ord. }
+  apply ltnW, ltn_ord. }
+by rewrite ffunE; do 2 apply f_equal; apply ord_inj.
+Qed.
+
+(** Express [fsum_l2r] as [fsum] for a particular evaluation order. *)
+
+Definition iota_finset n m := Build_nat_finset (iota_ltn_sorted n m).
+
+Fixpoint binary_tree_l2r n :=
+  match n with
+  | 0%N => Leaf 0%N
+  | n'.+1 => Node (binary_tree_l2r n') (Leaf n)
+  end.
+
+Program Definition order_l2r n : order (iota_finset 0 n.+1) :=
+  @Build_order _ (binary_tree_l2r n) _.
+Next Obligation.
+elim: n => //= n /eqP  ->.
+apply /eqP /(eq_sorted_irr ltn_trans ltnn).
+{ rewrite -[_ :: _]/(iota 0%N n.+1).
+  rewrite ltn_sorted_uniq_leq merge_uniq cat_uniq; apply/andP=> []; split.
+  { rewrite iota_uniq Bool.andb_true_r /= Bool.orb_false_r.
+    by rewrite -[_ :: _]/(iota 0%N n.+1) mem_iota add0n ltnn. }
+  apply (merge_sorted leq_total) => //; apply iota_sorted. }
+{ rewrite -[_ :: _]/(iota 0%N n.+2); apply iota_ltn_sorted. }
+move=> i; rewrite mem_merge mem_cat mem_seq1.
+rewrite -[_ :: _]/(iota 0%N n.+1) -[_ :: _]/(iota 0%N n.+2) !mem_iota !add0n.
+case_eq (0 <= i < n.+2)%N.
+{ case_eq (i < n.+1)%N => //= H1 H2; apply /eqP /anti_leq /andP; split.
+  { by []. }
+  by move: H1 => /negbT; rewrite -leqNgt. }
+move=> /negbT; rewrite negb_and => /orP []; [by rewrite leq0n|].
+rewrite -leqNgt ltn_neqAle => /andP [] Hi1 Hi2.
+apply/negbTE; rewrite negb_or negb_and -leqNgt Hi2 Bool.orb_true_r /=.
+by apply/eqP; move: Hi1 => /eqP H1 H2; apply H1.
+Qed.
+
+Lemma fsum_order_l2r n (a : F^n.+1) : fsum (order_l2r n) a = fsum_l2r a :> R.
+Proof.
+elim: n a => [|n Hind] a.
+{ by rewrite /=; apply /f_equal /f_equal /val_inj => /=; rewrite inordK. }
+rewrite fsum_l2r_r.
+set a' := [ffun i : 'I_n.+1 => a (inord i)].
+set f := fsum_l2r a'; rewrite /= {}/f.
+rewrite /fplus; do 2 apply f_equal; apply f_equal2.
+{ rewrite -[binary_tree_l2r n]/(order_l2r n : binary_tree).
+  rewrite -(@fsum_eq _ _ _ a'); [by apply Hind|].
+  move=> i Hi; rewrite /a' ffunE; do 2 apply f_equal.
+  by rewrite inordK; [|move: Hi; rewrite mem_iota]. }
+by apply /f_equal /f_equal /val_inj => /=; rewrite inordK.
+Qed.
+
+(* TODO: base proofs of following theorems on the ones in fsum.v *)
+
 (** Theorem 4.1 in the paper. *)
 Theorem fsum_l2r_err n (x : F^n) :
   (Rabs (\sum_i (x i : R) - fsum_l2r x)
@@ -326,6 +320,5 @@ rewrite -(Rplus_0_l (_ ^ 2 * _)); apply Rplus_le_compat.
 rewrite Rmult_comm; apply Rmult_le_compat_r; [apply pow2_ge_0|].
 by rewrite -[2]/(INR 2) -mult_INR; apply /le_INR /leP; rewrite multE leq_subr.
 Qed.
-*)
 
-End Fsum.
+End Fsum_l2r.

@@ -27,7 +27,7 @@ Open Scope ring_scope.
 Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
 
-Require Import fsum.
+Require Import fsum_l2r.
 
 Section Fcmsum.
 
