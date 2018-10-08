@@ -5,7 +5,7 @@ Dependencies
 ------------
 
 - [Coq](https://github.com/validsdp/coq) (primitive-floats branch)
-- [bignums](https://github.com/coq/bignums) (c.f. external/bignums_primitive-ints)
+- [bignums](https://github.com/maximedenes/bignums) (branch primitive-integers)
 - [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.7.0)
 - [Flocq](http://flocq.gforge.inria.fr/) (tested with git master)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.2)

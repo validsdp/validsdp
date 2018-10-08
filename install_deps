@@ -6,12 +6,15 @@ compiler="4.05.0"
 NJOBS="7"
 COQ_DIR=""
 VALIDSDP_DIR=""
+# Should point to git repo of Flocq
 FLOCQ_DIR=""
+# Should point to maxime denes' git repo of Bignums (https://github.com/maximedenes/bignums)
+BIGNUMS_DIR=""
 
 usage() {
     cat >&2 <<EOF
 Usage:
-  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --flocq …/flocq --validsdp …/validsdp
+  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --bignums …/bignumes --flocq …/flocq --validsdp …/validsdp
 EOF
 }
 
@@ -52,6 +55,10 @@ parse_args() {
                 (( i++ ))
                 FLOCQ_DIR="${!i}"
                 ;;
+            "--bignums")
+                (( i++ ))
+                BIGNUMS_DIR="${!i}"
+                ;;
             "--help")
                 usage
                 exit 0
@@ -65,6 +72,7 @@ parse_args() {
 
     [ -n "${COQ_DIR}" ] || { warn "Erreur: option --coq manquante."; usage; exit 1; }
     [ -n "${FLOCQ_DIR}" ] || { warn "Erreur: option --flocq manquante."; usage; exit 1; }
+    [ -n "${BIGNUMS_DIR}" ] || { warn "Erreur: option --bignums manquante."; usage; exit 1; }
     [ -n "${VALIDSDP_DIR}" ] || { warn "Erreur: option --validsdp manquante."; usage; exit 1; }
 }
 
@@ -96,7 +104,9 @@ main() {
     ./remake install -d
     popd
 
-    pushd "${VALIDSDP_DIR}/external/bignums_primitive-ints"
+    pushd "${BIGNUMS_DIR}"
+    git checkout primitive-integers
+    git pull --ff-only origin primitive-integers
     make clean
     make -j ${NJOBS}
     make install
