@@ -1,7 +1,7 @@
 #!/bin/bash
 
 switch="prim-float"
-compiler="4.05.0"
+compiler="ocaml-base-compiler.4.05.0"
 # => see https://github.com/coq/coq/pull/7522
 NJOBS="7"
 COQ_DIR=""
@@ -90,7 +90,7 @@ main() {
     make -j ${NJOBS}
     make install
     opam install -y base-num num
-    opam install -y --fake coq.8.8.1
+    opam install -y --fake coq.8.8.2
     popd
 
     opam install -y -j ${NJOBS} coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1 coq-coquelicot.3.0.2
