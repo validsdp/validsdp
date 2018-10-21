@@ -24,7 +24,6 @@ bigop_tactics.v
 parse_reals_@COQ_VERSION@.v
 parse_reals.v
 ssrmultinomials_complements.v
-validsdp.v
 
 -extra-phony test "testsuite.v validsdp.v" "$(COQC) $(COQDEBUG) $(COQFLAGS) $<"
 

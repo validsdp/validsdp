@@ -29,8 +29,8 @@ external::
 	( cd external/CoqEAL/refinements && $(MAKE) && $(MAKE) install )
 
 install::
-	$(MAKE) -C plugins/soswitness
-	$(MAKE) -C plugins/soswitness install
+	# $(MAKE) -C plugins/soswitness
+	# $(MAKE) -C plugins/soswitness install
 	$(MAKE) -C theories
 	$(MAKE) -C theories install
 
@@ -38,12 +38,12 @@ clean::
 	([ -f external/paramcoq/Makefile ] && $(MAKE) -C external/paramcoq clean )
 	([ -f external/CoqEAL/theory/Makefile ] && $(MAKE) -C external/CoqEAL/theory clean )
 	([ -f external/CoqEAL/refinements/Makefile ] && $(MAKE) -C external/CoqEAL/refinements clean )
-	$(MAKE) -C plugins/soswitness clean
+	# $(MAKE) -C plugins/soswitness clean
 	$(MAKE) -C theories clean
 
 dist::
 	autoreconf
-	$(MAKE) -C plugins/soswitness dist
+	# $(MAKE) -C plugins/soswitness dist
 	$(MAKE) -C theories dist
 	export T=$$(readlink -f $$(mktemp -d dist.XXX)) && export S=@PACKAGE_TARNAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDvR $(FILES) $$T/$$S && rsync -rlpgoDv $$(readlink $(DIST1))/ $$(readlink $(DIST2))/ $$T/$$S && git submodule foreach 'git archive --format=tar HEAD | (mkdir -p $$T/$$S/$$path && cd $$T/$$S/$$path && tar xf -)' && rm -fr $$T/$$S/external/CoqEAL/{v0.1,0.2,release}; (cd $$T && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
 	$(RM) -r $$(readlink $(DIST1)) $$(readlink $(DIST2))
