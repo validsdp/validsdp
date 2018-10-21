@@ -145,11 +145,12 @@ main() {
     pushd "${VALIDSDP_DIR}"
     ./autogen.sh
     ./configure
-    pushd ./plugins/soswitness
-    make clean
-    make
-    make install
-    popd && pushd ./theories
+    # pushd ./plugins/soswitness
+    # make clean
+    # make
+    # make install
+    # popd
+    pushd ./theories
     make clean
     make -j ${NJOBS}
     make install
