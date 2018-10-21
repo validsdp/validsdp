@@ -121,7 +121,7 @@ main() {
     ./remake install -d
     popd
 
-    pushd "${VALIDSDP_DIR}/external/paramcoq_v88alpha"
+    pushd "${VALIDSDP_DIR}/external/paramcoq_v810alpha"
     make clean
     rm -f Makefile.coq Makefile.coq.conf
     make -j ${NJOBS}
