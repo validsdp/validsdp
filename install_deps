@@ -95,7 +95,7 @@ main() {
     opam install -y --fake coq.8.8.2
     popd
 
-    opam reinstall -y -j ${NJOBS} coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1 coq-coquelicot.3.0.2
+    opam reinstall -y -j ${NJOBS} coq-mathcomp-ssreflect.1.7.0 coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1 coq-coquelicot.3.0.2
 
     pushd "${FLOCQ_DIR}"
     git checkout master
