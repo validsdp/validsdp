@@ -8,7 +8,7 @@ COQ_DIR=""
 VALIDSDP_DIR=""
 # Should point to git repo of Flocq
 FLOCQ_DIR=""
-# Should point to maxime denes' git repo of Bignums (https://github.com/maximedenes/bignums)
+# Should point to Vincent's git repo of Bignums (https://github.com/vbgl/bignums)
 BIGNUMS_DIR=""
 
 usage() {
@@ -108,7 +108,7 @@ main() {
 
     pushd "${BIGNUMS_DIR}"
     git checkout primitive-integers
-    git pull --ff-only origin primitive-integers
+    git pull --ff-only vbgl primitive-integers
     make clean
     make -j ${NJOBS}
     make install
