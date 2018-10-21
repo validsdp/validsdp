@@ -86,6 +86,7 @@ main() {
 
     pushd "${COQ_DIR}"
     make clean
+    git clean -dxf .  # a bit aggressive but required
     ./configure -annot -bin-annot -native-compiler no -prefix $HOME/.opam/${switch}
     make -j ${NJOBS}
     make install
