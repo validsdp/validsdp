@@ -1,4 +1,4 @@
-Require Import Reals Psatz ROmega.
+Require Import Reals Psatz.
 From Bignums Require Import BigZ BigQ.
 From Flocq Require Import Core.Raux Core.Defs Core.Digits.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.

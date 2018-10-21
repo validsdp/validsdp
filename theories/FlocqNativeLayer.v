@@ -201,13 +201,13 @@ Require Import Flocq_complements.
 
 Theorem FPnormfr_mantissa_Bnormfr_mantissa :
   forall x,
-  normfr_mantissa (B2Prim x) = Int63Op.of_Z (Z.of_N (Bnormfr_mantissa prec emax x)).
+  normfr_mantissa (B2Prim x) = Int63.of_Z (Z.of_N (Bnormfr_mantissa prec emax x)).
 Proof.
 intro x; unfold B2Prim.
 rewrite <-EFnormfr_mantissa_Bnormfr_mantissa.
 rewrite <-(Prim2EF_EF2Prim (B2EF x)) at 2; [|apply valid_binary_B2EF].
 rewrite <-normfr_mantissa_spec.
-now rewrite Int63Axioms.of_to_Z.
+now rewrite Int63.of_to_Z.
 Qed.
 
 Theorem FPldexp_Bldexp :

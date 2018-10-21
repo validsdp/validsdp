@@ -2,7 +2,7 @@
 
 Require Import Reals Float.
 From Bignums Require Import BigZ.
-Require Import ROmega.
+Require Import Psatz.
 
 Require Import Flocq.Core.Zaux.
 Require Import Flocq.Core.Raux.
@@ -212,7 +212,7 @@ have [Hlt|Hle] := Z_lt_le_dec (Z.abs f1) (Z.abs [m]%bigZ); last first.
   have NZum : Zulp [m]%bigZ <> 0%Z by apply: Zulp_neq0.
   have H0 := Zdigits_gt_0 radix2 _ NZum.
   rewrite Zdigits_abs in Hle.
-  clear - Hle Hf2 H0; rewrite /Zdigits2; romega. }
+  clear - Hle Hf2 H0; rewrite /Zdigits2; lia. }
 have NZf1 : f1 <> Z0.
 { move=> K; rewrite /F2R -/f1 K /= Rsimpl in H1.
   case: H1; rewrite FtoR_split /F2R /=.
@@ -257,7 +257,7 @@ have {Hmf} Hmf : ([m]%bigZ = f1 * 2 ^ (Fexp f - [e]%bigZ))%Z.
   rewrite /F2R - /f1 in Hmf.
   move/(congr1 (Rmult ^~ (bpow radix2 (- [e]%bigZ)))) in Hmf.
   rewrite !Rmult_assoc -!bpow_plus Zegal_left //= Rmult_1_r in Hmf.
-  rewrite -IZR_Zpower in Hmf; last romega.
+  rewrite -IZR_Zpower in Hmf; last lia.
   rewrite -mult_IZR in Hmf.
   exact: eq_IZR. }
 have Hdiv : (Z.abs ([m]%bigZ / Zulp [m]%bigZ) | [m]%bigZ)%Z.
@@ -266,7 +266,7 @@ have Hdiv : (Z.abs ([m]%bigZ / Zulp [m]%bigZ) | [m]%bigZ)%Z.
   by apply Zulp_divides. }
 rewrite {3}Hmf Z.mul_comm in Hdiv.
 apply (Znumtheory.Gauss _ (2 ^ (Fexp f - [e]%bigZ))) =>//.
-apply: Zulp_rel_prime; last romega.
+apply: Zulp_rel_prime; last lia.
 by rewrite Hm; case: (s).
 Qed.
 
@@ -330,7 +330,7 @@ unfold mantissa_bounded, x_bounded; simpl; right; exists (bpow radix2 [n]%bigZ).
   { now case (Z.pow_pos 2 p). }
   now unfold Rdiv; rewrite Rmult_1_l. }
 apply FLX_format_generic; [now simpl| ]; apply generic_format_bpow.
-unfold FLX_exp; change [|53|]%int63 with 53%Z; romega.
+unfold FLX_exp; change (Int63.to_Z 53) with 53%Z; lia.
 Qed.
 
 Definition FI1 := Build_FI (mantissa_bounded_bpow 0%bigZ).
@@ -399,13 +399,13 @@ case x; auto.
 intros s m e; case s; auto.
 { unfold Bir.mantissa_sign, Bir.ZtoM; simpl.
   unfold BigZ.BigZ.eqb; rewrite BigZ.BigZ.spec_compare; simpl.
-  change [|0|]%int63 with 0%Z.
+  change (Int63.to_Z 0) with 0%Z.
   rewrite BigN.BigN.spec_of_pos; simpl.
   unfold Bir.MtoP; rewrite BigN.BigN.spec_of_pos.
   now rewrite [_ (_ e)]Bir.ZtoE_correct. }
 unfold BigIntRadix2.mantissa_sign, BigIntRadix2.ZtoM; simpl.
 unfold BigZ.BigZ.eqb; rewrite BigZ.BigZ.spec_compare; simpl.
-change [|0|]%int63 with 0%Z.
+change (Int63.to_Z 0) with 0%Z.
 rewrite BigN.BigN.spec_of_pos; simpl.
 unfold BigIntRadix2.MtoP; rewrite BigN.BigN.spec_of_pos.
 now rewrite [_ (_ e)]BigIntRadix2.ZtoE_correct.
@@ -846,7 +846,7 @@ rewrite /= /flx64.eps /Rdiv /F.toX /F.toF.
 replace (Bir.mantissa_sign 1) with (Interval_specific_sig.Mnumber false 1%bigN);
   [ |now compute].
 rewrite /Bir.MtoP /FtoX /FtoR; replace [1]%bigN with 1%Z; [ |now compute].
-simpl; replace [|53|]%int63 with (53)%Z; [ |now compute]; simpl.
+simpl; replace (Int63.to_Z 53) with (53)%Z; [ |now compute]; simpl.
 now rewrite /Rdiv Rmult_1_l; right.
 Qed.
 
@@ -858,7 +858,7 @@ rewrite /= /flx64.eps /Rdiv /F.toX /F.toF.
 replace (Bir.mantissa_sign 1) with (Interval_specific_sig.Mnumber false 1%bigN);
   [ |now compute].
 rewrite /Bir.MtoP /FtoX /FtoR; replace [1]%bigN with 1%Z; [ |now compute].
-simpl; replace [|1075|]%int63 with (1075)%Z; [ |now compute]; simpl.
+simpl; replace (Int63.to_Z 1075) with (1075)%Z; [ |now compute]; simpl.
 now rewrite /Rdiv Rmult_1_l; right.
 Qed.
 

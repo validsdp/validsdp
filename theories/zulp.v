@@ -1,7 +1,7 @@
 Require Import Reals.
 Require Import ZArith.
 From Bignums Require Import BigQ.
-Require Import ROmega.
+Require Import Psatz.
 From Flocq Require Import Core.Defs.
 From Flocq Require Import Core.Digits.
 From Interval Require Import Interval_definitions.
