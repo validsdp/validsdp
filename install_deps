@@ -10,11 +10,14 @@ VALIDSDP_DIR=""
 FLOCQ_DIR=""
 # Should point to Vincent's git repo of Bignums (https://github.com/vbgl/bignums)
 BIGNUMS_DIR=""
+# Should point to aa755 repo of paramcoq (https://github.com/aa755/paramcoq/)
+# N.B.: the version reported by "coqtop -v" should be 8.10+alpha
+PARAMCOQ_DIR=""
 
 usage() {
     cat >&2 <<EOF
 Usage:
-  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --bignums …/bignumes --flocq …/flocq --validsdp …/validsdp
+  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --bignums …/bignumes --flocq …/flocq --paramcoq …/paramcoq --validsdp …/validsdp
 EOF
 }
 
@@ -59,6 +62,10 @@ parse_args() {
                 (( i++ ))
                 BIGNUMS_DIR="${!i}"
                 ;;
+            "--paramcoq")
+                (( i++ ))
+                PARAMCOQ_DIR="${!i}"
+                ;;
             "--help")
                 usage
                 exit 0
@@ -72,6 +79,7 @@ parse_args() {
 
     [ -n "${COQ_DIR}" ] || { warn "Erreur: option --coq manquante."; usage; exit 1; }
     [ -n "${FLOCQ_DIR}" ] || { warn "Erreur: option --flocq manquante."; usage; exit 1; }
+    [ -n "${PARAMCOQ_DIR}" ] || { warn "Erreur: option --paramcoq manquante."; usage; exit 1; }
     [ -n "${BIGNUMS_DIR}" ] || { warn "Erreur: option --bignums manquante."; usage; exit 1; }
     [ -n "${VALIDSDP_DIR}" ] || { warn "Erreur: option --validsdp manquante."; usage; exit 1; }
 }
@@ -121,7 +129,9 @@ main() {
     ./remake install -d
     popd
 
-    pushd "${VALIDSDP_DIR}/external/paramcoq_v810alpha"
+    pushd "${PARAMCOQ_DIR}"
+    git checkout master
+    git pull --ff-only origin master
     make clean
     rm -f Makefile.coq Makefile.coq.conf
     make -j ${NJOBS}
