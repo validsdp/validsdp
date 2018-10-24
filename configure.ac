@@ -14,19 +14,28 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
-majmin=`echo "$coq_version" | cut -d . -f "1 2"`
+majmin=`echo "$coq_version" | sed -e 's/^\([[0-9]]*\.[[0-9]]*\).*$/\1/'`
 # FIXME to update in this branch or in master
 # if test "v$majmin" != "v8.6" -a "v$majmin" != "v8.7" -a "v$majmin" != "v8.8+alpha"; then
 #   AC_MSG_ERROR([Coq version must be 8.6.x or 8.7.x (you have version $coq_version).])
 # fi
 AC_MSG_RESULT($coq_version)
 
-minor=`echo "$coq_version" | cut -d . -f 2`
+minor=`echo "$majmin" | cut -d . -f 2`
 if test "$minor" -le 6; then
   COQ_VERSION="v86"
   BIGNUMS_FROM=""
-else
+elif test "$minor" -le 7; then
   COQ_VERSION="v87"
+  BIGNUMS_FROM="From Bignums "
+elif test "$minor" -le 8; then
+  COQ_VERSION="v88"
+  BIGNUMS_FROM="From Bignums "
+elif test "$minor" -le 9; then
+  COQ_VERSION="v89"
+  BIGNUMS_FROM="From Bignums "
+else
+  COQ_VERSION="v810"
   BIGNUMS_FROM="From Bignums "
 fi
 AC_SUBST(COQ_VERSION)
