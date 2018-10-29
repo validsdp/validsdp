@@ -293,18 +293,18 @@ Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=
   | Fnan => nan
   | Float m e =>
     match (BigZ2int63 m, BigZ2int63 e) with
-    | (Some (sm, m), Some (se, e)) =>
+    | (Some (sm', m'), Some (se', e')) =>
       (* TODO: don't go through Z, do that in int63 *)
-      match to_Z m with
+      match to_Z m' with
       | Z0 => zero
       | Z.neg _ => nan  (* should never happen *)
       | Z.pos mp =>
-        if (m == 0)%int63 then zero else
-          if bounded prec emax mp (to_Z e) then
-            let f := of_int63 m in
-            let f := if sm then (-f)%float else f in
-            let shexp := if se then (shift - e)%int63 else (shift + e)%int63 in
-            ldshiftexp f shexp
+        if (m' == 0)%int63 then zero else
+          if bounded prec emax mp [e]%bigZ then
+            let f := of_int63 m' in
+            let f := if sm' then (-f)%float else f in
+            let e'' := if se' then (shift - e')%int63 else (shift + e')%int63 in
+            ldshiftexp f e''
           else nan
       end
     | _ => nan
@@ -325,6 +325,46 @@ Lemma is_finite_FF_EF2FF_B2EF prec emax nan (f : binary_float prec emax) :
   is_finite_FF (EF2FF nan (B2EF f)) = is_finite prec emax f.
 Proof. now revert nan f; intros (nan_s, nan_pl) [s|s|s pl Hpl|s m e Hme]. Qed.
 
+Lemma B2R_Prim2B_B2Prim nan x :
+  B2R prec emax (Prim2B nan (B2Prim x)) = B2R prec emax x.
+Proof.
+case_eq (is_nan prec emax x); [ |now intro H; rewrite Prim2B_B2Prim_notnan].
+revert x; intros [s|s|s pl Hpl|s m e Hme]; try discriminate; intros _.
+unfold Prim2B, B2Prim, Prim2EF, EF2FF; simpl.
+now rewrite B2R_FF2B; case (sval nan).
+Qed.
+
+Lemma of_int63_exact m :
+  Z.le (Zdigits radix2 [| m |]%int63) prec ->
+  B2R prec emax (Prim2B primitive_floats_infnan.nan_pl (of_int63 m))
+  = IZR [| m |]%int63.
+Proof.
+  intros Hm.
+assert (Hprec0 : Z.lt 0 prec); [now simpl| ].
+assert (Hprec : Z.lt prec emax); [now simpl| ].
+rewrite -(FF2R_EF2FF_B2EF (sval primitive_floats_infnan.nan_pl)) B2EF_Prim2B.
+rewrite of_int63_spec binary_normalize_equiv FF2R_EF2FF_B2EF.
+pose (bm := binary_normalize prec emax (zpos_gt_0 53) Hprec mode_NE (to_Z m)
+                             0 false).
+assert (Hb := binary_normalize_correct _ _ _ Hprec mode_NE (to_Z m) 0 false).
+pose (r := F2R ({| Fnum := to_Z m; Fexp := 0 |} : Defs.float radix2)).
+assert (Hr : Generic_fmt.round radix2 (fexp prec emax) ZnearestE r = r).
+{ case (Z.eq_dec [| m |]%int63 0); intro Hmz.
+  { now unfold r, F2R; rewrite Hmz; simpl; rewrite Rmult_0_l round_0. }
+  apply round_generic; [now apply valid_rnd_N| ].
+  apply generic_format_F2R; intros _; unfold F2R; simpl; rewrite Rmult_1_r.
+  unfold cexp, fexp, FLT_exp; apply Z.max_lub; [ |unfold emin, emax; lia].
+  rewrite -Zdigits_mag; lia. }
+revert Hb; rewrite Hr ifT.
+{ now intros (Hr', _); rewrite Hr'; unfold r, F2R; simpl; rewrite Rmult_1_r. }
+apply Rlt_bool_true; unfold r, F2R; simpl; rewrite Rmult_1_r.
+change (IZR (Z.pow_pos 2 _)) with (bpow radix2 1024).
+case (Z.eq_dec [| m |]%int63 0); intro Hmz.
+{ rewrite Hmz Rabs_R0; apply bpow_gt_0. }
+apply (Rlt_le_trans _ _ _ (bpow_mag_gt radix2 _)), bpow_le.
+rewrite -Zdigits_mag; unfold prec in Hm; lia.
+Qed.
+
 Lemma BigZFloat2Prim_correct (f : F.type) :
   is_true (FloatValues.is_finite (BigZFloat2Prim f)) ->
   FI2FS (BigZFloat2Prim f) = proj_val (F.toX f) :> R.
@@ -334,10 +374,8 @@ unfold BigZFloat2Prim, F.toX, FtoX, F.toF.
 assert (Hm := Bir_mantissa_sign_correct m).
 assert (He := BigZ2int63_correct e).
 revert Hm He.
-destruct (BigZ2int63 m); destruct (BigZ2int63 e);
-  [ |now destruct p|discriminate|discriminate].
-destruct p as (sm, m').
-destruct p0 as (se, e').
+destruct (BigZ2int63 m) as [(sm, m')|p]; [ |discriminate];
+  destruct (BigZ2int63 e) as [(se, e')|p']; [ |discriminate].
 case eqbP; intro Hm'.
 { rewrite Hm' to_Z_0.
   intros Hm _ _; rewrite Hm; simpl.
@@ -348,7 +386,7 @@ set (e'' := if se then (_ - _)%int63 else _).
 case_eq (to_Z m');
   [now auto |intros m'p Hm'p|
    now replace (FloatValues.is_finite nan) with false by now cbv].
-case_eq (EmulatedFloat.bounded prec emax m'p (to_Z e')); intro Hb;
+case_eq (EmulatedFloat.bounded prec emax m'p [e]%bigZ); intro Hb;
   [ |now replace (FloatValues.is_finite nan) with false by now cbv].
 rewrite <-(B2Prim_Prim2B primitive_floats_infnan.nan_pl (ldshiftexp _ _)) at 1.
 rewrite is_finite_spec; simpl.
@@ -366,45 +404,50 @@ set (bf := Bldexp _ _ _ _ _ _ _).
 intros (Ht, (Hfe''', Hs)).
 rewrite FF2R_EF2FF_B2EF Ht.
 rewrite is_finite_FF_EF2FF_B2EF Hfe'''; intro Hf.
-rewrite round_generic.
-{ unfold FtoR.
-  set (m''' := if sm then _ else _).
-  assert (Hm''' : B2R prec emax f = IZR m''').
-  { revert Hf.
-    unfold f, m'', m'''.
-    pose (bm' := binary_normalize prec emax (zpos_gt_0 53) Hprec mode_NE
-                                  (to_Z m') 0 false).
-    cut (is_finite prec emax bm' ->
-         B2R prec emax bm' = IZR (Z.pos (Bir.MtoP (BigN.N0 m')))).
-    { intro H.
-      unfold Prim2B; rewrite B2R_FF2B is_finite_FF2B.
-      now case sm; [rewrite FPopp_EFopp| ];
-        rewrite of_int63_spec binary_normalize_equiv;
-        [rewrite (EFopp_Bopp (fun _ => ex_nan))| ];
-        rewrite FF2R_EF2FF_B2EF is_finite_FF_EF2FF_B2EF;
-        [rewrite B2R_Bopp is_finite_Bopp| ]; intro H'; rewrite H. }
-    assert (H := binary_normalize_correct _ _ _ Hprec mode_NE (to_Z m') 0
-                                          false); revert H.
-    case Rlt_bool_spec; fold bm'; intro Hlt'; [ |now case bm'].
-    intros (Hrbm', (_, Hsbm')) _; rewrite Hrbm'.
-    rewrite round_generic.
-    { unfold F2R; simpl; rewrite Rmult_1_r; f_equal.
-      unfold Bir.MtoP, BigN.to_Z.
-      unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Int63Cyclic.ops, Cyclic63.int_ops.
-      now rewrite Hm'p. }
-    apply generic_format_F2R; intros _; unfold F2R; simpl; rewrite Rmult_1_r.
-    unfold cexp, FLT_exp; apply Z.max_lub; [ |lia]; rewrite Hm'p.
-    revert Hb; unfold EmulatedFloat.bounded, EmulatedFloat.canonical_mantissa.
+unfold FtoR.
+set (m''' := if sm then _ else _).
+assert (Hm''' : B2R prec emax f = IZR m''').
+{ unfold f, m'', m''', Bir.MtoP, BigN.to_Z.
+  unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Int63Cyclic.ops, Cyclic63.int_ops.
+  assert (Hdig_m'p : Z.le (Zdigits radix2 (Z.pos m'p)) prec).
+  { revert Hb; unfold EmulatedFloat.bounded, EmulatedFloat.canonical_mantissa.
     move/andP => [Heq _]; apply Zeq_bool_eq in Heq; revert Heq.
-    rewrite Zpos_digits2_pos Zdigits_mag; [unfold fexp; lia|discriminate]. }
-  rewrite Hm'''.
-  unfold e''', e''.
-  revert He.
-  case se; [rewrite sub_spec|rewrite add_spec].
-  { admit. }
-  admit. }
-admit.
-Admitted.
+    unfold fexp; rewrite Zpos_digits2_pos; lia. }
+  case sm.
+  { rewrite <-(B2Prim_Prim2B primitive_floats_infnan.nan_pl (of_int63 m')).
+    rewrite (FPopp_Bopp (fun _ => ex_nan)).
+    now rewrite B2R_Prim2B_B2Prim B2R_Bopp of_int63_exact Hm'p. }
+  now rewrite of_int63_exact Hm'p. }
+rewrite Hm'''; unfold m''', e''', Bir.MtoP, BigN.to_Z.
+unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Int63Cyclic.ops, Cyclic63.int_ops.
+rewrite Hm'p.  
+clear m''' Hm'''; set (m''' := if sm then _ else _).
+assert (He''shift : Z.sub (to_Z e'') (to_Z shift) = [e]%bigZ).
+{ assert (He' : Z.le (to_Z e') (Z.opp emin)).
+  { revert He; case se; intro He.
+    { rewrite -(Z.opp_involutive (to_Z e')) -Z.opp_le_mono He.
+      revert Hb; unfold EmulatedFloat.bounded, EmulatedFloat.canonical_mantissa.
+      move=> /andP [] /Zeq_bool_eq; unfold fexp, emin, emax, prec; lia. }
+    revert Hb; rewrite He /EmulatedFloat.bounded => /andP [] _ /Zle_bool_imp_le.
+    unfold emin, emax, prec; lia. }
+  unfold e''; revert He; case se; intro He.
+  { rewrite sub_spec -He Zmod_small; [ring|split].
+    { rewrite shift_value; revert He'; unfold emin, emax, prec; lia. }
+    apply (Z.le_lt_trans _ (to_Z shift)); [ |now simpl].
+    assert (H := to_Z_bounded e'); lia. }
+  rewrite add_spec -He Zmod_small; [ring|split].
+  { assert (H := conj (to_Z_bounded shift) (to_Z_bounded e')); lia. }
+  apply (Z.le_lt_trans _ (4 * emax)); [ |now simpl].
+  rewrite shift_value; revert He'; unfold emin, emax, prec; lia. }
+rewrite He''shift.
+rewrite round_generic.
+{ now case [e]%bigZ; [rewrite Rmult_1_r|intro p; rewrite mult_IZR|simpl]. }
+apply generic_format_F2R; fold m''' [e]%bigZ; intros Nzm'''.
+unfold cexp, FLT_exp; rewrite (mag_F2R_Zdigits _ _ _ Nzm''').
+revert Hb; unfold EmulatedFloat.bounded, EmulatedFloat.canonical_mantissa, fexp.
+move=> /andP [] /Zeq_bool_eq; fold emin; rewrite Zpos_digits2_pos => Hb _.
+now unfold m'''; case sm; rewrite Hb.
+Qed.
 
 Ltac primitive_posdef_check :=
   match goal with
