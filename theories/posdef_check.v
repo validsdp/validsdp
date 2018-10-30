@@ -288,25 +288,88 @@ Proof.
         apply to_Z_bounded.
 Qed.
 
+Definition canonical_mantissaPrim (m : int) (se : bool) (e : int) :=
+  (~~se || (e <= 1074)%int63)  (* emin <= e *)
+  && (m < 9007199254740992 (*2^53*))%int63
+  && (se && (1074 (*-emin*) <= e)%int63
+      || (4503599627370496 (*2^52*) <= m)%int63).
+
+Lemma canonical_mantissaPrim_correct m se e :
+  match [| m |]%int63 with
+  | Z0 => True
+  | Z.pos mp =>
+    let ez := if se then (- [| e |]%int63)%Z else [| e |]%int63 in
+    canonical_mantissaPrim m se e -> Binary.canonical_mantissa prec emax mp ez
+  | Z.neg _ => False
+  end.
+Proof.
+case_eq (to_Z m) => [ |mp|mp] Hm; [exact I| | ].
+{ rewrite /canonical_mantissaPrim => /andP [] /andP [He Hubm] /orP Hlbm.
+  set ez := if se then _ else _.
+  have Hlbez : (emin <= ez)%Z.
+  { rewrite /ez; move: He; case se => /=.
+    { rewrite /emin /emax /prec /= => He.
+      rewrite -Pos2Z.opp_pos -Z.opp_le_mono.
+      by move: He; rewrite /is_true leb_spec. }
+    move=> _; apply (Z.le_trans _ 0) => //; apply to_Z_bounded. }
+  have Hubmp : IZR (Z.pos mp) < bpow radix2 prec.
+  { move: Hubm; rewrite /is_true ltb_spec Hm /prec /= => Hmp.
+    by apply IZR_lt. }
+  have Hubmp' : (mag radix2 (IZR (Z.pos mp)) <= prec)%Z.
+  { by apply mag_le_bpow => //; rewrite Rabs_pos_eq => //; apply IZR_le. }
+  have Hlbmp : ez = emin \/ (bpow radix2 (prec - 1) <= IZR (Z.pos mp)).
+  { move: Hlbm => [] Hlbm; [left|right].
+    { apply Z.le_antisymm => //; rewrite /ez; move: Hlbm; case se => //= He'.
+      rewrite /emin /emax /prec /= -Pos2Z.opp_pos -Z.opp_le_mono.
+      by move: He'; rewrite /is_true leb_spec. }
+    move: Hlbm; rewrite /is_true leb_spec Hm => Hlbm.
+    by rewrite /prec /=; apply IZR_le. }
+  rewrite /Binary.canonical_mantissa /fexp /FLT_exp -/emin; apply Zeq_bool_true.
+  rewrite Digits.Zpos_digits2_pos Zdigits_mag //.
+  case Hlbmp.
+  { move=> ->; rewrite Z.max_r //; lia. }
+  move=> Hlbmp'.
+  have -> : mag radix2 (IZR (Z.pos mp)) = prec :> BinNums.Z.
+  { by apply mag_unique; rewrite Rabs_pos_eq; [ |apply IZR_le]. }
+  rewrite Z.max_l; lia. }
+move: (to_Z_bounded m); lia.
+Qed.
+
+Definition boundedPrim (m : int) (se : bool) (e : int) :=
+  (se || (e <= 1024 - 53)%int63) && (canonical_mantissaPrim m se e).
+
+Lemma boundedPrim_correct m se e :
+  match [| m |]%int63 with
+  | Z0 => True
+  | Z.pos mp =>
+    let ez := if se then (- [| e |]%int63)%Z else [| e |]%int63 in
+    boundedPrim m se e -> Binary.bounded prec emax mp ez
+  | Z.neg _ => False
+  end.
+Proof.
+move: (canonical_mantissaPrim_correct m se e).
+case_eq (to_Z m) => [//|mp Hmp /=|//].
+set ez := if se then _ else _.
+rewrite /boundedPrim /Binary.bounded => cmc /andP [] /orP He cm.
+rewrite (cmc cm) /= /ez.
+rewrite /is_true Z.leb_le; move: He; case se => He.
+{ move: (to_Z_bounded e); lia. }
+by case He => //; rewrite /is_true leb_spec.
+Qed.
+
 Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=
   match f with
   | Fnan => nan
   | Float m e =>
     match (BigZ2int63 m, BigZ2int63 e) with
     | (Some (sm', m'), Some (se', e')) =>
-      (* TODO: don't go through Z, do that in int63 *)
-      match to_Z m' with
-      | Z0 => zero
-      | Z.neg _ => nan  (* should never happen *)
-      | Z.pos mp =>
-        if (m' == 0)%int63 then zero else
-          if bounded prec emax mp [e]%bigZ then
-            let f := of_int63 m' in
-            let f := if sm' then (-f)%float else f in
-            let e'' := if se' then (shift - e')%int63 else (shift + e')%int63 in
-            ldshiftexp f e''
-          else nan
-      end
+      if (m' == 0)%int63 then zero else
+        if boundedPrim m' se' e' then
+          let f := of_int63 m' in
+          let f := if sm' then (-f)%float else f in
+          let e'' := if se' then (shift - e')%int63 else (shift + e')%int63 in
+          ldshiftexp f e''
+        else nan
     | _ => nan
     end
   end.
@@ -377,17 +440,22 @@ revert Hm He.
 destruct (BigZ2int63 m) as [(sm, m')|p]; [ |discriminate];
   destruct (BigZ2int63 e) as [(se, e')|p']; [ |discriminate].
 case eqbP; intro Hm'.
-{ rewrite Hm' to_Z_0.
-  intros Hm _ _; rewrite Hm; simpl.
+{ intros Hm _ _; rewrite Hm; simpl.
   now unfold Prim2B; rewrite B2R_FF2B; cbv. }
 intros Hm He; rewrite Hm; unfold Bir.EtoZ.
 set (m'' := if sm then _ else _).
 set (e'' := if se then (_ - _)%int63 else _).
+move: (boundedPrim_correct m' se e').
 case_eq (to_Z m');
   [now auto |intros m'p Hm'p|
    now replace (FloatValues.is_finite nan) with false by now cbv].
-case_eq (EmulatedFloat.bounded prec emax m'p [e]%bigZ); intro Hb;
+case (boundedPrim _ _ _);
   [ |now replace (FloatValues.is_finite nan) with false by now cbv].
+assert (He' : [e]%bigZ = if se then (- to_Z e')%Z else to_Z e').
+{ now revert He; case se. }
+rewrite He'; clear He' He e.
+set (e := if se then _ else _).
+simpl; intro Hb; specialize (Hb (refl_equal _)).
 rewrite <-(B2Prim_Prim2B primitive_floats_infnan.nan_pl (ldshiftexp _ _)) at 1.
 rewrite is_finite_spec; simpl.
 unfold Prim2B; rewrite B2R_FF2B is_finite_FF2B.
@@ -410,9 +478,9 @@ assert (Hm''' : B2R prec emax f = IZR m''').
 { unfold f, m'', m''', Bir.MtoP, BigN.to_Z.
   unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Int63Cyclic.ops, Cyclic63.int_ops.
   assert (Hdig_m'p : Z.le (Zdigits radix2 (Z.pos m'p)) prec).
-  { revert Hb; unfold EmulatedFloat.bounded, EmulatedFloat.canonical_mantissa.
+  { revert Hb; unfold bounded, canonical_mantissa.
     move/andP => [Heq _]; apply Zeq_bool_eq in Heq; revert Heq.
-    unfold fexp; rewrite Zpos_digits2_pos; lia. }
+    unfold FLT_exp; rewrite Zpos_digits2_pos; lia. }
   case sm.
   { rewrite <-(B2Prim_Prim2B primitive_floats_infnan.nan_pl (of_int63 m')).
     rewrite (FPopp_Bopp (fun _ => ex_nan)).
@@ -422,30 +490,30 @@ rewrite Hm'''; unfold m''', e''', Bir.MtoP, BigN.to_Z.
 unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Int63Cyclic.ops, Cyclic63.int_ops.
 rewrite Hm'p.  
 clear m''' Hm'''; set (m''' := if sm then _ else _).
-assert (He''shift : Z.sub (to_Z e'') (to_Z shift) = [e]%bigZ).
+assert (He''shift : Z.sub (to_Z e'') (to_Z shift) = e).
 { assert (He' : (to_Z e' <= -emin)%Z).
-  { revert He; case se; intro He.
-    { rewrite -(Z.opp_involutive (to_Z e')) -Z.opp_le_mono He.
-      revert Hb; unfold EmulatedFloat.bounded, EmulatedFloat.canonical_mantissa.
-      move=> /andP [] /Zeq_bool_eq; unfold fexp, emin, emax, prec; lia. }
-    revert Hb; rewrite He /EmulatedFloat.bounded => /andP [] _ /Zle_bool_imp_le.
+  { revert Hb; unfold e; case se.
+    { rewrite -{2}(Z.opp_involutive (to_Z e')) -Z.opp_le_mono.
+      unfold bounded, canonical_mantissa.
+      move=> /andP [] /Zeq_bool_eq; unfold FLT_exp, emin, emax, prec; lia. }
+    rewrite /EmulatedFloat.bounded => /andP [] _ /Zle_bool_imp_le.
     unfold emin, emax, prec; lia. }
-  unfold e''; revert He; case se; intro He.
-  { rewrite sub_spec -He Zmod_small; [ring|split].
+  unfold e'', e; case se.
+  { rewrite sub_spec Zmod_small; [ring|split].
     { rewrite shift_value; revert He'; unfold emin, emax, prec; lia. }
     apply (Z.le_lt_trans _ (to_Z shift)); [ |now simpl].
     assert (H := to_Z_bounded e'); lia. }
-  rewrite add_spec -He Zmod_small; [ring|split].
+  rewrite add_spec Zmod_small; [ring|split].
   { assert (H := conj (to_Z_bounded shift) (to_Z_bounded e')); lia. }
   apply (Z.le_lt_trans _ (4 * emax)); [ |now simpl].
   rewrite shift_value; revert He'; unfold emin, emax, prec; lia. }
 rewrite He''shift.
 rewrite round_generic.
-{ now case [e]%bigZ; [rewrite Rmult_1_r|intro p; rewrite mult_IZR|simpl]. }
-apply generic_format_F2R; fold m''' [e]%bigZ; intros Nzm'''.
+{ now case e; [rewrite Rmult_1_r|intro p; rewrite mult_IZR|simpl]. }
+apply generic_format_F2R; fold m''' e; intros Nzm'''.
 unfold cexp, FLT_exp; rewrite (mag_F2R_Zdigits _ _ _ Nzm''').
-revert Hb; unfold EmulatedFloat.bounded, EmulatedFloat.canonical_mantissa, fexp.
-move=> /andP [] /Zeq_bool_eq; fold emin; rewrite Zpos_digits2_pos => Hb _.
+revert Hb; unfold EmulatedFloat.bounded, EmulatedFloat.canonical_mantissa.
+move=> /andP [] /Zeq_bool_eq; rewrite -/emin /FLT_exp Zpos_digits2_pos => Hb _.
 now unfold m'''; case sm; rewrite Hb.
 Qed.
 
