@@ -12,7 +12,7 @@ Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
 From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
-From mathcomp Require Import ssrnum ssrint rat div.
+From mathcomp Require Import ssrnum rat div.
 Require Import Rstruct.
 Require Import iteri_ord float_infnan_spec real_matrix.
 Import Refinements.Op.
@@ -213,7 +213,7 @@ Eval vm_compute in posdef_check matrices.m4. *)
 From Bignums Require Import BigZ BigN.
 Require Import Int63.
 Require Import Float.
-Require Import Bool ZArith.
+Require Import Bool.
 Require Import primitive_floats_infnan.
 
 Definition BigZ2int63 (n : BigZ.t_) : option (bool * Int63.int) :=
@@ -335,13 +335,13 @@ now rewrite B2R_FF2B; case (sval nan).
 Qed.
 
 Lemma of_int63_exact m :
-  Z.le (Zdigits radix2 [| m |]%int63) prec ->
+  (Zdigits radix2 [| m |]%int63 <= prec)%Z ->
   B2R prec emax (Prim2B primitive_floats_infnan.nan_pl (of_int63 m))
   = IZR [| m |]%int63.
 Proof.
   intros Hm.
-assert (Hprec0 : Z.lt 0 prec); [now simpl| ].
-assert (Hprec : Z.lt prec emax); [now simpl| ].
+assert (Hprec0 : (0 < prec)%Z); [now simpl| ].
+assert (Hprec : (prec < emax)%Z); [now simpl| ].
 rewrite -(FF2R_EF2FF_B2EF (sval primitive_floats_infnan.nan_pl)) B2EF_Prim2B.
 rewrite of_int63_spec binary_normalize_equiv FF2R_EF2FF_B2EF.
 pose (bm := binary_normalize prec emax (zpos_gt_0 53) Hprec mode_NE (to_Z m)
@@ -393,7 +393,7 @@ rewrite is_finite_spec; simpl.
 unfold Prim2B; rewrite B2R_FF2B is_finite_FF2B.
 rewrite ldshiftexp_spec.
 rewrite <-(B2EF_Prim2B primitive_floats_infnan.nan_pl m'').
-assert (Hprec : Z.lt prec emax); [now simpl| ].
+assert (Hprec : (prec < emax)%Z); [now simpl| ].
 rewrite EFldexp_Bldexp.
 set (f := _ primitive_floats_infnan.nan_pl m'').
 set (e''' := Z.sub (to_Z e'') _).
@@ -423,7 +423,7 @@ unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Int63Cyclic.ops, Cyclic63.int_ops.
 rewrite Hm'p.  
 clear m''' Hm'''; set (m''' := if sm then _ else _).
 assert (He''shift : Z.sub (to_Z e'') (to_Z shift) = [e]%bigZ).
-{ assert (He' : Z.le (to_Z e') (Z.opp emin)).
+{ assert (He' : (to_Z e' <= -emin)%Z).
   { revert He; case se; intro He.
     { rewrite -(Z.opp_involutive (to_Z e')) -Z.opp_le_mono He.
       revert Hb; unfold EmulatedFloat.bounded, EmulatedFloat.canonical_mantissa.
