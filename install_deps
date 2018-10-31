@@ -13,6 +13,8 @@ BIGNUMS_DIR=""
 # Should point to aa755 repo of paramcoq (https://github.com/aa755/paramcoq/)
 # N.B.: the version reported by "coqtop -v" should be 8.10+alpha
 PARAMCOQ_DIR=""
+# Should point to a directory with coquelicot 3.0.2 sources
+COQUELICOT_DIR=""
 
 usage() {
     cat >&2 <<EOF
@@ -58,6 +60,10 @@ parse_args() {
                 (( i++ ))
                 FLOCQ_DIR="${!i}"
                 ;;
+            "--coquelicot")
+                (( i++ ))
+                COQUELICOT_DIR="${!i}"
+                ;;
             "--bignums")
                 (( i++ ))
                 BIGNUMS_DIR="${!i}"
@@ -79,6 +85,7 @@ parse_args() {
 
     [ -n "${COQ_DIR}" ] || { warn "Erreur: option --coq manquante."; usage; exit 1; }
     [ -n "${FLOCQ_DIR}" ] || { warn "Erreur: option --flocq manquante."; usage; exit 1; }
+    [ -n "${COQUELICOT_DIR}" ] || { warn "Erreur: option --coquelicot manquante."; usage; exit 1; }
     [ -n "${PARAMCOQ_DIR}" ] || { warn "Erreur: option --paramcoq manquante."; usage; exit 1; }
     [ -n "${BIGNUMS_DIR}" ] || { warn "Erreur: option --bignums manquante."; usage; exit 1; }
     [ -n "${VALIDSDP_DIR}" ] || { warn "Erreur: option --validsdp manquante."; usage; exit 1; }
@@ -103,28 +110,37 @@ main() {
     opam install -y --fake coq.8.8.2
     popd
 
-    opam reinstall -y -j ${NJOBS} coq-mathcomp-ssreflect.1.7.0 coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1 coq-coquelicot.3.0.2
+    COQFLAGS="-native-compiler" opam reinstall -y -j ${NJOBS} coq-mathcomp-ssreflect.1.7.0 coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1
 
     pushd "${FLOCQ_DIR}"
     git checkout master
     git pull --ff-only origin master
     ./autogen.sh
-    ./configure
+    COQC="$(which coqc) -native-compiler" ./configure
     ./remake --jobs=${NJOBS} -B
     ./remake install -d
+    popd
+
+    pushd "${COQUELICOT_DIR}"
+    ./autogen.sh
+    COQC="$(which coqc) -native-compiler" ./configure
+    ./remake --jobs=${NJOBS} -B
+    ./remake install -d
+    # moche, il faudrait demander à Sylvie et Guillaume de corriger ça
+    cp -r theories/.coq-native ~/.opam/${switch}/lib/coq/user-contrib/Coquelicot
     popd
 
     pushd "${BIGNUMS_DIR}"
     git checkout primitive-integers
     git pull --ff-only vbgl primitive-integers
     make clean
-    make -j ${NJOBS}
+    COQFLAGS="-native-compiler" make -j ${NJOBS}
     make install
     popd
 
     pushd "${VALIDSDP_DIR}/external/interval-3.4.0_v88alpha"
     ./autogen.sh
-    ./configure
+    COQC="$(which coqc) -native-compiler" ./configure
     ./remake --jobs=${NJOBS} -B
     ./remake install -d
     popd
@@ -141,14 +157,14 @@ main() {
     pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/theory"
     make clean
     rm -f Makefile.coq Makefile.coq.conf
-    make -j ${NJOBS}
+    COQFLAGS="-native-compiler" make -j ${NJOBS}
     make install
     popd
 
     pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/refinements"
     make clean
     rm -f Makefile.coq Makefile.coq.conf
-    make -j ${NJOBS}
+    COQFLAGS="-native-compiler" make -j ${NJOBS}
     make install
     popd
 
@@ -157,12 +173,12 @@ main() {
     ./configure
     pushd ./plugins/soswitness
     make clean
-    make
+    COQFLAGS="-native-compiler" make
     make install
     popd
     pushd ./theories
     make clean
-    make -j ${NJOBS}
+    COQFLAGS="-native-compiler" make -j ${NJOBS}
     make install
     popd && popd
 }
