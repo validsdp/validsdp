@@ -19,7 +19,7 @@ COQUELICOT_DIR=""
 usage() {
     cat >&2 <<EOF
 Usage:
-  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --bignums …/bignumes --flocq …/flocq --paramcoq …/paramcoq --validsdp …/validsdp
+  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --bignums …/bignumes --flocq …/flocq --coquelicot …/coquelicot --paramcoq …/paramcoq --validsdp …/validsdp
 EOF
 }
 
@@ -110,20 +110,20 @@ main() {
     opam install -y --fake coq.8.8.2
     popd
 
-    COQFLAGS="-native-compiler" opam reinstall -y -j ${NJOBS} coq-mathcomp-ssreflect.1.7.0 coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1
+    COQFLAGS="-native-compiler yes" opam reinstall -y -j ${NJOBS} coq-mathcomp-ssreflect.1.7.0 coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1
 
     pushd "${FLOCQ_DIR}"
     git checkout master
     git pull --ff-only origin master
     ./autogen.sh
-    COQC="$(which coqc) -native-compiler" ./configure
+    COQC="$(which coqc) -native-compiler yes" ./configure
     ./remake --jobs=${NJOBS} -B
     ./remake install -d
     popd
 
     pushd "${COQUELICOT_DIR}"
     ./autogen.sh
-    COQC="$(which coqc) -native-compiler" ./configure
+    COQC="$(which coqc) -native-compiler yes" ./configure
     ./remake --jobs=${NJOBS} -B
     ./remake install -d
     # moche, il faudrait demander à Sylvie et Guillaume de corriger ça
@@ -134,13 +134,13 @@ main() {
     git checkout primitive-integers
     git pull --ff-only vbgl primitive-integers
     make clean
-    COQFLAGS="-native-compiler" make -j ${NJOBS}
+    COQFLAGS="-native-compiler yes" make -j ${NJOBS}
     make install
     popd
 
     pushd "${VALIDSDP_DIR}/external/interval-3.4.0_v88alpha"
     ./autogen.sh
-    COQC="$(which coqc) -native-compiler" ./configure
+    COQC="$(which coqc) -native-compiler yes" ./configure
     ./remake --jobs=${NJOBS} -B
     ./remake install -d
     popd
@@ -157,14 +157,14 @@ main() {
     pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/theory"
     make clean
     rm -f Makefile.coq Makefile.coq.conf
-    COQFLAGS="-native-compiler" make -j ${NJOBS}
+    COQFLAGS="-native-compiler yes" make -j ${NJOBS}
     make install
     popd
 
     pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/refinements"
     make clean
     rm -f Makefile.coq Makefile.coq.conf
-    COQFLAGS="-native-compiler" make -j ${NJOBS}
+    COQFLAGS="-native-compiler yes" make -j ${NJOBS}
     make install
     popd
 
@@ -173,12 +173,12 @@ main() {
     ./configure
     pushd ./plugins/soswitness
     make clean
-    COQFLAGS="-native-compiler" make
+    COQFLAGS="-native-compiler yes" make
     make install
     popd
     pushd ./theories
     make clean
-    COQFLAGS="-native-compiler" make -j ${NJOBS}
+    COQFLAGS="-native-compiler yes" make -j ${NJOBS}
     make install
     popd && popd
 }
