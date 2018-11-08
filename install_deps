@@ -10,7 +10,7 @@ VALIDSDP_DIR=""
 FLOCQ_DIR=""
 # Should point to Vincent's git repo of Bignums (https://github.com/vbgl/bignums)
 BIGNUMS_DIR=""
-# Should point to aa755 repo of paramcoq (https://github.com/aa755/paramcoq/)
+# Should point to paramcoq (https://github.com/coq-community/paramcoq)
 # N.B.: the version reported by "coqtop -v" should be 8.10+alpha
 PARAMCOQ_DIR=""
 # Should point to a directory with coquelicot 3.0.2 sources
@@ -149,7 +149,7 @@ main() {
     git checkout master
     git pull --ff-only origin master
     make clean
-    rm -f Makefile.coq Makefile.coq.conf
+    rm -f Makefile.coq Makefile.coq.conf Make.cfg.local
     make -j ${NJOBS}
     make install
     popd
