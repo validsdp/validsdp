@@ -1,0 +1,22 @@
+makedot: dependtodot.ml
+	ocamlc -o $@ -pp camlp4o $<
+
+depend.dot:: $(VFILES) makedot
+	coqdep -noglob $(VFILES) | grep -v -e '\.vio:' > depend
+	sed -i -e 's|[/0-9A-Za-z_]*\.v\.beautified||g' depend
+	./makedot depend
+	sed -i -e 's|\./|./libValidSDP.|g' $@
+
+depend.png:: depend.dot
+	dot -Tpng $< -o $@
+
+depend.html:: depend.dot
+	dot -Tcmapx $< -o $@
+
+doc:: html depend.png depend.html cholesky_infnan.vo
+	cp depend.png html/
+	if ! grep -e 'depend[.]png' html/toc.html; then \
+	  sed -i html/toc.html \
+	  -e 's,id=.main.>,&<img src='\''depend.png'\'' border=0 usemap='\''#depend'\'' />,' \
+	  -e '/<img src='\''depend.png'\''/r depend.html'; \
+	fi
