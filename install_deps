@@ -149,6 +149,7 @@ main() {
     git checkout master
     git pull --ff-only origin master
     make clean
+    git clean -dxf .  # a bit aggressive but required
     rm -f Makefile.coq Makefile.coq.conf Make.cfg.local
     make -j ${NJOBS}
     make install
