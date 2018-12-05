@@ -171,11 +171,11 @@ main() {
     pushd "${VALIDSDP_DIR}"
     ./autogen.sh
     ./configure
-    pushd ./plugins/soswitness
-    make clean
-    COQFLAGS="-native-compiler yes" make
-    make install
-    popd
+    # pushd ./plugins/soswitness
+    # make clean
+    # COQFLAGS="-native-compiler yes" make
+    # make install
+    # popd
     pushd ./theories
     make clean
     COQFLAGS="-native-compiler yes" make -j ${NJOBS}
