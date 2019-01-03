@@ -13,12 +13,12 @@ From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
-Require Import Rstruct.
-Require Import iteri_ord float_infnan_spec real_matrix.
+Require Import libValidSDP.Rstruct.
+Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog coqinterval_infnan.
-From ValidSDP Require Import zulp.
-From ValidSDP Require Import misc.
+Require Import cholesky_prog libValidSDP.coqinterval_infnan.
+Require Import zulp.
+Require Import libValidSDP.misc misc.
 
 Import GRing.Theory.
 Import Num.Theory.
@@ -325,7 +325,8 @@ Lemma F2FI_valE f :
   F.toX (F2FI_val f) = F.toX f.
 Proof.
 case: f => [//|m e].
-by move/signif_digits_correct; rewrite /F2FI_val =>->.
+About signif_digits_correct.
+  by move/signif_digits_correct; rewrite /F2FI_val =>->.
 Qed.
 
 Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z then n else Z0.

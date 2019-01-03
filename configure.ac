@@ -123,6 +123,15 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find library Bignums.BigQ.BigQ (opam package coq-bignums)])])
 rm -f conftest.v conftest.vo conftest.err
 
+AC_MSG_CHECKING([for libValidSDP])
+AS_IF(
+  [ echo "From libValidSDP Require Import misc." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find library libValidSDP (c.f. directory libvalidsdp)])])
+rm -f conftest.v conftest.vo conftest.err
+
 # Create files
 AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/_CoqProject])
 AC_OUTPUT
