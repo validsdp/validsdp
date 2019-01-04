@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.59)
 AC_INIT([libValidSDP], [0.4-git])
-AC_CONFIG_SRCDIR([theories/cholesky_infnan.v])
+AC_CONFIG_SRCDIR([cholesky_infnan.v])
 
 # Check for programs
 AC_CHECK_TOOL([OCAMLC], [ocamlc], [no])

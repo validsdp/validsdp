@@ -1,3 +1,5 @@
+install: all
+
 makedot: dependtodot.ml
 	ocamlc -o $@ -pp camlp4o $<
 
