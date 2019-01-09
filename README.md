@@ -32,21 +32,21 @@ be retrieved and installed manually: they are available in the
 Installation
 ------------
 
-Most of the dependencies (Coq, Bignums, MathComp, Multinomials, Flocq,
-Coquelicot, Coq-interval, paramcoq and OSDP) can be easily installed
-with [OPAM](https://opam.ocaml.org/).
+First install libValidSDP (see instructions in libvalidsdp/README.md).
+
+Most of the remaining dependencies (Multinomials, paramcoq and OSDP)
+can be easily installed with [OPAM](https://opam.ocaml.org/).
 Once OPAM is installed, run:
 
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
-    $ opam pin -n -k version add coq 8.7.2
-    $ opam install --jobs=2 coq coq-interval coq-mathcomp-field coq-mathcomp-multinomials coq-paramcoq osdp camlp4
+    $ opam install --jobs=2 coq-mathcomp-multinomials coq-paramcoq osdp
 
-To ensure that you have these dependencies properly installed, run:
+To ensure that you have all dependencies properly installed, run:
 
     $ ./configure
 
-Then, to build and install paramcoq and CoqEAL, run:
+Then, to build and install CoqEAL, run:
 
     $ make external
 

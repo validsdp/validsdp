@@ -247,3 +247,11 @@ Definition corollary_2_4_with_c_upper_bound64_infnan :=
 
 Definition corollary_2_7_with_c_r_upper_bounds64_infnan :=
   @corollary_2_7_with_c_r_upper_bounds_infnan binary64_infnan.
+
+Require Import coqinterval_infnan.
+
+Definition corollary_2_4_with_c_upper_bound_itv_infnan :=
+  @corollary_2_4_with_c_upper_bound_infnan coqinterval_infnan.
+
+Definition corollary_2_7_with_c_r_upper_bounds_itv_infnan :=
+  @corollary_2_7_with_c_r_upper_bounds_infnan coqinterval_infnan.

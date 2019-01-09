@@ -13,13 +13,13 @@ From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
 From SsrMultinomials Require Import mpoly.
 Require Import ssrmultinomials_complements.
-Require Import Rstruct.
-Require Import iteri_ord float_infnan_spec real_matrix.
+Require Import libValidSDP.Rstruct.
+Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog coqinterval_infnan.
+Require Import cholesky_prog libValidSDP.coqinterval_infnan.
 From CoqEAL.refinements Require Import multipoly. Import PolyAVL.
-From ValidSDP Require Import zulp.
-Require Import misc.
+Require Import zulp.
+Require Import libValidSDP.misc misc.
 From ValidSDP Require Export soswitness.
 
 Import GRing.Theory.
