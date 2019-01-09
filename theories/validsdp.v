@@ -2450,23 +2450,14 @@ Ltac pair_member v l :=
     [appears_in_ineq vm t] = does some var in list vm appears in the ineq t ?
     See also [get_ineq] above.
 *)
-Ltac appears_in_ineq vm t :=
-  let rec aux vm t :=
-      match vm with
-      | Datatypes.nil => false
-      | Datatypes.cons ?v ?vm =>
-        match t with
-        | context [v] => true
-        | _ => aux vm t
-        end
-      end
-  in match t with
-     | Rle ?x ?y => aux vm t
-     | Rge ?x ?y => aux vm t
-     | Rlt ?x ?y => aux vm t
-     | Rgt ?x ?y => aux vm t
-     | _ => false
-     end.
+Ltac is_ineq t :=
+  match t with
+  | Rle ?x ?y => true
+  | Rge ?x ?y => true
+  | Rlt ?x ?y => true
+  | Rgt ?x ?y => true
+  | _ => false
+  end.
 
 (** Primitives to append terms in a single pair-tuple at the top of the stack *)
 Ltac set_state top new :=
@@ -2487,11 +2478,173 @@ Ltac peek_state :=
   | [|- let _ := ?top in _] => top
   end.
 
+Ltac appears_in vm t :=
+  match vm with
+  | Datatypes.nil => false
+  | Datatypes.cons ?v ?vm =>
+    match t with
+    | context [v] => true
+    | _ => false
+    end
+  end.
+
+Ltac map_tuple f l :=
+  match l with
+  | tt => tt
+  | pair ?rest ?v => let res := map_tuple f rest in
+                     let fv := f v in
+                     constr:(pair res fv)
+  | ?v => f v
+  end.
+
+Ltac fold_tuple f acc l :=
+  match l with
+  | tt => acc
+  | pair ?rest ?v => idtac "." v; let res := f acc v in
+                     fold_tuple f res rest
+  | ?v => f acc v
+  end.
+
+Require Import Ltac2.Ltac2.
+Import Ltac2.Control.
+
+Ltac2 is_ineq t :=
+  match! t with
+  | Rle ?x ?y => true
+  | Rge ?x ?y => true
+  | Rlt ?x ?y => true
+  | Rgt ?x ?y => true
+  | _ => false
+  end.
+
+Print Ltac2
+      hyps.
+Goal True.
+ltac1:(evar (x : nat)).
+let h := hyps () in 
+  let rec filter_ineq l :=
+      match l with
+      | [] => ()
+      | x :: l =>
+        match x with
+        | (id, s, t) =>
+          match s with
+          | Some c => 
+          | None => Message.print (Message.of_string "None")
+          end
+        end
+      end in filter_ineq h.
+
+Ltac2 list_ineqs () :=
+  let h := hyps () in
+  let rec filter_ineq l :=
+      match l with
+      | [] => []
+      | x :: l =>
+        match x with
+        | (id, _, t) =>
+          match is_ineq t with
+          | true => t :: filter_ineq l
+          | _ => filter_ineq l
+          end
+        end
+      end in
+  filter_ineq h.
+
+Goal forall x y z w t  (H1 : x <= z) (H2 : y + w + cos t < 0) (H3 : sin y < cos w)
+,
+    x + sin y - t >= 0.
+intros.
+let h :
+       = hyp ident:(H1) in let t := Constr.type h in Message.print (Message.of_constr t).
+let l := list_ineqs () in Message.print (Message.of_constr l).
+
+
+Ltac list_ineqs k :=
+  let top := fresh "hyps" in
+  set_state top tt;
+  repeat match goal with
+         | [ H : ?t |- _ ] => match is_ineq t with
+                              | true => let top0 := peek_state in
+                                        match pair_member H top0 with
+                                        | true => fail
+                                        | false => app_state top H
+                                        end
+                              end
+         end;
+  pop_state top ltac:(fun hyps => k hyps).
+
+Variant prod2 (A B : Type) := pair2 : A -> B -> prod2 A B.
+
+Ltac list_ineqs_vars k :=
+  list_ineqs ltac:(fun hyps =>
+                     idtac hyps;
+    fold_tuple ltac:(fun kacc hyp =>
+      idtac hyp;
+      let typ := type of hyp in
+        get_goal typ (@Datatypes.nil R) ltac:(fun res =>
+          match res with
+          | (_, ?vm) => let p := constr:(pair2 hyp vm) in kacc p
+          end)) ltac:(fun e => idtac e) hyps).
+
+intros.
+list_ineqs_vars ltac:(fun k => pose K := k).
+let t := type of H3 in
+        get_goal t (@Datatypes.nil R) ltac:(fun res =>
+          match res with
+          | (_, ?vm) => pose v := vm
+          | not_supported => fail 999 "unsupported goal"
+          end).
+
+let x := eval unfold HHH in HHH in
+let lll := map_tuple ltac:(fun v => constr:(pair2 v 4)) x in pose LLL := lll.
+
+
+      let conc := constr:(R0 <= expr) in
+
+
+
+                     let l :=
+
+
+
+                                   map_tuple ltac:(fun v => constr:(pair2 v 4)) hyps in pose LLL := l).
+
+
+
+  let conc := constr:(R0 <= expr) in
+  get_goal conc (@Datatypes.nil R) ltac:(fun res =>
+    match res with
+    | (_, ?vm) =>
+      let top := fresh "hyps" in
+      set_state top tt;
+      repeat match goal with
+             | [ H : ?t |- _] => match appears_in_ineq vm t with
+                               | true => let top0 := peek_state in
+                                        match pair_member H top0 with
+                                        | true => fail
+                                        | false => app_state top H
+                                        end
+                               end
+             end;
+      pop_state top ltac:(fun hyps => idtac "Selected hypotheses" hyps; k hyps)
+    end).
+
+                       idtac "Selected hypotheses" hyps;
+                                  pose HHH :=  hyps).
+
+
+
+
 (** Heuristic algorithm for "validsdp_intro expr using * as H":
-    - Retrieve the (non-polynomial) vars of expr
-    - For each hyp in the context, check if some of these vars appears inside
-    - Otherwise the hyp is discarded
-    - Then behave as "validsdp_intro expr using (list_of_vars) as H."
+    1. Retrieve the hyps of the context that are inequalities
+    2. Store them in a Map composed of pairs (hyp, false = non-selected)
+    3. Retrieve the (non-polynomial) vars of expr
+    4. Store them in a List
+    5. For each hyp (H, false) of the Map, test if a var from List appears in H
+    6. If yes, change the hyp to (H, true) and restart at step 3 with (expr:=H)
+    7. If no, select the list of (H, true), call it HypList,
+       and behave as "validsdp_intro expr using (HypList) as H".
  *)
 Ltac do_validsdp_intro_all expr k :=
   let conc := constr:(R0 <= expr) in

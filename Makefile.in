@@ -34,8 +34,6 @@ external::
 install::
 	$(MAKE) -C plugins/soswitness
 	$(MAKE) -C plugins/soswitness install
-	$(MAKE) -C plugins/selectineq
-	$(MAKE) -C plugins/selectineq install
 	$(MAKE) -C theories
 	$(MAKE) -C theories install
 
@@ -43,7 +41,6 @@ clean::
 	([ -f external/CoqEAL/theory/Makefile ] && $(MAKE) -C external/CoqEAL/theory clean )
 	([ -f external/CoqEAL/refinements/Makefile ] && $(MAKE) -C external/CoqEAL/refinements clean )
 	$(MAKE) -C plugins/soswitness clean
-	$(MAKE) -C plugins/selectineq clean
 	$(MAKE) -C theories clean
 
 dist::
