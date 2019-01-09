@@ -15,17 +15,19 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
 majmin=`echo "$coq_version" | cut -d . -f "1 2"`
-if test "v$majmin" != "v8.7" -a "v$majmin" != "v8.8"; then
-  AC_MSG_ERROR([Coq version must be 8.7.x or 8.8.x (you have version $coq_version).])
+if test "v$majmin" != "v8.7" -a "v$majmin" != "v8.8" -a "v$majmin" != "v8.9"; then
+  AC_MSG_ERROR([Coq version must be 8.7.x or 8.8.x or 8.9.x (you have version $coq_version).])
 fi
 AC_MSG_RESULT($coq_version)
 
 minor=`echo "$coq_version" | cut -d . -f 2`
 if test "$minor" -le 7; then
   COQ_VERSION="v87"
-else
+else if test "$minor" -le 8; then
   COQ_VERSION="v88"
-fi
+else
+  COQ_VERSION="v89"
+fi ; fi
 AC_SUBST(COQ_VERSION)
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
@@ -54,11 +56,11 @@ rm -f conftest.v conftest.vo conftest.err
 AC_MSG_CHECKING([for Flocq])
 AS_IF(
   [ echo "Require Import Flocq.Version BinNat." \
-         "Goal (30000 <= Flocq_version)%N. easy. Qed." > conftest.v
+         "Goal (30100 <= Flocq_version)%N. easy. Qed." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library Flocq >= 3.0 (http://flocq.gforge.inria.fr/)])])
+    AC_MSG_ERROR([ *** Unable to find library Flocq >= 3.1 (http://flocq.gforge.inria.fr/)])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Coq-interval])

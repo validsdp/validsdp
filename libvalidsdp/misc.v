@@ -55,9 +55,6 @@ Lemma ord_1_0 (i : 'I_1) : i = ord0.
 Proof. by case: i => [[]] // HH; apply /eqP. Qed.
 
 (** About [Rabs]. *)
-Lemma Rabs_0 x : (Rabs x = 0 -> x = 0)%Re.
-Proof. split_Rabs; lra. Qed.
-
 Lemma Rge_opp_abs x : - Rabs x <= x.
 Proof. split_Rabs; lra. Qed.
 
