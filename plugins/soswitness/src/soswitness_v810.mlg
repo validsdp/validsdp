@@ -2,6 +2,8 @@
 
 DECLARE PLUGIN "soswitness"
 
+{
+
 exception Parse_error
 
 (* Various constructors and destructors needed. *)
@@ -468,30 +470,29 @@ let soswitness_opts ?(intro=false) gl c id opts =
 open Stdarg
 open Ltac_plugin
 
+}
+
 TACTIC EXTEND soswitness_of_as
-["soswitness" "of" constr(c) "as" ident(id) ] ->
-[ Proofview.Goal.enter (fun gl ->
+| ["soswitness" "of" constr(c) "as" ident(id) ] ->
+{ Proofview.Goal.enter (fun gl ->
     let c = EConstr.Unsafe.to_constr c in
     let opts =
       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
-    soswitness_opts gl c id opts) ]
-|
-["soswitness" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
-[ Proofview.Goal.enter (fun gl ->
+    soswitness_opts gl c id opts) }
+| ["soswitness" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
+{ Proofview.Goal.enter (fun gl ->
     let c = EConstr.Unsafe.to_constr c in
     let opts = EConstr.Unsafe.to_constr opts in
-    soswitness_opts gl c id opts) ]
-|
-["soswitness_intro" "of" constr(c) "as" ident(id) ] ->
-[ Proofview.Goal.enter (fun gl ->
+    soswitness_opts gl c id opts) }
+| ["soswitness_intro" "of" constr(c) "as" ident(id) ] ->
+{ Proofview.Goal.enter (fun gl ->
     let c = EConstr.Unsafe.to_constr c in
     let opts =
       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
-    soswitness_opts ~intro:true gl c id opts) ]
-|
-["soswitness_intro" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
-[ Proofview.Goal.enter (fun gl ->
+    soswitness_opts ~intro:true gl c id opts) }
+| ["soswitness_intro" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
+{ Proofview.Goal.enter (fun gl ->
     let c = EConstr.Unsafe.to_constr c in
     let opts = EConstr.Unsafe.to_constr opts in
-    soswitness_opts ~intro:true gl c id opts) ]
+    soswitness_opts ~intro:true gl c id opts) }
 END

@@ -330,7 +330,7 @@ unfold mantissa_bounded, x_bounded; simpl; right; exists (bpow radix2 [n]%bigZ).
   { now case (Z.pow_pos 2 p). }
   now unfold Rdiv; rewrite Rmult_1_l. }
 apply FLX_format_generic; [now simpl| ]; apply generic_format_bpow.
-unfold FLX_exp; change (Int63.to_Z 53) with 53%Z; lia.
+unfold FLX_exp; change (Int63.to_Z _) with 53%Z; lia.
 Qed.
 
 Definition FI1 := Build_FI (mantissa_bounded_bpow 0%bigZ).
@@ -399,13 +399,13 @@ case x; auto.
 intros s m e; case s; auto.
 { unfold Bir.mantissa_sign, Bir.ZtoM; simpl.
   unfold BigZ.BigZ.eqb; rewrite BigZ.BigZ.spec_compare; simpl.
-  change (Int63.to_Z 0) with 0%Z.
+  change (Int63.to_Z _) with 0%Z.
   rewrite BigN.BigN.spec_of_pos; simpl.
   unfold Bir.MtoP; rewrite BigN.BigN.spec_of_pos.
   now rewrite [_ (_ e)]Bir.ZtoE_correct. }
 unfold BigIntRadix2.mantissa_sign, BigIntRadix2.ZtoM; simpl.
 unfold BigZ.BigZ.eqb; rewrite BigZ.BigZ.spec_compare; simpl.
-change (Int63.to_Z 0) with 0%Z.
+change (Int63.to_Z _) with 0%Z.
 rewrite BigN.BigN.spec_of_pos; simpl.
 unfold BigIntRadix2.MtoP; rewrite BigN.BigN.spec_of_pos.
 now rewrite [_ (_ e)]BigIntRadix2.ZtoE_correct.
@@ -846,7 +846,7 @@ rewrite /= /flx64.eps /Rdiv /F.toX /F.toF.
 replace (Bir.mantissa_sign 1) with (Interval_specific_sig.Mnumber false 1%bigN);
   [ |now compute].
 rewrite /Bir.MtoP /FtoX /FtoR; replace [1]%bigN with 1%Z; [ |now compute].
-simpl; replace (Int63.to_Z 53) with (53)%Z; [ |now compute]; simpl.
+simpl; replace (Int63.to_Z _) with (53)%Z; [ |now compute]; simpl.
 now rewrite /Rdiv Rmult_1_l; right.
 Qed.
 
@@ -858,7 +858,7 @@ rewrite /= /flx64.eps /Rdiv /F.toX /F.toF.
 replace (Bir.mantissa_sign 1) with (Interval_specific_sig.Mnumber false 1%bigN);
   [ |now compute].
 rewrite /Bir.MtoP /FtoX /FtoR; replace [1]%bigN with 1%Z; [ |now compute].
-simpl; replace (Int63.to_Z 1075) with (1075)%Z; [ |now compute]; simpl.
+simpl; replace (Int63.to_Z _) with (1075)%Z; [ |now compute]; simpl.
 now rewrite /Rdiv Rmult_1_l; right.
 Qed.
 
