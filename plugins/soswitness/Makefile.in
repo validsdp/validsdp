@@ -8,6 +8,11 @@ MODULES =\
 all: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
+src/soswitness.ml4: src/soswitness_@COQ_VERSION@.ml4
+	rm -f $@
+	cp $< $@
+	chmod a-w $@
+
 Makefile.coq: Makefile $(MODULES)
 	@ocamlfind query zarith >/dev/null
 	@ocamlfind query osdp >/dev/null

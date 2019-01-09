@@ -311,7 +311,6 @@ case x; case y; try now simpl.
 { now intros b m e e' b'; case b'. }
 { now intros b b'; case b'. }
 { now intros b b'; case b'; case b. }
-{ now intros b pl Hpl b' m e He; case b'. }
 intros b m e B b' m' e' B'; simpl; case b'; case b; try now simpl.
 { case_eq (Z.compare e' e); try now simpl.
   intro He; apply Z.compare_eq in He; rewrite Pos.compare_cont_antisym; simpl.
@@ -331,8 +330,7 @@ case x; case y; try now simpl.
 { now intro b; case b. }
 { now intros b b'; simpl; case b'. }
 { now intros b m e He b'; simpl; case b'. }
-{ now intros b b'; case b'; case b. }
-now intros b pl Hpl b'; case b'.
+now intros b b'; case b'; case b.
 Qed.
 
 Definition binary64_infnan : Float_infnan_spec :=
