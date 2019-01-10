@@ -38,9 +38,11 @@ install: |
     sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
     : Installing OPAM deps
     sudo chown -R coq:coq /home/coq/${CONTRIB_NAME}
+    opam repo add --all-switches --set-default coq-extra-dev https://coq.inria.fr/opam/extra-dev
     opam pin add -n -k path coq-libvalidsdp .
-    opam install -y -j ${NJOBS} coq-libvalidsdp --deps-only
-    opam install -y -j ${NJOBS} coq-mathcomp-multinomials.1.1 coq-paramcoq.1.1.0 osdp
+    # The --ignore-constraints-on=coq are necessary for coq-flocq.dev
+    opam install -y -j ${NJOBS} --ignore-constraints-on=coq coq-libvalidsdp --deps-only
+    opam install -y -j ${NJOBS} --ignore-constraints-on=coq coq-mathcomp-multinomials.1.1 coq-paramcoq.1.1.0 osdp
     opam config list
     opam repo list
     opam list
@@ -59,7 +61,7 @@ script:
   docker exec COQ /bin/bash --login -c "
     export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '
     set -ex
-    opam install -y -v -j ${NJOBS} coq-libvalidsdp
+    opam install -y -v -j ${NJOBS} --ignore-constraints-on=coq coq-libvalidsdp
     cd /home/coq/${CONTRIB_NAME}
     ./autogen.sh
     ./configure
