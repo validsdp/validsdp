@@ -13,8 +13,8 @@ env:
   - COQEAL_URL="https://github.com/CoqEAL/CoqEAL.git"
   - COQEAL_VERSION="d205c98bc36e284759956bee6c8886d548e2e9d0"
   matrix:
-  - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.8"
   - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.7"
+  - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.8"
 
 install: |
   # Prepare the COQ container
@@ -50,7 +50,7 @@ install: |
     git checkout ${COQEAL_VERSION}
     pushd theory && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install && popd
     pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && popd
-    : done"
+    : done" install
 
 script:
 - echo -e "${ANSI_YELLOW}Building ${CONTRIB_NAME}...${ANSI_RESET}" && echo -en 'travis_fold:start:script\\r'
@@ -64,6 +64,6 @@ script:
     ./autogen.sh
     ./configure
     make install
-    : done"
+    : done" script
 - docker stop COQ  # optional
 - echo -en 'travis_fold:end:script\\r'
