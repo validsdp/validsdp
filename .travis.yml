@@ -39,8 +39,9 @@ install: |
     : Installing OPAM deps
     sudo chown -R coq:coq /home/coq/${CONTRIB_NAME}
     opam pin add -n -k path coq-libvalidsdp .
+    opam install -y -j ${NJOBS} coq-libvalidsdp --deps-only
     opam install -y -v -j ${NJOBS} coq-libvalidsdp
-    opam install -y -v -j ${NJOBS} coq-mathcomp-multinomials.1.1 coq-paramcoq.1.1.0 osdp
+    opam install -y -j ${NJOBS} coq-mathcomp-multinomials.1.1 coq-paramcoq.1.1.0 osdp
     opam config list
     opam repo list
     opam list
