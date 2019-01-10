@@ -34,7 +34,7 @@ install: |
     exec {fd}>&- # close file descriptor
     : Installing APT deps
     # “sudo apt-get update -y -q” is mandatory before “opam depext -i”
-    travis_retry opam depext -i -y conf-gmp.1 conf-sdpa.1
+    travis_retry opam depext -i -y conf-gmp.1 conf-csdp.1 conf-sdpa.1
     sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
     : Installing OPAM deps
     sudo chown -R coq:coq /home/coq/${CONTRIB_NAME}
