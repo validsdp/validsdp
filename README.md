@@ -12,7 +12,7 @@ Dependencies
 - [Coq](https://coq.inria.fr) version 8.8.x or 8.7.x
 - [Bignums](https://github.com/coq/bignums) (version 8.8 or 8.7 depending on Coq)
 - [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.7.0)
-- [Flocq](http://flocq.gforge.inria.fr/) (tested with master)
+- [Flocq](http://flocq.gforge.inria.fr/) (tested with 3.0.0 and master)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.2)
 - [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.4.0)
 - [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 0.6.0)

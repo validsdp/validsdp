@@ -27,7 +27,7 @@ install: Makefile.coq
 
 clean: Makefile.coq
 	-$(MAKE) -f Makefile.coq clean
-	rm -f Makefile.coq Makefile.coq.conf
+	rm -f Makefile.coq Makefile.coq.conf src/soswitness.ml4
 
 dist: $(MODULES) Makefile
 	T=$$(mktemp -d ../../dist1.XXX) && S=$$T/plugins/soswitness && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ../../dist1 && ln -rsv $$T ../../dist1

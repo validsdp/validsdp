@@ -311,6 +311,8 @@ case x; case y; try now simpl.
 { now intros b m e e' b'; case b'. }
 { now intros b b'; case b'. }
 { now intros b b'; case b'; case b. }
+(* required due to old nan def in Flocq <= 3.0.0 *)
+try (now intros b pl Hpl b' m e B; case b').
 intros b m e B b' m' e' B'; simpl; case b'; case b; try now simpl.
 { case_eq (Z.compare e' e); try now simpl.
   intro He; apply Z.compare_eq in He; rewrite Pos.compare_cont_antisym; simpl.
@@ -326,11 +328,12 @@ Lemma ficompare_spec_eq_f x y : ficompare x y = Some Eq ->
   (finite x <-> finite y).
 Proof.
 unfold ficompare.
-case x; case y; try now simpl.
+case x; case y; try now simpl;
+  try (now intros b pl Hpl b'; case b').
 { now intro b; case b. }
 { now intros b b'; simpl; case b'. }
 { now intros b m e He b'; simpl; case b'. }
-now intros b b'; case b'; case b.
+now intros b b'; case b, b'.
 Qed.
 
 Definition binary64_infnan : Float_infnan_spec :=
