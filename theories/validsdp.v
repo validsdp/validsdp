@@ -105,18 +105,19 @@ move=> p; rewrite /bigQ2R /interp_p_real_cst -IQRp -Q2R_inv.
 by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl.
 Qed.
 
+(* After requiring Ltac2, mathcomp's notation "... of ... & ..." doesn't work *)
 Inductive p_abstr_poly :=
   (* | Const of Poly.t *)
   (* | Mult_scalar of Poly.Coeff.t * abstr_poly *)
   | PConst of p_real_cst
-  | PVar of nat
+  | PVar : nat -> p_abstr_poly
   | POpp of p_abstr_poly
-  | PAdd of p_abstr_poly & p_abstr_poly
-  | PSub of p_abstr_poly & p_abstr_poly
-  | PMul of p_abstr_poly & p_abstr_poly
-  | PPowN of p_abstr_poly & binnat.N
-  | PPown of p_abstr_poly & nat
-  | PCompose of p_abstr_poly & seq p_abstr_poly.
+  | PAdd : p_abstr_poly -> p_abstr_poly -> p_abstr_poly
+  | PSub : p_abstr_poly -> p_abstr_poly -> p_abstr_poly
+  | PMul : p_abstr_poly -> p_abstr_poly -> p_abstr_poly
+  | PPowN : p_abstr_poly -> binnat.N -> p_abstr_poly
+  | PPown : p_abstr_poly -> nat -> p_abstr_poly
+  | PCompose : p_abstr_poly -> seq p_abstr_poly -> p_abstr_poly.
 
 Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
   match s with
@@ -2450,6 +2451,7 @@ Ltac pair_member v l :=
     [appears_in_ineq vm t] = does some var in list vm appears in the ineq t ?
     See also [get_ineq] above.
 *)
+(*
 Ltac is_ineq t :=
   match t with
   | Rle ?x ?y => true
@@ -2458,6 +2460,7 @@ Ltac is_ineq t :=
   | Rgt ?x ?y => true
   | _ => false
   end.
+ *)
 
 (** Primitives to append terms in a single pair-tuple at the top of the stack *)
 Ltac set_state top new :=
@@ -2517,47 +2520,56 @@ Ltac2 is_ineq t :=
   | _ => false
   end.
 
-Print Ltac2
-      hyps.
-Goal True.
-ltac1:(evar (x : nat)).
-let h := hyps () in 
-  let rec filter_ineq l :=
-      match l with
-      | [] => ()
-      | x :: l =>
-        match x with
-        | (id, s, t) =>
-          match s with
-          | Some c => 
-          | None => Message.print (Message.of_string "None")
-          end
-        end
-      end in filter_ineq h.
-
-Ltac2 list_ineqs () :=
-  let h := hyps () in
-  let rec filter_ineq l :=
+Ltac2 filter_ineqs l :=
+  let rec aux l :=
       match l with
       | [] => []
       | x :: l =>
         match x with
         | (id, _, t) =>
-          match is_ineq t with
-          | true => t :: filter_ineq l
-          | _ => filter_ineq l
+          let ft := is_ineq t in
+          let res := aux l in
+          match ft with
+          | true => (id, t) :: res
+          | false => res
           end
         end
-      end in
-  filter_ineq h.
+      end
+  in aux l.
 
-Goal forall x y z w t  (H1 : x <= z) (H2 : y + w + cos t < 0) (H3 : sin y < cos w)
-,
-    x + sin y - t >= 0.
-intros.
-let h :
-       = hyp ident:(H1) in let t := Constr.type h in Message.print (Message.of_constr t).
-let l := list_ineqs () in Message.print (Message.of_constr l).
+Ltac get_vars1 arg vars :=
+  pop_state arg ltac:(fun conc =>
+    get_goal conc (@Datatypes.nil R) ltac:(fun res =>
+      match res with
+      | (_, ?vm) =>
+        set_state vars vm
+      end)).
+
+Ltac2 set2_state new :=
+  (* TODO fresh *)
+  set (arg := $new);
+  revert arg.
+
+(* TODO Ltac2 pop2_state ? *)
+
+Ltac2 get_vars expr :=
+  let conc := constr:(R0 <= $expr) in
+  set2_state conc.
+
+Lemma test_vars (x y : R) : True.
+get_vars constr:((x + sin (y) - x + 3)%Re).
+ltac1:(let vars := fresh "vars" in get_vars1 arg vars).
+
+(** Heuristic algorithm for "validsdp_intro expr using * as H":
+    1. Retrieve the hyps of the context that are inequalities
+    2. Store them in a Map composed of pairs (hyp, false = non-selected)
+    3. Retrieve the (non-polynomial) vars of expr
+    4. Store them in a List
+    5. For each hyp (H, false) of the Map, test if a var from List appears in H
+    6. If yes, change the hyp to (H, true) and restart at step 3 with (expr:=H)
+    7. If no, select the list of (H, true), call it HypList,
+       and behave as "validsdp_intro expr using (HypList) as H".
+ *)
 
 
 Ltac list_ineqs k :=
