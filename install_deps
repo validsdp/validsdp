@@ -105,7 +105,7 @@ main() {
     ./configure -annot -bin-annot -prefix $HOME/.opam/${switch}
     make -j ${NJOBS}
     make install
-    opam install -y base-num num
+    opam install -y num
     opam pin add -n -k version coq 8.8.2
     opam install -y --fake coq.8.8.2
     popd
@@ -132,7 +132,8 @@ main() {
 
     pushd "${BIGNUMS_DIR}"
     git checkout primitive-integers
-    git pull --ff-only vbgl primitive-integers
+    git fetch vbgl
+    git reset --hard vbgl/primitive-integers
     make clean
     COQFLAGS="-native-compiler yes" make -j ${NJOBS}
     make install
