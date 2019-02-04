@@ -1,5 +1,9 @@
 (** * Main tactic for multivariate polynomial positivity. *)
 
+Require Import Ltac2.Ltac2.
+Import Ltac2.Control.
+Set Default Proof Mode "Classic".
+
 Require Import ZArith.
 From Flocq Require Import Core. Require Import Datatypes.
 From Interval Require Import Interval_definitions Interval_xreal.
@@ -38,25 +42,25 @@ Variant Assert := assert_false.
 Inductive p_real_cst :=
 | PConstR0
 (* | PConstQz of bigZ *)
-| PConstQq of bigZ & bigN
-| PConstIZR of BinNums.Z
-| PConstRdiv of p_real_cst & positive
-| PConstRopp of p_real_cst
-| PConstRinv of positive.
+| PConstQq (_ : bigZ) (_ : bigN)
+| PConstIZR (_ : BinNums.Z)
+| PConstRdiv (_ : p_real_cst) (_ : positive)
+| PConstRopp (_ : p_real_cst)
+| PConstRinv (_ : positive).
 
-Ltac get_real_cst t :=
+Ltac2 get_real_cst t :=
   let rec aux t :=
-    match t with
+    match! t with
     (* | Z2R [?z]%bigZ *)
-    | bigQ2R (?z # ?n)%bigQ => constr:(PConstQq z n)
-    | R0 => PConstR0
+    | bigQ2R (?z # ?n)%bigQ => constr:(PConstQq $z $n)
+    | R0 => constr:(PConstR0)
     | Rdiv ?x (IZR (BinNums.Zpos ?y)) => let x := aux x in
-                                         constr:(PConstRdiv x y)
+                                         constr:(PConstRdiv $x $y)
     | Ropp ?x => let x := aux x in
-                 constr:(PConstRopp x)
-    | Rinv (IZR (BinNums.Zpos ?x)) => constr:(PConstRinv x)
-    | IZR ?n => constr:(PConstIZR n)
-    | _ => assert_false
+                 constr:(PConstRopp $x)
+    | Rinv (IZR (BinNums.Zpos ?x)) => constr:(PConstRinv $x)
+    | IZR ?n => constr:(PConstIZR $n)
+    | _ => constr:(assert_false)
     end in
   aux t.
 
@@ -109,15 +113,16 @@ Qed.
 Inductive p_abstr_poly :=
   (* | Const of Poly.t *)
   (* | Mult_scalar of Poly.Coeff.t * abstr_poly *)
-  | PConst of p_real_cst
-  | PVar : nat -> p_abstr_poly
-  | POpp of p_abstr_poly
-  | PAdd : p_abstr_poly -> p_abstr_poly -> p_abstr_poly
-  | PSub : p_abstr_poly -> p_abstr_poly -> p_abstr_poly
-  | PMul : p_abstr_poly -> p_abstr_poly -> p_abstr_poly
-  | PPowN : p_abstr_poly -> binnat.N -> p_abstr_poly
-  | PPown : p_abstr_poly -> nat -> p_abstr_poly
-  | PCompose : p_abstr_poly -> seq p_abstr_poly -> p_abstr_poly.
+  | PConst (_ : p_real_cst)
+  | PVar (_ : nat)
+  | POpp (_ : p_abstr_poly)
+  | PAdd (_ : p_abstr_poly) (_ : p_abstr_poly)
+  | PSub (_ : p_abstr_poly) (_ : p_abstr_poly)
+  | PMul (_ : p_abstr_poly) (_ : p_abstr_poly)
+  | PPowN (_ : p_abstr_poly) (_ : binnat.N)
+  | PPown (_ : p_abstr_poly) (_ : nat)
+  | PCompose (_ : p_abstr_poly) (_ : seq p_abstr_poly)
+.
 
 Fixpoint all_prop (T : Type) (a : T -> Prop) (s : seq T) : Prop :=
   match s with
@@ -199,18 +204,21 @@ Fixpoint interp_p_abstr_poly (vm : seq R) (ap : p_abstr_poly) {struct ap} : R :=
   | PCompose p qi => interp_p_abstr_poly (map (interp_p_abstr_poly vm) qi) p
   end.
 
-(** [list_add] was taken from CoqInterval *)
-Ltac list_add a l :=
+(** [list_add] was adapted from CoqInterval *)
+Ltac2 list_add a l :=
   let rec aux a l n :=
-    match l with
-    | Datatypes.nil        => constr:((n, Datatypes.cons a l))
-    | Datatypes.cons a _   => constr:((n, l))
+    match! l with
+    | Datatypes.nil => constr:(($n, Datatypes.cons $a $l))
     | Datatypes.cons ?x ?l =>
-      match aux a l (S n) with
-      | (?n, ?l) => constr:((n, Datatypes.cons x l))
+      match Constr.equal a x with
+      | true => constr:(($n, $l))
+      | false =>
+        match! aux a l constr:(S $n) with
+        | (?n, ?l) => constr:(($n, Datatypes.cons $x $l))
+        end
       end
     end in
-  aux a l O.
+  aux a l constr:(O).
 
 Variant Find_exc := not_found.
 Variant Poly_exc := not_polynomial.
@@ -218,49 +226,29 @@ Variant Goal_exc := not_supported.
 
 (** [list_idx a l = (idx, l)], [idx] being the index of [a] in [l].
     Otherwise return [not_found] *)
-Ltac list_idx a l :=
+Ltac2 list_idx a l :=
   let rec aux a l n :=
-    match l with
-    | Datatypes.nil        => not_found
-    | Datatypes.cons a _   => constr:((n, l))
+    match! l with
+    | Datatypes.nil => constr:(not_found)
     | Datatypes.cons ?x ?l =>
-      match aux a l (S n) with
-      | (?n, ?l) => constr:((n, Datatypes.cons x l))
-      | not_found => not_found
+      match Constr.equal a x with
+      | true => constr:(($n, $l))
+      | false =>
+        match! aux a l constr:(S $n) with
+        | (?n, ?l) => constr:(($n, Datatypes.cons $x $l))
+        | not_found => constr:(not_found)
+        end
       end
     end in
-  aux a l O.
+  aux a l constr:(O).
 
-Ltac reverse T l :=
+Ltac2 reverse t l :=
   let rec aux l accu :=
-    match l with
+    match! l with
     | Datatypes.nil => accu
-    | Datatypes.cons ?x ?l => aux l constr:(Datatypes.cons x accu)
+    | Datatypes.cons ?x ?l => aux l constr:(Datatypes.cons $x $accu)
     end in
-  aux l (@Datatypes.nil T).
-
-Ltac iter_tac tac l :=
-  let rec aux l :=
-    match l with
-    | Datatypes.nil => idtac
-    | Datatypes.cons ?x ?l => tac x; aux l
-    end
-  in aux l.
-
-(* OLD version
-
-(** [equate] was taken from CPDT *)
-Ltac equate x y :=
-  let dummy := constr:(erefl x : x = y) in idtac.
-
-(** Trick (evar-making tactic with continuation passing style) *)
-Ltac newvar T k :=
-  let x := fresh "dummy" in
-  evar (x : T);
-  let x' := (eval unfold x in x) in
-  clear x;
-  k x'.
- *)
+  aux l constr:(@Datatypes.nil $t).
 
 (** Define an opaque function to represent abstract real variables *)
 Definition x_ (nx : nat) : R.
@@ -270,34 +258,33 @@ Qed.
 (** Tactic with continuation passing style *)
 (* Erik: This new version of [newvar] does not create [evar]s anymore,
    so CPS style might be removed *)
-Ltac newvar T nx k :=
-  let x' := constr:(x_ nx) in
+Ltac2 newvar t nx k :=
+  let x' := constr:(x_ $nx) in
   k x'.
 
-Ltac deb tac := idtac.
-(* Ltac deb tac ::= tac. *)
+Ltac2 deb tac := ().
+(* Ltac2 deb tac := tac. *)
 
-Ltac fold_get_poly get_poly lq vm k :=
-  deb ltac:(idtac "fold_get_poly on .." lq vm "..");
-  let z0 := constr:((@Datatypes.nil p_abstr_poly, vm)) in
-  let rec aux lq vm k :=
-      match lq with
-      | Datatypes.nil => k z0
+Ltac2 fold_get_poly get_poly lq vm :=
+  (* deb (idtac "fold_get_poly on .." lq vm "..") *)
+  let z0 := constr:((@Datatypes.nil p_abstr_poly, $vm)) in
+  let rec aux lq vm :=
+      match! lq with
+      | Datatypes.nil => z0
       | Datatypes.cons ?q1 ?lq1 =>
-        aux lq1 vm ltac:(fun res =>
-          match res with
-       (* | not_polynomial => k not_polynomial *)
-          | (?lq2, ?vm1) =>
-            get_poly q1 vm1 ltac:(fun res =>
-              match res with
-           (* | not_polynomial => k not_polynomial *)
-              | (?q2, ?vm2) =>
-                let res := constr:((Datatypes.cons q2 lq2, vm2)) in k res
-              end)
-          end)
+        match! aux lq1 vm with
+        (* | not_polynomial => k not_polynomial *)
+        | (?lq2, ?vm1) =>
+          match! get_poly q1 vm1 with
+          (* | not_polynomial => k not_polynomial *)
+          | (?q2, ?vm2) =>
+            constr:((Datatypes.cons $q2 $lq2, $vm2))
+          end
+        end
       end in
-  aux lq vm k.
+  aux lq vm.
 
+(* Ltac2 equivalent ? *)
 Ltac check_unexpected_case f0 :=
   let err := fail 999 "Unexpected state. Please report this to the ValidSDP maintainers." in
   match f0 with
@@ -312,8 +299,8 @@ Ltac check_unexpected_case f0 :=
   end.
 
 (** [get_comp_poly tac0 tac1 t vm tac2 k] will check if [t] matches [?f ?x] *)
-Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
-  deb ltac:(idtac "get_comp_poly on .. .." t vm ".. ..");
+Ltac2 get_comp_poly get_poly_cur get_poly_pure t vm tac_var :=
+  (* deb ltac:(idtac "get_comp_poly on .. .." t vm ".. .."); *)
   let rec aux2 f0 f qi nx xx vm k := (* Second step *)
       (* f0 := initial value of f;
          f := function to be parsed (head of term t);
@@ -323,9 +310,9 @@ Ltac get_comp_poly get_poly_cur get_poly_pure t vm tac_var k :=
          vm := list of ambient variables;
          k := continuation;
        *)
-      deb ltac:(idtac "get_comp_poly.aux2 on" f0 f qi nx xx vm "..");
+      (* deb ltac:(idtac "get_comp_poly.aux2 on" f0 f qi nx xx vm ".."); *)
       check_unexpected_case f0;
-      match type of f with
+      match! Constr.type f with
       | R =>
         let f := (eval unfold f0 in f) in
         let xx := reverse R xx in
@@ -493,11 +480,11 @@ Ltac get_poly t vm k :=
 Inductive abstr_poly :=
   | Const of bigQ
   | Var of nat
-  | Add of abstr_poly & abstr_poly
-  | Sub of abstr_poly & abstr_poly
-  | Mul of abstr_poly & abstr_poly
-  | PowN of abstr_poly & binnat.N
-  | Compose of abstr_poly & seq abstr_poly.
+  | Add (_ : abstr_poly) (_ : abstr_poly)
+  | Sub (_ : abstr_poly) (_ : abstr_poly)
+  | Mul (_ : abstr_poly) (_ : abstr_poly)
+  | PowN  (_ : abstr_poly) (_ : binnat.N)
+  | Compose  (_ : abstr_poly) (_ : seq abstr_poly).
 
 Section Defix'.
 Variable (P : abstr_poly -> Prop).
@@ -1952,20 +1939,20 @@ Proof. now intros H0; apply Rgt_lt, Rminus_gt, Rlt_gt. Qed.
 (** *** The main tactic. *)
 
 Inductive p_abstr_ineq :=
-| ILe of p_abstr_poly & p_abstr_poly
-| IGe of p_abstr_poly & p_abstr_poly
-| ILt of p_abstr_poly & p_abstr_poly
-| IGt of p_abstr_poly & p_abstr_poly
+| ILe (_: p_abstr_poly) (_: p_abstr_poly)
+| IGe (_: p_abstr_poly) (_: p_abstr_poly)
+| ILt (_: p_abstr_poly) (_: p_abstr_poly)
+| IGt (_: p_abstr_poly) (_: p_abstr_poly)
 .
 
 Inductive p_abstr_hyp :=
 | Hineq of p_abstr_ineq
-| Hand of p_abstr_hyp & p_abstr_hyp
+| Hand (_ : p_abstr_hyp) (_ : p_abstr_hyp)
 .
 
 Inductive p_abstr_goal :=
   | Gineq of p_abstr_ineq
-  | Ghyp of p_abstr_hyp & p_abstr_goal
+  | Ghyp (_ : p_abstr_hyp) (_ : p_abstr_goal)
   .
 
 Fixpoint interp_p_abstr_ineq (vm : seq R) (i : p_abstr_ineq) {struct i} : Prop :=
@@ -2091,29 +2078,28 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
            Wit (mx := @hseqmx) (fs := fs) s (s := sz.-1) z Q)
         szQi in
   let pszQl := zip bpl szQl in
-  [&&
-   n != 0%N,
-   all (fun m => size m == n) zQ.1,
-   all (fun szQ => all (fun m => size m == n) szQ.2.1) szQi,
+  (n != 0%N) && (
+   all (fun m => size m == n) zQ.1 && (
+   all (fun szQ => all (fun m => size m == n) szQ.2.1) szQi && (
    all (fun szQ => match szQ with
                      | Wit s _ _ _ => P.for_all (fun k _ => size k == n) s
-                   end) szQl,
-   s != 0%N,
-   size Q == s,
-   all (fun e => size e == s) Q,
-   all (fun szQ => size szQ.2.1 != 0%N) szQi,
-   all (fun szQ => size szQ.2.2 == size szQ.2.1) szQi,
-   all (fun szQ => (all (fun e => size e == size szQ.2.1) szQ.2.2)) szQi,
-   vars_ltn n ap,
-   all (vars_ltn n) apl,
-   size papi == size szQl,
-   strict ==> has_const_eff (s:=s.-1) (n:=n) z &
+                   end) szQl && (
+   (s != 0%N) && (
+   (size Q == s) && (
+   all (fun e => size e == s) Q && (
+   all (fun szQ => size szQ.2.1 != 0%N) szQi && (
+   all (fun szQ => size szQ.2.2 == size szQ.2.1) szQi && (
+   all (fun szQ => (all (fun e => size e == size szQ.2.1) szQ.2.2)) szQi && (
+   vars_ltn n ap && (
+   all (vars_ltn n) apl && (
+   (size papi == size szQl) && (
+   (strict ==> has_const_eff (s:=s.-1) (n:=n) z) &&
    soscheck_hyps_eff
      (n := n) (s := s')
      (fs := coqinterval_infnan.coqinterval_round_up_infnan)
      (F2T := F2bigQ \o (*FI2F*) coqinterval_infnan.FI_val)
      (T2F := F2FI \o bigQ2F')
-     pszQl bp z Q].
+     pszQl bp z Q))))))))))))).
 
 Theorem soscheck_hyps_eff_wrapup_correct
   (vm : seq R) (g : p_abstr_goal)
@@ -2508,8 +2494,6 @@ Ltac fold_tuple f acc l :=
   | ?v => f acc v
   end.
 
-Require Import Ltac2.Ltac2.
-Import Ltac2.Control.
 
 Ltac2 is_ineq t :=
   match! t with
@@ -2554,23 +2538,20 @@ Ltac2 set2_state new :=
 
 Ltac2 get_vars expr :=
   let conc := constr:(R0 <= $expr) in
-  set2_state conc.
+  set2_state conc;
+  ltac1:(let arg := fresh "arg" in let vars := fresh "vars" in get_vars1 arg vars).
 
 Lemma test_vars (x y : R) : True.
-get_vars constr:((x + sin (y) - x + 3)%Re).
-ltac1:(let vars := fresh "vars" in get_vars1 arg vars).
+  ltac2:(get_vars constr:((x + sin (y) - x + 3)%Re)).
 
 (** Heuristic algorithm for "validsdp_intro expr using * as H":
     1. Retrieve the hyps of the context that are inequalities
-    2. Store them in a Map composed of pairs (hyp, false = non-selected)
-    3. Retrieve the (non-polynomial) vars of expr
-    4. Store them in a List
-    5. For each hyp (H, false) of the Map, test if a var from List appears in H
-    6. If yes, change the hyp to (H, true) and restart at step 3 with (expr:=H)
-    7. If no, select the list of (H, true), call it HypList,
-       and behave as "validsdp_intro expr using (HypList) as H".
+       and form the list H = [(hyp_id, vars); ...] and S = []
+    2. Retrieve the list V = vars of expr
+    3. If any (hyp_id, vars) in H is such that a var from V appears in vars
+       then add hyp_id to S, remove it from H, add vars to V, and restart at 3
+    4. else return S and behave as "validsdp_intro expr using S as h".
  *)
-
 
 Ltac list_ineqs k :=
   let top := fresh "hyps" in
