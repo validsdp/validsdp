@@ -100,6 +100,7 @@ main() {
     opam install -y camlp5 ocamlfind merlin zarith ocplib-simplex camlp4 osdp
 
     pushd "${COQ_DIR}"
+    git checkout primitive-floats-parsing
     make clean
     git clean -dxf .  # a bit aggressive but required
     ./configure -annot -bin-annot -prefix $HOME/.opam/${switch}
