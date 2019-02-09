@@ -255,18 +255,56 @@ Definition x_ (nx : nat) : R.
 exact R0.
 Qed.
 
-(** Tactic with continuation passing style *)
-(* Erik: This new version of [newvar] does not create [evar]s anymore,
-   so CPS style might be removed *)
-Ltac2 newvar t nx k :=
-  let x' := constr:(x_ $nx) in
-  k x'.
+Ltac2 newvar t nx :=
+  constr:(x_ $nx).
 
-Ltac2 deb tac := ().
-(* Ltac2 deb tac := tac. *)
+Ltac2 mutable deb (str : message) := ().
+(* Ltac2 Set deb := fun str => Message.print str. *)
+
+Ltac2 mcat := Message.concat.
+Ltac2 deb_s s1 := deb (Message.of_string s1).
+Ltac2 deb_sc s1 c1 :=
+  deb (mcat (Message.of_string s1)
+            (Message.of_constr c1)).
+Ltac2 deb_scc s1 c1 c2 :=
+  deb (mcat (mcat (Message.of_string s1)
+                  (Message.of_constr c1))
+            (Message.of_constr c2)).
+Ltac2 deb_sccs s1 c1 c2 s2 :=
+  deb (mcat (mcat (mcat (Message.of_string s1)
+                        (Message.of_constr c1))
+                  (Message.of_constr c2))
+            (Message.of_string s2)).
+Ltac2 deb_sccc s1 c1 c2 c3 :=
+  deb (mcat (mcat (mcat (Message.of_string s1)
+                        (Message.of_constr c1))
+                  (Message.of_constr c2))
+            (Message.of_string c3)).
+Ltac2 deb_scccc s1 c1 c2 c3 c4 :=
+  deb (mcat (mcat (mcat (mcat (Message.of_string s1)
+                              (Message.of_constr c1))
+                        (Message.of_constr c2))
+                  (Message.of_constr c3))
+            (Message.of_constr c4)).
+Ltac2 deb_sccccc s1 c1 c2 c3 c4 c5 :=
+  deb (mcat (mcat (mcat (mcat (mcat (Message.of_string s1)
+                                    (Message.of_constr c1))
+                              (Message.of_constr c2))
+                        (Message.of_constr c3))
+                  (Message.of_constr c4))
+            (Message.of_constr c5)).
+Ltac2 deb_scccccc s1 c1 c2 c3 c4 c5 c6 :=
+  deb (mcat (mcat (mcat (mcat (mcat (mcat (Message.of_string s1)
+                                          (Message.of_constr c1))
+                                    (Message.of_constr c2))
+                              (Message.of_constr c3))
+                        (Message.of_constr c4))
+                  (Message.of_constr c5))
+            (Message.of_constr c6)).
+
 
 Ltac2 fold_get_poly get_poly lq vm :=
-  (* deb (idtac "fold_get_poly on .." lq vm "..") *)
+  deb_scc "fold_get_poly on .." lq vm;
   let z0 := constr:((@Datatypes.nil p_abstr_poly, $vm)) in
   let rec aux lq vm :=
       match! lq with
@@ -284,198 +322,198 @@ Ltac2 fold_get_poly get_poly lq vm :=
       end in
   aux lq vm.
 
-(* Ltac2 equivalent ? *)
-Ltac check_unexpected_case f0 :=
-  let err := fail 999 "Unexpected state. Please report this to the ValidSDP maintainers." in
-  match f0 with
-  | Rplus => err
-  | Rminus => err
-  | Ropp => err
-  | Rmult => err
-  | powerRZ => err
-  | pow => err
-  | Rdiv => err
-  | _ => idtac
+Ltac2 failwith str :=
+  Control.throw (Tactic_failure (Some (Message.of_string str))).
+
+Ltac2 failwith_c str c :=
+  Control.throw (Tactic_failure (Some (Message.concat
+                                         (Message.of_string str)
+                                         (Message.of_constr c)))).
+
+Ltac2 check_unexpected_case f0 :=
+  let err () :=
+      failwith "Unexpected state. Please report this to the ValidSDP maintainers."
+  in
+  match! f0 with
+  | Rplus => err ()
+  | Rminus => err ()
+  | Ropp => err ()
+  | Rmult => err ()
+  | powerRZ => err ()
+  | pow => err ()
+  | Rdiv => err ()
+  | _ => err (*.*) ()
   end.
 
-(** [get_comp_poly tac0 tac1 t vm tac2 k] will check if [t] matches [?f ?x] *)
+(** [get_comp_poly tac0 tac1 t vm tac2] will check if [t] matches [?f ?x] *)
 Ltac2 get_comp_poly get_poly_cur get_poly_pure t vm tac_var :=
-  (* deb ltac:(idtac "get_comp_poly on .. .." t vm ".. .."); *)
-  let rec aux2 f0 f qi nx xx vm k := (* Second step *)
+  deb_sccs "get_comp_poly on .. .." t vm "..";
+  let rec aux2 f0 f qi nx xx vm := (* Second step *)
       (* f0 := initial value of f;
          f := function to be parsed (head of term t);
          qi := list of polynomial arguments;
          nx := next index of abstract var (initially 0);
          xx := list of abstract variables (initially empty);
          vm := list of ambient variables;
-         k := continuation;
        *)
-      (* deb ltac:(idtac "get_comp_poly.aux2 on" f0 f qi nx xx vm ".."); *)
+      deb_scccccc "get_comp_poly.aux2 on" f0 f qi nx xx vm;
       check_unexpected_case f0;
       match! Constr.type f with
       | R =>
-        let f := (eval unfold f0 in f) in
-        let xx := reverse R xx in
-        get_poly_pure f xx ltac:(fun res =>
-          match res with
-          | not_polynomial => k not_polynomial
+        let f := f0 in (* (eval unfold f0 in f) *)
+        let xx := reverse constr:(R) xx in
+        match! get_poly_pure f xx with
+          | not_polynomial => constr:(not_polynomial)
           | (?p, _) => (* Ignore the returned xx (that shouldn't have changed) *)
-            fold_get_poly get_poly_cur qi vm ltac:(fun res =>
-              match res with
+            match! fold_get_poly get_poly_cur qi vm with
            (* | not_polynomial => k not_polynomial *)
               | (?qi, ?vm) =>
-                let res := constr:((PCompose p qi, vm)) in
-                (* (* Used with OLD version of newvar *)
-                   let dummy := R0 in
-                   iter_tac ltac:(fun it => equate it dummy) xx; *)
-                k res
-              end)
-          end)
+                constr:((PCompose $p $qi, $vm))
+              end
+          end
       | forall x : R, _ =>
-        newvar R nx ltac:(fun x => let fx := constr:(f x) in
-                                let xx := constr:(Datatypes.cons x xx) in
-                                let nx := constr:(S nx) in
-                                aux2 f0 fx qi nx xx vm k)
+        let x := newvar constr:(R) nx in
+        let fx := constr:(f $x) in
+        let xx := constr:(Datatypes.cons $x $xx) in
+        let nx := constr:(S $nx) in
+        aux2 f0 fx qi nx xx vm
       end in
-  let rec aux1 t0 t qi vm k := (* First step *)
+  let rec aux1 t0 t qi vm := (* First step *)
       (* t0 := initial value of t;
          t := term to be parsed;
          qi := list of polynomial arguments (initially empty);
          vm := list of ambient variables;
-         k := continuation;
        *)
-      deb ltac:(idtac "get_comp_poly.aux1 on" t0 t qi vm "..");
-      match t with
+      deb_scccc "get_comp_poly.aux1 on" t0 t qi vm;
+      match! t with
       | ?p ?q =>
-        let qi1 := constr:(Datatypes.cons q qi) in
-        aux1 t0 p qi1 vm k
+        let qi1 := constr:(Datatypes.cons $q $qi) in
+        aux1 t0 p qi1 vm
       | ?f =>
-        aux2 f f qi O (@Datatypes.nil R) vm ltac:(fun res =>
-        match res with
+        match! aux2 f f qi constr:(O) constr:(@Datatypes.nil R) vm with
         | not_polynomial => (* If second step fails, return a PVar *)
-          match list_add t0 vm with
-          | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
+          match! list_add t0 vm with
+          | (?n, ?vm) => constr:((PVar $n, $vm))
           end
-        | ?res => k res
-        end)
+        | ?res => res
+        end
       end in
   (* Ensure [t] is a function applied to a real *)
-  match t with
+  match! t with
   | ?fp ?xn =>
-    match type of xn with
-    | R => aux1 t t (@Datatypes.nil R) vm k
-    | _ => tac_var t vm k
+    match! Constr.type xn with
+    | R => aux1 t t constr:(@Datatypes.nil R) vm
+    | _ => tac_var t vm
     end
-  | _ => tac_var t vm k
+  | _ => tac_var t vm
   end.
 
-(** [get_poly_pure t vm k] creates no var.
+(** [get_poly_pure t vm] creates no var.
     Return [not_polynomial] if [t] isn't poly over [vm] *)
-Ltac get_poly_pure t vm k :=
-  deb ltac:(idtac "get_poly_pure on" t vm "..");
-  let rec aux t vm k :=
-    let aux_u o a k :=
-      aux a vm ltac:(fun res =>
-        match res with
-        | (?u, ?vm) => let res := constr:((o u, vm)) in k res
-        | not_polynomial => k not_polynomial
-        end) in
-    let aux_u' o a b k :=
-      aux a vm ltac:(fun res =>
-        match res with
-        | (?u, ?vm) => let res := constr:((o u b, vm)) in k res
-        | not_polynomial => k not_polynomial
-        end) in
-    let aux_b o a b k :=
-      aux b vm ltac:(fun res =>
-        match res with
-        | (?v, ?vm) =>
-          aux a vm ltac:(fun res =>
-            match res with
-            | (?u, ?vm) => let res := constr:((o u v, vm)) in k res
-            | not_polynomial => k not_polynomial
-            end)
-        | not_polynomial => k not_polynomial
-        end) in
-    match t with
-    | Rplus ?a ?b => aux_b PAdd a b k
-    | Rminus ?a ?b => aux_b PSub a b k
-    | Ropp ?a => aux_u POpp a k
-    | Rmult ?a ?b => aux_b PMul a b k
+Ltac2 rec get_poly_pure t vm :=
+  deb_scc "get_poly_pure on" t vm;
+  let rec aux t vm :=
+      let aux_u o a :=
+          match! aux a vm with
+          | (?u, ?vm) => constr:(($o $u, $vm))
+          | not_polynomial => constr:(not_polynomial)
+          end in
+      let aux_u' o a b :=
+          match! aux a vm with
+          | (?u, ?vm) => constr:(($o $u $b, $vm))
+          | not_polynomial => constr:(not_polynomial)
+          end in
+      let aux_b o a b :=
+          match! aux b vm with
+          | (?v, ?vm) =>
+            match! aux a vm with
+            | (?u, ?vm) => constr:(($o $u $v, $vm))
+            | not_polynomial => constr:(not_polynomial)
+            end
+      | not_polynomial => constr:(not_polynomial)
+        end in
+    match! t with
+    | Rplus ?a ?b => aux_b constr:(PAdd) a b
+    | Rminus ?a ?b => aux_b constr:(PSub) a b
+    | Ropp ?a => aux_u constr:(POpp) a
+    | Rmult ?a ?b => aux_b constr:(PMul) a b
  (* | Rsqr ?a => aux (Rmult a a) l *)
     | powerRZ ?a ?b =>
-      match b with
-      | Z.pos ?p => aux_u' PPowN a (N.pos p) k
-      | _ => fail 999 "Only constant, positive exponents are allowed"
+      match! b with
+      | Z.pos ?p => aux_u' constr:(PPowN) a constr:(N.pos $p)
+      | _ => failwith "Only constant, positive exponents are allowed"
       end
-    | pow ?a ?n => aux_u' PPown a n k
-    | Rdiv ?a ?b => aux (Rmult a (Rinv b)) vm k (* Both are convertible *)
+    | pow ?a ?n => aux_u' constr:(PPown) a n
+    | Rdiv ?a ?b => aux constr:(Rmult $a (Rinv $b)) vm (* Both are convertible *)
     | _ =>
-      match get_real_cst t with
+      match! get_real_cst t with
       | assert_false =>
         (* Differs w.r.t. get_poly *)
-        get_comp_poly get_poly_pure get_poly_pure t vm ltac:(fun t vm k =>
-          match list_idx t vm with
-          | not_found => deb ltac:(idtac t "doesn't_belong_to" vm);
-            k not_polynomial
-          | (?n, ?vm) => deb ltac:(idtac t "belongs_to" vm "with_idx" n);
-            let res := constr:((PVar n, vm)) in k res
-          end) ltac:(fun res => k res) (* also if res = not_polynomial *)
-      | ?c => let res := constr:((PConst c, vm)) in k res
+        let tac_var t vm :=
+          match! list_idx t vm with
+          | not_found => Control.throw (Tactic_failure (Some
+                         (*((Message.print*)
+                           (Message.concat (Message.of_constr t)
+                                           (Message.concat
+                                              (Message.of_string "doesn't_belong_to")
+                                              (Message.of_constr vm)))));
+            constr:(not_polynomial)
+          | (?n, ?vm) => (* deb ltac:(idtac t "belongs_to" vm "with_idx" n); *)
+            constr:((PVar $n, $vm))
+          end in
+        get_comp_poly get_poly_pure get_poly_pure t vm tac_var
+      | ?c => constr:((PConst $c, $vm))
       end
     end in
-  aux t vm k.
+  aux t vm.
 
-Ltac get_poly t vm k :=
-  deb ltac:(idtac "get_poly on" t vm "..");
-  let rec aux t vm k :=
-    let aux_u o a k :=
-      aux a vm ltac:(fun res =>
-        match res with
-        | (?u, ?vm) => let res := constr:((o u, vm)) in k res
+Ltac2 rec get_poly t vm :=
+  deb_scc "get_poly on" t vm;
+  let rec aux t vm :=
+    let aux_u o a :=
+      match! aux a vm with
+        | (?u, ?vm) => constr:(($o $u, $vm))
      (* | not_polynomial => k not_polynomial *)
-        end) in
-    let aux_u' o a b k :=
-      aux a vm ltac:(fun res =>
-        match res with
-        | (?u, ?vm) => let res := constr:((o u b, vm)) in k res
+        end in
+    let aux_u' o a b :=
+      match! aux a vm with
+        | (?u, ?vm) => constr:(($o $u $b, $vm))
      (* | not_polynomial => k not_polynomial *)
-        end) in
-    let aux_b o a b k :=
-      aux b vm ltac:(fun res =>
-        match res with
+        end in
+    let aux_b o a b :=
+      match! aux b vm with
         | (?v, ?vm) =>
-          aux a vm ltac:(fun res =>
-            match res with
-            | (?u, ?vm) => let res := constr:((o u v, vm)) in k res
+          match! aux a vm with
+            | (?u, ?vm) => constr:(($o $u $v, $vm))
          (* | not_polynomial => k not_polynomial *)
-            end)
+            end
      (* | not_polynomial => k not_polynomial *)
-        end) in
-    match t with
-    | Rplus ?a ?b => aux_b PAdd a b k
-    | Rminus ?a ?b => aux_b PSub a b k
-    | Ropp ?a => aux_u POpp a k
-    | Rmult ?a ?b => aux_b PMul a b k
+        end in
+    match! t with
+    | Rplus ?a ?b => aux_b constr:(PAdd) a b
+    | Rminus ?a ?b => aux_b constr:(PSub) a b
+    | Ropp ?a => aux_u constr:(POpp) a
+    | Rmult ?a ?b => aux_b constr:(PMul) a b
  (* | Rsqr ?a => aux (Rmult a a) l *)
     | powerRZ ?a ?b =>
-      match b with
-      | Z.pos ?p => aux_u' PPowN a (N.pos p) k
-      | _ => fail 999 "Only constant, positive exponents are allowed"
+      match! b with
+      | Z.pos ?p => aux_u' constr:(PPowN) a constr:(N.pos $p)
+      | _ => failwith "Only constant, positive exponents are allowed"
       end
-    | pow ?a ?n => aux_u' PPown a n k
-    | Rdiv ?a ?b => aux (Rmult a (Rinv b)) vm k (* Both are convertible *)
+    | pow ?a ?n => aux_u' constr:(PPown) a n
+    | Rdiv ?a ?b => aux constr:(Rmult $a (Rinv $b)) vm (* Both are convertible *)
     | _ =>
-      match get_real_cst t with
+      match! get_real_cst t with
       | assert_false =>
-        get_comp_poly get_poly get_poly_pure t vm ltac:(fun t vm k =>
-          match list_add t vm with
-          | (?n, ?vm) => let res := constr:((PVar n, vm)) in k res
-          end) ltac:(fun res => k res) (* also if res = not_polynomial *)
-      | ?c => let res := constr:((PConst c, vm)) in k res
+        let tac_var t vm :=
+          match! list_add t vm with
+          | (?n, ?vm) => constr:((PVar $n, $vm))
+          end in
+        get_comp_poly get_poly get_poly_pure t vm tac_var
+      | ?c => constr:((PConst $c, $vm))
       end
     end in
-  aux t vm k.
+  aux t vm.
 
 Inductive abstr_poly :=
   | Const of bigQ
@@ -2248,132 +2286,230 @@ by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
 Qed.
 (*-/*)
 
-Ltac get_ineq i l k :=
+Ltac2 get_ineq i l :=
   let aux c x y :=
-      get_poly x l ltac:(fun res => match res with
+      match! get_poly x l with
    (* | not_polynomial => k not_polynomial *)
       | (?p, ?l) =>
-        get_poly y l ltac:(fun res => match res with
+        match! get_poly y l with
      (* | not_polynomial => k not_polynomial *)
         | (?q, ?l) =>
-          let res := constr:((c p q, l)) in k res
-        end)
-      end) in
-  match i with (* see also [appears_in_ineq] below *)
-  | Rle ?x ?y => aux ILe x y
-  | Rge ?x ?y => aux IGe x y
-  | Rlt ?x ?y => aux ILt x y
-  | Rgt ?x ?y => aux IGt x y
-  | _ => k not_supported
+          constr:(($c $p $q, $l))
+        end
+      end in
+  match! i with (* see also [appears_in_ineq] below *)
+  | Rle ?x ?y => aux constr:(ILe) x y
+  | Rge ?x ?y => aux constr:(IGe) x y
+  | Rlt ?x ?y => aux constr:(ILt) x y
+  | Rgt ?x ?y => aux constr:(IGt) x y
+  | _ => constr:(not_supported)
   end.
 
-Ltac get_hyp h l k :=
-  match h with
+Ltac2 rec get_hyp h l :=
+  match! h with
   | and ?a ?b =>
-    get_hyp a l ltac:(fun res => match res with
+    match! get_hyp a l with
     | (?a, ?l) =>
-      get_hyp b l ltac:(fun res => match res with
-      | (?b, ?l) => k constr:((Hand a b, l))
-      | not_supported => k not_supported
-      end)
-    | not_supported => k not_supported
-    end)
-  | _ => get_ineq h l ltac:(fun res => match res with
-        | (?i, ?l) => k constr:((Hineq i, l))
+      match! get_hyp b l with
+      | (?b, ?l) => constr:((Hand $a $b, $l))
+      | not_supported => constr:(not_supported)
+      end
+    | not_supported => constr:(not_supported)
+    end
+  | _ => match! get_ineq h l with
+        | (?i, ?l) => constr:((Hineq $i, $l))
      (* | not_polynomial => fail 999 "should skip this hypothesis?" *)
-        | _ => k not_supported
-        end)
+        | _ => constr:(not_supported)
+        end
   end.
 
-Ltac get_goal g l k :=
-  deb ltac:(idtac "get_goal on" g l "..");
-  match g with
+Ltac2 rec get_goal g l :=
+  deb_scc "get_goal on" g l;
+  match! g with
   | (?h -> ?g) =>
-    get_hyp h l ltac:(fun res => match res with
+    match! get_hyp h l with
     | (?h, ?l) =>
-      get_goal g l ltac:(fun res => match res with
-      | (?g, ?l) => k constr:((Ghyp h g, l))
-      | not_supported => k not_supported
-      end)
-    | not_supported => k not_supported
-    end)
-  | _ => get_ineq g l ltac:(fun res => match res with
-        | (?i, ?l) => k constr:((Gineq i, l))
-        | not_supported => k not_supported
-        end)
+      match! get_goal g l with
+      | (?g, ?l) => constr:((Ghyp $h $g, $l))
+      | not_supported => constr:(not_supported)
+      end
+    | not_supported => constr:(not_supported)
+    end
+  | _ => match! get_ineq g l with
+        | (?i, ?l) => constr:((Gineq $i, $l))
+        | not_supported => constr:(not_supported)
+        end
   end.
 
-Ltac mk_goal_using hyps conc :=
-  match hyps with
+Ltac2 rec mk_goal_using hyps conc :=
+  match! hyps with
   | tt => conc
-  | pair ?rest ?h => let th := type of h in
-                    mk_goal_using rest (th -> conc)
-  | ?h => let th := type of h in constr:(th -> conc)
+  | pair ?rest ?h => let th := Constr.type h in
+                    mk_goal_using rest constr:($th -> $conc)
+  | ?h => let th := Constr.type h in constr:($th -> $conc)
   end.
 
-Ltac ch_goal_lhs g lhs :=
-  match g with
-  | Gineq (?c _ ?r) => constr:(Gineq (c lhs r))
-  | Ghyp ?h ?g => let g' := ch_goal_lhs g lhs in constr:(Ghyp h g')
+Ltac2 rec ch_goal_lhs g lhs :=
+  match! g with
+  | Gineq (?c _ ?r) => constr:(Gineq ($c $lhs $r))
+  | Ghyp ?h ?g => let g' := ch_goal_lhs g lhs in constr:(Ghyp $h $g')
   end.
 
-Ltac do_validsdp params :=
-  lazymatch goal with
-  | [ |- ?g ] =>
-    get_goal g (@Datatypes.nil R) ltac:(fun res => match res with
+Ltac2 rec map_filter p f l :=
+  match l with
+  | [] => []
+  | x :: l =>
+    match x with
+    | (id, _, t) =>
+      let ft := p t in
+      let res := map_filter p f l in
+      match ft with
+      | true => f id t :: res
+      | false => res
+      end
+    end
+  end.
+
+Ltac2 fresh_hyp ho :=
+  let h := match ho with
+           | None => ident:(h)
+           | Some h => h
+           end in
+  let l := hyps () in
+  let p _ := true in
+  let f id t := id in
+  let l := map_filter p f l in
+  let fv := Fresh.Free.of_ids l in
+  Fresh.fresh fv ident:(h).
+
+(** Primitives to append terms at the top of the stack *)
+
+Ltac2 set_state2 top :=
+  let fv := fresh_hyp (Some (ident:(top))) in
+  pose ($fv := $top); revert $fv.
+
+Ltac pop_state1 k :=
+  let top := fresh "h" in
+  intros top;
+  let val := (eval unfold top in top) in
+  clear top; k val.
+
+(*
+Ltac peek_state :=
+  match goal with
+  | [|- let _ := ?top in _] => top
+  end.
+ *)
+
+Ltac2 pop_state2 () :=
+  let top := fresh_hyp (Some (ident:(top))) in
+  intros $top;
+  let val := Std.eval_unfold [Std.VarRef top, Std.AllOccurrences] (hyp top) in
+  clear $top; val.
+
+Ltac2 soswitness_wrapper ppi params :=
+  set_state2 ppi;
+  set_state2 params;
+  ltac1:(pop_state1 ltac:(fun params =>
+           pop_state1 ltac:(fun ppi => let zQ_szQi := fresh "zQ_szQi" in
+             soswitness of ppi as zQ_szQi with params;
+             revert zQ_szQi)));
+  pop_state2 ().
+
+Ltac2 soswitness_intro_wrapper ppi params :=
+  set_state2 ppi;
+  set_state2 params;
+  ltac1:(pop_state1 ltac:(fun params =>
+           pop_state1 ltac:(fun ppi => let lb_zQ_szQi := fresh "lb_zQ_szQi" in
+             soswitness_intro of ppi as lb_zQ_szQi with params;
+             revert lb_zQ_szQi)));
+  pop_state2 ().
+
+(****************)
+(** BEGIN TESTS *)
+(*
+Set Default Proof Mode "Ltac2".
+
+Ltac2 soswitness_wrapper_test l params :=
+  let a := soswitness_wrapper l params in
+  let b := fresh_hyp () in
+  pose ($b := $a).
+Ltac2 soswitness_intro_wrapper_test l params :=
+  let a := soswitness_intro_wrapper l params in
+  let b := fresh_hyp () in
+  pose ($b := $a).
+
+Open Scope N_scope.
+Goal True.
+soswitness_wrapper_test '([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) '(s_sdpa :: nil).
+soswitness_wrapper_test '([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)], ([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]])) 'nil.
+soswitness_wrapper_test '([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)], ([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]])) 'nil.
+
+soswitness_wrapper_test '([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) '(s_sdpa :: s_verbose 1 :: nil).
+soswitness_wrapper_test '([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)], ([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]])) '(s_sdpa :: nil).
+soswitness_wrapper_test '([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)], ([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]])) '(s_sdpa :: nil).
+soswitness_intro_wrapper_test '([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) 'nil.
+soswitness_intro_wrapper_test '([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)], ([:: [:: ([:: 1], 1%bigQ); ([:: 0], (-2)%bigQ)]])) 'nil.
+Abort.
+*)
+(** END TESTS ***)
+(****************)
+
+Ltac2 do_validsdp params :=
+  lazy_match! Control.goal () with
+  | ?g =>
+    match! get_goal g constr:(@Datatypes.nil R) with
     | (?g, ?vm) =>
       (* let g' := fresh in pose g' := g;
          let vm' := fresh in pose vm' := vm *)
-      abstract (
-      let n := eval vm_compute in (size vm) in
-      let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
-      match lgb with
-      | (?l, ?p, _) => (* EMD: do we really need this 3rd argument? *)
-        let pi := constr:(map (@M.elements bigQ \o
-                               interp_poly_eff n \o
-                               abstr_poly_of_p_abstr_poly) l) in
-        let p := constr:((@M.elements bigQ \o
-                          interp_poly_eff n \o
-                          abstr_poly_of_p_abstr_poly) p) in
-        let ppi := eval vm_compute in (p, pi) in
-        let zQ_szQi := fresh "zQ_szQi" in
-        (soswitness of ppi as zQ_szQi with params);
-        apply (@soscheck_hyps_eff_wrapup_correct vm g zQ_szQi.2 zQ_szQi.1);
-        (vm_cast_no_check (erefl true))
-      end) || fail 999 "validsdp failed to certify the witness"
-    | not_supported => fail 999 "unsupported goal"
-    end)
+      plus (fun () =>
+        abstract None (fun () =>
+          let n := Std.eval_vm None constr:(size $vm) in
+          let lgb := Std.eval_vm None constr:(abstr_goal_of_p_abstr_goal $g) in
+          match! lgb with
+          | (?l, ?p, _) => (* EMD: do we really need this 3rd argument? *)
+            let pi := constr:(map (@M.elements bigQ \o
+                                               interp_poly_eff $n \o
+                                               abstr_poly_of_p_abstr_poly) $l) in
+            let p := constr:((@M.elements bigQ \o
+                                          interp_poly_eff $n \o
+                                          abstr_poly_of_p_abstr_poly) $p) in
+            let ppi := Std.eval_vm None constr:(($p, $pi)) in
+            let zQ_szQi := soswitness_wrapper ppi params in
+            apply (@soscheck_hyps_eff_wrapup_correct $vm $g $zQ_szQi.2 $zQ_szQi.1);
+              ltac1:(vm_cast_no_check (erefl true))
+          end)) (fun e => failwith "validsdp failed to certify the witness")
+    | not_supported => failwith "unsupported goal"
+    end
   end.
 
-Ltac do_validsdp_intro_lb expr hyps params Hl :=
-  let conc := constr:(R0 <= expr) in
+Ltac2 do_validsdp_intro_lb expr hyps params hl :=
+  let conc := constr:(R0 <= $expr) in
   let g0 := mk_goal_using hyps conc in
-  get_goal g0 (@Datatypes.nil R) ltac:(fun res => match res with
+  match! get_goal g0 constr:(@Datatypes.nil R) with
   | (?g, ?vm) =>
-    let n := eval vm_compute in (size vm) in
-    let lgb := eval vm_compute in (abstr_goal_of_p_abstr_goal g) in
-    match lgb with
-    | (?l, ?p, _) =>
+    let n := Std.eval_vm None constr:(size $vm) in
+    let lgb := Std.eval_vm None constr:(abstr_goal_of_p_abstr_goal $g) in
+    match! lgb with
+    | (?l, ?p, _) => (* EMD: do we really need this 3rd argument? *)
       let pi := constr:(map (@M.elements bigQ \o
-                             interp_poly_eff n \o
-                             abstr_poly_of_p_abstr_poly) l) in
+                             interp_poly_eff $n \o
+                             abstr_poly_of_p_abstr_poly) $l) in
       let p := constr:((@M.elements bigQ \o
-                        interp_poly_eff n \o
-                        abstr_poly_of_p_abstr_poly) p) in
-      let ppi := eval vm_compute in (p, pi) in
-      let lb_zQ_szQi := fresh "lb_zQ_szQi" in
-      (soswitness_intro of ppi as lb_zQ_szQi with params);
-      let lb := eval vm_compute in (lb_zQ_szQi.1) in
-      let lb' := get_real_cst (bigQ2R lb) in
+                        interp_poly_eff $n \o
+                        abstr_poly_of_p_abstr_poly) $p) in
+      let ppi := Std.eval_vm None constr:(($p, $pi)) in
+      let lb_zQ_szQi := soswitness_intro_wrapper ppi params in
+      let lb := Std.eval_vm None constr:($lb_zQ_szQi.1) in
+      let lb' := get_real_cst constr:(bigQ2R $lb) in
       (* /\ hyps -> lb <= expr *)
-      let glb := ch_goal_lhs g constr:(PConst lb') in
-        (have Hl : bigQ2R lb <= expr by
-          (* TODO/FIXME: Add abstract & Check size of proof term*) (
-          apply (@soscheck_hyps_eff_wrapup_correct vm glb lb_zQ_szQi.2.2 lb_zQ_szQi.2.1);
-          first (vm_cast_no_check (erefl true))));
-        clear lb_zQ_szQi
+      let glb := ch_goal_lhs g constr:(PConst $lb') in
+      (* TODO/FIXME: Add abstract & Check size of proof term *)
+      (assert ($hl : bigQ2R $lb <= $expr) >
+        [apply (@soscheck_hyps_eff_wrapup_correct $vm $glb $lb_zQ_szQi.2.2 $lb_zQ_szQi.2.1) >
+          [ltac1:(vm_cast_no_check (erefl true))]])
     end
-  end).
+  end.
 
 Lemma Ropp_le_r (r1 r2 : R) : r1 <= - r2 -> r2 <= - r1.
 Proof. by move=> Hle; apply Ropp_le_cancel; rewrite Ropp_involutive. Qed.
@@ -2393,43 +2529,49 @@ rewrite Q2R_opp in Hle.
 by auto with real.
 Qed.
 
-Ltac do_validsdp_intro_ub expr hyps params Hu :=
-  let Hl := fresh "H" in
-  do_validsdp_intro_lb constr:(Ropp expr) hyps params Hl;
-  match type of Hl with
-  | (Ropp _ <= _) => have Hu := @Ropp_le_cancel _ _ Hl
-  | (bigQ2R ((BigZ.Neg _) # _)%bigQ <= _) => have Hu := @bigQopp_le_r _ _ _ Hl
-  | _ => have Hu := @Ropp_le_r _ _ Hl
-  end; clear Hl.
+Ltac2 do_validsdp_intro_ub expr hyps params hu :=
+  let hl := fresh_hyp (Some (ident:(H))) in
+  do_validsdp_intro_lb constr:(Ropp $expr) hyps params hl;
+  let hl0 := hyp hl in
+  match! Constr.type hl0 with
+  | (Ropp _ <= _) => assert ($hu := @Ropp_le_cancel _ _ $hl0)
+  | (bigQ2R ((BigZ.Neg _) # _)%bigQ <= _) =>  assert ($hu := @bigQopp_le_r _ _ _ $hl0)
+  | _ => assert ($hu := @Ropp_le_r _ _ $hl0)
+  end; clear $hl.
 
-Ltac do_validsdp_intro expr hyps params H :=
-  let Hl := fresh "Hl" in
-  let Hu := fresh "Hu" in
-  do_validsdp_intro_lb expr hyps params Hl;
-  do_validsdp_intro_ub expr hyps params Hu;
-  have H := conj Hl Hu; clear Hl Hu.
+Ltac2 do_validsdp_intro expr hyps params h :=
+  let hl := fresh_hyp (Some (ident:(Hl))) in
+  let hu := fresh_hyp (Some (ident:(Hu))) in
+  do_validsdp_intro_lb expr hyps params hl;
+  do_validsdp_intro_ub expr hyps params hu;
+  let hl0 := hyp hl in
+  let hu0 := hyp hu in
+  assert ($h := conj $hl0 $hu0); clear $hl $hu.
 
 (* [tuple_to_list] was taken from CoqInterval *)
-Ltac tuple_to_list params l :=
-  match params with
-  | pair ?a ?b => tuple_to_list a (b :: l)
-  | ?b => constr:(b :: l)
-  | ?z => fail 999 "Unknown tactic parameter" z
+Ltac2 rec tuple_to_list params l :=
+  match! params with
+  | pair ?a ?b => tuple_to_list a constr:($b :: $l)
+  | ?b => constr:($b :: $l)
+  | ?z => failwith_c "Unknown tactic parameter" z
   end.
 
 (* [pair_append] and [pair_member] support pair-based tuples of non-unit val. *)
-Ltac pair_append v l :=
-  match l with
+Ltac2 pair_append v l :=
+  match! l with
   | tt => v
-  | ?rest => constr:((rest, v))
+  | ?rest => constr:(($rest, $v))
   end.
 
-Ltac pair_member v l :=
-  match l with
+Ltac2 rec pair_member v l :=
+  match! l with
   | tt => false
-  | pair ?rest v => true
-  | pair ?rest _ => pair_member v rest
-  | v => true
+  | pair ?rest ?v' =>
+    match Constr.equal v v' with
+    | true => true
+    | false => pair_member v rest
+    end
+  | ?v' => Constr.equal v v'
   | _ => false
   end.
 
@@ -2448,24 +2590,7 @@ Ltac is_ineq t :=
   end.
  *)
 
-(** Primitives to append terms in a single pair-tuple at the top of the stack *)
-Ltac set_state top new :=
-  set top := new;
-  move: @top.
-
-Ltac pop_state top k :=
-  move=> top;
-  let val := (eval unfold top in top) in
-  clear top; k val.
-
-Ltac app_state top new :=
-  pop_state top ltac:(fun val =>
-    let res := pair_append new val in set_state top res).
-
-Ltac peek_state :=
-  match goal with
-  | [|- let _ := ?top in _] => top
-  end.
+Check 0 : 0.
 
 Ltac appears_in vm t :=
   match vm with
