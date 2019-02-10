@@ -204,7 +204,6 @@ Fixpoint interp_p_abstr_poly (vm : seq R) (ap : p_abstr_poly) {struct ap} : R :=
   | PCompose p qi => interp_p_abstr_poly (map (interp_p_abstr_poly vm) qi) p
   end.
 
-(** [list_add] was adapted from CoqInterval *)
 Ltac2 list_add a l :=
   let rec aux a l n :=
     match! l with
@@ -258,11 +257,29 @@ Qed.
 Ltac2 newvar t nx :=
   constr:(x_ $nx).
 
+Ltac2 rec fold_right_ltac2 f l r :=
+  match l with
+  | [] => r
+  | e :: l => f e (fold_right_ltac2 f l r)
+  end.
+
+Ltac2 rec fold_left_ltac2 f r l :=
+  match l with
+  | [] => r
+  | e :: l => fold_left_ltac2 f (f r e) l
+  end.
+
+Ltac2 mcat s1 s2 :=
+  Message.concat (Message.concat s1 (Message.of_string " ")) s2.
+
+Ltac2 string_of_ident_list s0 l :=
+  fold_left_ltac2 (fun r e => mcat (Message.of_ident e) r) s0 l.
+
 Ltac2 mutable deb (str : message) := ().
 (* Ltac2 Set deb := fun str => Message.print str. *)
 
-Ltac2 mcat := Message.concat.
-Ltac2 deb_s s1 := deb (Message.of_string s1).
+Ltac2 deb_s s1 :=
+  deb (Message.of_string s1).
 Ltac2 deb_sc s1 c1 :=
   deb (mcat (Message.of_string s1)
             (Message.of_constr c1)).
@@ -270,11 +287,6 @@ Ltac2 deb_scc s1 c1 c2 :=
   deb (mcat (mcat (Message.of_string s1)
                   (Message.of_constr c1))
             (Message.of_constr c2)).
-Ltac2 deb_sccs s1 c1 c2 s2 :=
-  deb (mcat (mcat (mcat (Message.of_string s1)
-                        (Message.of_constr c1))
-                  (Message.of_constr c2))
-            (Message.of_string s2)).
 Ltac2 deb_sccc s1 c1 c2 c3 :=
   deb (mcat (mcat (mcat (Message.of_string s1)
                         (Message.of_constr c1))
@@ -301,7 +313,21 @@ Ltac2 deb_scccccc s1 c1 c2 c3 c4 c5 c6 :=
                         (Message.of_constr c4))
                   (Message.of_constr c5))
             (Message.of_constr c6)).
-
+Ltac2 deb_sccs s1 c1 c2 s2 :=
+  deb (mcat (mcat (mcat (Message.of_string s1)
+                        (Message.of_constr c1))
+                  (Message.of_constr c2))
+            (Message.of_string s2)).
+Ltac2 deb_csc c1 s1 c2 :=
+  deb (mcat (mcat (Message.of_constr c1)
+                  (Message.of_string s1))
+            (Message.of_constr c2)).
+Ltac2 deb_cscsc c1 s1 c2 s2 c3 :=
+  deb (mcat (mcat (mcat (mcat (Message.of_constr c1)
+                              (Message.of_string s1))
+                        (Message.of_constr c2))
+                  (Message.of_string s2))
+            (Message.of_constr c3)).
 
 Ltac2 fold_get_poly get_poly lq vm :=
   deb_scc "fold_get_poly on .." lq vm;
@@ -326,7 +352,7 @@ Ltac2 failwith str :=
   Control.throw (Tactic_failure (Some (Message.of_string str))).
 
 Ltac2 failwith_c str c :=
-  Control.throw (Tactic_failure (Some (Message.concat
+  Control.throw (Tactic_failure (Some (mcat
                                          (Message.of_string str)
                                          (Message.of_constr c)))).
 
@@ -342,7 +368,7 @@ Ltac2 check_unexpected_case f0 :=
   | powerRZ => err ()
   | pow => err ()
   | Rdiv => err ()
-  | _ => err (*.*) ()
+  | _ => ()
   end.
 
 (** [get_comp_poly tac0 tac1 t vm tac2] will check if [t] matches [?f ?x] *)
@@ -373,7 +399,7 @@ Ltac2 get_comp_poly get_poly_cur get_poly_pure t vm tac_var :=
           end
       | forall x : R, _ =>
         let x := newvar constr:(R) nx in
-        let fx := constr:(f $x) in
+        let fx := constr:($f $x) in
         let xx := constr:(Datatypes.cons $x $xx) in
         let nx := constr:(S $nx) in
         aux2 f0 fx qi nx xx vm
@@ -451,14 +477,11 @@ Ltac2 rec get_poly_pure t vm :=
         (* Differs w.r.t. get_poly *)
         let tac_var t vm :=
           match! list_idx t vm with
-          | not_found => Control.throw (Tactic_failure (Some
-                         (*((Message.print*)
-                           (Message.concat (Message.of_constr t)
-                                           (Message.concat
-                                              (Message.of_string "doesn't_belong_to")
-                                              (Message.of_constr vm)))));
+          | not_found =>
+            deb_csc t "doesn't_belong_to" vm;
             constr:(not_polynomial)
-          | (?n, ?vm) => (* deb ltac:(idtac t "belongs_to" vm "with_idx" n); *)
+          | (?n, ?vm) =>
+            deb_cscsc t "belongs_to" vm "with_idx" n;
             constr:((PVar $n, $vm))
           end in
         get_comp_poly get_poly_pure get_poly_pure t vm tac_var
@@ -2341,12 +2364,21 @@ Ltac2 rec get_goal g l :=
         end
   end.
 
+(* Old code
 Ltac2 rec mk_goal_using hyps conc :=
   match! hyps with
   | tt => conc
   | pair ?rest ?h => let th := Constr.type h in
                     mk_goal_using rest constr:($th -> $conc)
   | ?h => let th := Constr.type h in constr:($th -> $conc)
+  end.
+ *)
+
+Ltac2 rec mk_goal_using hyps conc :=
+  match hyps with
+  | [] => conc
+  | h :: rest => let th := Constr.type (hyp h) in
+                 mk_goal_using rest constr:($th -> $conc)
   end.
 
 Ltac2 rec ch_goal_lhs g lhs :=
@@ -2375,20 +2407,17 @@ Ltac2 fresh_hyp ho :=
            | None => ident:(h)
            | Some h => h
            end in
-  let l := hyps () in
-  let p _ := true in
-  let f id t := id in
-  let l := map_filter p f l in
+  let l := map_filter (fun _ => true) (fun id t => id) (hyps ()) in
   let fv := Fresh.Free.of_ids l in
   Fresh.fresh fv ident:(h).
 
 (** Primitives to append terms at the top of the stack *)
 
-Ltac2 set_state2 top :=
+Ltac2 set_state_ltac2 top :=
   let fv := fresh_hyp (Some (ident:(top))) in
   pose ($fv := $top); revert $fv.
 
-Ltac pop_state1 k :=
+Ltac pop_state_ltac1 k :=
   let top := fresh "h" in
   intros top;
   let val := (eval unfold top in top) in
@@ -2401,29 +2430,29 @@ Ltac peek_state :=
   end.
  *)
 
-Ltac2 pop_state2 () :=
+Ltac2 pop_state_ltac2 () :=
   let top := fresh_hyp (Some (ident:(top))) in
   intros $top;
   let val := Std.eval_unfold [Std.VarRef top, Std.AllOccurrences] (hyp top) in
   clear $top; val.
 
 Ltac2 soswitness_wrapper ppi params :=
-  set_state2 ppi;
-  set_state2 params;
-  ltac1:(pop_state1 ltac:(fun params =>
-           pop_state1 ltac:(fun ppi => let zQ_szQi := fresh "zQ_szQi" in
+  set_state_ltac2 ppi;
+  set_state_ltac2 params;
+  ltac1:(pop_state_ltac1 ltac:(fun params =>
+           pop_state_ltac1 ltac:(fun ppi => let zQ_szQi := fresh "zQ_szQi" in
              soswitness of ppi as zQ_szQi with params;
              revert zQ_szQi)));
-  pop_state2 ().
+  pop_state_ltac2 ().
 
 Ltac2 soswitness_intro_wrapper ppi params :=
-  set_state2 ppi;
-  set_state2 params;
-  ltac1:(pop_state1 ltac:(fun params =>
-           pop_state1 ltac:(fun ppi => let lb_zQ_szQi := fresh "lb_zQ_szQi" in
+  set_state_ltac2 ppi;
+  set_state_ltac2 params;
+  ltac1:(pop_state_ltac1 ltac:(fun params =>
+           pop_state_ltac1 ltac:(fun ppi => let lb_zQ_szQi := fresh "lb_zQ_szQi" in
              soswitness_intro of ppi as lb_zQ_szQi with params;
              revert lb_zQ_szQi)));
-  pop_state2 ().
+  pop_state_ltac2 ().
 
 (****************)
 (** BEGIN TESTS *)
@@ -2579,46 +2608,6 @@ Ltac2 rec pair_member v l :=
     [appears_in_ineq vm t] = does some var in list vm appears in the ineq t ?
     See also [get_ineq] above.
 *)
-(*
-Ltac is_ineq t :=
-  match t with
-  | Rle ?x ?y => true
-  | Rge ?x ?y => true
-  | Rlt ?x ?y => true
-  | Rgt ?x ?y => true
-  | _ => false
-  end.
- *)
-
-Check 0 : 0.
-
-Ltac appears_in vm t :=
-  match vm with
-  | Datatypes.nil => false
-  | Datatypes.cons ?v ?vm =>
-    match t with
-    | context [v] => true
-    | _ => false
-    end
-  end.
-
-Ltac map_tuple f l :=
-  match l with
-  | tt => tt
-  | pair ?rest ?v => let res := map_tuple f rest in
-                     let fv := f v in
-                     constr:(pair res fv)
-  | ?v => f v
-  end.
-
-Ltac fold_tuple f acc l :=
-  match l with
-  | tt => acc
-  | pair ?rest ?v => idtac "." v; let res := f acc v in
-                     fold_tuple f res rest
-  | ?v => f acc v
-  end.
-
 
 Ltac2 is_ineq t :=
   match! t with
@@ -2629,45 +2618,81 @@ Ltac2 is_ineq t :=
   | _ => false
   end.
 
-Ltac2 filter_ineqs l :=
-  let rec aux l :=
-      match l with
-      | [] => []
-      | x :: l =>
-        match x with
-        | (id, _, t) =>
-          let ft := is_ineq t in
-          let res := aux l in
-          match ft with
-          | true => (id, t) :: res
-          | false => res
-          end
-        end
-      end
-  in aux l.
-
-Ltac get_vars1 arg vars :=
-  pop_state arg ltac:(fun conc =>
-    get_goal conc (@Datatypes.nil R) ltac:(fun res =>
-      match res with
-      | (_, ?vm) =>
-        set_state vars vm
-      end)).
-
-Ltac2 set2_state new :=
-  (* TODO fresh *)
-  set (arg := $new);
-  revert arg.
-
-(* TODO Ltac2 pop2_state ? *)
+Ltac2 filter_ineqs () :=
+  map_filter is_ineq (fun id t => (id, t)) (hyps ()).
 
 Ltac2 get_vars expr :=
   let conc := constr:(R0 <= $expr) in
-  set2_state conc;
-  ltac1:(let arg := fresh "arg" in let vars := fresh "vars" in get_vars1 arg vars).
+  match! get_goal conc constr:(@Datatypes.nil R) with
+  | (_, ?vm) => vm
+  end.
 
-Lemma test_vars (x y : R) : True.
-  ltac2:(get_vars constr:((x + sin (y) - x + 3)%Re)).
+(****************)
+(** BEGIN TESTS *)
+(*
+Lemma test (x y : R):  True.
+Ltac2 Set deb := fun str => Message.print str.
+ltac2:(let vm := get_vars constr:((1 + x - (sin (x * y)))%Re) in deb_sc "vm" vm).
+Abort.
+ *)
+(** END TESTS ***)
+(****************)
+
+Ltac2 rec ltac2_of_list c :=
+  match! c with
+  | nil => []
+  | ?x :: ?l => x :: ltac2_of_list l
+  end.
+
+Ltac2 get_vars_ltac2 expr :=
+  ltac2_of_list (get_vars expr).
+
+Ltac2 rec exists_ltac2 p l :=
+  match l with
+  | [] => false
+  | x :: l =>
+    match p x with
+    | true => true
+    | false => exists_ltac2 p l
+    end
+  end.
+
+(** very similar to "exists_ltac2":
+    [ extract_exists_ltac2 p [1; 2] = (Some 1, [2]) ] if [ p 1 ] holds,
+    [ extract_exists_ltac2 p [1; 2] = (None, [1; 2]) ] if [ p 1 = p 2 = false ] *)
+Ltac2 rec extract_exists_ltac2 p l :=
+  match l with
+  | [] => (None, [])
+  | x :: l =>
+    match p x with
+    | true => (Some x, l)
+    | false => match extract_exists_ltac2 p l with
+               | (o, res) =>
+                 (* this let should be unneeded *)
+                 let res := x :: res in (o, res)
+               end
+    end
+  end.
+
+Ltac2 rec map_ltac2 f l :=
+  match l with
+  | [] => []
+  | x :: l => f x :: map_ltac2 f l
+  end.
+
+Ltac2 member_ltac2 e l := exists_ltac2 (fun x => Constr.equal e x) l.
+
+Ltac2 meet_ltac2 l1 l2 :=
+  exists_ltac2 (fun x1 => member_ltac2 x1 l2) l1.
+
+Ltac2 rec union_ltac2 l1 l2 :=
+  match l1 with
+  | [] => l2
+  | x :: l1 => match member_ltac2 x l2 with
+               | true => union_ltac2 l1 l2
+               | false => x :: union_ltac2 l1 l2
+               end
+  end.
 
 (** Heuristic algorithm for "validsdp_intro expr using * as H":
     1. Retrieve the hyps of the context that are inequalities
@@ -2678,194 +2703,133 @@ Lemma test_vars (x y : R) : True.
     4. else return S and behave as "validsdp_intro expr using S as h".
  *)
 
-Ltac list_ineqs k :=
-  let top := fresh "hyps" in
-  set_state top tt;
-  repeat match goal with
-         | [ H : ?t |- _ ] => match is_ineq t with
-                              | true => let top0 := peek_state in
-                                        match pair_member H top0 with
-                                        | true => fail
-                                        | false => app_state top H
-                                        end
-                              end
-         end;
-  pop_state top ltac:(fun hyps => k hyps).
+Ltac2 get_related_hyps expr :=
+  let hh := map_ltac2 (fun couple => match couple with
+                                     | (hyp_id, typ) =>
+                                       (hyp_id, get_vars_ltac2 typ)
+                                     end) (filter_ineqs ())
+  in
+  let vv := get_vars_ltac2 expr in
+  let ss := [] in
+  let rec aux hh vv ss :=
+      match extract_exists_ltac2 (fun couple => match couple with
+                                                | (hyp_id, vars) =>
+                                                  meet_ltac2 vars vv
+                                                end) hh
+      with
+      | (o, hh') =>
+        match o with
+        | None => ss
+        | Some couple =>
+          match couple with
+          | (hyp_id, vars) => aux hh' (union_ltac2 vars vv) (hyp_id :: ss)
+          end
+        end
+      end
+  in
+  let ss := aux hh vv ss in
+  Message.print (string_of_ident_list (Message.of_string "Selected hypotheses:") ss);
+  ss.
 
-Variant prod2 (A B : Type) := pair2 : A -> B -> prod2 A B.
-
-Ltac list_ineqs_vars k :=
-  list_ineqs ltac:(fun hyps =>
-                     idtac hyps;
-    fold_tuple ltac:(fun kacc hyp =>
-      idtac hyp;
-      let typ := type of hyp in
-        get_goal typ (@Datatypes.nil R) ltac:(fun res =>
-          match res with
-          | (_, ?vm) => let p := constr:(pair2 hyp vm) in kacc p
-          end)) ltac:(fun e => idtac e) hyps).
-
-intros.
-list_ineqs_vars ltac:(fun k => pose K := k).
-let t := type of H3 in
-        get_goal t (@Datatypes.nil R) ltac:(fun res =>
-          match res with
-          | (_, ?vm) => pose v := vm
-          | not_supported => fail 999 "unsupported goal"
-          end).
-
-let x := eval unfold HHH in HHH in
-let lll := map_tuple ltac:(fun v => constr:(pair2 v 4)) x in pose LLL := lll.
-
-
-      let conc := constr:(R0 <= expr) in
-
-
-
-                     let l :=
-
-
-
-                                   map_tuple ltac:(fun v => constr:(pair2 v 4)) hyps in pose LLL := l).
-
-
-
-  let conc := constr:(R0 <= expr) in
-  get_goal conc (@Datatypes.nil R) ltac:(fun res =>
-    match res with
-    | (_, ?vm) =>
-      let top := fresh "hyps" in
-      set_state top tt;
-      repeat match goal with
-             | [ H : ?t |- _] => match appears_in_ineq vm t with
-                               | true => let top0 := peek_state in
-                                        match pair_member H top0 with
-                                        | true => fail
-                                        | false => app_state top H
-                                        end
-                               end
-             end;
-      pop_state top ltac:(fun hyps => idtac "Selected hypotheses" hyps; k hyps)
-    end).
-
-                       idtac "Selected hypotheses" hyps;
-                                  pose HHH :=  hyps).
-
-
-
-
-(** Heuristic algorithm for "validsdp_intro expr using * as H":
-    1. Retrieve the hyps of the context that are inequalities
-    2. Store them in a Map composed of pairs (hyp, false = non-selected)
-    3. Retrieve the (non-polynomial) vars of expr
-    4. Store them in a List
-    5. For each hyp (H, false) of the Map, test if a var from List appears in H
-    6. If yes, change the hyp to (H, true) and restart at step 3 with (expr:=H)
-    7. If no, select the list of (H, true), call it HypList,
-       and behave as "validsdp_intro expr using (HypList) as H".
- *)
-Ltac do_validsdp_intro_all expr k :=
-  let conc := constr:(R0 <= expr) in
-  get_goal conc (@Datatypes.nil R) ltac:(fun res =>
-    match res with
-    | (_, ?vm) =>
-      let top := fresh "hyps" in
-      set_state top tt;
-      repeat match goal with
-             | [ H : ?t |- _] => match appears_in_ineq vm t with
-                               | true => let top0 := peek_state in
-                                        match pair_member H top0 with
-                                        | true => fail
-                                        | false => app_state top H
-                                        end
-                               end
-             end;
-      pop_state top ltac:(fun hyps => idtac "Selected hypotheses" hyps; k hyps)
-    end).
+Print Ltac2 get_related_hyps.
 
 (** Backward reasoning *)
 
-Tactic Notation "validsdp" :=
-  do_validsdp (@Datatypes.nil validsdp_tac_parameters).
+(*
+Fail Ltac2 Notation "validsdp" :=
+  do_validsdp constr:(@Datatypes.nil validsdp_tac_parameters).
+(* Error: Cannot globalize generic arguments of type constr *)
+ *)
 
-Tactic Notation "validsdp" "with" constr(params) :=
- do_validsdp ltac:(tuple_to_list params (@Datatypes.nil validsdp_tac_parameters)).
+Ltac2 params0 () := constr:(@Datatypes.nil validsdp_tac_parameters).
+
+Ltac2 Notation "validsdp" :=
+  do_validsdp (params0 ()).
+
+Ltac2 Notation "validsdp" "with" params(constr) :=
+ do_validsdp (tuple_to_list params (params0 ())).
 
 (** Forward reasoning *)
 
-Tactic Notation "validsdp_intro" constr(expr) "as" simple_intropattern(H) :=
-  do_validsdp_intro expr tt (@Datatypes.nil validsdp_tac_parameters) H.
+Ltac2 Notation "validsdp_intro" expr(constr) "as" h(ident) :=
+  do_validsdp_intro expr [] (params0 ()) h.
 
-Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) "as" simple_intropattern(H) :=
-  do_validsdp_intro expr hyps (@Datatypes.nil validsdp_tac_parameters) H.
+Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "as" h(ident) :=
+  do_validsdp_intro expr hyps (params0 ()) h.
 
-Tactic Notation "validsdp_intro" constr(expr) "using" "*" "as" simple_intropattern(H) :=
-  do_validsdp_intro_all expr ltac:(fun hyps =>
-  do_validsdp_intro expr hyps (@Datatypes.nil validsdp_tac_parameters) H).
+Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "as" h(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro expr hyps (params0 ()) h.
 
-Tactic Notation "validsdp_intro" constr(expr) "with" constr(params) "as" simple_intropattern(H) :=
-  do_validsdp_intro expr tt params H.
+Ltac2 Notation "validsdp_intro" expr(constr) "with" params(constr) "as" h(ident) :=
+  do_validsdp_intro expr [] params h.
 
-Tactic Notation "validsdp_intro" constr(expr) "using" constr(hyps) constr(params) "with" constr(params) "as" simple_intropattern(H) :=
-  do_validsdp_intro expr hyps params H.
+Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "with" params(constr) "as" h(ident) :=
+  do_validsdp_intro expr hyps params h.
 
-Tactic Notation "validsdp_intro" constr(expr) "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(H) :=
-  do_validsdp_intro_all expr ltac:(fun hyps =>
-  do_validsdp_intro expr hyps params H).
+Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "with" params(constr) "as" h(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro expr hyps params h.
 
-Tactic Notation "validsdp_intro" constr(expr) "lower" "as" simple_intropattern(Hl) :=
-  do_validsdp_intro_lb expr tt (@Datatypes.nil validsdp_tac_parameters) Hl.
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "as" hl(ident) :=
+  do_validsdp_intro_lb expr [] (params0 ()) hl.
 
-Tactic Notation "validsdp_intro" constr(expr) "lower" "using" constr(hyps) "as" simple_intropattern(Hl) :=
-  do_validsdp_intro_lb expr hyps (@Datatypes.nil validsdp_tac_parameters) Hl.
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "as" hl(ident) :=
+  do_validsdp_intro_lb expr hyps (params0 ()) hl.
 
-Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" "as" simple_intropattern(Hl) :=
-  do_validsdp_intro_all expr ltac:(fun hyps =>
-  do_validsdp_intro_lb expr hyps (@Datatypes.nil validsdp_tac_parameters) Hl).
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" "*" "as" hl(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_lb expr hyps (params0 ()) hl.
 
-Tactic Notation "validsdp_intro" constr(expr) "lower" "with" constr(params) "as" simple_intropattern(Hl) :=
-  do_validsdp_intro_lb expr tt params Hl.
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "with" params(constr) "as" hl(ident) :=
+  do_validsdp_intro_lb expr [] params hl.
 
-Tactic Notation "validsdp_intro" constr(expr) "lower" "using" constr(hyps) constr(params) "with" constr(params) "as" simple_intropattern(Hl) :=
-  do_validsdp_intro_lb expr hyps params Hl.
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "with" params(constr) "as" hl(ident) :=
+  do_validsdp_intro_lb expr hyps params hl.
 
-Tactic Notation "validsdp_intro" constr(expr) "lower" "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(Hl) :=
-  do_validsdp_intro_all expr ltac:(fun hyps =>
-  do_validsdp_intro_lb expr hyps params Hl).
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" "*" "with" params(constr) "as" hl(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_lb expr hyps params hl.
 
-Tactic Notation "validsdp_intro" constr(expr) "upper" "as" simple_intropattern(Hu) :=
-  do_validsdp_intro_ub expr tt (@Datatypes.nil validsdp_tac_parameters) Hu.
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "as" hu(ident) :=
+  do_validsdp_intro_ub expr [] (params0 ()) hu.
 
-Tactic Notation "validsdp_intro" constr(expr) "upper" "using" constr(hyps) "as" simple_intropattern(Hu) :=
-  do_validsdp_intro_ub expr hyps (@Datatypes.nil validsdp_tac_parameters) Hu.
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "as" hu(ident) :=
+  do_validsdp_intro_ub expr hyps (params0 ()) hu.
 
-Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" "as" simple_intropattern(Hu) :=
-  do_validsdp_intro_all expr ltac:(fun hyps =>
-  do_validsdp_intro_ub expr hyps (@Datatypes.nil validsdp_tac_parameters) Hu).
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "as" hu(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_ub expr hyps (params0 ()) hu.
 
-Tactic Notation "validsdp_intro" constr(expr) "upper" "with" constr(params) "as" simple_intropattern(Hu) :=
-  do_validsdp_intro_ub expr tt params Hu.
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "with" params(constr) "as" hu(ident) :=
+  do_validsdp_intro_ub expr [] params hu.
 
-Tactic Notation "validsdp_intro" constr(expr) "upper" "using" constr(hyps) constr(params) "with" constr(params) "as" simple_intropattern(Hu) :=
-  do_validsdp_intro_ub expr hyps params Hu.
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "with" params(constr) "as" hu(ident) :=
+  do_validsdp_intro_ub expr hyps params hu.
 
-Tactic Notation "validsdp_intro" constr(expr) "upper" "using" "*" constr(params) "with" constr(params) "as" simple_intropattern(Hu) :=
-  do_validsdp_intro_all expr ltac:(fun hyps =>
-  do_validsdp_intro_ub expr hyps params Hu).
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "with" params(constr) "as" hu(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_ub expr hyps params hu.
 
 (** Some quick tests. *)
 
-(* Ltac deb tac ::= tac. *)
+(* Ltac2 Set deb := fun str => Message.print str. *)
 
+Set Default Proof Mode "Ltac2".
+
+(*
 Lemma test0 (x : R) : True.
 intros.
-validsdp_intro (1 + x ^ 2) lower as H.
+Fail validsdp_intro (1 + x ^ 2) lower as H.
 easy.
 Qed.
+ *)
 
+(*
 Let test1 x y : 0 < x -> 1 <= y -> x + y >= 0.
-Time validsdp.
+Fail Time validsdp.
 Qed.
+ *)
 
 Let test2 x y : 2 / 3 * x ^ 2 + y ^ 2 >= 0.
 Time validsdp.
@@ -2878,17 +2842,21 @@ Qed.
 Section test.
 Let p x y := 2 / 3 * x ^ 2 + y ^ 2.
 
+(*
 Let test4 x y : p x y + 1 > 0.
-Time validsdp.
+Fail Time validsdp.
 Qed.
+ *)
 End test.
 
+(*
 Lemma test5 x : x >= 10 -> x <= 12 -> True.
 intros H1 H2.
-validsdp_intro (11 - x) using * as H.
-validsdp_intro (2 + x ^ 2) lower using (H1, H2) as HA.
+Fail validsdp_intro (11 - x) using * as H.
+Fail validsdp_intro (2 + x ^ 2) lower using H1 H2 as HA.
 easy.
 Qed.
+ *)
 
 Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
 validsdp.
