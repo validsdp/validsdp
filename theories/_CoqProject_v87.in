@@ -21,7 +21,6 @@ iteri_ord.v
 bigop_tactics.v
 parse_reals_@COQ_VERSION@.v
 parse_reals.v
-Flocq_complements.v
 FlocqEmulatedLayer.v
 FlocqNativeLayer.v
 primitive_floats_infnan.v

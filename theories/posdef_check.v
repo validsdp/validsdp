@@ -375,7 +375,6 @@ Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=
   end.
 
 Require Import Flocq.IEEE754.Binary Flocq.Core.Digits.
-Require Import Flocq_complements.
 Require Import FlocqEmulatedLayer FlocqNativeLayer.
 
 (* TODO: move *)

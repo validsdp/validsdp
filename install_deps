@@ -6,20 +6,13 @@ compiler="ocaml-base-compiler.4.05.0"
 NJOBS="7"
 COQ_DIR=""
 VALIDSDP_DIR=""
-# Should point to git repo of Flocq
-FLOCQ_DIR=""
-# Should point to git repo of Bignums (https://github.com/coq/bignums)
-BIGNUMS_DIR=""
-# Should point to paramcoq (https://github.com/coq-community/paramcoq)
-# N.B.: the version reported by "coqtop -v" should be 8.10+alpha
-PARAMCOQ_DIR=""
 # Should point to a directory with coquelicot 3.0.2 sources
 COQUELICOT_DIR=""
 
 usage() {
     cat >&2 <<EOF
 Usage:
-  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --bignums …/bignumes --flocq …/flocq --coquelicot …/coquelicot --paramcoq …/paramcoq --validsdp …/validsdp
+  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --coquelicot …/coquelicot --validsdp …/validsdp
 EOF
 }
 
@@ -56,21 +49,9 @@ parse_args() {
                 (( i++ ))
                 VALIDSDP_DIR="${!i}"
                 ;;
-            "--flocq")
-                (( i++ ))
-                FLOCQ_DIR="${!i}"
-                ;;
             "--coquelicot")
                 (( i++ ))
                 COQUELICOT_DIR="${!i}"
-                ;;
-            "--bignums")
-                (( i++ ))
-                BIGNUMS_DIR="${!i}"
-                ;;
-            "--paramcoq")
-                (( i++ ))
-                PARAMCOQ_DIR="${!i}"
                 ;;
             "--help")
                 usage
@@ -84,10 +65,7 @@ parse_args() {
     done
 
     [ -n "${COQ_DIR}" ] || { warn "Erreur: option --coq manquante."; usage; exit 1; }
-    [ -n "${FLOCQ_DIR}" ] || { warn "Erreur: option --flocq manquante."; usage; exit 1; }
     [ -n "${COQUELICOT_DIR}" ] || { warn "Erreur: option --coquelicot manquante."; usage; exit 1; }
-    [ -n "${PARAMCOQ_DIR}" ] || { warn "Erreur: option --paramcoq manquante."; usage; exit 1; }
-    [ -n "${BIGNUMS_DIR}" ] || { warn "Erreur: option --bignums manquante."; usage; exit 1; }
     [ -n "${VALIDSDP_DIR}" ] || { warn "Erreur: option --validsdp manquante."; usage; exit 1; }
 }
 
@@ -99,6 +77,10 @@ main() {
 
     opam install -y camlp5 ocamlfind merlin zarith ocplib-simplex camlp4 osdp
 
+    opam repo add coq-released https://coq.inria.fr/opam/released
+    opam repo add coq-core-dev https://coq.inria.fr/opam/core-dev
+    opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
+    
     pushd "${COQ_DIR}"
     git checkout primitive-floats-parsing
     make clean
@@ -107,20 +89,12 @@ main() {
     make -j ${NJOBS}
     make install
     opam install -y num
-    opam pin add -n -k version coq 8.8.2
-    opam install -y --fake coq.8.8.2
+    opam pin add -n -k version coq dev
+    opam install -y --fake coq.dev
     popd
 
-    COQFLAGS="-native-compiler yes" opam reinstall -y -j ${NJOBS} coq-mathcomp-ssreflect.1.7.0 coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1
-
-    pushd "${FLOCQ_DIR}"
-    git checkout master
-    git pull --ff-only origin master
-    ./autogen.sh
-    COQC="$(which coqc) -native-compiler yes" ./configure
-    ./remake --jobs=${NJOBS} -B
-    ./remake install -d
-    popd
+    COQFLAGS="-native-compiler yes" opam reinstall -y -j ${NJOBS} coq-mathcomp-ssreflect.1.7.0 coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1 coq-bignums.dev coq-paramcoq.dev
+    COQC="$(which coqc) -native-compiler yes" opam reinstall -y -j ${NJOBS} --ignore-constraints-on=coq coq-flocq.3.1.0
 
     pushd "${COQUELICOT_DIR}"
     ./autogen.sh
@@ -131,31 +105,11 @@ main() {
     cp -r theories/.coq-native ~/.opam/${switch}/lib/coq/user-contrib/Coquelicot
     popd
 
-    pushd "${BIGNUMS_DIR}"
-    git remote add origin https://github.com/coq/bignums.git || git remote set-url origin https://github.com/coq/bignums.git
-    git checkout master
-    git fetch origin
-    git reset --hard origin/master
-    make clean
-    COQFLAGS="-native-compiler yes" make -j ${NJOBS}
-    make install
-    popd
-
     pushd "${VALIDSDP_DIR}/external/interval-3.4.0_v88alpha"
     ./autogen.sh
     COQC="$(which coqc) -native-compiler yes" ./configure
     ./remake --jobs=${NJOBS} -B
     ./remake install -d
-    popd
-
-    pushd "${PARAMCOQ_DIR}"
-    git checkout master
-    git pull --ff-only origin master
-    make clean
-    git clean -dxf .  # a bit aggressive but required
-    rm -f Makefile.coq Makefile.coq.conf Make.cfg.local
-    make -j ${NJOBS}
-    make install
     popd
 
     pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/theory"

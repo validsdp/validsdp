@@ -1,11 +1,14 @@
 Require Import float_spec binary64 float_infnan_spec binary64_infnan.
 Require Import ZArith Bool.
 
-Require Import Flocq.Core.Raux.
-Require Import Flocq.IEEE754.Bits.
+From Flocq.Core
+Require Import Raux Generic_fmt FLX FLT Ulp Round_NE.
+Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits.
 
 Require Import Float.
 Require Import FlocqNativeLayer.
+
+Require Import Psatz.
 
 Section Primitive_float_infnan.
 
@@ -395,8 +398,6 @@ Section Primitive_float_infnan.
 
 End Primitive_float_infnan.
 
-Require Import Psatz.
-
 Section Primitive_float_round_up_infnan.
   Definition fieps := ldexp one (-53)%Z.
   Lemma fieps_spec : eps primitive_float_infnan <= FI2FS fieps.
@@ -441,13 +442,6 @@ Section Primitive_float_round_up_infnan.
     apply Zpower_pos_gt_0.
     lia.
   Qed.
-
-  Require Import Flocq.Core.Generic_fmt.
-  Require Import Flocq.Core.FLX.
-  Require Import Flocq.Core.FLT.
-  Require Import Flocq.Core.Ulp.
-  Require Import Flocq.Core.Round_NE.
-  Require Import Flocq_complements.
 
   (* TODO: to build a Float_round_up_infnan_spec, we need (next_up x) finite
      to imply x finite, whereas next_up -oo = -max_float *)

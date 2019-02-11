@@ -197,8 +197,6 @@ Theorem FPsqrt_Bsqrt : forall sqrt_nan x, sqrt (B2Prim x) = B2Prim (Bsqrt prec e
   prove_FP2B @EFsqrt_Bsqrt FPsqrt_EFsqrt sqrt_nan.
 Qed.
 
-Require Import Flocq_complements.
-
 Theorem FPnormfr_mantissa_Bnormfr_mantissa :
   forall x,
   normfr_mantissa (B2Prim x) = Int63.of_Z (Z.of_N (Bnormfr_mantissa prec emax x)).

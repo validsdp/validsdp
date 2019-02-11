@@ -177,8 +177,6 @@ Theorem EFsqrt_Bsqrt : forall sqrt_nan x, EFsqrt prec emax (B2EF x) = B2EF (Bsqr
   apply binary_round_aux_equiv.
 Qed.
 
-Require Import Flocq_complements.
-
 Theorem EFnormfr_mantissa_Bnormfr_mantissa :
   forall x,
   EFnormfr_mantissa prec (B2EF x) = Bnormfr_mantissa prec emax x.
@@ -235,7 +233,7 @@ case (_ =? _)%positive; apply EFminus_Bminus.
 Qed.
 
 Theorem EFmax_float_Bmax_float :
-  EFmax_float prec emax = B2EF (Bmax_float prec emax prec_gt_0_ Hemax).
+  EFmax_float prec emax = B2EF (Bmax_float prec emax prec_gt_0_ Hmax).
 Proof. now simpl. Qed.
 
 Theorem EFsucc_Bsucc :

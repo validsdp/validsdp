@@ -67,12 +67,12 @@ rm -f conftest.v conftest.vo conftest.err
 AC_MSG_CHECKING([for Flocq])
 AS_IF(
   [ echo "Require Import Flocq.Version BinNat." \
-         "Goal (30000 <= Flocq_version)%N. easy. Qed." > conftest.v
+         "Goal (30100 <= Flocq_version)%N. easy. Qed." > conftest.v
     cp conftest.v test.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library Flocq >= 3.0 (http://flocq.gforge.inria.fr/)])])
+    AC_MSG_ERROR([ *** Unable to find library Flocq >= 3.1 (http://flocq.gforge.inria.fr/)])])
 #rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Coq-interval])
