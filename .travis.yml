@@ -11,10 +11,11 @@ env:
   - NJOBS="2"
   - CONTRIB_NAME="validsdp"
   - COQEAL_URL="https://github.com/CoqEAL/CoqEAL.git"
-  - COQEAL_VERSION="d205c98bc36e284759956bee6c8886d548e2e9d0"
+  - COQEAL_VERSION="1993703c194043b0c5e3f1c1877f4b58f3b7b266"
   matrix:
   - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.7"
   - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.8"
+  - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.9"
 
 install: |
   # Prepare the COQ container
@@ -40,9 +41,8 @@ install: |
     sudo chown -R coq:coq /home/coq/${CONTRIB_NAME}
     opam repo add --all-switches --set-default coq-extra-dev https://coq.inria.fr/opam/extra-dev
     opam pin add -n -k path coq-libvalidsdp .
-    # The --ignore-constraints-on=coq are necessary for coq-flocq.dev
-    opam install -y -j ${NJOBS} --ignore-constraints-on=coq coq-libvalidsdp --deps-only
-    opam install -y -j ${NJOBS} --ignore-constraints-on=coq coq-mathcomp-multinomials.1.1 coq-paramcoq.1.1.0 osdp
+    opam install -y -j ${NJOBS} coq-libvalidsdp --deps-only
+    opam install -y -j ${NJOBS} coq-mathcomp-multinomials.1.1 coq-paramcoq osdp
     opam config list
     opam repo list
     opam list
@@ -61,7 +61,7 @@ script:
   docker exec COQ /bin/bash --login -c "
     export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '
     set -ex
-    opam install -y -v -j ${NJOBS} --ignore-constraints-on=coq coq-libvalidsdp
+    opam install -y -v -j ${NJOBS} coq-libvalidsdp
     cd /home/coq/${CONTRIB_NAME}
     ./autogen.sh
     ./configure
