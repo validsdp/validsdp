@@ -273,7 +273,7 @@ Ltac2 mcat s1 s2 :=
   Message.concat (Message.concat s1 (Message.of_string " ")) s2.
 
 Ltac2 string_of_ident_list s0 l :=
-  fold_left_ltac2 (fun r e => mcat (Message.of_ident e) r) s0 l.
+  fold_left_ltac2 (fun r e => mcat r (Message.of_ident e)) s0 l.
 
 Ltac2 mutable deb (str : message) := ().
 (* Ltac2 Set deb := fun str => Message.print str. *)
@@ -2627,6 +2627,11 @@ Ltac2 get_vars expr :=
   | (_, ?vm) => vm
   end.
 
+Ltac2 get_vars_hyp typ :=
+  match! get_goal typ constr:(@Datatypes.nil R) with
+  | (_, ?vm) => vm
+  end.
+
 (****************)
 (** BEGIN TESTS *)
 (*
@@ -2646,6 +2651,9 @@ Ltac2 rec ltac2_of_list c :=
 
 Ltac2 get_vars_ltac2 expr :=
   ltac2_of_list (get_vars expr).
+
+Ltac2 get_vars_hyp_ltac2 typ :=
+  ltac2_of_list (get_vars_hyp typ).
 
 Ltac2 rec exists_ltac2 p l :=
   match l with
@@ -2706,7 +2714,7 @@ Ltac2 rec union_ltac2 l1 l2 :=
 Ltac2 get_related_hyps expr :=
   let hh := map_ltac2 (fun couple => match couple with
                                      | (hyp_id, typ) =>
-                                       (hyp_id, get_vars_ltac2 typ)
+                                       (hyp_id, get_vars_hyp_ltac2 typ)
                                      end) (filter_ineqs ())
   in
   let vv := get_vars_ltac2 expr in
@@ -2849,6 +2857,7 @@ End test.
 Lemma test5 x : x >= 10 -> x <= 12 -> True.
 intros H1 H2.
 Fail validsdp_intro (11 - x) using * as H.
+(* Fail validsdp_intro (11 - x) using H1 H2 as H. *)
 Fail validsdp_intro (2 + x ^ 2) lower using H1 H2 as HA.
 easy.
 Qed.
