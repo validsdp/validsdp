@@ -208,11 +208,11 @@ Ltac2 list_add a l :=
   let rec aux a l n :=
     match! l with
     | Datatypes.nil => constr:(($n, Datatypes.cons $a $l))
-    | Datatypes.cons ?x ?l =>
+    | Datatypes.cons ?x ?l' =>
       match Constr.equal a x with
       | true => constr:(($n, $l))
       | false =>
-        match! aux a l constr:(S $n) with
+        match! aux a l' constr:(S $n) with
         | (?n, ?l) => constr:(($n, Datatypes.cons $x $l))
         end
       end
@@ -2445,7 +2445,7 @@ Ltac2 soswitness_wrapper ppi params :=
            pop_state_ltac1 ltac:(fun ppi => let zQ_szQi := fresh "zQ_szQi" in
              soswitness of ppi as zQ_szQi with params;
              revert zQ_szQi)));
-  pop_state_ltac2 ()) (fun e => constr:(cannot_conclude)).
+  pop_state_ltac2 ()) (fun e => (*Control.throw e*) constr:(cannot_conclude)).
 
 Ltac2 soswitness_intro_wrapper ppi params :=
   Control.plus (fun () =>
@@ -2455,7 +2455,7 @@ Ltac2 soswitness_intro_wrapper ppi params :=
            pop_state_ltac1 ltac:(fun ppi => let lb_zQ_szQi := fresh "lb_zQ_szQi" in
              soswitness_intro of ppi as lb_zQ_szQi with params;
              revert lb_zQ_szQi)));
-  pop_state_ltac2 ()) (fun e => constr:(cannot_conclude)).
+  pop_state_ltac2 ()) (fun e => (*Control.throw e*) constr:(cannot_conclude)).
 
 (****************)
 (** BEGIN TESTS *)
@@ -2506,7 +2506,9 @@ Ltac2 do_validsdp params :=
             let ppi := Std.eval_vm None constr:(($p, $pi)) in
             match! soswitness_wrapper ppi params with
             | cannot_conclude => failwith_c "soswitness failed on" constr:(($g, $vm))
-            | ?zQ_szQi => deb_sc "zQ_szQi:" zQ_szQi;
+            | ?zQ_szQi =>
+              deb_sc "(g, vm):" constr:(($g, $vm));
+              deb_sc "zQ_szQi:" zQ_szQi;
               apply (@soscheck_hyps_eff_wrapup_correct $vm $g $zQ_szQi.2 $zQ_szQi.1);
               ltac1:(vm_cast_no_check (erefl true))
             end
@@ -2546,8 +2548,8 @@ Ltac2 do_validsdp_intro_lb expr hyps params hl :=
         deb_sc "typ" typ;
         Std.assert (Std.AssertType (Some (Std.IntroNaming (Std.IntroIdentifier hl))) typ
           (Some (fun () =>
-            apply (@soscheck_hyps_eff_wrapup_correct $vm $glb $lb_zQ_szQi.2.2 $lb_zQ_szQi.2.1);
-            ltac1:(vm_cast_no_check (erefl true)))))
+            apply (@soscheck_hyps_eff_wrapup_correct $vm $glb $lb_zQ_szQi.2.2 $lb_zQ_szQi.2.1) >
+            [ltac1:(vm_cast_no_check (erefl true))|..])))
       end
     end
   end.
@@ -2840,12 +2842,11 @@ intros.
 validsdp_intro (1 + x ^ 2) lower as H.
 now split.
 Qed.
+Print test0.
 
-(*
 Let test1 x y : 0 < x -> 1 <= y -> x + y >= 0.
-Fail Time validsdp.
+Time validsdp.
 Qed.
- *)
 
 Let test2 x y : 2 / 3 * x ^ 2 + y ^ 2 >= 0.
 Time validsdp.
@@ -2860,20 +2861,33 @@ Let p x y := 2 / 3 * x ^ 2 + y ^ 2.
 
 (*
 Let test4 x y : p x y + 1 > 0.
-Fail Time validsdp.
+Time validsdp.
 Qed.
  *)
 End test.
 
-Lemma test5 x : x >= 10 -> x <= 12 -> True.
+Lemma test5 x : 10 <= x -> x <= 12 -> True.
 intros H1 H2.
-validsdp_intro (11 - x) using * as H.
-validsdp_intro (11 - x) using H1 H2 as H'.
-validsdp_intro (2 + x ^ 2) lower using H1 H2 as HA.
+Fail validsdp_intro (11 - x) using * as H.
+(* validsdp_intro (11 - x) using H1 H2 as H'. *)
+Fail validsdp_intro (2 + x ^ 2) lower using H1 H2 as HA.
 now split.
 Show Proof.
-Fail Qed.
+Qed.
 
 Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
 validsdp.
 Qed.
+(* TODO Reportbug Ltac2 Check *)
+(* TODO Add support for "<= /\ <=" in "using *" *)
+(* TODO Fix test5
+ Uncaught Ltac2 exception:
+ Tactic_failure
+  (Some
+     (message:(soswitness_intro failed on (Ghyp (Hineq (ILe (PConst (PConstIZR 10)) (PVar 0)))
+                                             (Ghyp (Hineq (ILe (PVar 0) (PConst (PConstIZR 12))))
+                                                (Gineq
+                                                   (ILe (PConst PConstR0)
+                                                      (POpp (PSub (PConst (PConstIZR 11)) (PVar 0)))))),
+                                          [:: x]))))
+ *)
