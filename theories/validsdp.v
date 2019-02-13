@@ -2535,8 +2535,8 @@ Ltac2 do_validsdp_intro_lb expr hyps params hl :=
       let glb := ch_goal_lhs g constr:(PConst $lb') in
       (* TODO/FIXME: Add abstract & Check size of proof term *)
       (assert ($hl : bigQ2R $lb <= $expr) >
-        [apply (@soscheck_hyps_eff_wrapup_correct $vm $glb $lb_zQ_szQi.2.2 $lb_zQ_szQi.2.1) >
-          [ltac1:(vm_cast_no_check (erefl true))]])
+        [apply (@soscheck_hyps_eff_wrapup_correct $vm $glb $lb_zQ_szQi.2.2 $lb_zQ_szQi.2.1);
+          ltac1:(vm_cast_no_check (erefl true))|])
     end
   end.
 
@@ -2731,8 +2731,6 @@ Ltac2 get_related_hyps expr :=
   Message.print (string_of_ident_list (Message.of_string "Selected hypotheses:") ss);
   ss.
 
-Print Ltac2 get_related_hyps.
-
 (** Backward reasoning *)
 
 (*
@@ -2817,13 +2815,11 @@ Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "with" params(c
 
 Set Default Proof Mode "Ltac2".
 
-(*
 Lemma test0 (x : R) : True.
 intros.
-Fail validsdp_intro (1 + x ^ 2) lower as H.
-easy.
+validsdp_intro (1 + x ^ 2) lower as H.
+now split.
 Qed.
- *)
 
 (*
 Let test1 x y : 0 < x -> 1 <= y -> x + y >= 0.
