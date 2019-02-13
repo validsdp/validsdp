@@ -222,6 +222,7 @@ Ltac2 list_add a l :=
 Variant Find_exc := not_found.
 Variant Poly_exc := not_polynomial.
 Variant Goal_exc := not_supported.
+Variant Cant_concl := cannot_conclude.
 
 (** [list_idx a l = (idx, l)], [idx] being the index of [a] in [l].
     Otherwise return [not_found] *)
@@ -2409,7 +2410,7 @@ Ltac2 fresh_hyp ho :=
            end in
   let l := map_filter (fun _ => true) (fun id t => id) (hyps ()) in
   let fv := Fresh.Free.of_ids l in
-  Fresh.fresh fv ident:(h).
+  Fresh.fresh fv h.
 
 (** Primitives to append terms at the top of the stack *)
 
@@ -2437,22 +2438,24 @@ Ltac2 pop_state_ltac2 () :=
   clear $top; val.
 
 Ltac2 soswitness_wrapper ppi params :=
+  Control.plus (fun () =>
   set_state_ltac2 ppi;
   set_state_ltac2 params;
   ltac1:(pop_state_ltac1 ltac:(fun params =>
            pop_state_ltac1 ltac:(fun ppi => let zQ_szQi := fresh "zQ_szQi" in
              soswitness of ppi as zQ_szQi with params;
              revert zQ_szQi)));
-  pop_state_ltac2 ().
+  pop_state_ltac2 ()) (fun e => constr:(cannot_conclude)).
 
 Ltac2 soswitness_intro_wrapper ppi params :=
+  Control.plus (fun () =>
   set_state_ltac2 ppi;
   set_state_ltac2 params;
   ltac1:(pop_state_ltac1 ltac:(fun params =>
            pop_state_ltac1 ltac:(fun ppi => let lb_zQ_szQi := fresh "lb_zQ_szQi" in
              soswitness_intro of ppi as lb_zQ_szQi with params;
              revert lb_zQ_szQi)));
-  pop_state_ltac2 ().
+  pop_state_ltac2 ()) (fun e => constr:(cannot_conclude)).
 
 (****************)
 (** BEGIN TESTS *)
@@ -2489,9 +2492,6 @@ Ltac2 do_validsdp params :=
   | ?g =>
     match! get_goal g constr:(@Datatypes.nil R) with
     | (?g, ?vm) =>
-      (* let g' := fresh in pose g' := g;
-         let vm' := fresh in pose vm' := vm *)
-      plus (fun () =>
         abstract None (fun () =>
           let n := Std.eval_vm None constr:(size $vm) in
           let lgb := Std.eval_vm None constr:(abstr_goal_of_p_abstr_goal $g) in
@@ -2504,10 +2504,13 @@ Ltac2 do_validsdp params :=
                                           interp_poly_eff $n \o
                                           abstr_poly_of_p_abstr_poly) $p) in
             let ppi := Std.eval_vm None constr:(($p, $pi)) in
-            let zQ_szQi := soswitness_wrapper ppi params in
-            apply (@soscheck_hyps_eff_wrapup_correct $vm $g $zQ_szQi.2 $zQ_szQi.1);
+            match! soswitness_wrapper ppi params with
+            | cannot_conclude => failwith_c "soswitness failed on" constr:(($g, $vm))
+            | ?zQ_szQi => deb_sc "zQ_szQi:" zQ_szQi;
+              apply (@soscheck_hyps_eff_wrapup_correct $vm $g $zQ_szQi.2 $zQ_szQi.1);
               ltac1:(vm_cast_no_check (erefl true))
-          end)) (fun e => failwith "validsdp failed to certify the witness")
+            end
+          end) (*(fun e => failwith "validsdp failed to certify the witness")*)
     | not_supported => failwith "unsupported goal"
     end
   end.
@@ -2528,15 +2531,24 @@ Ltac2 do_validsdp_intro_lb expr hyps params hl :=
                         interp_poly_eff $n \o
                         abstr_poly_of_p_abstr_poly) $p) in
       let ppi := Std.eval_vm None constr:(($p, $pi)) in
-      let lb_zQ_szQi := soswitness_intro_wrapper ppi params in
-      let lb := Std.eval_vm None constr:($lb_zQ_szQi.1) in
-      let lb' := get_real_cst constr:(bigQ2R $lb) in
-      (* /\ hyps -> lb <= expr *)
-      let glb := ch_goal_lhs g constr:(PConst $lb') in
-      (* TODO/FIXME: Add abstract & Check size of proof term *)
-      (assert ($hl : bigQ2R $lb <= $expr) >
-        [apply (@soscheck_hyps_eff_wrapup_correct $vm $glb $lb_zQ_szQi.2.2 $lb_zQ_szQi.2.1);
-          ltac1:(vm_cast_no_check (erefl true))|])
+      match! soswitness_intro_wrapper ppi params with
+      | cannot_conclude => failwith_c "soswitness_intro failed on" constr:(($g, $vm))
+      | ?lb_zQ_szQi => deb_sc "lb_zQ_szQi:" lb_zQ_szQi;
+        let lb := Std.eval_vm None constr:($lb_zQ_szQi.1) in
+        (* deb_sc "lb:" lb; *)
+        let lb' := get_real_cst constr:(bigQ2R $lb) in
+        (* deb_sc "lb':" lb'; *)
+        (* /\ hyps -> lb <= expr *)
+        let glb := ch_goal_lhs g constr:(PConst $lb') in
+        deb_sc "glb:" glb;
+        (* TODO/FIXME: Add abstract & Check size of proof term *)
+        let typ := constr:(bigQ2R $lb <= $expr) in
+        deb_sc "typ" typ;
+        Std.assert (Std.AssertType (Some (Std.IntroNaming (Std.IntroIdentifier hl))) typ
+          (Some (fun () =>
+            apply (@soscheck_hyps_eff_wrapup_correct $vm $glb $lb_zQ_szQi.2.2 $lb_zQ_szQi.2.1);
+            ltac1:(vm_cast_no_check (erefl true)))))
+      end
     end
   end.
 
@@ -2564,7 +2576,7 @@ Ltac2 do_validsdp_intro_ub expr hyps params hu :=
   let hl0 := hyp hl in
   match! Constr.type hl0 with
   | (Ropp _ <= _) => assert ($hu := @Ropp_le_cancel _ _ $hl0)
-  | (bigQ2R ((BigZ.Neg _) # _)%bigQ <= _) =>  assert ($hu := @bigQopp_le_r _ _ _ $hl0)
+  | (bigQ2R ((BigZ.Neg _) # _)%bigQ <= _) => assert ($hu := @bigQopp_le_r _ _ _ $hl0)
   | _ => assert ($hu := @Ropp_le_r _ _ $hl0)
   end; clear $hl.
 
@@ -2853,15 +2865,14 @@ Qed.
  *)
 End test.
 
-(*
 Lemma test5 x : x >= 10 -> x <= 12 -> True.
 intros H1 H2.
-Fail validsdp_intro (11 - x) using * as H.
-(* Fail validsdp_intro (11 - x) using H1 H2 as H. *)
-Fail validsdp_intro (2 + x ^ 2) lower using H1 H2 as HA.
-easy.
-Qed.
- *)
+validsdp_intro (11 - x) using * as H.
+validsdp_intro (11 - x) using H1 H2 as H'.
+validsdp_intro (2 + x ^ 2) lower using H1 H2 as HA.
+now split.
+Show Proof.
+Fail Qed.
 
 Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
 validsdp.
