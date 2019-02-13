@@ -2878,6 +2878,8 @@ Qed.
 Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
 validsdp.
 Qed.
+(* TODO proof terms: Avoid proof-stack wrapper and directly call OCaml code *)
+(* TODO support "as ? | as (Hl, Hu)" *)
 (* TODO Reportbug Ltac2 Check *)
 (* TODO Add support for "<= /\ <=" in "using *" *)
 (* TODO Fix test5
