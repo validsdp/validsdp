@@ -270,7 +270,7 @@ module SosP = Sos.Poly
    [nb_vars, lb, (z, Q), []] where [nb_vars] is the number of
    variables appearing in [q], [lb] is maximized if [intro = true] and
    [0] otherwise, [z, Q] (z : vector of monomials, Q : float matrix)
-   is a witness for q >= 0. *)
+   is a witness for q >= lb. *)
 let psatz intro options q =
   let nb_vars = SosP.nb_vars q in
   let lb = Sos.make "lb" in
@@ -291,7 +291,7 @@ let psatz intro options q =
    [(s1, (z1, Q1));...; (sn, (zn, Qn))]] where [nb_vars] is the number
    of variables appearing in [p1,..., pn, q], [lb] is maximized when
    [intro = true] and [0] otherwise, [z, Q] (z : vector of monomials,
-   Q : float matrix) is a witness for q - \sum_i si pi >= 0 and each
+   Q : float matrix) is a witness for q - lb - \sum_i si pi >= 0 and each
    (zi, Qi) is a witness for si >= 0. *)
 let psatz_hyps intro options q pl =
   let get_wits keep =
