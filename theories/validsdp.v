@@ -2447,7 +2447,7 @@ Ltac2 soswitness_wrapper ppi params :=
            pop_state_ltac1 ltac:(fun ppi => let zQ_szQi := fresh "zQ_szQi" in
              soswitness of ppi as zQ_szQi with params;
              revert zQ_szQi)));
-  pop_state_ltac2 ()) (fun e => (*Control.throw e*) constr:(cannot_conclude)).
+  pop_state_ltac2 ()) (fun e => Control.throw e (*constr:(cannot_conclude)*)).
 
 Ltac2 soswitness_intro_wrapper ppi params :=
   Control.plus (fun () =>
@@ -2457,7 +2457,7 @@ Ltac2 soswitness_intro_wrapper ppi params :=
            pop_state_ltac1 ltac:(fun ppi => let lb_zQ_szQi := fresh "lb_zQ_szQi" in
              soswitness_intro of ppi as lb_zQ_szQi with params;
              revert lb_zQ_szQi)));
-  pop_state_ltac2 ()) (fun e => (*Control.throw e*) constr:(cannot_conclude)).
+  pop_state_ltac2 ()) (fun e => Control.throw e (*constr:(cannot_conclude)*)).
 
 (****************)
 (** BEGIN TESTS *)
@@ -2506,10 +2506,10 @@ Ltac2 do_validsdp params :=
                                           interp_poly_eff $n \o
                                           abstr_poly_of_p_abstr_poly) $p) in
             let ppi := Std.eval_vm None constr:(($p, $pi)) in
+            deb_sc "(g, vm):" constr:(($g, $vm));
             match! soswitness_wrapper ppi params with
             | cannot_conclude => failwith_c "soswitness failed on" constr:(($g, $vm))
             | ?zQ_szQi =>
-              deb_sc "(g, vm):" constr:(($g, $vm));
               deb_sc "zQ_szQi:" zQ_szQi;
               apply (@soscheck_hyps_eff_wrapup_correct $vm $g $zQ_szQi.2 $zQ_szQi.1);
               ltac1:(vm_cast_no_check (erefl true))
@@ -2535,6 +2535,7 @@ Ltac2 do_validsdp_intro_lb expr hyps params hl :=
                         interp_poly_eff $n \o
                         abstr_poly_of_p_abstr_poly) $p) in
       let ppi := Std.eval_vm None constr:(($p, $pi)) in
+      deb_sc "(g, vm):" constr:(($g, $vm));
       match! soswitness_intro_wrapper ppi params with
       | cannot_conclude => failwith_c "soswitness_intro failed on" constr:(($g, $vm))
       | ?lb_zQ_szQi => deb_sc "lb_zQ_szQi:" lb_zQ_szQi;
@@ -2839,6 +2840,14 @@ Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "with" params(c
 
 Set Default Proof Mode "Ltac2".
 
+(*
+Lemma test_using_star (x : R) (H : - 10 <= x) (H0 : x <= 10) : True.
+intros.
+validsdp_intro (1 + x ^ 2) upper using * as H.
+now split.
+Qed.
+ *)
+
 Lemma test0 (x : R) : True.
 intros.
 validsdp_intro (1 + x ^ 2) lower as H.
@@ -2878,9 +2887,11 @@ Qed.
 Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
 validsdp.
 Qed.
-(* TODO proof terms: Avoid proof-stack wrapper and directly call OCaml code *)
+(* TODO proof terms: Avoid proof-stack wrapper and directly call OCaml code
+   This should simplify the proof term obtained in the end *)
 (* TODO support "as ? | as (Hl, Hu)" *)
 (* TODO Reportbug Ltac2 Check *)
+(* TODO Reportbug [&& broken *)
 (* TODO Add support for "<= /\ <=" in "using *" *)
 (* TODO Fix test5
  Uncaught Ltac2 exception:
