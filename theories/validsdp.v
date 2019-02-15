@@ -387,7 +387,9 @@ Ltac2 get_comp_poly get_poly_cur get_poly_pure t vm tac_var :=
       check_unexpected_case f0;
       match! Constr.type f with
       | R =>
-        let f := f0 in (* (eval unfold f0 in f) *)
+        let f :=
+            (* Std.eval_unfold [Std.VarRef f0, Std.AllOccurrences] f *)
+            Std.eval_hnf f in
         let xx := reverse constr:(R) xx in
         match! get_poly_pure f xx with
           | not_polynomial => constr:(not_polynomial)
@@ -2859,11 +2861,9 @@ Qed.
 Section test.
 Let p x y := 2 / 3 * x ^ 2 + y ^ 2.
 
-(*
 Let test4 x y : p x y + 1 > 0.
 Time validsdp.
 Qed.
- *)
 End test.
 
 Lemma test5 x : 10 <= x -> x <= 12 -> True.
