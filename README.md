@@ -15,7 +15,7 @@ Dependencies
 - [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.1.0)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.2)
 - [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.4.0)
-- [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 0.6.0)
+- [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 1.0)
 - [multinomials](https://github.com/math-comp/multinomials.git) (tested with version 1.1)
 - [paramcoq](https://github.com/CohenCyril/paramcoq.git) (tested with version 1.1.0)
 - [CoqEAL](https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev) (branch master)
