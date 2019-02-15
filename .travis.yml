@@ -12,6 +12,7 @@ env:
   - CONTRIB_NAME="validsdp"
   - COQEAL_URL="https://github.com/CoqEAL/CoqEAL.git"
   - COQEAL_VERSION="1993703c194043b0c5e3f1c1877f4b58f3b7b266"
+  - LTAC2_URL="https://github.com/ppedrot/ltac2"
   matrix:
   - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.7"
   - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.8"
@@ -50,8 +51,11 @@ install: |
     git clone -n ${COQEAL_URL} ~coq/coqeal
     cd ~coq/coqeal
     git checkout ${COQEAL_VERSION}
-    pushd theory && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install && popd
-    pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && popd
+    ( pushd theory && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install && popd )
+    ( pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && popd )
+    : Building Ltac2
+    git clone -b v${COQ_IMAGE##*-} ${LTAC2_URL} /home/coq/ltac2
+    ( pushd /home/coq/ltac2 && make && make install && popd )
     : done" install
 
 script:

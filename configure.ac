@@ -134,6 +134,15 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find library libValidSDP (c.f. directory libvalidsdp)])])
 rm -f conftest.v conftest.vo conftest.err
 
+AC_MSG_CHECKING([for Ltac2])
+AS_IF(
+  [ echo "From Ltac2 Require Import Ltac2." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find library Ltac2 (https://github.com/ppedrot/ltac2)])])
+rm -f conftest.v conftest.vo conftest.err
+
 # Create files
 AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/_CoqProject])
 AC_OUTPUT
