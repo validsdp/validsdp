@@ -8,6 +8,9 @@ MODULES =\
 all: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
+.merlin: Makefile.coq
+	$(MAKE) -f Makefile.coq .merlin
+
 src/soswitness.ml4: src/soswitness_@COQ_VERSION@.ml4
 	rm -f $@
 	cp $< $@
@@ -19,6 +22,7 @@ Makefile.coq: Makefile $(MODULES)
 	@ocamlfind query ocplib-simplex >/dev/null
 	coq_makefile -I src \
 	  -I "$(shell ocamlfind query zarith)" -I "$(shell ocamlfind query ocplib-simplex)" -I "$(shell ocamlfind query osdp)" \
+          -I "$(shell coqtop -where)/user-contrib/Ltac2" \
 	  -R theories $(NAME) $(MODULES) -o $@
 	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
 
