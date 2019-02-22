@@ -2,6 +2,37 @@
 
 DECLARE PLUGIN "soswitness"
 
+open Ltac2_plugin
+module Value = Tac2ffi
+open Value
+open Proofview.Notations
+
+(* Helper functions *)
+
+let return x = Proofview.tclUNIT x
+let pname s = { Tac2expr.mltac_plugin = "soswitness"; mltac_tactic = s }
+
+let define_primitive name arity f =
+  Tac2env.define_primitive (pname name) (mk_closure arity f)
+
+let define0 name f = define_primitive name arity_one (fun _ -> f)
+
+let define1 name r0 f = define_primitive name arity_one begin fun x ->
+  f (Value.repr_to r0 x)
+end
+
+let define2 name r0 r1 f = define_primitive name (arity_suc arity_one) begin fun x y ->
+  f (Value.repr_to r0 x) (Value.repr_to r1 y)
+end
+
+let define3 name r0 r1 r2 f = define_primitive name (arity_suc (arity_suc arity_one)) begin fun x y z ->
+  f (Value.repr_to r0 x) (Value.repr_to r1 y) (Value.repr_to r2 z)
+end;;
+
+let v_unit = Value.of_unit ()
+
+let thaw f = Tac2ffi.apply f [v_unit]
+
 exception Parse_error
 
 (* Various constructors and destructors needed. *)
@@ -461,6 +492,17 @@ let soswitness_opts ?(intro=false) gl c id opts =
      | Failure msg -> failtac maxlevel (Pp.str msg)
      | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
             failtac maxlevel Pp.(str msg)
+
+(** constr -> ident -> unit *)
+let () = define2 "soswitness2" constr ident begin fun c id ->
+  (* let c = thaw c >>= fun c -> Proofview.tclUNIT ((), Value.to_constr c) in *)
+  Proofview.Goal.enter (fun gl ->
+    let gl = Proofview.Goal.assume gl in
+    let c = EConstr.Unsafe.to_constr c in
+    let opts =
+      mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
+    soswitness_opts gl c id opts) >>= fun () -> return v_unit
+  end
 
 open Stdarg
 open Ltac_plugin
