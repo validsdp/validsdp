@@ -2848,7 +2848,7 @@ Set Default Proof Mode "Ltac2".
 (*
 Lemma test_using_star (x : R) (H : - 10 <= x) (H0 : x <= 10) : True.
 intros.
-Fail validsdp_intro (1 + x ^ 2) as HH.
+validsdp_intro (1 + x ^ 2) upper using * as HH.
 now split.
 Qed.
  *)
@@ -2892,21 +2892,15 @@ Qed.
 Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
 validsdp.
 Qed.
-(* TODO proof terms: Avoid proof-stack wrapper and directly call OCaml code
+(* WIP https://github.com/ppedrot/ltac2/issues/110
+   proof terms: Avoid proof-stack wrapper and directly call OCaml code
    This should simplify the proof term obtained in the end *)
-(* TODO support "as ? | as (Hl, Hu)" *)
-(* TODO error if hypothesis already exists *)
 (* TODO Reportbug Ltac2 Check *)
 (* TODO Reportbug [&& broken *)
+
+(* TODO support "as ? | as (Hl, Hu)" *)
+(* TODO error if hypothesis already exists *)
+
 (* TODO Add support for "<= /\ <=" in "using *" *)
 (* TODO Fix test5
- Uncaught Ltac2 exception:
- Tactic_failure
-  (Some
-     (message:(soswitness_intro failed on (Ghyp (Hineq (ILe (PConst (PConstIZR 10)) (PVar 0)))
-                                             (Ghyp (Hineq (ILe (PVar 0) (PConst (PConstIZR 12))))
-                                                (Gineq
-                                                   (ILe (PConst PConstR0)
-                                                      (POpp (PSub (PConst (PConstIZR 11)) (PVar 0)))))),
-                                          [:: x]))))
- *)
+   Uncaught Ltac2 exception: Match_failure *)
