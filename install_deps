@@ -93,8 +93,8 @@ main() {
     opam install -y --fake coq.dev
     popd
 
-    COQFLAGS="-native-compiler yes" opam reinstall -y -j ${NJOBS} coq-mathcomp-ssreflect.1.7.0 coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1 coq-bignums.dev coq-paramcoq.dev
-    COQC="$(which coqc) -native-compiler yes" opam reinstall -y -j ${NJOBS} --ignore-constraints-on=coq coq-flocq.3.1.0
+    COQFLAGS="-native-compiler yes" opam reinstall -y -v -j ${NJOBS} coq-mathcomp-ssreflect.1.7.0 coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1 coq-bignums.dev coq-paramcoq.dev
+    COQC="$(which coqc) -native-compiler yes" opam reinstall -y -v -j ${NJOBS} --ignore-constraints-on=coq coq-flocq.3.1.0
 
     pushd "${COQUELICOT_DIR}"
     ./autogen.sh
