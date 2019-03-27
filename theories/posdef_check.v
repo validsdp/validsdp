@@ -375,16 +375,16 @@ Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=
   end.
 
 Require Import Flocq.IEEE754.Binary Flocq.Core.Digits.
-Require Import FlocqEmulatedLayer FlocqNativeLayer.
+Require Import FlocqSpecLayer FlocqNativeLayer.
 
 (* TODO: move *)
-Lemma FF2R_EF2FF_B2EF prec emax nan (f : binary_float prec emax) :
-  FF2R radix2 (EF2FF nan (B2EF f)) = B2R prec emax f.
+Lemma FF2R_SF2FF_B2SF prec emax nan (f : binary_float prec emax) :
+  FF2R radix2 (SF2FF nan (B2SF f)) = B2R prec emax f.
 Proof. now revert nan f; intros (nan_s, nan_pl) [s|s|s pl Hpl|s m e Hme]. Qed.
 
 (* TODO: move *)
-Lemma is_finite_FF_EF2FF_B2EF prec emax nan (f : binary_float prec emax) :
-  is_finite_FF (EF2FF nan (B2EF f)) = is_finite prec emax f.
+Lemma is_finite_FF_SF2FF_B2SF prec emax nan (f : binary_float prec emax) :
+  is_finite_FF (SF2FF nan (B2SF f)) = is_finite prec emax f.
 Proof. now revert nan f; intros (nan_s, nan_pl) [s|s|s pl Hpl|s m e Hme]. Qed.
 
 Lemma B2R_Prim2B_B2Prim nan x :
@@ -392,7 +392,7 @@ Lemma B2R_Prim2B_B2Prim nan x :
 Proof.
 case_eq (is_nan prec emax x); [ |now intro H; rewrite Prim2B_B2Prim_notnan].
 revert x; intros [s|s|s pl Hpl|s m e Hme]; try discriminate; intros _.
-unfold Prim2B, B2Prim, Prim2EF, EF2FF; simpl.
+unfold Prim2B, B2Prim, Prim2SF, SF2FF; simpl.
 now rewrite B2R_FF2B; case (sval nan).
 Qed.
 
@@ -404,8 +404,8 @@ Proof.
   intros Hm.
 assert (Hprec0 : (0 < prec)%Z); [now simpl| ].
 assert (Hprec : (prec < emax)%Z); [now simpl| ].
-rewrite -(FF2R_EF2FF_B2EF (sval primitive_floats_infnan.nan_pl)) B2EF_Prim2B.
-rewrite of_int63_spec binary_normalize_equiv FF2R_EF2FF_B2EF.
+rewrite -(FF2R_SF2FF_B2SF (sval primitive_floats_infnan.nan_pl)) B2SF_Prim2B.
+rewrite of_int63_spec binary_normalize_equiv FF2R_SF2FF_B2SF.
 pose (bm := binary_normalize prec emax (zpos_gt_0 53) Hprec mode_NE (to_Z m)
                              0 false).
 assert (Hb := binary_normalize_correct _ _ _ Hprec mode_NE (to_Z m) 0 false).
@@ -459,9 +459,9 @@ rewrite <-(B2Prim_Prim2B primitive_floats_infnan.nan_pl (ldshiftexp _ _)) at 1.
 rewrite is_finite_spec; simpl.
 unfold Prim2B; rewrite B2R_FF2B is_finite_FF2B.
 rewrite ldshiftexp_spec.
-rewrite <-(B2EF_Prim2B primitive_floats_infnan.nan_pl m'').
+rewrite <-(B2SF_Prim2B primitive_floats_infnan.nan_pl m'').
 assert (Hprec : (prec < emax)%Z); [now simpl| ].
-rewrite EFldexp_Bldexp.
+rewrite SFldexp_Bldexp.
 set (f := _ primitive_floats_infnan.nan_pl m'').
 set (e''' := Z.sub (to_Z e'') _).
 assert (H := Bldexp_correct _ _ _ Hprec Binary.mode_NE f e''').
@@ -469,8 +469,8 @@ revert H.
 case Rlt_bool_spec; intro Hlt; [ |now case (Bldexp _ _ _ _ _ _ _)].
 set (bf := Bldexp _ _ _ _ _ _ _).
 intros (Ht, (Hfe''', Hs)).
-rewrite FF2R_EF2FF_B2EF Ht.
-rewrite is_finite_FF_EF2FF_B2EF Hfe'''; intro Hf.
+rewrite FF2R_SF2FF_B2SF Ht.
+rewrite is_finite_FF_SF2FF_B2SF Hfe'''; intro Hf.
 unfold FtoR.
 set (m''' := if sm then _ else _).
 assert (Hm''' : B2R prec emax f = IZR m''').
@@ -495,7 +495,7 @@ assert (He''shift : Z.sub (to_Z e'') (to_Z shift) = e).
     { rewrite -{2}(Z.opp_involutive (to_Z e')) -Z.opp_le_mono.
       unfold bounded, canonical_mantissa.
       move=> /andP [] /Zeq_bool_eq; unfold FLT_exp, emin, emax, prec; lia. }
-    rewrite /EmulatedFloat.bounded => /andP [] _ /Zle_bool_imp_le.
+    rewrite /SpecFloat.bounded => /andP [] _ /Zle_bool_imp_le.
     unfold emin, emax, prec; lia. }
   unfold e'', e; case se.
   { rewrite sub_spec Zmod_small; [ring|split].
@@ -511,7 +511,7 @@ rewrite round_generic.
 { now case e; [rewrite Rmult_1_r|intro p; rewrite mult_IZR|simpl]. }
 apply generic_format_F2R; fold m''' e; intros Nzm'''.
 unfold cexp, FLT_exp; rewrite (mag_F2R_Zdigits _ _ _ Nzm''').
-revert Hb; unfold EmulatedFloat.bounded, EmulatedFloat.canonical_mantissa.
+revert Hb; unfold SpecFloat.bounded, SpecFloat.canonical_mantissa.
 move=> /andP [] /Zeq_bool_eq; rewrite -/emin /FLT_exp Zpos_digits2_pos => Hb _.
 now unfold m'''; case sm; rewrite Hb.
 Qed.
