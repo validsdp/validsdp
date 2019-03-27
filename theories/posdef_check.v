@@ -458,7 +458,7 @@ simpl; intro Hb; specialize (Hb (refl_equal _)).
 rewrite <-(B2Prim_Prim2B primitive_floats_infnan.nan_pl (ldshiftexp _ _)) at 1.
 rewrite is_finite_spec; simpl.
 unfold Prim2B; rewrite B2R_FF2B is_finite_FF2B.
-rewrite ldshiftexp_spec.
+rewrite ldshiftexp_SFldexp.
 rewrite <-(B2SF_Prim2B primitive_floats_infnan.nan_pl m'').
 assert (Hprec : (prec < emax)%Z); [now simpl| ].
 rewrite SFldexp_Bldexp.

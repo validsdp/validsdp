@@ -455,7 +455,7 @@ Section Primitive_float_round_up_infnan.
   Proof.
     unfold next_up_finite.
     rewrite <- (SF2Prim_Prim2SF (next_up x)).
-    rewrite FPnext_up_SFsucc.
+    rewrite next_up_SFsucc.
     rewrite <- (B2Prim_Prim2B nan_pl x).
     change neg_infinity with (B2Prim (Binary.B754_infinity true)).
     rewrite FPcompare_Bcompare.

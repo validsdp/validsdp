@@ -164,37 +164,37 @@ Ltac prove_FP2B SFop_Bop FPop_SFop op_nan :=
   reflexivity.
 
 Theorem FPopp_Bopp : forall opp_nan x, (-(B2Prim x))%float = B2Prim (Bopp prec emax opp_nan x).
-  prove_FP2B @SFopp_Bopp FPopp_SFopp opp_nan.
+  prove_FP2B @SFopp_Bopp opp_SFopp opp_nan.
 Qed.
 
 Theorem FPabs_Babs : forall abs_nan x, abs (B2Prim x) = B2Prim (Babs prec emax abs_nan x).
-  prove_FP2B @SFabs_Babs FPabs_SFabs abs_nan.
+  prove_FP2B @SFabs_Babs abs_SFabs abs_nan.
 Qed.
 
 Theorem FPcompare_Bcompare : forall x y,
   ((B2Prim x) ?= (B2Prim y))%float = flatten_cmp_opt (Bcompare prec emax x y).
-  intros. rewrite FPcompare_SFcompare. rewrite <- SFcompare_Bcompare. unfold B2Prim.
+  intros. rewrite compare_SFcompare. rewrite <- SFcompare_Bcompare. unfold B2Prim.
   rewrite !Prim2SF_SF2Prim by apply valid_binary_B2SF. reflexivity.
 Qed.
 
 Theorem FPmult_Bmult : forall mult_nan x y, ((B2Prim x)*(B2Prim y))%float = B2Prim (Bmult prec emax eq_refl eq_refl mult_nan mode_NE x y).
-  prove_FP2B @SFmult_Bmult FPmult_SFmult mult_nan.
+  prove_FP2B @SFmult_Bmult mult_SFmult mult_nan.
 Qed.
 
 Theorem FPplus_Bplus : forall plus_nan x y, ((B2Prim x)+(B2Prim y))%float = B2Prim (Bplus prec emax eq_refl eq_refl plus_nan mode_NE x y).
-  prove_FP2B @SFplus_Bplus FPplus_SFplus plus_nan.
+  prove_FP2B @SFplus_Bplus plus_SFplus plus_nan.
 Qed.
 
 Theorem FPminus_Bminus : forall minus_nan x y, ((B2Prim x)-(B2Prim y))%float = B2Prim (Bminus prec emax eq_refl eq_refl minus_nan mode_NE x y).
-  prove_FP2B @SFminus_Bminus FPminus_SFminus minus_nan.
+  prove_FP2B @SFminus_Bminus minus_SFminus minus_nan.
 Qed.
 
 Theorem FPdiv_Bdiv : forall div_nan x y, ((B2Prim x)/(B2Prim y))%float = B2Prim (Bdiv prec emax eq_refl eq_refl div_nan mode_NE x y).
-  prove_FP2B @SFdiv_Bdiv FPdiv_SFdiv div_nan.
+  prove_FP2B @SFdiv_Bdiv div_SFdiv div_nan.
 Qed.
 
 Theorem FPsqrt_Bsqrt : forall sqrt_nan x, sqrt (B2Prim x) = B2Prim (Bsqrt prec emax eq_refl eq_refl sqrt_nan mode_NE x).
-  prove_FP2B @SFsqrt_Bsqrt FPsqrt_SFsqrt sqrt_nan.
+  prove_FP2B @SFsqrt_Bsqrt sqrt_SFsqrt sqrt_nan.
 Qed.
 
 Theorem FPnormfr_mantissa_Bnormfr_mantissa :
@@ -204,7 +204,7 @@ Proof.
 intro x; unfold B2Prim.
 rewrite <-SFnormfr_mantissa_Bnormfr_mantissa.
 rewrite <-(Prim2SF_SF2Prim (B2SF x)) at 2; [|apply valid_binary_B2SF].
-rewrite <-normfr_mantissa_spec.
+rewrite <-normfr_mantissa_SFnormfr_mantissa.
 now rewrite Int63.of_to_Z.
 Qed.
 
@@ -261,7 +261,7 @@ Proof.
 intros succ_nan x; unfold B2Prim.
 rewrite <-SFsucc_Bsucc.
 rewrite <-(Prim2SF_SF2Prim (B2SF x)) at 2; [|apply valid_binary_B2SF].
-rewrite <-FPnext_up_SFsucc.
+rewrite <-next_up_SFsucc.
 now rewrite SF2Prim_Prim2SF.
 Qed.
 
@@ -273,7 +273,7 @@ Proof.
 intros pred_nan x; unfold B2Prim.
 rewrite <-SFpred_Bpred.
 rewrite <-(Prim2SF_SF2Prim (B2SF x)) at 2; [|apply valid_binary_B2SF].
-rewrite <-FPnext_down_SFpred.
+rewrite <-next_down_SFpred.
 now rewrite SF2Prim_Prim2SF.
 Qed.
 
