@@ -70,12 +70,10 @@ Lemma shr_fexp_equiv : forall m e l, SpecFloat.shr_fexp prec emax m e (Floc2loc 
   now rewrite fexp_equiv.
 Qed.
 
-Lemma round_N_equiv : forall p l, SpecFloat.round_N p (Floc2loc l) = Round.round_N p l.
-  intros. now destruct l.
-Qed.
-
 Lemma round_nearest_even_equiv : forall sx mx lx, round_nearest_even mx (Floc2loc lx) = choice_mode mode_NE sx mx lx.
-  intros. unfold round_nearest_even, choice_mode. rewrite round_N_equiv. reflexivity.
+  intros. unfold round_nearest_even, choice_mode.
+  destruct lx; [now simpl|].
+  now case c; simpl; [case (Z.even mx)| |].
 Qed.
 
 Lemma binary_round_aux_equiv : forall sx mx ex lx, SpecFloat.binary_round_aux prec emax sx mx ex (Floc2loc lx) = FF2SF (Binary.binary_round_aux prec emax mode_NE sx mx ex lx).
@@ -134,18 +132,17 @@ Theorem SFminus_Bminus : forall minus_nan x y, SFminus prec emax (B2SF x) (B2SF 
   apply binary_normalize_equiv.
 Qed.
 
-Lemma new_location_even_equiv : forall nb_steps k l, SpecFloat.new_location_even nb_steps k (Floc2loc l) = Floc2loc (Bracket.new_location_even nb_steps k l).
+Lemma new_location_even_equiv : forall nb_steps k, SpecFloat.new_location_even nb_steps k = Floc2loc (Bracket.new_location_even nb_steps k Bracket.loc_Exact).
   intros. unfold new_location_even, Bracket.new_location_even. set (Zeq_bool k 0).
-  destruct b. destruct l; auto. set (2 * k ?= nb_steps)%Z. destruct c; auto. destruct l; auto.
+  now destruct b; [|case (_ ?= _)%Z].
 Qed.
 
-Lemma new_location_odd_equiv : forall nb_steps k l, SpecFloat.new_location_odd nb_steps k (Floc2loc l) = Floc2loc (Bracket.new_location_odd nb_steps k l).
+Lemma new_location_odd_equiv : forall nb_steps k, SpecFloat.new_location_odd nb_steps k = Floc2loc (Bracket.new_location_odd nb_steps k Bracket.loc_Exact).
   intros. unfold new_location_odd, Bracket.new_location_odd. set (Zeq_bool k 0).
-  destruct b. destruct l; auto. set (2 * k + 1 ?= nb_steps)%Z.
-  destruct c; auto. destruct l; auto.
+  now destruct b; [|case (_ ?= _)%Z].
 Qed.
 
-Lemma new_location_equiv : forall nb_steps k l, SpecFloat.new_location nb_steps k (Floc2loc l) = Floc2loc (Bracket.new_location nb_steps k l).
+Lemma new_location_equiv : forall nb_steps k, SpecFloat.new_location nb_steps k = Floc2loc (Bracket.new_location nb_steps k Bracket.loc_Exact).
   intros. unfold new_location, Bracket.new_location.
   set (Z.even nb_steps); destruct b. apply new_location_even_equiv.
   apply new_location_odd_equiv.
