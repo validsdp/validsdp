@@ -80,7 +80,9 @@ main() {
     opam repo add coq-released https://coq.inria.fr/opam/released
     opam repo add coq-core-dev https://coq.inria.fr/opam/core-dev
     opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
-    
+
+    opam update
+
     pushd "${COQ_DIR}"
     git checkout primitive-floats-parsing
     make clean
