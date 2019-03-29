@@ -84,7 +84,7 @@ main() {
     opam update
 
     pushd "${COQ_DIR}"
-    git checkout primitive-floats-parsing
+    git checkout primitive-floats
     make clean
     git clean -dxf .  # a bit aggressive but required
     ./configure -annot -bin-annot -prefix $HOME/.opam/${switch}
