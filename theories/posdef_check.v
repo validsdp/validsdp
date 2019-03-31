@@ -199,11 +199,20 @@ Lemma F2FI_correct' (f : F.type) :
   FI2FS (F2FI f) = toR f :> R.
 Proof. by apply F2FI_correct. Qed.
 
+(* We use the typical Coq design pattern "abstract + vm_cast_no_check"
+   to avoid performing the conversion check twice. *)
 Ltac posdef_check :=
   match goal with
   | [ |- posdef_seqF ?Q ] =>
     abstract (apply (posdefcheck_eff_wrapup_correct F2FI_correct');
       vm_cast_no_check (erefl true))
+  end.
+
+Ltac posdef_check_native :=
+  match goal with
+  | [ |- posdef_seqF ?Q ] =>
+    abstract (apply (posdefcheck_eff_wrapup_correct F2FI_correct');
+      native_cast_no_check (erefl true))
   end.
 
 (* This code generate an anomaly :
@@ -521,6 +530,13 @@ Ltac primitive_posdef_check :=
   | [ |- posdef_seqF ?Q ] =>
     abstract (apply (@posdefcheck_eff_wrapup_correct primitive_float_round_up_infnan _ BigZFloat2Prim_correct);
       vm_cast_no_check (erefl true))
+  end.
+
+Ltac primitive_posdef_check_native :=
+  match goal with
+  | [ |- posdef_seqF ?Q ] =>
+    abstract (apply (@posdefcheck_eff_wrapup_correct primitive_float_round_up_infnan _ BigZFloat2Prim_correct);
+      native_cast_no_check (erefl true))
   end.
 
 (*Goal posdef_seqF matrices.m12.
