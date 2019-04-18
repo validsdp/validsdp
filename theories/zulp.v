@@ -117,7 +117,7 @@ case: m NZm => [//|p|p] NZm /=.
   { by move=> n; rewrite K N.bits_0. }
   have Hp: p = (q + 1)%positive.
   { zify.
-    by rewrite -E N.pos_pred_spec N2Z.inj_pred // -/(Zsucc _) -Zsucc_pred. }
+    by rewrite -E N.pos_pred_spec N2Z.inj_pred // -/(Z.succ _) -Zsucc_pred. }
   clear E NZm.
   rewrite {}Hp in K'.
   elim: q K' => [q IHq|q IHq| ] K'.
@@ -139,7 +139,7 @@ case: m NZm => [//|p|p] NZm /=.
   { by move=> n; rewrite K N.bits_0. }
   have Hp: p = (q + 1)%positive.
   { zify.
-    by rewrite -E N.pos_pred_spec N2Z.inj_pred // -/(Zsucc _) -Zsucc_pred. }
+    by rewrite -E N.pos_pred_spec N2Z.inj_pred // -/(Z.succ _) -Zsucc_pred. }
   clear E NZm.
   rewrite {}Hp in K'.
   elim: q K' => [q IHq|q IHq| ] K'.

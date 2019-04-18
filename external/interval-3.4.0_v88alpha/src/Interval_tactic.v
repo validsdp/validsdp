@@ -64,7 +64,7 @@ Ltac get_float t :=
       | xO xH => xH
       | xO ?v =>
         let w := aux v in
-        constr:(Psucc w)
+        constr:(Pos.succ w)
       end in
     let e := aux d in
     eval vm_compute in (F.fromF (@Interval_definitions.Float F.radix s n (Zneg e))) in
@@ -74,7 +74,7 @@ Ltac get_float t :=
     let rec aux m e :=
       match m with
       | xO ?v =>
-        let u := constr:(Zsucc e) in
+        let u := constr:(Z.succ e) in
         aux v u
       | _ => constr:((m, e))
       end in

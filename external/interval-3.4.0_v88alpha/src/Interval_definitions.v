@@ -122,8 +122,8 @@ Fixpoint count_digits_aux nb pow (p q : positive) { struct q } : positive :=
   else
     match q with
     | xH => nb
-    | xI r => count_digits_aux (Psucc nb) (Zmult beta pow) p r
-    | xO r => count_digits_aux (Psucc nb) (Zmult beta pow) p r
+    | xI r => count_digits_aux (Pos.succ nb) (Zmult beta pow) p r
+    | xO r => count_digits_aux (Pos.succ nb) (Zmult beta pow) p r
     end.
 
 Definition count_digits n :=

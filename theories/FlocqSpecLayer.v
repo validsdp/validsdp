@@ -16,10 +16,10 @@ Hypothesis Hemax : (3 <= emax)%Z.
 
 Definition FF2SF (x : full_float) :=
   match x with
-  | F754_finite s m e => E754_finite s m e
-  | F754_infinity s => E754_infinity s
-  | F754_zero s => E754_zero s
-  | F754_nan b pl => E754_nan
+  | F754_finite s m e => S754_finite s m e
+  | F754_infinity s => S754_infinity s
+  | F754_zero s => S754_zero s
+  | F754_nan b pl => S754_nan
   end.
 
 Lemma fexp_equiv : forall e, fexp prec emax e = FLT.FLT_exp (3 - emax - prec) prec e.
@@ -99,7 +99,7 @@ Lemma binary_normalize_equiv : forall m e szero, SpecFloat.binary_normalize prec
   intros. unfold binary_normalize, Binary.binary_normalize. destruct m; auto; unfold B2SF; rewrite B2FF_FF2B; apply binary_round_equiv.
 Qed.
 
-Lemma B2SF_build_nan : forall nan, E754_nan = B2SF (build_nan prec emax nan).
+Lemma B2SF_build_nan : forall nan, S754_nan = B2SF (build_nan prec emax nan).
   intros. unfold build_nan. destruct nan. destruct x; try (discriminate). reflexivity.
 Qed.
 

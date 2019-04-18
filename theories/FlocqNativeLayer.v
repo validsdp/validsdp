@@ -8,10 +8,10 @@ Qed.
 
 Definition SF2FF '(b, pl) x :=
   match x with
-  | E754_finite s m e => F754_finite s m e
-  | E754_infinity s => F754_infinity s
-  | E754_zero s => F754_zero s
-  | E754_nan => F754_nan b pl
+  | S754_finite s m e => F754_finite s m e
+  | S754_infinity s => F754_infinity s
+  | S754_zero s => F754_zero s
+  | S754_nan => F754_nan b pl
   end.
 
 Lemma FF2SF_SF2FF : forall nan x, FF2SF (SF2FF nan x) = x.

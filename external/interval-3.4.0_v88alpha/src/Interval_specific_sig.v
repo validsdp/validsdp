@@ -90,7 +90,7 @@ Parameter exponent_sub_correct :
   forall x y, EtoZ (exponent_sub x y) = (EtoZ x - EtoZ y)%Z.
 
 Parameter exponent_cmp_correct :
-  forall x y, exponent_cmp x y = Zcompare (EtoZ x) (EtoZ y).
+  forall x y, exponent_cmp x y = Z.compare (EtoZ x) (EtoZ y).
 
 Parameter exponent_div2_floor_correct :
   forall e, let (e',b) := exponent_div2_floor e in
@@ -138,7 +138,7 @@ Parameter mantissa_mul_correct :
 
 Parameter mantissa_cmp_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
-  mantissa_cmp x y = Zcompare (Zpos (MtoP x)) (Zpos (MtoP y)).
+  mantissa_cmp x y = Z.compare (Zpos (MtoP x)) (Zpos (MtoP y)).
 
 Parameter mantissa_digits_correct :
   forall x, valid_mantissa x ->
@@ -159,7 +159,7 @@ Parameter mantissa_shr_correct :
   forall x y z k, valid_mantissa y -> EtoZ z = Zpos x ->
   (Zpos (shift radix 1 x) <= Zpos (MtoP y))%Z ->
   let (sq,l) := mantissa_shr y z k in
-  let (q,r) := Zdiv_eucl (Zpos (MtoP y)) (Zpos (shift radix 1 x)) in
+  let (q,r) := Z.div_eucl (Zpos (MtoP y)) (Zpos (shift radix 1 x)) in
   Zpos (MtoP sq) = q /\
   l = adjust_pos r (shift radix 1 x) k /\
   valid_mantissa sq.

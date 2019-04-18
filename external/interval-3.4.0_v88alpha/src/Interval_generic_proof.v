@@ -89,10 +89,10 @@ rewrite <- Rmult_plus_distr_r.
 rewrite <- plus_IZR.
 case s ; simpl.
 rewrite (Z.pos_sub_spec m2 m1).
-unfold Zlt in Hm ; simpl in Hm.
+unfold Z.lt in Hm ; simpl in Hm.
 now rewrite Hm.
-generalize (Zlt_gt _ _ Hm).
-unfold Zgt. simpl.
+generalize (Z.lt_gt _ _ Hm).
+unfold Z.gt. simpl.
 intros H.
 now rewrite (Z.pos_sub_spec m1 m2), H.
 Qed.
@@ -121,7 +121,7 @@ unfold shift.
 set (r := match radix_val beta with Zpos r => r | _ => xH end).
 rewrite iter_pos_nat.
 rewrite Zpower_Zpower_nat by easy.
-simpl Zabs_nat.
+simpl Z.abs_nat.
 induction (nat_of_P e).
 simpl.
 now rewrite Pmult_comm.
@@ -292,7 +292,7 @@ rewrite 2!FtoR_split.
 apply Rmult_eq_reg_r with (bpow radix2 (Zpos nb)).
 2: apply Rgt_not_eq ; apply bpow_gt_0.
 rewrite Rmult_assoc, <- bpow_plus.
-change (Zneg nb) with (Zopp (Zpos nb)).
+change (Zneg nb) with (Z.opp (Zpos nb)).
 rewrite Zplus_opp_l, Rmult_1_r.
 fold (e - Zpos nb)%Z.
 simpl.
@@ -309,7 +309,7 @@ apply (f_equal (fun v => F2R (Defs.Float beta (cond_Zopp s v) _))).
 rewrite Z.pow_pos_fold.
 rewrite iter_pos_nat.
 rewrite 2!Zpower_Zpower_nat by easy.
-simpl Zabs_nat.
+simpl Z.abs_nat.
 unfold beta.
 simpl radix_val.
 clear.
@@ -381,7 +381,7 @@ rewrite F2R_change_exp with (e := e2) (e' := e1).
 replace (e2 - e1)%Z with (Zpos d).
 rewrite shift_correct.
 now rewrite Rcompare_F2R.
-apply Zopp_inj.
+apply Z.opp_inj.
 simpl. rewrite <- He.
 ring.
 generalize (Zlt_neg_0 d).
@@ -516,7 +516,7 @@ Lemma normalize_identity :
   normalize beta prec m e = (m, e).
 Proof.
 intros beta prec m e.
-unfold Zle, normalize.
+unfold Z.le, normalize.
 rewrite <- (Zcompare_plus_compat _ _ (- Zpos prec)).
 rewrite Zplus_opp_l, Zplus_comm.
 unfold Zminus.
@@ -636,13 +636,13 @@ intros He Hm. clear Heq.
 rewrite <- Hm, digits_conversion, Hd.
 rewrite shift_correct, Zmult_1_l.
 fold (Zpower beta (Zpos d)).
-unfold Zdiv, Zmod.
+unfold Z.div, Zmod.
 assert (Zpower beta (Zpos d) > 0)%Z.
-apply Zlt_gt.
+apply Z.lt_gt.
 now apply Zpower_gt_0.
 generalize (Z_div_mod (Zpos m1) (Zpower beta (Zpos d)) H).
 clear H.
-case Zdiv_eucl. intros q r (Hq, Hr).
+case Z.div_eucl. intros q r (Hq, Hr).
 rewrite He.
 cut (0 < q)%Z.
 (* .. *)
@@ -666,8 +666,8 @@ now apply Zpower_gt_0.
 apply Zplus_lt_reg_r with r.
 simpl (0 * Zpower beta (Zpos d) + r)%Z.
 rewrite Zmult_comm, <- Hq.
-apply Zlt_le_trans with (1 := proj2 Hr).
-fold (Zabs (Zpos m1)).
+apply Z.lt_le_trans with (1 := proj2 Hr).
+fold (Z.abs (Zpos m1)).
 apply Zpower_le_Zdigits.
 rewrite <- Hd.
 rewrite <- digits_conversion.
@@ -708,7 +708,7 @@ rewrite <- Zopp_mult_distr_l_reverse.
 now case s.
 pattern e1 at 2 ; rewrite <- Zplus_0_r.
 now apply Zplus_le_compat_l.
-change (Zpos d) with (Zopp (Zneg d)).
+change (Zpos d) with (Z.opp (Zneg d)).
 rewrite <- Hd.
 rewrite digits_conversion.
 ring.
@@ -755,7 +755,7 @@ intros p H.
 rewrite shift_correct.
 fold (Zpower beta (Zpos p)).
 rewrite Zdigits_mult_Zpower ; try easy.
-fold (Zopp (Zneg p)).
+fold (Z.opp (Zneg p)).
 rewrite <- H.
 now ring_simplify.
 Qed.
@@ -775,7 +775,7 @@ apply f_equal.
 rewrite IZR_Zpower_pos, <- bpow_powerRZ.
 rewrite <- bpow_plus.
 apply f_equal.
-change (Zneg p) with (Zopp (Zpos p)).
+change (Zneg p) with (Z.opp (Zpos p)).
 ring.
 Qed.
 
@@ -998,7 +998,7 @@ assert (V1 : (1 < IZR (beta ^ Z.pos n1))%R) by now apply IZR_lt.
 assert (V2 : (Z.pos p < beta ^ Z.pos n1)%Z).
   generalize (Zdigits_correct beta (Z.pos p)).
   intros [_ V2].
-  apply Zlt_trans with (1 := V2).
+  apply Z.lt_trans with (1 := V2).
   apply Zpower_lt; lia.
 assert (V3 : inbetween_int 0 (Rabs y) (convert_location_inv p1)).
   unfold y, p1, inbetween_int.
@@ -1015,7 +1015,7 @@ assert (V3 : inbetween_int 0 (Rabs y) (convert_location_inv p1)).
     rewrite Rcompare_div_r; try lra.
     rewrite <- (mult_IZR 2).
     rewrite Rcompare_IZR.
-    apply Zcompare_Lt; apply Zgt_lt.
+    apply Zcompare_Lt; apply Z.gt_lt.
     apply Zgt_le_trans with (m := (beta * Z.pos p)%Z); last first.
       now apply Zmult_le_compat_r; lia.
     apply Zle_gt_trans with (m := (beta ^ (1 + Zdigits beta (Z.pos p)))%Z).
@@ -1036,7 +1036,7 @@ set (r := (_ mod _)%Z).
 assert (Pq : (0 < q)%Z).
   apply  Z.div_str_pos; split; try lia.
   generalize (Zdigits_correct beta (Z.pos p)); intros [U1 U2].
-  apply Zle_trans with (2 := U1).
+  apply Z.le_trans with (2 := U1).
   rewrite Pos2Z.inj_pow, radix_to_pos.
   now apply Zpower_le; lia.
 assert (Pr : (0 <= r < Z.pos (Z.to_pos beta ^ n1))%Z).
@@ -1124,7 +1124,7 @@ rewrite Z.pos_sub_spec.
 case_eq (mx ?= my)%positive ; intros ; try discriminate H0.
 rewrite (FtoR_sub beta sx).
 now inversion H0.
-apply Zgt_lt.
+apply Z.gt_lt.
 exact H.
 intro p.
 unfold Zminus, Zplus.
@@ -1353,25 +1353,25 @@ apply sym_eq.
 apply (f_equal Xreal).
 apply round_0...
 unfold Xround, Fdiv, Fdiv_aux, Fdiv_aux2.
-set (e := Zmin ((Zdigits beta (Zpos mx) + ex) - (Zdigits beta (Zpos my) + ey) - Zpos prec) (ex - ey)).
+set (e := Z.min ((Zdigits beta (Zpos mx) + ex) - (Zdigits beta (Zpos my) + ey) - Zpos prec) (ex - ey)).
 generalize (Div.Fdiv_core_correct beta (Zpos mx) ex (Zpos my) ey e eq_refl eq_refl).
 unfold Div.Fdiv_core.
-rewrite Zle_bool_true by apply Zle_min_r.
+rewrite Zle_bool_true by apply Z.le_min_r.
 match goal with |- context [let (m,e') := ?v in let '(q,r) := Zfast_div_eucl _ _ in _] => set (me := v) end.
 assert (me = (Zpos mx * Zpower beta (ex - ey - e), e))%Z as ->.
 { unfold me, e ; clear.
   destruct (_ + Zpos prec - _)%Z as [|p|p] eqn:He.
-  - rewrite Zmin_r by omega.
+  - rewrite Z.min_r by omega.
     now rewrite Z.sub_diag, Zmult_1_r.
-  - rewrite Zmin_l by (zify ; omega).
-    change (Zneg p) with (Zopp (Zpos p)).
+  - rewrite Z.min_l by (zify ; omega).
+    change (Zneg p) with (Z.opp (Zpos p)).
     fold (Zpower beta (Zpos p)).
     rewrite <- He.
     apply (f_equal2 (fun v1 v2 => (_ * Zpower beta v1, v2)%Z)) ; ring.
-  - rewrite Zmin_r by (zify ; omega).
+  - rewrite Z.min_r by (zify ; omega).
     now rewrite Z.sub_diag, Zmult_1_r. }
 rewrite Zfast_div_eucl_correct.
-destruct Zdiv_eucl as [m r].
+destruct Z.div_eucl as [m r].
 set (l := new_location _ _ _).
 intros H1.
 assert (Zpos prec <= Zdigits beta m)%Z as H2.
@@ -1449,10 +1449,10 @@ elim (Rle_not_lt _ _ H).
 apply FtoR_Rneg.
 intros _.
 unfold Xround.
-set (e1 := Zmax _ _).
+set (e1 := Z.max _ _).
 destruct (if Z.even _ then _ else _) as [s' e''] eqn:Hse.
-set (e' := Zdiv2 e'').
-assert (e' = Zdiv2 (ex - e1) /\ s' = ex - 2 * e')%Z as [He1 He2].
+set (e' := Z.div2 e'').
+assert (e' = Z.div2 (ex - e1) /\ s' = ex - 2 * e')%Z as [He1 He2].
 { generalize (Zdiv2_odd_eqn (ex - e1)).
   rewrite <- Z.negb_even.
   destruct Z.even eqn:H ; injection Hse ; intros <- <-.
@@ -1470,7 +1470,7 @@ assert (e' = Zdiv2 (ex - e1) /\ s' = ex - 2 * e')%Z as [He1 He2].
   rewrite Zdiv2_div, (Zmult_comm 2), Z.div_mul by easy.
   apply (conj eq_refl).
   clear -H' ; omega. }
-assert (e' = Zmin (Zdiv2 (Zdigits beta (Zpos mx) + ex) - Zpos prec) (Z.div2 ex)) as He1'.
+assert (e' = Z.min (Z.div2 (Zdigits beta (Zpos mx) + ex) - Zpos prec) (Z.div2 ex)) as He1'.
 { rewrite He1.
   unfold e1.
   rewrite <- Z.sub_min_distr_l, Zminus_0_r.
@@ -1483,9 +1483,9 @@ assert (e' = Zmin (Zdiv2 (Zdigits beta (Zpos mx) + ex) - Zpos prec) (Z.div2 ex))
   now apply Z.div_le_mono. }
 assert (2 * e' <= ex)%Z as He.
 { rewrite He1'.
-  set (foo := (Zdiv2 _ - _)%Z).
+  set (foo := (Z.div2 _ - _)%Z).
   clear.
-  assert (Zmin foo (Zdiv2 ex) <= Zdiv2 ex)%Z as H by apply Zle_min_r.
+  assert (Z.min foo (Z.div2 ex) <= Z.div2 ex)%Z as H by apply Z.le_min_r.
   generalize (Zdiv2_odd_eqn ex).
   destruct Z.odd ; intros ; omega. }
 generalize (Sqrt.Fsqrt_core_correct beta (Zpos mx) ex e' eq_refl He).
@@ -1501,9 +1501,9 @@ destruct Z.sqrtrem as [m' r].
 set (lz := if Zeq_bool _ _ then _ else _).
 intros H1.
 assert (Zpos prec <= Zdigits beta m')%Z as H2.
-{ assert (e' <= Zdiv2 (Zdigits beta (Zpos mx) + ex + 1) - Zpos prec)%Z as He'.
+{ assert (e' <= Z.div2 (Zdigits beta (Zpos mx) + ex + 1) - Zpos prec)%Z as He'.
   { rewrite He1'.
-    apply Zle_trans with (1 := Zle_min_l _ _).
+    apply Z.le_trans with (1 := Z.le_min_l _ _).
     apply Zplus_le_compat_r.
     rewrite 2!Zdiv2_div.
     apply Z.div_le_mono.

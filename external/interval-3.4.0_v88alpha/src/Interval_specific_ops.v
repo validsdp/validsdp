@@ -545,7 +545,7 @@ unfold Fround_at_prec.
 rewrite Hp.
 unfold radix.
 case_eq (Zpos (count_digits Carrier.radix (MtoP m1)) - EtoZ p)%Z ;
-  unfold Zcompare.
+  unfold Z.compare.
 (* *)
 intros Hd.
 destruct (adjust_mantissa_correct mode m1 pos sign Hm1) as (H1,H2).
@@ -556,7 +556,7 @@ intros dp Hd.
 refine (_ (mantissa_shr_correct dp m1 (exponent_sub (mantissa_digits m1) p) pos Hm1 _ _)).
 case mantissa_shr.
 intros sq sl.
-case Zdiv_eucl.
+case Z.div_eucl.
 intros q r (Hq, (Hl, Vq)).
 rewrite <- Hq.
 destruct (adjust_mantissa_correct mode sq sl sign Vq) as (Ha, Va).
@@ -566,7 +566,7 @@ rewrite exponent_add_correct, exponent_sub_correct, mantissa_digits_correct with
 now rewrite Hd, Hl.
 now rewrite exponent_sub_correct, mantissa_digits_correct.
 rewrite shift_correct, Zmult_1_l.
-change (Zpower Carrier.radix (Zpos dp) <= Zabs (Zpos (MtoP m1)))%Z.
+change (Zpower Carrier.radix (Zpos dp) <= Z.abs (Zpos (MtoP m1)))%Z.
 apply Zpower_le_Zdigits.
 rewrite <- Hd, <- Hp.
 rewrite <- digits_conversion.
@@ -643,7 +643,7 @@ rewrite exponent_zero_correct.
 unfold Fround_at_exp.
 unfold radix.
 case_eq (EtoZ p' - EtoZ e1)%Z ;
-  unfold Zcompare.
+  unfold Z.compare.
 (* *)
 intros Hd.
 destruct (adjust_mantissa_correct mode m1 pos sign Hm1) as (H1,H2).
@@ -651,8 +651,8 @@ now rewrite toF_float, H1.
 (* *)
 intros dp Hd.
 rewrite exponent_cmp_correct, mantissa_digits_correct, exponent_sub_correct; try easy.
-rewrite Hd; simpl Zcompare.
-case Pcompare_spec.
+rewrite Hd; simpl Z.compare.
+case Pos.compare_spec.
 - intros Hc.
   rewrite <- mantissa_shrp_correct with (z := (exponent_sub p' e1)); try easy; last 2 first.
   - now rewrite exponent_sub_correct.
@@ -679,7 +679,7 @@ case Pcompare_spec.
     now lia.
   case mantissa_shr.
   intros sq sl.
-  case Zdiv_eucl.
+  case Z.div_eucl.
   intros q r (Hq, (Hl, Vq)).
   rewrite <- Hq.
   destruct (adjust_mantissa_correct mode sq sl sign Vq) as (Ha, Va).
@@ -895,7 +895,7 @@ now rewrite Ep.
 rewrite (mantissa_cmp_correct _ _ Mx My).
 simpl.
 rewrite Z.pos_sub_spec.
-case Pcompare_spec.
+case Pos.compare_spec.
 intros _.
 apply zero_correct.
 intros H.
@@ -985,7 +985,7 @@ case eqb.
 - change (Zpos (MtoP mx) + Zneg (MtoP my))%Z with (Zpos (MtoP mx) - Zpos (MtoP my))%Z.
   rewrite (mantissa_cmp_correct mx my Vx Vy).
   rewrite Z.compare_sub.
-  case_eq (Zpos (MtoP mx) - Zpos (MtoP my))%Z ; unfold Zcompare.
+  case_eq (Zpos (MtoP mx) - Zpos (MtoP my))%Z ; unfold Z.compare.
   + intros H.
     simpl.
     generalize (mantissa_sign_correct mantissa_zero).
@@ -1032,7 +1032,7 @@ Proof.
 intros mode p sx sy mx my ex ey Vx Vy.
 unfold add_slow_aux2, Fadd_slow_aux2.
 rewrite exponent_cmp_correct, exponent_sub_correct, exponent_zero_correct.
-case_eq (EtoZ ex - EtoZ ey)%Z ; unfold Zcompare.
+case_eq (EtoZ ex - EtoZ ey)%Z ; unfold Z.compare.
 - intros _.
   now apply add_slow_aux1_correct.
 - intros d Hd.
@@ -1047,7 +1047,7 @@ case_eq (EtoZ ex - EtoZ ey)%Z ; unfold Zcompare.
   generalize (mantissa_shl_correct d my (exponent_neg (exponent_sub ex ey)) Vy).
   intros H'.
   destruct H' as [H1 H2].
-  change (Zpos d) with (Zopp (Zneg d)).
+  change (Zpos d) with (Z.opp (Zneg d)).
   rewrite <- Hd.
   rewrite exponent_neg_correct.
   apply f_equal, exponent_sub_correct.
@@ -1292,10 +1292,10 @@ replace (match d with Zpos p0 => ((Zpos (MtoP nx) * Zpower_pos Carrier.radix p0)
   with (match d with Zpos p0 => (Zpos (MtoP nx) * Zpower_pos Carrier.radix p0)%Z | _ => Zpos (MtoP nx) end, match d with Zpos p0 => (EtoZ ex - EtoZ ey + Zneg p0)%Z | _ => (EtoZ ex - EtoZ ey)%Z end)
   by now case d.
 revert H1.
-unfold Zdiv.
+unfold Z.div.
 generalize (Z_div_mod (match d with Zpos p0 => (Zpos (MtoP nx) * Zpower_pos Carrier.radix p0)%Z | _ => Zpos (MtoP nx) end) (Zpos (MtoP ny)) (refl_equal _)).
 rewrite Zfast_div_eucl_correct.
-case Zdiv_eucl.
+case Z.div_eucl.
 intros q r (Hq,Hr) H1.
 rewrite <- H1.
 apply f_equal2.
@@ -1396,27 +1396,27 @@ rewrite exponent_sub_correct.
 rewrite exponent_add_correct.
 rewrite exponent_zero_correct.
 unfold Fsqrt, Fsqrt_aux, Fsqrt_aux2.
-set (s1 := match Zcompare (EtoZ p' + EtoZ p' - EtoZ (mantissa_digits nx)) 0 with Gt => exponent_sub (exponent_add p' p') (mantissa_digits nx) | _ => exponent_zero end).
-set (s2 := Zmax (2 * Zpos (prec p) - Zdigits radix (Zpos (MtoP nx))) 0).
+set (s1 := match Z.compare (EtoZ p' + EtoZ p' - EtoZ (mantissa_digits nx)) 0 with Gt => exponent_sub (exponent_add p' p') (mantissa_digits nx) | _ => exponent_zero end).
+set (s2 := Z.max (2 * Zpos (prec p) - Zdigits radix (Zpos (MtoP nx))) 0).
 assert (Hs: EtoZ s1 = s2).
   revert s1 s2 ; cbv zeta.
   replace (2 * Zpos (prec p))%Z with (Zpos (prec p) + Zpos (prec p))%Z by ring.
   rewrite digits_conversion.
   change radix with Carrier.radix.
   rewrite <- mantissa_digits_correct with (1 := Vx).
-  case Zcompare_spec ;
+  case Z.compare_spec ;
     rewrite Hp ;
     try rewrite exponent_zero_correct ;
     intros H ;
     apply eq_sym ;
     try apply Zmax_right.
-  now apply Zlt_le_weak.
-  now apply Zeq_le.
+  now rewrite H.
+  now apply Z.lt_le_incl.
   rewrite exponent_sub_correct.
   rewrite exponent_add_correct.
   rewrite Hp.
   apply Zmax_left.
-  now apply Zle_ge, Zlt_le_weak.
+  now apply Z.le_ge, Zlt_le_weak.
 clearbody s1 s2.
 generalize (exponent_div2_floor_correct (exponent_sub ex s1)).
 case exponent_div2_floor ; intros e1 r He.
@@ -1459,11 +1459,11 @@ simpl in Hes.
 rewrite <- (proj2 Hes).
 rewrite <- (proj1 Hes).
 clear He Hes.
-set (m1 := match Zcompare (EtoZ s3) 0 with Gt => mantissa_shl nx s3 | _ => nx end).
+set (m1 := match Z.compare (EtoZ s3) 0 with Gt => mantissa_shl nx s3 | _ => nx end).
 set (m2 := match EtoZ s3 with Zpos p => (Zpos (MtoP nx) * Z.pow_pos radix p)%Z | _ => Zpos (MtoP nx) end).
 assert (Hm: valid_mantissa m1 /\ Zpos (MtoP m1) = m2).
   revert m1 m2 ; cbv zeta.
-  case_eq (EtoZ s3) ; simpl Zcompare ; cbv iota.
+  case_eq (EtoZ s3) ; simpl Z.compare ; cbv iota.
   intros _.
   now split.
   intros q Hq.
@@ -1494,7 +1494,7 @@ easy.
 rewrite Zeq_bool_false.
 now rewrite Zle_bool_false.
 apply Zgt_not_eq.
-now apply Zlt_trans with (2 := H1).
+now apply Z.lt_trans with (2 := H1).
 Qed.
 
 (*

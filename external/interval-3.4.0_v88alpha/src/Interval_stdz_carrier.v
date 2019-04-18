@@ -43,10 +43,10 @@ Definition ZtoE := fun (e : Z) => e.
 
 Definition exponent_zero := Z0.
 Definition exponent_one := Zpos xH.
-Definition exponent_neg := Zopp.
+Definition exponent_neg := Z.opp.
 Definition exponent_add := Zplus.
 Definition exponent_sub := Zminus.
-Definition exponent_cmp := Zcompare.
+Definition exponent_cmp := Z.compare.
 Definition mantissa_zero := Z0.
 Definition mantissa_one := xH.
 Definition mantissa_add := Pplus.
@@ -79,8 +79,8 @@ Definition mantissa_scale2 (m : mantissa_type) (d : exponent_type) := (m, d).
 Fixpoint digits_aux m nb { struct m } :=
   match m with
   | xH => nb
-  | xO p => digits_aux p (Psucc nb)
-  | xI p => digits_aux p (Psucc nb)
+  | xO p => digits_aux p (Pos.succ nb)
+  | xI p => digits_aux p (Pos.succ nb)
   end.
 
 Definition mantissa_digits m := Zpos (digits_aux m xH).
@@ -111,14 +111,14 @@ Definition mantissa_shr m d pos :=
 Fixpoint mantissa_shrp_aux m d :=
   match m with
   | xO m1 =>
-      if (d =? 1)%positive then pos_Up else mantissa_shrp_aux m1 (Ppred d)
+      if (d =? 1)%positive then pos_Up else mantissa_shrp_aux m1 (Pos.pred d)
   | xI m1 => pos_Up
   | xH    =>
       if (d =? 1)%positive then pos_Mi else pos_Up
   end.
 
 Lemma mantissa_shrp_aux_correct m d :
-   mantissa_shrp_aux m (Psucc d) =
+   mantissa_shrp_aux m (Pos.succ d) =
    match (m ?= shift radix 1 d)%positive with
         | Eq  => pos_Mi
         |  _  => pos_Up
@@ -165,7 +165,7 @@ Definition exponent_div2_floor n :=
   | Zpos (xO p) => (Zpos p, false)
   | Zneg (xO p) => (Zneg p, false)
   | Zpos (xI p) => (Zpos p, true)
-  | Zneg (xI p) => (Zneg (Psucc p), true)
+  | Zneg (xI p) => (Zneg (Pos.succ p), true)
   end.
 
 Definition mantissa_sqrt m :=
@@ -277,7 +277,7 @@ Lemma mantissa_shr_correct :
   forall x y z k, valid_mantissa y -> EtoZ z = Zpos x ->
   (Zpos (shift radix 1 x) <= Zpos (MtoP y))%Z ->
   let (sq,l) := mantissa_shr y z k in
-  let (q,r) := Zdiv_eucl (Zpos (MtoP y)) (Zpos (shift radix 1 x)) in
+  let (q,r) := Z.div_eucl (Zpos (MtoP y)) (Zpos (shift radix 1 x)) in
   Zpos (MtoP sq) = q /\
   l = adjust_pos r (shift radix 1 x) k /\
   valid_mantissa sq.
@@ -294,7 +294,7 @@ case_eq (iter_nat mantissa_shr_aux (Pos.to_nat x) (y, k)).
 intros sq l H1.
 generalize (Z.div_str_pos _ _ (conj (refl_equal Lt : (0 < Zpos _)%Z) Hy)).
 generalize (Z_div_mod (Z.pos y) (Z.pos (shift radix 1 x)) (eq_refl Gt)).
-unfold Zdiv.
+unfold Z.div.
 case Z.div_eucl.
 intros q r [H2 H3] H4.
 refine ((fun H => conj (proj1 H) (conj (proj2 H) I)) _).
@@ -327,7 +327,7 @@ induction (Pos.to_nat x) as [|p IHp].
   specialize (IHp sq l).
   intros H1 H0 H2 H3 Hy.
   revert H2.
-  generalize (Zle_lt_trans _ _ _ (proj1 H3) (proj2 H3)).
+  generalize (Z.le_lt_trans _ _ _ (proj1 H3) (proj2 H3)).
   case_eq (Zpower_nat radix (S p)) ; try easy.
   intros m'.
   revert H3.
@@ -383,7 +383,7 @@ induction (Pos.to_nat x) as [|p IHp].
       unfold adjust_pos.
       clear -H H3.
       destruct m as [m|m|] ;
-        case Zcompare ; try easy ; try (case k ; easy).
+        case Z.compare ; try easy ; try (case k ; easy).
       clear -H3 H ; omega.
   + destruct (IHp (2 * q')%Z r') as [H4 H5].
     reflexivity.
@@ -422,8 +422,8 @@ induction (Pos.to_nat x) as [|p IHp].
     rewrite Zcompare_Lt with (1 := Hr).
     unfold adjust_pos.
     destruct m.
-    case Zcompare ; try easy ; case k ; easy.
-    case Zcompare ; try easy ; case k ; easy.
+    case Z.compare ; try easy ; case k ; easy.
+    case Z.compare ; try easy ; case k ; easy.
     now rewrite Hr.
 Qed.
 
@@ -445,7 +445,7 @@ replace (Z.succ (Z.pos (Pos.pred x)) - 1)%Z  with (Z.pos (Pos.pred x)) by lia.
 intros [Hl _].
 unfold mantissa_shrp; simpl Z.to_pos.
 replace (mantissa_shrp_aux y x) with
-     (mantissa_shrp_aux (xO y) (Psucc x)); last first.
+     (mantissa_shrp_aux (xO y) (Pos.succ x)); last first.
   simpl.
   now rewrite Pos.pred_succ; destruct x.
 rewrite mantissa_shrp_aux_correct.
@@ -487,14 +487,14 @@ assert (H: (0 < q)%Z).
   apply Zplus_lt_reg_r with r.
   rewrite Zplus_0_l.
   rewrite <- H1.
-  now apply Zlt_le_trans with (2 := Hxy).
+  now apply Z.lt_le_trans with (2 := Hxy).
 destruct q as [|q|q] ; try easy.
 clear H Hxy.
 assert (Hq := Zdiv_unique _ _ _ _ H2 H1).
 refine (conj Hq (conj _ I)).
 unfold Bracket.inbetween_int.
 destruct (Zle_or_lt 2 (Zpos y)) as [Hy|Hy].
-- assert (H: (1 < Zpos y)%Z) by now apply Zgt_lt, Zle_succ_gt.
+- assert (H: (1 < Zpos y)%Z) by now apply Z.gt_lt, Zle_succ_gt.
   rewrite adjust_pos_correct by assumption.
   rewrite plus_IZR.
   rewrite <- (Rinv_r (IZR (Zpos y))) by now apply IZR_neq.
@@ -537,18 +537,18 @@ now elim (proj2 H2).
 repeat split.
 destruct r as [|r|r].
 apply eq_refl.
-case Pcompare_spec.
+case Pos.compare_spec.
 intros ->.
 split.
 easy.
-apply Zle_refl.
+apply Z.le_refl.
 intros H.
 split.
 easy.
 now apply Zlt_le_weak.
 easy.
 now elim (proj1 H2).
-now elim (Zle_trans _ _ _ (proj1 H2) (proj2 H2)).
+now elim (Z.le_trans _ _ _ (proj1 H2) (proj2 H2)).
 Qed.
 
 End StdZRadix2.

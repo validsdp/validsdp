@@ -46,7 +46,7 @@ Qed.
 Lemma fcmdotprod_l2r_err_gamma n (Hn : 2 * (INR n.+1) * eps fs < 1)
       (c : FS fs) (a b : FS fs ^ n) :
   exists t : b_gamma fs n,
-  exists ta : (b_gamma fs n.+1 * (b_gamma fs n * b_eta fs)) ^ n,
+  exists ta : (b_gamma fs n.+1 * (b_gamma fs n * b_eta fs))%type ^ n,
   (fcmdotprod_l2r c a b
    = (1 + t) * c + \sum_i (- (a i * b i) + (ta i).1 * (a i * b i)
                            + (1 + (ta i).2.1) * (ta i).2.2)%Re :> R)%Re.
@@ -66,15 +66,15 @@ have [d [e [Hde _]]] := fmult_spec (a i) (b i).
 have [t' Ht'] := gammap1_mult_epsp1 Hn (ta i) d.
 exists (bounded_opp t', (ta i, bounded_opp e)).
 rewrite /F /F' /t ffunE /fopp /= Hde.
-replace (_ * - _)%Re with ((1 + ta i) * (1 + d) * (- (a i * b i))
-                           + (1 + ta i) * (- e))%Re by ring.
-by rewrite Ht'; ring.
+move: Ht' => /(Rplus_eq_compat_r (-1)) Ht'.
+ring_simplify in Ht'; rewrite -Ht'.
+set ai := a i; set bi := b i; set tai := ta i; ring.
 Qed.
 
 Lemma fcmdotprod_l2r_err'_gamma n (Hn : 2 * (INR n.+1) * eps fs < 1)
       (c : FS fs) (a b : FS fs ^ n) :
   exists t : b_gamma fs n,
-  exists ta : (b_gamma fs n.+1 * (b_gamma fs n * b_eta fs)) ^ n,
+  exists ta : (b_gamma fs n.+1 * (b_gamma fs n * b_eta fs))%type ^ n,
   (fcmdotprod_l2r c a b * (1 + t)
    = c + \sum_i (- (a i * b i) + (ta i).1 * (a i * b i)
                  + (1 + (ta i).2.1) * (ta i).2.2)%Re :> R)%Re.
@@ -94,9 +94,9 @@ have [d [e [Hde _]]] := fmult_spec (a i) (b i).
 have [t' Ht'] := gammap1_mult_epsp1 Hn (ta i) d.
 exists (bounded_opp t', (ta i, bounded_opp e)).
 rewrite /F /F' /t ffunE /fopp /= Hde.
-replace (_ * - _)%Re with ((1 + ta i) * (1 + d) * (- (a i * b i))
-                           + (1 + ta i) * (- e))%Re by ring.
-by rewrite Ht'; ring.
+move: Ht' => /(Rplus_eq_compat_r (-1)) Ht'.
+ring_simplify in Ht'; rewrite -Ht'.
+set ai := a i; set bi := b i; set tai := ta i; ring.
 Qed.
 
 Lemma fcmdotprod_l2r_err n (Hn : 2 * (INR n.+1) * eps fs < 1)

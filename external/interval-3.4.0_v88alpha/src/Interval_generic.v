@@ -98,7 +98,7 @@ Definition shift beta m nb :=
   iter_pos (Pmult r) nb m.
 
 Definition Fcmp_aux1 m1 m2 :=
-  match Zcompare (Zpos m1) (Zpos m2) with
+  match Z.compare (Zpos m1) (Zpos m2) with
   | Eq => Xeq
   | Lt => Xlt
   | Gt => Xgt
@@ -107,7 +107,7 @@ Definition Fcmp_aux1 m1 m2 :=
 Definition Fcmp_aux2 beta m1 e1 m2 e2 :=
   let d1 := count_digits beta m1 in
   let d2 := count_digits beta m2 in
-  match Zcompare (e1 + Zpos d1)%Z (e2 + Zpos d2)%Z with
+  match Z.compare (e1 + Zpos d1)%Z (e2 + Zpos d2)%Z with
   | Lt => Xlt
   | Gt => Xgt
   | Eq =>
@@ -193,7 +193,7 @@ Definition adjust_pos r d pos :=
       | xI p => (p, match pos with pos_Eq => pos_Lo | _ => pos end)
       | xH => (xH, pos_Eq) (* dummy *)
       end in
-    match Zcompare r (Zpos hd) with
+    match Z.compare r (Zpos hd) with
     | Lt => pos_Lo
     | Eq => mid
     | Gt => pos_Up
@@ -244,7 +244,7 @@ Definition need_change_radix even_r mode (even_m : bool) pos sign :=
   end.
 
 Definition adjust_mantissa mode m pos sign :=
-  if need_change mode (match m with xO _ => true | _ => false end) pos sign then Psucc m else m.
+  if need_change mode (match m with xO _ => true | _ => false end) pos sign then Pos.succ m else m.
 
 Definition need_change_radix2 beta mode m :=
   need_change_radix (match radix_val beta with Zpos (xO _) => true | _ => false end)
@@ -258,7 +258,7 @@ Definition Fround_at_prec {beta} mode prec (uf : ufloat beta) : float beta :=
     match (Zpos (count_digits beta m1) - Zpos prec)%Z with
     | Zpos nb =>
       let d := shift beta xH nb in
-      match Zdiv_eucl (Zpos m1) (Zpos d) with
+      match Z.div_eucl (Zpos m1) (Zpos d) with
       | (Zpos m2, r) =>
         let pos2 := adjust_pos r d pos in
         let e2 := (e1 + Zpos nb)%Z in
@@ -268,7 +268,7 @@ Definition Fround_at_prec {beta} mode prec (uf : ufloat beta) : float beta :=
     | Z0 => Float sign (adjust_mantissa mode m1 pos sign) e1
     | Zneg nb =>
       if need_change_radix2 beta mode m1 pos sign then
-        Float sign (Psucc (shift beta m1 nb)) (e1 + Zneg nb)
+        Float sign (Pos.succ (shift beta m1 nb)) (e1 + Zneg nb)
       else Float sign m1 e1
     end
   end.
@@ -298,10 +298,10 @@ Definition Fround_at_exp {beta} mode e2 (uf : ufloat beta) : float beta :=
   | Ufloat sign m1 e1 pos =>
     match (e2 - e1)%Z with
     | Zpos nb =>
-      match Zcompare (Zpos (count_digits beta m1)) (Zpos nb) with
+      match Z.compare (Zpos (count_digits beta m1)) (Zpos nb) with
       | Gt =>
         let d := shift beta xH nb in
-        match Zdiv_eucl (Zpos m1) (Zpos d) with
+        match Z.div_eucl (Zpos m1) (Zpos d) with
         | (Zpos m2, r) =>
           let pos2 := adjust_pos r d pos in
           Float sign (adjust_mantissa mode m2 pos2 sign) e2
@@ -321,7 +321,7 @@ Definition Fround_at_exp {beta} mode e2 (uf : ufloat beta) : float beta :=
     | Z0 => Float sign (adjust_mantissa mode m1 pos sign) e1
     | Zneg nb =>
       if need_change_radix2 beta mode m1 pos sign then
-        Float sign (Psucc (shift beta m1 nb)) e2
+        Float sign (Pos.succ (shift beta m1 nb)) e2
       else Float sign m1 e1
     end
   end.
@@ -347,7 +347,7 @@ Definition Fnearbyint_exact {beta} mode (x : float beta) :=
 Definition Fnearbyint {beta} mode prec x :=
   match x with
   | Float sx mx ex =>
-    match Zcompare (Zpos (count_digits beta mx) + ex) (Zpos prec) with
+    match Z.compare (Zpos (count_digits beta mx) + ex) (Zpos prec) with
     | Gt => Fround_at_prec mode prec
     | _ => Fround_at_exp mode 0
     end (@Ufloat beta sx mx ex pos_Eq)
@@ -465,13 +465,13 @@ Definition Fadd_exact {beta} (x y : float beta) :=
 
 Definition truncate beta m1 nb :=
   let d := iter_pos (fun x => Pmult (match radix_val beta with Zpos r => r | _ => xH end) x) nb xH in
-  match Zdiv_eucl (Zpos m1) (Zpos d) with
+  match Z.div_eucl (Zpos m1) (Zpos d) with
   | (Zpos m2, r) => (m2, adjust_pos r d pos_Eq)
   | _ => (xH, pos_Lo) (* dummy *)
   end.
 
 Definition Fadd_fast_aux1 beta s m1 m2 e d2 u2 e1 e2 : ufloat beta :=
-  match Zcompare u2 e with
+  match Z.compare u2 e with
   | Lt => (* negligible value *)
     Ufloat s m1 e1 pos_Lo
   | Eq => (* almost negligible *)
@@ -497,9 +497,9 @@ Definition Fsub_fast_aux1 beta s m1 m2 e e1 e2 : ufloat beta :=
     let (n2, pos) :=
       match truncate beta m2 p with
       | (n, pos_Eq) => (n, pos_Eq)
-      | (n, pos_Lo) => (Psucc n, pos_Up)
-      | (n, pos_Mi) => (Psucc n, pos_Mi)
-      | (n, pos_Up) => (Psucc n, pos_Lo)
+      | (n, pos_Lo) => (Pos.succ n, pos_Up)
+      | (n, pos_Mi) => (Pos.succ n, pos_Mi)
+      | (n, pos_Up) => (Pos.succ n, pos_Lo)
       end in
     let n1 :=
       match (e1 - e)%Z with
@@ -512,9 +512,9 @@ Definition Fsub_fast_aux1 beta s m1 m2 e e1 e2 : ufloat beta :=
   end.
 
 Definition Fsub_fast_aux2 beta prec s m1 m2 u1 u2 e1 e2 :=
-  let e := Zmin (Zmax e1 e2) (u1 + Zneg (prec + 1)) in
+  let e := Z.min (Z.max e1 e2) (u1 + Zneg (prec + 1)) in
   if Zlt_bool e2 e then
-    match Zcompare u2 e with
+    match Z.compare u2 e with
     | Lt => (* negligible value *)
       Fadd_slow_aux2 beta s (negb s) m1 xH e1 (e - 2)
     | Eq => (* almost negligible *)
@@ -555,7 +555,7 @@ Definition Fadd_fast_aux2 beta prec s1 s2 m1 m2 e1 e2 :=
   let u2 := (e2 + Zpos d2)%Z in
   if eqb s1 s2 then
     (* same sign *)
-    let e := Zmin (Zmax e1 e2) ((Zmax u1 u2) + Zneg prec) in
+    let e := Z.min (Z.max e1 e2) ((Z.max u1 u2) + Zneg prec) in
     if Zlt_bool e1 e then
       Fadd_fast_aux1 beta s1 m2 m1 e d1 u1 e2 e1
     else if Zlt_bool e2 e then
@@ -664,13 +664,13 @@ Definition Fdiv {beta} mode prec (x y : float beta) :=
  *)
 
 Definition Frem_aux1 beta mx my s e : float beta * ufloat beta :=
-  let (q1, r1) := Zdiv_eucl (Zpos mx) (Zpos my) in
+  let (q1, r1) := Z.div_eucl (Zpos mx) (Zpos my) in
   let (q2, r2) :=
     match
       match my with
       | xH => false
       | xO p =>
-        match Zcompare r1 (Zpos p) with
+        match Z.compare r1 (Zpos p) with
         | Lt => false
         | Eq =>
           match q1 with
@@ -681,7 +681,7 @@ Definition Frem_aux1 beta mx my s e : float beta * ufloat beta :=
         | Gt => true
         end
       | xI p =>
-        match Zcompare r1 (Zpos p) with
+        match Z.compare r1 (Zpos p) with
         | Lt => false
         | Eq => false
         | Gt => true
@@ -738,7 +738,7 @@ Definition Frem {beta} mode prec (x y : float beta) :=
 
 Definition Fsqrt_aux2 beta prec m e :=
   let d := Digits.Zdigits beta m in
-  let s := Zmax (2 * prec - d) 0 in
+  let s := Z.max (2 * prec - d) 0 in
   let e' := (e - s)%Z in
   let (s', e'') := if Z.even e' then (s, e') else (s + 1, e' - 1)%Z in
   let m' :=
@@ -750,7 +750,7 @@ Definition Fsqrt_aux2 beta prec m e :=
   let l :=
     if Zeq_bool r 0 then Bracket.loc_Exact
     else Bracket.loc_Inexact (if Zle_bool r q then Lt else Gt) in
-  (q, Zdiv2 e'', l).
+  (q, Z.div2 e'', l).
 
 Definition Fsqrt_aux {beta} prec (f : float beta) : ufloat beta :=
   match f with

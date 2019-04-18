@@ -410,7 +410,7 @@ move: n d; elim=> [|n IHn] d; rewrite /phi.
 { by rewrite big_ord0; apply Rlt_0_1. }
 apply big_rec; [by rewrite /GRing.one /=; lra|move=> i' x _ Px].
 rewrite /GRing.mul /=; apply Rmult_lt_0_compat; [|exact Px].
-bounded_lra_with fs (d i').
+have Heps := eps_lt_1 fs; case (d _); move=> d' /= /Rabs_le_inv; lra.
 Qed.
 
 Lemma phi_split j i l (Hj : (i <= j <= l)%N) n d :

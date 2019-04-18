@@ -161,8 +161,8 @@ apply Rminus_diag_uniq.
 destruct (Req_dec (fxy - xy) 0) as [Zxy|Nzxy']; [assumption|].
 set (exy := mag radix2 (fxy - xy)).
 assert (Hexy : (exy <= fexp exy)%Z).
-{ apply (Zle_trans _ emin); [|now apply Z.le_max_r].
-  apply (Zle_trans _ (cexp radix2 fexp xy)).
+{ apply (Z.le_trans _ emin); [|now apply Z.le_max_r].
+  apply (Z.le_trans _ (cexp radix2 fexp xy)).
   { apply (mag_le_bpow _ _ _ Nzxy'), (Rle_lt_trans _ _ _ Hxy').
     apply (Rmult_lt_reg_l 2); [lra|rewrite <- Rmult_assoc, Rinv_r; [|lra]].
     rewrite ulp_neq_0; [|easy].
@@ -171,7 +171,7 @@ assert (Hexy : (exy <= fexp exy)%Z).
     rewrite <- Rplus_0_r at 1.
     apply Rplus_lt_compat_l, bpow_gt_0. }
   unfold cexp, fexp, FLT_exp.
-  rewrite Zmax_right; [now apply Zle_refl|].
+  rewrite Zmax_right; [now apply Z.le_refl|].
   apply (Zplus_le_reg_r _ _ prec); ring_simplify.
   apply (mag_le_bpow _ _ _ Nzxy).
   apply (Rlt_le_trans _ _ _ Hxy), bpow_le; omega. }
@@ -249,13 +249,13 @@ assert (Hx : Rabs x < bpow radix2 (2 * (emin + prec - 1))).
 { rewrite <- (sqrt_def x (Rlt_le _ _ Px)), Rabs_mult.
   change 2%Z with (1 + 1)%Z; rewrite Zmult_plus_distr_l, Zmult_1_l, bpow_plus.
   now apply Rmult_lt_compat; [apply Rabs_pos|apply Rabs_pos| |]. }
-apply (Zle_trans _ emin); [|now apply Z.le_max_r].
-apply (Zle_trans _ (cexp radix2 fexp x)).
+apply (Z.le_trans _ emin); [|now apply Z.le_max_r].
+apply (Z.le_trans _ (cexp radix2 fexp x)).
 { apply (mag_le_bpow _ _ _ Nzx), (Rlt_le_trans _ _ _ Hx).
-  apply bpow_le; apply (Zle_trans _ emin); [|now apply Z.le_max_r].
+  apply bpow_le; apply (Z.le_trans _ emin); [|now apply Z.le_max_r].
   unfold emin, prec, emax; omega. }
 unfold cexp, fexp, FLT_exp.
-rewrite Zmax_right; [now apply Zle_refl|].
+rewrite Zmax_right; [now apply Z.le_refl|].
 apply (Zplus_le_reg_r _ _ prec); ring_simplify.
 apply (mag_le_bpow _ _ _ Nzx).
 apply (Rlt_le_trans _ _ _ Hx), bpow_le; unfold emin, prec, emax; omega.

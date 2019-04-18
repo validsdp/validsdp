@@ -6,13 +6,15 @@ compiler="ocaml-base-compiler.4.05.0"
 NJOBS="7"
 COQ_DIR=""
 VALIDSDP_DIR=""
-# Should point to a directory with coquelicot 3.0.2 sources
+# Should point to a directory with coquelicot git repo on branch master
 COQUELICOT_DIR=""
+# Should point to a directory with CoqEAL git repo on branch master
+COQEAL_DIR=""
 
 usage() {
     cat >&2 <<EOF
 Usage:
-  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --coquelicot …/coquelicot --validsdp …/validsdp
+  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --coquelicot …/coquelicot --coqeal …/CoqEAL --validsdp …/validsdp
 EOF
 }
 
@@ -53,6 +55,10 @@ parse_args() {
                 (( i++ ))
                 COQUELICOT_DIR="${!i}"
                 ;;
+            "--coqeal")
+                (( i++ ))
+                COQEAL_DIR="${!i}"
+                ;;
             "--help")
                 usage
                 exit 0
@@ -66,6 +72,7 @@ parse_args() {
 
     [ -n "${COQ_DIR}" ] || { warn "Erreur: option --coq manquante."; usage; exit 1; }
     [ -n "${COQUELICOT_DIR}" ] || { warn "Erreur: option --coquelicot manquante."; usage; exit 1; }
+    [ -n "${COQEAL_DIR}" ] || { warn "Erreur: option --coqeal manquante."; usage; exit 1; }
     [ -n "${VALIDSDP_DIR}" ] || { warn "Erreur: option --validsdp manquante."; usage; exit 1; }
 }
 
@@ -95,8 +102,8 @@ main() {
     opam install -y --fake coq.dev
     popd
 
-    COQFLAGS="-native-compiler yes" opam reinstall -y -v -j ${NJOBS} coq-mathcomp-ssreflect.1.7.0 coq-mathcomp-field.1.7.0 coq-mathcomp-multinomials.1.1 coq-bignums.dev coq-paramcoq.dev
-    COQC="$(which coqc) -native-compiler yes" opam reinstall -y -v -j ${NJOBS} --ignore-constraints-on=coq coq-flocq.3.1.0
+    COQFLAGS="-native-compiler yes" opam reinstall -y -v -j ${NJOBS} coq-mathcomp-ssreflect.1.8.0 coq-mathcomp-field.1.8.0 coq-mathcomp-multinomials.1.2 coq-bignums.dev coq-paramcoq.dev
+    COQC="$(which coqc) -native-compiler yes" opam reinstall -y -v -j ${NJOBS} coq-flocq.dev
 
     pushd "${COQUELICOT_DIR}"
     ./autogen.sh
@@ -114,17 +121,8 @@ main() {
     ./remake install -d
     popd
 
-    pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/theory"
-    make clean
-    rm -f Makefile.coq Makefile.coq.conf
-    COQFLAGS="-native-compiler yes" make -j ${NJOBS}
-    make install
-    popd
-
-    pushd "${VALIDSDP_DIR}/external/CoqEAL_v88alpha/refinements"
-    make clean
-    rm -f Makefile.coq Makefile.coq.conf
-    COQFLAGS="-native-compiler yes" make -j ${NJOBS}
+    pushd "${COQEAL_DIR}"
+    COQFLAGS="-native-compiler yes" make --jobs=${NJOBS} -B
     make install
     popd
 

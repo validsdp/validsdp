@@ -636,7 +636,7 @@ Qed.
 Theorem Xderive_pt_power_int :
   forall n f f' x,
   Xderive_pt f x f' ->
-  Xderive_pt (fun x => Xpower_int (f x) n) x (Xmul f' (Xmul (Xreal (IZR n)) (Xpower_int (f x) (Zpred n)))).
+  Xderive_pt (fun x => Xpower_int (f x) n) x (Xmul f' (Xmul (Xreal (IZR n)) (Xpower_int (f x) (Z.pred n)))).
 Proof.
 intros n f f' x Hf.
 destruct n as [|n|n].
@@ -653,7 +653,7 @@ unfold comp, proj_fun.
 simpl.
 apply derivable_pt_lim_const.
 (* *)
-replace (Xpower_int (f x) (Zpred (Zpos n))) with (match f x with Xnan => Xnan | Xreal r => Xreal (pow r (pred (nat_of_P n))) end).
+replace (Xpower_int (f x) (Z.pred (Zpos n))) with (match f x with Xnan => Xnan | Xreal r => Xreal (pow r (pred (nat_of_P n))) end).
 xtotal.
 intro v.
 apply derivable_pt_lim_eq_locally with (comp (fun x => pow x (nat_of_P n)) (proj_fun v f)).
@@ -673,7 +673,7 @@ case (f x).
 easy.
 intros r.
 unfold Xpower_int, Xpower_int', Xbind.
-case_eq (Zpred (Zpos n))%Z.
+case_eq (Z.pred (Zpos n))%Z.
 intros H.
 replace (nat_of_P n) with 1.
 easy.
@@ -692,7 +692,7 @@ apply lt_le_S.
 apply lt_O_nat_of_P.
 now case n.
 (* *)
-replace (Xpower_int (f x) (Zpred (Zneg n))) with (match f x with Xnan => Xnan | Xreal r => if is_zero r then Xnan else Xreal (/ (pow r (S (nat_of_P n)))) end).
+replace (Xpower_int (f x) (Z.pred (Zneg n))) with (match f x with Xnan => Xnan | Xreal r => if is_zero r then Xnan else Xreal (/ (pow r (S (nat_of_P n)))) end).
 xtotal.
 intro v.
 apply derivable_pt_lim_eq_locally with (comp (fun x => Rinv (pow x (nat_of_P n))) (proj_fun v f)).

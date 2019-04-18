@@ -44,14 +44,14 @@ Fixpoint constant_getter_aux n cst :=
   end.
 
 Definition constant_getter cst prec :=
-  let nb := Zabs_nat (Zpred (fst (Zdiv.Zdiv_eucl_POS (F.prec prec + 30)%positive 31%Z))) in
+  let nb := Z.abs_nat (Z.pred (fst (Zdiv.Zdiv_eucl_POS (F.prec prec + 30)%positive 31%Z))) in
   constant_getter_aux nb cst.
 
 CoFixpoint hidden_constant_generator gen n :=
   HConst (gen (F.PtoP (n * 31)%positive)).
 
 CoFixpoint constant_generator_aux gen n :=
-  Consts (hidden_constant_generator gen n) (constant_generator_aux gen (Psucc n)).
+  Consts (hidden_constant_generator gen n) (constant_generator_aux gen (Pos.succ n)).
 
 Definition constant_generator gen :=
   constant_generator_aux gen 1.
@@ -734,7 +734,7 @@ assert (H: forall p, (2 <= p)%Z ->
   now apply IZR_le.
   apply Rlt_le, Rinv_0_lt_compat.
   apply IZR_lt.
-  now apply Zlt_le_trans with (2 := Hp).
+  now apply Z.lt_le_trans with (2 := Hp).
   replace (Xreal (/ IZR p)) with (Xinv (Xreal (IZR p))).
   apply I.inv_correct.
   apply I.fromZ_correct.
@@ -947,7 +947,7 @@ Definition ln_fast prec x :=
     match F.cmp x c1 with
     | Xeq => I.bnd F.zero F.zero
     | Xlt =>
-      let m := Zopp (F.StoZ (F.mag (F.sub rnd_UP prec c1 x))) in
+      let m := Z.opp (F.StoZ (F.mag (F.sub rnd_UP prec c1 x))) in
       let prec := F.incr_prec prec (Z2P m) in
       let il := F.div rnd_DN prec c1 x in
       let iu := F.div rnd_UP prec c1 x in
@@ -1419,7 +1419,7 @@ simpl Xbind.
 case is_positive_spec.
 2: intros Hx'' ; now elim Rlt_not_le with (1 := Hx).
 intros _.
-generalize (F.incr_prec prec (Z2P (Zopp (F.StoZ (F.mag (F.sub rnd_UP prec (F.fromZ 1) x)))))).
+generalize (F.incr_prec prec (Z2P (Z.opp (F.StoZ (F.mag (F.sub rnd_UP prec (F.fromZ 1) x)))))).
 clear prec.
 intros prec.
 rewrite <- (Rinv_involutive xr).
