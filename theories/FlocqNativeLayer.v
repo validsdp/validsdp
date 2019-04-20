@@ -215,7 +215,7 @@ Proof.
 intros x e; unfold B2Prim.
 rewrite <-SFldexp_Bldexp.
 rewrite <-(Prim2SF_SF2Prim (B2SF x)) at 2; [|apply valid_binary_B2SF].
-rewrite <-ldexp_spec.
+rewrite <-ldexp_SFldexp.
 now rewrite SF2Prim_Prim2SF.
 Qed.
 
@@ -231,7 +231,7 @@ intro x; unfold B2Prim.
 rewrite <-(proj1 (SFfrexp_Bfrexp prec_gt_0 Hemax _)).
 rewrite <-(proj2 (SFfrexp_Bfrexp prec_gt_0 Hemax _)).
 rewrite <-(Prim2SF_SF2Prim (B2SF x)) at 2 4; [|apply valid_binary_B2SF].
-generalize (frexp_spec (SF2Prim (B2SF x))).
+generalize (frexp_SFfrexp (SF2Prim (B2SF x))).
 case_eq (frexp (SF2Prim (B2SF x))); intros f z Hfz Hfrexp.
 now rewrite <-Hfrexp; simpl; rewrite SF2Prim_Prim2SF.
 Qed.
@@ -245,12 +245,12 @@ Theorem FPulp_Bulp :
 Proof.
 intros x; unfold B2Prim, ulp.
 rewrite <-SFulp_Bulp; unfold SFulp.
-generalize (frexp_spec (SF2Prim (B2SF x))).
+generalize (frexp_SFfrexp (SF2Prim (B2SF x))).
 case_eq (frexp (SF2Prim (B2SF x))); intros f z Hfz.
 rewrite Prim2SF_SF2Prim; [|apply valid_binary_B2SF].
 intro Hfrexp; rewrite <-Hfrexp; unfold snd.
 change (SFone prec emax) with (Prim2SF one).
-now rewrite <-ldexp_spec, SF2Prim_Prim2SF.
+now rewrite <-ldexp_SFldexp, SF2Prim_Prim2SF.
 Qed.
 
 Theorem FPnext_up_Bsucc :
