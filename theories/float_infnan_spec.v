@@ -1,6 +1,6 @@
 (** * Specification of floating-point operations with overflow. *)
 
-Require Import Reals Float Flocq.Core.Core.
+Require Import Reals Floats Flocq.Core.Core.
 
 Require Import mathcomp.ssreflect.ssreflect.
 From mathcomp Require Import ssrfun ssrbool eqtype.

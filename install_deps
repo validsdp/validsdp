@@ -7,6 +7,7 @@ NJOBS="7"
 COQ_DIR=""
 VALIDSDP_DIR=""
 # Should point to a directory with coquelicot git repo on branch master
+# % git clone https://gitlab.inria.fr/coquelicot/coquelicot
 COQUELICOT_DIR=""
 # Should point to a directory with CoqEAL git repo on branch master
 COQEAL_DIR=""
@@ -102,8 +103,9 @@ main() {
     opam install -y --fake coq.dev
     popd
 
-    COQFLAGS="-native-compiler yes" opam reinstall -y -v -j ${NJOBS} coq-mathcomp-ssreflect.1.8.0 coq-mathcomp-field.1.8.0 coq-mathcomp-multinomials.1.2 coq-bignums.dev coq-paramcoq.dev
+    COQFLAGS="-native-compiler yes" opam reinstall -y -v -j ${NJOBS} coq-mathcomp-ssreflect.1.9.0 coq-mathcomp-field.1.9.0 coq-bignums.dev coq-paramcoq.dev
     COQC="$(which coqc) -native-compiler yes" opam reinstall -y -v -j ${NJOBS} coq-flocq.dev
+    COQFLAGS="-native-compiler yes" opam reinstall -y -v -j ${NJOBS} --ignore-constraints-on coq coq-mathcomp-multinomials.1.3
 
     pushd "${COQUELICOT_DIR}"
     ./autogen.sh

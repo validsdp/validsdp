@@ -221,7 +221,7 @@ Eval vm_compute in posdef_check matrices.m4. *)
 
 From Bignums Require Import BigZ BigN.
 Require Import Int63.
-Require Import Float.
+Require Import Floats.
 Require Import Bool.
 Require Import primitive_floats_infnan.
 
@@ -437,7 +437,7 @@ rewrite -Zdigits_mag; unfold prec in Hm; lia.
 Qed.
 
 Lemma BigZFloat2Prim_correct (f : F.type) :
-  is_true (FloatValues.is_finite (BigZFloat2Prim f)) ->
+  is_true (PrimFloat.is_finite (BigZFloat2Prim f)) ->
   FI2FS (BigZFloat2Prim f) = proj_val (F.toX f) :> R.
 Proof.
 case f; [now cbn|intros m e; clear f].
@@ -456,9 +456,9 @@ set (e'' := if se then (_ - _)%int63 else _).
 move: (boundedPrim_correct m' se e').
 case_eq (to_Z m');
   [now auto |intros m'p Hm'p|
-   now replace (FloatValues.is_finite nan) with false by now cbv].
+   now replace (PrimFloat.is_finite nan) with false by now cbv].
 case (boundedPrim _ _ _);
-  [ |now replace (FloatValues.is_finite nan) with false by now cbv].
+  [ |now replace (PrimFloat.is_finite nan) with false by now cbv].
 assert (He' : [e]%bigZ = if se then (- to_Z e')%Z else to_Z e').
 { now revert He; case se. }
 rewrite He'; clear He' He e.

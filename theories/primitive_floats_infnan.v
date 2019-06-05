@@ -5,7 +5,7 @@ From Flocq.Core
 Require Import Raux Generic_fmt FLX FLT Ulp Round_NE.
 Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits.
 
-Require Import Float.
+Require Import Floats.
 Require Import FlocqNativeLayer.
 
 Require Import Psatz.

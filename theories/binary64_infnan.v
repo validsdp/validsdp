@@ -4,7 +4,7 @@
     record [Float_infnan_spec] corresponding to IEEE754 binary64 format with
     a rounding to nearest with overflows and NaN. *)
 
-Require Import Reals Float.
+Require Import Reals Floats.
 
 Require Import float_spec binary64 float_infnan_spec.
 

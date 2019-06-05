@@ -74,7 +74,7 @@ rewrite /bv {bv} /Rdiv Rabs_mult Rabs_Rinv //.
 have Hnn := Rabs_pos (Rabs r1 + Rabs r2).
 have Hp : (0 < Rabs (Rabs r1 + Rabs r2)) by apply Rabs_pos_lt.
 apply (Rmult_le_reg_r (Rabs (Rabs r1 + Rabs r2))); [by []|].
-field_simplify; [|lra]; rewrite /Rdiv Rinv_1 !Rmult_1_r.
+field_simplify; [|lra]; try rewrite /Rdiv Rinv_1 !Rmult_1_r.
 apply (Rle_trans _ _ _ (Rabs_triang _ _)).
 rewrite !Rabs_mult (Rabs_right (_ + _)); [|lra].
 rewrite (Rmult_comm _ r) Rmult_plus_distr_l.

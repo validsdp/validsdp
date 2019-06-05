@@ -1259,7 +1259,7 @@ Proof.
 intros Heq Hb Hd.
 apply (Rmult_eq_reg_r (b * d)).
 field_simplify; trivial.
-now rewrite Heq.
+try now rewrite Heq.
 now apply Rmult_neq0.
 Qed.
 

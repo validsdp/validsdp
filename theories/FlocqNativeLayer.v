@@ -1,4 +1,4 @@
-Require Import ZArith Flocq.IEEE754.Binary Flocq.Core.Zaux Float FlocqSpecLayer.
+Require Import ZArith Flocq.IEEE754.Binary Flocq.Core.Zaux Floats FlocqSpecLayer.
 
 Lemma can_inj : forall {A} {B} {f : A -> B} {g : B -> A}, (forall x, g (f x) = x) -> (forall x y, f x = f y -> x = y).
   intros A B f g Hcan x y Heq. rewrite <- Hcan. symmetry. rewrite <- Hcan. rewrite Heq. reflexivity.

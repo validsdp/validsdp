@@ -212,7 +212,7 @@ have Hm := bg_le (leq_addl n m) Hnm.
 apply (Rmult_le_reg_r (1 - INR n * eps fs)); [lra|].
 apply (Rmult_le_reg_r (1 - INR m * eps fs)); [lra|].
 apply (Rmult_le_reg_r (1 - INR (n + m) * eps fs)); [lra|].
-rewrite /gamma; field_simplify; [|lra|lra]; rewrite /Rdiv Rinv_1 !Rmult_1_r.
+rewrite /gamma; field_simplify; [|lra|lra]; try rewrite /Rdiv Rinv_1 !Rmult_1_r.
 apply (Rplus_le_reg_r
          (- INR n * eps fs ^ 3 * INR m * INR (n + m)
           + (INR n ^ 2 + INR m ^ 2) * eps fs ^ 2
@@ -380,7 +380,7 @@ apply Rle_trans with (gamma fs n.+1 * (1 - eps fs)).
   apply (Rmult_le_reg_r (- INR n * eps fs + 1)%Re); [lra|].
   apply (Rmult_le_reg_r (- eps fs * INR n.+1 + 1)%Re); [lra|].
   field_simplify; [|lra|lra].
-  rewrite /Rdiv Rinv_1 !Rmult_1_r.
+  try rewrite /Rdiv Rinv_1 !Rmult_1_r.
   have H : - INR n * eps fs ^ 2 <= 0.
   { rewrite -Ropp_0 Ropp_mult_distr_l_reverse; apply Ropp_le_contravar.
     by apply Rmult_le_pos; [apply pos_INR|apply pow2_ge_0]. }

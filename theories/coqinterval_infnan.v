@@ -1,6 +1,6 @@
 (** * CoqInterval floats satisfy hypothesis in [Float_infnan_spec] *)
 
-Require Import Reals Float.
+Require Import Reals Floats.
 From Bignums Require Import BigZ.
 Require Import Psatz.
 
