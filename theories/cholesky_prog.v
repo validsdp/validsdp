@@ -512,7 +512,7 @@ Section theory_cholesky_2.
 
 (** This spec corresponds to the one in [cholesky.v]... *)
 
-Context {fs : Float_infnan_spec}.
+Context {fs : Float_infnan_spec} (eta_neq_0 : eta fs <> 0).
 
 Global Instance add_instFIS : add_of (FIS fs) := @fiplus fs.
 Global Instance mul_instFIS : mul_of (FIS fs) := @fimult fs.
@@ -605,7 +605,7 @@ Section theory_cholesky_3.
 
 (** *** Proof-oriented definitions, Float_round_up_infnan_spec scalars *)
 
-Context {fs : Float_round_up_infnan_spec}.
+Context {fs : Float_round_up_infnan_spec} (eta_neq_0 : eta fs <> 0).
 
 Global Instance addup_instFIS : addup_class (FIS (fris fs)) := @fiplus_up fs.
 Global Instance mulup_instFIS : mulup_class (FIS (fris fs)) := @fimult_up fs.
@@ -760,17 +760,17 @@ move: (fiplus_up_spec Fc); apply Rle_trans, Rplus_le_compat.
 have Fr := fiplus_up_spec_fr Fc.
 move: (fimult_up_spec Fr); apply Rle_trans; apply Rmult_le_compat.
 { apply Rmult_le_pos; [|by apply pos_INR]; apply Rmult_le_pos; [lra|].
-  apply Rlt_le, eta_pos. }
+  apply eta_pos. }
 { apply Rplus_le_le_0_compat; [|apply Pmaxdiag].
   apply Rmult_le_pos; [lra|apply pos_INR]. }
 { move: (fimult_up_spec (fimult_up_spec_fl Fr)); apply Rle_trans.
   have Frl := fimult_up_spec_fl Fr.
   apply Rmult_le_compat.
-  { apply Rmult_le_pos; [lra|apply Rlt_le, eta_pos]. }
+  { apply Rmult_le_pos; [lra|apply eta_pos]. }
   { apply pos_INR. }
   { have Frll := fimult_up_spec_fl Frl.
     move: (fimult_up_spec Frll); apply Rle_trans.
-    apply Rmult_le_compat; [lra|by apply Rlt_le, eta_pos| |by apply fieta_spec].
+    apply Rmult_le_compat; [lra|by apply eta_pos| |by apply fieta_spec].
     replace 4 with (INR 4); [|by simpl; lra].
     apply float_of_nat_up_spec, (fimult_up_spec_fl Frll). }
   apply float_of_nat_up_spec, (fimult_up_spec_fr Frl). }

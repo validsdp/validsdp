@@ -26,6 +26,7 @@ Require Import fsum_l2r fcmsum real_matrix cholesky float_infnan_spec.
 Section Cholesky_infnan.
 
 Variable fs : Float_infnan_spec.
+Hypothesis eta_neq_0 : eta fs <> 0.
 
 (** ** Definition of Cholesky decomposition with arithmetic operations with overflow from [float_infnan_spec]. *)
 Section Cholesky_def_infnan.
@@ -206,7 +207,7 @@ Proof.
 move=> n H3n A SymA Pdiag maxdiag Hmaxdiag c Hc At HAt Rt HARt.
 have SymFIA : MF2R (MFI2F A)^T = MF2R (MFI2F A) by rewrite map_trmx SymA.
 move: (cholesky_success_infnan_cholesky_success HARt).
-apply (corollary_2_4_with_c_upper_bound H3n SymFIA Pdiag Hmaxdiag Hc).
+apply (corollary_2_4_with_c_upper_bound eta_neq_0 H3n SymFIA Pdiag Hmaxdiag Hc).
 by split; [move=> i j Hij; rewrite !mxE (proj1 HAt)|by apply HAt].
 Qed.
 
@@ -233,8 +234,8 @@ move=> n H3n A SymA Pdiag Rad PRad maxdiag Hmaxdiag c Hc r Hr At HAt
          Rt HARt.
 have SymFIA : MF2R (MFI2F A)^T = MF2R (MFI2F A) by rewrite map_trmx SymA.
 move: (cholesky_success_infnan_cholesky_success HARt).
-apply (corollary_2_7_with_c_r_upper_bounds H3n SymFIA Pdiag PRad Hmaxdiag
-                                           Hc Hr).
+apply (corollary_2_7_with_c_r_upper_bounds eta_neq_0 H3n SymFIA
+                                           Pdiag PRad Hmaxdiag Hc Hr).
 by split; [move=> i j Hij; rewrite !mxE (proj1 HAt)|by apply HAt].
 Qed.
 

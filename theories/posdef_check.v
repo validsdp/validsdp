@@ -222,7 +222,7 @@ Let ord := ordinal.
 
 Let mx := matrix.
 
-Context {fs : Float_round_up_infnan_spec}.
+Context {fs : Float_round_up_infnan_spec} (eta_neq_0 : eta fs <> 0).
 Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion for finite values *)
 Context {T2F : T -> F}.  (* overapproximation *)
@@ -250,7 +250,7 @@ Lemma posdefcheck_correct s Q :
   posdef (cholesky.MF2R (cholesky_infnan.MFI2F Q)).
 Proof.
 rewrite /posdefcheck_ssr /posdefcheck.
-apply posdef_check_correct.
+by apply posdef_check_correct.
 Qed.
 
 Hypothesis T2R_multiplicative : multiplicative T2R.
@@ -325,8 +325,7 @@ Lemma F2FI_valE f :
   F.toX (F2FI_val f) = F.toX f.
 Proof.
 case: f => [//|m e].
-About signif_digits_correct.
-  by move/signif_digits_correct; rewrite /F2FI_val =>->.
+by move/signif_digits_correct; rewrite /F2FI_val =>->.
 Qed.
 
 Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z then n else Z0.
@@ -757,7 +756,8 @@ have Hpos : posdefcheck_ssr Qb.
   { by rewrite (eqP HQ'1) Hs'. }
   { by rewrite Hs'. } }
 have HQb : posdef (cholesky.MF2R (cholesky_infnan.MFI2F Qb)).
-{ by apply posdefcheck_correct with (Q0 := Qb). }
+{ by apply posdefcheck_correct with (Q0 := Qb);
+    [apply Rgt_not_eq => /=; apply bpow_gt_0|]. }
 have Hfin := posdef_check_f1 Hpos.
 have := HQb.
 have HszQ : s'.+1 = size Q by rewrite Hs'.

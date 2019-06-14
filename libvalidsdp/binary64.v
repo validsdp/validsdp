@@ -76,8 +76,8 @@ Let b_epsd1peps := bounded (eps / (1 + eps)).
 
 Definition eta := bpow radix2 (-1075).
 
-Lemma eta_pos : 0 < eta.
-Proof. apply bpow_gt_0. Qed.
+Lemma eta_pos : 0 <= eta.
+Proof. apply bpow_ge_0. Qed.
 
 Let b_eta := bounded eta.
 

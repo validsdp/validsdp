@@ -49,7 +49,7 @@ Record Float_spec := {
   (** Bound on the absolute error (denormalized, when underflow occurs). *)
   eta : R;
 
-  eta_pos : 0 < eta;
+  eta_pos : 0 <= eta;
 
   b_eta := bounded eta;
 
@@ -152,7 +152,7 @@ Definition eps_0 : b_eps := bounded_0 (eps_pos fs).
 
 Definition epsd1peps_0 : b_epsd1peps := bounded_0 (epsd1peps_pos (eps_pos fs)).
 
-Definition eta_0 : b_eta := bounded_0 (Rlt_le 0 eta (eta_pos fs)).
+Definition eta_0 : b_eta := bounded_0 (eta_pos fs).
 
 (** Opposite. *)
 Definition fopp (x : F) : F :=
@@ -195,8 +195,7 @@ destruct (Req_dec (frnd x) 0) as [Zfx|Nzfx].
 { assert (Zx : x = 0).
   { revert Hde; rewrite Zfx, Ze, Rplus_0_r; intro Hde.
     now destruct (Rmult_integral _ _ (sym_eq Hde)) as [Hx|Hx]; [lra|]. }
-  exists (bounded_0 (eps_pos fs)), (bounded_0 (Rlt_le _ _ (eta_pos fs))).
-  now rewrite !Rplus_0_r, Rmult_1_l, Rmult_0_l, Zfx. }
+  now exists eps_0, eta_0; rewrite !Rplus_0_r, Rmult_1_l, Rmult_0_l, Zfx. }
 destruct (Req_dec x 0) as [Zx|Nzx].
 { now exfalso; revert Hde; rewrite Zx at 2; rewrite Ze, Rmult_0_r, Rplus_0_r. }
 set (d' := (x - frnd x) / frnd x).
@@ -210,7 +209,7 @@ assert (Hd' : Rabs d' <= eps).
   apply (Rle_trans _ _ _ (bounded_prop d)).
   unfold Rdiv; apply Rmult_le_compat_l; [now apply eps_pos|].
   apply (Rle_trans _ (1 - eps / (1 + eps))); [right; field|]; lra. }
-exists (Build_bounded Hd'), (bounded_0 (Rlt_le _ _ (eta_pos fs))).
+exists (Build_bounded Hd'), eta_0.
 now rewrite Rplus_0_r, Rmult_0_r; split; [unfold d'; simpl; field|].
 Qed.
 

@@ -40,6 +40,7 @@ Require Import fsum_l2r fcmsum real_matrix.
 Section Cholesky.
 
 Variable fs : Float_spec.
+Hypothesis eta_neq_0 : eta fs <> 0.
 
 Notation F := (FS fs).
 Notation frnd := (frnd fs).
@@ -101,7 +102,7 @@ replace (\sum__ _) with (\sum_i [ffun i => (a i * b i)%Re] i);
 replace (\sum__ Rabs _) with (\sum_i Rabs ([ffun i => (a i * b i)%Re] i));
   [|by apply eq_bigr => i _; rewrite ffunE].
 apply fcmsum_l2r_err.
-{ by apply Rmult_le_pos; [apply Rabs_pos|apply Rlt_le, eta_pos]. }
+{ by apply Rmult_le_pos; [apply Rabs_pos|apply eta_pos]. }
 rewrite Rmult_1_l Rabs_mult -Rmult_assoc (Rmult_comm _ (Rabs bk)) Rmult_assoc.
 rewrite RmaxRmult; [|by apply Rabs_pos].
 set shat := fcmsum_l2r _ _.
@@ -124,7 +125,8 @@ apply (Rle_lt_trans _ _ _ (lemma_2_1_aux _ _ _ Hbk)), Rplus_lt_compat_l.
 rewrite !Rmult_assoc; apply Rmult_lt_compat_l.
 { have H : 0 <= INR k.+1 * eps; [|lra].
   apply Rmult_le_pos; [apply pos_INR|apply eps_pos]. }
-by apply Rmult_lt_compat_r; [apply eta_pos|rewrite S_INR; lra].
+apply Rmult_lt_compat_r;
+  [by move: (eta_pos fs) eta_neq_0 => [|<-]|rewrite S_INR; lra].
 Qed.
   
 End Lemma_2_1.
@@ -177,7 +179,7 @@ Lemma lemma_2_2_1 k (a : F^k) (c : F) (Hst : 0 <= stilde c a a) :
     + (1 + INR k.+2 * eps) * INR k.+1 * eta.
 Proof.
 apply (Rle_lt_trans _ _ _ (lemma_2_2_1_aux Hst)), Rplus_lt_compat_l.
-apply Rmult_lt_compat_r; [by apply eta_pos|].
+apply Rmult_lt_compat_r; [by move: (eta_pos fs) eta_neq_0 => [//|<-]|].
 apply Rmult_lt_compat_l; [|by apply lt_INR].
 have H : 0 <= INR k.+2 * eps; [|lra].
 apply Rmult_le_pos; [apply pos_INR|apply eps_pos].
@@ -199,7 +201,7 @@ apply (Rle_trans _ _ _ (lemma_2_2_1_aux Hst)).
 rewrite -/s; apply Rplus_le_compat_l.
 rewrite (Rmult_assoc _ eta) (Rmult_comm eta) Rmult_assoc.
 apply Rmult_le_compat_r.
-{ apply Rmult_le_pos; [apply pos_INR|apply Rlt_le, eta_pos]. }
+{ apply Rmult_le_pos; [apply pos_INR|apply eta_pos]. }
 apply Rplus_le_compat_l, Rlt_le, Hk.
 Qed.
 
@@ -388,7 +390,7 @@ apply Rmult_le_pos; [|apply Rplus_le_le_0_compat].
   apply (Rmult_le_reg_r (1 - alpha j j)); field_simplify; lra. }
 { by apply (Rle_trans _ _ _ Hsaa), stilde_le_c. }
 apply Rmult_le_pos;
-  [apply Rmult_le_pos; [lra|apply pos_INR]|apply Rlt_le, eta_pos].
+  [apply Rmult_le_pos; [lra|apply pos_INR]|apply eta_pos].
 Qed.
 
 (** (2.8) *)
@@ -421,7 +423,7 @@ rewrite /bk -Hrtij; apply Rplus_le_compat.
   { by apply Rplus_le_le_0_compat; [apply big_sum_Rabs_pos|apply Rabs_pos]. }
   rewrite !S_INR /GRing.mul /=; move: (eps_pos fs); lra. }
 rewrite !Rmult_assoc (Rmult_comm eta) -!Rmult_assoc.
-apply Rmult_le_compat_r; [by apply Rlt_le, eta_pos|].
+apply Rmult_le_compat_r; [by apply eta_pos|].
 apply Rmult_le_compat; try apply Rplus_le_le_0_compat;
   [lra|apply INR_eps_pos|apply pos_INR|apply Rabs_pos| |].
 { apply Rplus_le_compat_l, Rmult_le_compat_r; [by apply eps_pos|].
@@ -454,7 +456,7 @@ apply Rplus_le_compat.
   rewrite Rplus_comm Rabs_pos_eq; [|by apply sqr_ge_0]; f_equal.
   by apply eq_bigr => k; rewrite !ffunE Rabs_pos_eq; [|apply sqr_ge_0]. }
 rewrite (Rmult_assoc _ eta) (Rmult_comm eta) -Rmult_assoc.
-apply Rmult_le_compat_r; [by apply Rlt_le, eta_pos|].
+apply Rmult_le_compat_r; [by apply eta_pos|].
 apply Rmult_le_compat; try apply Rplus_le_le_0_compat;
   [lra|apply INR_eps_pos|apply pos_INR| |].
 { apply Rplus_le_compat_l, Rmult_le_compat_r; [by apply eps_pos|].
@@ -508,10 +510,10 @@ apply (Rle_trans _ (2 * eta * (INR n.+1 + 2 * (maxdiag + 1)))).
 { apply Rmult_le_compat_r.
   { apply Rplus_le_le_0_compat; [by apply pos_INR|].
     move: (th_2_3_aux3_aux i); apply Rle_trans, Rlt_le, HAR. }
-  apply Rmult_le_compat_r; [by apply Rlt_le, eta_pos|].
+  apply Rmult_le_compat_r; [by apply eta_pos|].
   by apply Rplus_le_compat_l, Rlt_le. }
 have ? : (0 <= eta * INR n)%Re; [|rewrite !S_INR; move: (eta_pos fs); lra].
-by apply Rmult_le_pos; [apply Rlt_le, eta_pos|apply pos_INR].
+by apply Rmult_le_pos; [apply eta_pos|apply pos_INR].
 Qed.
 
 (** (2.9) *)
@@ -608,7 +610,8 @@ Proof.
 move=> i j; rewrite !mxE; apply Rplus_le_lt_0_compat.
 { apply Rmult_le_pos; [apply Rmult_le_pos; [by apply alpha_pos|]|];
   apply sqrt_pos. }
-apply Rmult_lt_0_compat; [rewrite /GRing.mul /=; move: (eta_pos fs); lra|].
+apply Rmult_lt_0_compat;
+  [by apply Rmult_lt_0_compat; [lra|move: (eta_pos fs) eta_neq_0 => [|<-]]|].
 apply Rplus_lt_le_0_compat; [|exact Pmaxdiag].
 rewrite !S_INR; move: (pos_INR n); lra.
 Qed.
@@ -895,7 +898,7 @@ apply Rplus_le_compat; [|right; apply Rmult_eq_compat_l].
   { apply Rlt_le, Rinv_0_lt_compat, Rlt_Rminus.
     by move: Hn; apply Rle_lt_trans. }
   have H2 : (0 <= A i i + 2 * INR i * eta)%Re.
-  { move: (Rmult_le_pos _ _ (pos_INR i) (Rlt_le _ _ (eta_pos fs))) (Pdiag i).
+  { move: (Rmult_le_pos _ _ (pos_INR i) (eta_pos fs)) (Pdiag i).
     rewrite Rmult_assoc; lra. }
   rewrite /dv !mxE /In1 /d sqrt_def; [|by apply Rmult_le_pos].
   apply Rmult_le_compat => //; [apply Rinv_le; [rewrite /In2|]; lra|].

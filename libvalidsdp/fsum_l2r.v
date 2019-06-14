@@ -295,7 +295,7 @@ apply Rplus_le_compat.
   rewrite /Rdiv Rinv_1 !Rmult_1_r.
   rewrite mul2n doubleS subn1 Nat.pred_succ !S_INR -mul2n mult_INR /=.
   right; ring. }
-apply Rmult_le_compat_r; [apply Rlt_le, eta_pos|].
+apply Rmult_le_compat_r; [apply eta_pos|].
 apply Rmult_le_compat_r; [apply pos_INR|].
 rewrite Rplus_comm /Rdiv Rmult_assoc; apply Rplus_le_compat_l, Rmult_le_compat.
 { apply pos_INR. }

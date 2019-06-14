@@ -341,7 +341,7 @@ Proof. now unfold finite, FI0, F.real; simpl. Qed.
 Lemma finite1 : finite FI1.
 Proof. now unfold finite, FI0, F.real; simpl. Qed.
 
-Definition fis := flx64.flx64 (fun m => negb (Z.even m)).
+Definition fis := flx64.flx64' (fun m => negb (Z.even m)).
 
 Definition m := 2.  (* anything larger or equal 2 would do the job *)
 

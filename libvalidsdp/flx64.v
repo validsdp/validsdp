@@ -70,10 +70,10 @@ Qed.
 Let b_eps := bounded eps.
 Let b_epsd1peps := bounded (eps / (1 + eps)).
 
-Definition eta := bpow radix2 (-1075).
+Definition eta := 0.
 
-Lemma eta_pos : 0 < eta.
-Proof. apply bpow_gt_0. Qed.
+Lemma eta_pos : 0 <= eta.
+Proof. apply Rle_refl. Qed.
 
 Let b_eta := bounded eta.
 
@@ -104,7 +104,7 @@ Lemma frnd_spec (x : R) :
     /\ d * e = 0.
 Proof.
 destruct (frnd_spec_aux x) as (d, Hd).
-exists d, (bounded_0 (Rlt_le _ _ (eta_pos))); simpl.
+exists d, (bounded_0 (Rle_refl _)); simpl.
 now rewrite Rplus_0_r, Rmult_0_r; split.
 Qed.
 
@@ -161,6 +161,45 @@ Definition flx64 : Float_spec :=
     frnd
     frnd_F
     frnd_spec
+    fplus_spec
+    fplus_spec_l
+    fplus_spec2
+    fmult_spec2
+    fsqrt_spec.
+
+(** A variant of flx64 wit eta <> 0 (useful for cholesky) *)
+
+Definition eta' := bpow radix2 (-1075).
+
+Lemma eta'_pos : 0 <= eta'.
+Proof. apply bpow_ge_0. Qed.
+
+Let b_eta' := bounded eta'.
+
+Lemma frnd_spec' (x : R) :
+  exists (d : b_epsd1peps) (e : b_eta'),
+    round radix2 fexp (Znearest choice) x = (1 + d) * x + e :> R
+    /\ d * e = 0.
+Proof.
+destruct (frnd_spec_aux x) as (d, Hd).
+exists d, (bounded_0 eta'_pos); simpl.
+now rewrite Rplus_0_r, Rmult_0_r; split.
+Qed.
+
+Definition flx64' : Float_spec :=
+  @Build_Float_spec
+    format
+    format0
+    format1
+    format_opp
+    eps
+    eps_pos
+    eps_lt_1
+    eta'
+    eta'_pos
+    frnd
+    frnd_F
+    frnd_spec'
     fplus_spec
     fplus_spec_l
     fplus_spec2
