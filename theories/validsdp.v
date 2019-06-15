@@ -691,6 +691,7 @@ Proof.
 elim/abstr_poly_ind': ap l n => //.
 { by move=> ? ? ? _ _ /=; rewrite map_mpolyC mevalC bigQ2R_rat. }
 { move=> ? ? [|?] ? //= ?.
+  try (by rewrite map_mpolyX mevalXU; f_equal; rewrite inordK) ||
   by rewrite map_mpolyX mevalX; f_equal; rewrite inordK. }
 { move=> p Hp q Hq l n Hn /= /andP [] Hnp Hnq.
   by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphD. }
