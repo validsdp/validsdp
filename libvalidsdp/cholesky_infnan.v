@@ -47,16 +47,6 @@ Fixpoint stilde_infnan (k : nat) (c : FIS fs) {struct k} :=
                                 [ffun i => b (lift ord0 i)]
   end.
 
-Lemma stilde_infnan_eq k
-      (c1 : FIS fs) (a1 b1 : FIS fs ^ k) (c2 : FIS fs) (a2 b2 : FIS fs ^ k) :
-  (c1 = c2) ->
-  (forall i, a1 i = a2 i) -> (forall i, b1 i = b2 i) ->
-  stilde_infnan c1 a1 b1 = stilde_infnan c2 a2 b2.
-Proof.
-elim: k c1 a1 b1 c2 a2 b2 => [//|k IHk] c1 a1 b1 c2 a2 b2 Hc Ha Hb.
-by apply IHk; [by rewrite Hc Ha Hb| |]; move=> i; rewrite !ffunE.
-Qed.
-
 Definition ytilded_infnan k (c : FIS fs) (a b : FIS fs ^ k) (bk : FIS fs) :=
   fidiv (stilde_infnan c a b) bk.
 
@@ -129,7 +119,7 @@ elim: k c a b => [//|k IHk] c a b.
 rewrite /stilde_infnan /= -/stilde_infnan => H.
 have HH := stilde_infnan_fc H.
 rewrite (IHk _ _ _ H) /stilde /fcmsum_l2r /=.
-apply fsum_l2r_rec_eq => [|i]; rewrite !ffunE //.
+do 2 f_equal; [|apply ffunP=> i]; rewrite !ffunE //.
 rewrite (fiminus_spec HH) /fminus /fplus /= /fmult frnd_F.
 by rewrite (fimult_spec (fiminus_spec_fr HH)).
 Qed.
@@ -163,14 +153,14 @@ Proof.
 move=> Hjj H; destruct H as (H, H'); split.
 { move=> j i Hij.
   rewrite mxE H // ytilded_infnan_eq_ytilded //.
-  { by apply /ytilded_eq => [|i'|i'|]; try rewrite !ffunE; rewrite !mxE. }
+  { by do 2 f_equal; [|apply ffunP=> i'..|]; try rewrite !ffunE; rewrite !mxE. }
   move: (Hjj j); rewrite H' => H2.
   move: (ytildes_infnan_fa (FIS2FS_spec H2) (Ordinal Hij)).
   rewrite -H // ffunE => H3.
   have H4 : i = inord (Ordinal Hij); [by rewrite inord_val|by rewrite H4]. }
 move=> j.
 rewrite mxE H' ytildes_infnan_eq_ytildes; [|by rewrite -H'; apply FIS2FS_spec].
-by apply /ytildes_eq => [|i]; [|rewrite !ffunE]; rewrite mxE.
+by do 2 f_equal; [|apply ffunP=> i; rewrite !ffunE]; rewrite mxE.
 Qed.
 
 (** If [cholesky_success_infnan], then no overflow occured during the

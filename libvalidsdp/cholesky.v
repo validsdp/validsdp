@@ -56,14 +56,6 @@ Section Error_lemmas.
 Definition stilde k (c : F) (a b : F^k) : F :=
   fcmsum_l2r c [ffun i => fmult (a i) (b i) : R].    
 
-Lemma stilde_eq k (c1 : F) (a1 b1 : F ^ k) (c2 : F) (a2 b2 : F ^ k) :
-  (c1 = c2 :> R) -> (forall i, a1 i = a2 i :> R) ->
-  (forall i, b1 i = b2 i :> R) ->
-  stilde c1 a1 b1 = stilde c2 a2 b2 :> R.
-Proof.
-by move=> Hc Ha Hb; apply fcmsum_l2r_eq => [//|i]; rewrite !ffunE /fmult Ha Hb.
-Qed.
-
 Lemma stilde_le_c k (c : F) (a : F^k) : (stilde c a a <= c)%Re.
 Proof.
 elim: k c a => [|k IHk] c a; [by right|]; rewrite /stilde /fcmsum_l2r /=.
@@ -72,7 +64,7 @@ with (FS_val (stilde (fplus c (fopp (frnd (fmult (a ord0) (a ord0)))))
                     [ffun i => a (lift ord0 i)] [ffun i => a (lift ord0 i)])).
 { apply (Rle_trans _ _ _ (IHk _ _)), fplus_spec2.
   rewrite -Ropp_0; apply Ropp_le_contravar; rewrite frnd_F; apply fmult_spec2. }
-apply fsum_l2r_rec_eq => [|i]; rewrite !ffunE //.
+by rewrite /stilde /fcmsum_l2r; do 2 f_equal; [|apply ffunP=> i]; rewrite !ffunE.
 Qed.
 
 (** *** Lemma 2.1. *)
@@ -81,15 +73,6 @@ Section Lemma_2_1.
 (** (2.2) *)
 Definition ytilded (k : nat) (c : F) (a b : F^k) (bk : F) :=
   fdiv (stilde c a b) bk.
-
-Lemma ytilded_eq k
-      (c1 : F) (a1 b1 : F^k) (bk1 : F) (c2 : F) (a2 b2 : F^k) (bk2 : F) :
-  (c1 = c2 :> R) -> (forall i, a1 i = a2 i :> R) ->
-  (forall i, b1 i = b2 i :> R) -> (bk1 = bk2 :> R) ->
-  ytilded c1 a1 b1 bk1 = ytilded c2 a2 b2 bk2 :> R.
-Proof.
-by move=> Hc Ha Hb Hbk; rewrite /ytilded /fdiv (stilde_eq Hc Ha Hb) Hbk.
-Qed.
 
 Lemma lemma_2_1_aux k (a b : F^k) (c bk : F) (Hbk : bk <> 0 :> R) :
   Rabs (bk * ytilded c a b bk - (c - \sum_i (a i * b i)%Re))
@@ -111,8 +94,8 @@ have ->: (shat = bk * (shat / bk) :> R)%Re;
 rewrite /Rminus Ropp_mult_distr_r -Rmult_plus_distr_l Rabs_mult.
 apply Rmult_le_compat_l; [by apply Rabs_pos|]; rewrite /ytilded.
 replace (fdiv _ _) with (fdiv shat bk); last first.
-{ rewrite /fdiv; do 2 f_equal; apply fsum_l2r_rec_eq => [//|i]; rewrite !ffunE.
-  by rewrite /fmult /fopp /= frnd_F. }
+{ rewrite /fdiv; do 2 f_equal; rewrite /shat /stilde /fcmsum_l2r.
+  by do 2 f_equal; apply ffunP=> i; rewrite !ffunE frnd_F. }
 apply frnd_spec_round_max.
 Qed.
   
@@ -136,11 +119,6 @@ Section Lemma_2_2.
 
 Definition ytildes (k : nat) (c : F) (a : F^k) := fsqrt (stilde c a a).
 
-Lemma ytildes_eq k (c1 : F) (a1 : F^k) (c2 : F) (a2 : F^k) :
-  (c1 = c2 :> R) -> (forall i, a1 i = a2 i :> R) ->
-  ytildes c1 a1 = ytildes c2 a2 :> R.
-Proof. by move=> Hc Ha; rewrite /ytildes /fsqrt (stilde_eq Hc Ha Ha). Qed.
-
 Lemma lemma_2_2_1_aux k (a : F^k) (c : F) (Hst : 0 <= stilde c a a) :
   Rabs (ytildes c a ^ 2 - (c - \sum_i (a i * a i)%Re))
   <= INR k.+2 * eps * (ytildes c a ^ 2 + \sum_i (a i * a i)%Re)
@@ -155,7 +133,8 @@ apply fcmsum_l2r_err_aux.
 set shat := fcmsum_l2r _ _.
 set yhat := fsqrt shat.
 have Hstilde : stilde c a a = shat :> R; [|rewrite Hstilde in Hst].
-{ by apply fsum_l2r_rec_eq => [//|i]; rewrite !ffunE /fmult /= frnd_F. }
+{ by rewrite /stilde /shat /fcmsum_l2r; do 2 f_equal; apply ffunP=> i;
+    rewrite !ffunE frnd_F. }
 replace (ytildes c a) with yhat; last first.
 { by rewrite /ytildes /yhat /fsqrt Hstilde. }
 have [d Hd] := fsqrt_spec_round shat.

@@ -50,21 +50,6 @@ Definition fsum_l2r n : F^n -> F :=
       fun a => fsum_l2r_rec (a ord0) [ffun i => a (lift ord0 i)]
   end.
 
-Lemma fsum_l2r_rec_eq n (c1 : F) (x1 : F^n) (c2 : F) (x2 : F^n) :
-  (c1 = c2 :> R) -> (forall i, x1 i = x2 i :> R) ->
-  fsum_l2r_rec c1 x1 = fsum_l2r_rec c2 x2 :> R.
-Proof.
-elim: n c1 x1 c2 x2 => [//|n IHn] c1 x1 c2 x2 Hc Hx.
-by apply IHn; [rewrite /fplus Hc Hx|move=> i; rewrite !ffunE].
-Qed.
-
-Lemma fsum_l2r_eq n (x1 : F^n) (x2 : F^n) :
-  (forall i, x1 i = x2 i :> R) -> fsum_l2r x1 = fsum_l2r x2 :> R.
-Proof.
-case: n x1 x2 => [//|n] x1 x2 Hx.
-by apply fsum_l2r_rec_eq; [|move=> i; rewrite !ffunE].
-Qed.
-
 Lemma fsum_l2r_rec_r n (c : F) (x : F^n.+1) :
   fsum_l2r_rec c x
   = fplus (fsum_l2r_rec c [ffun i : 'I_n => x (inord i)]) (x ord_max) :> R.
@@ -73,7 +58,7 @@ elim: n c x => [|n IHn] c x; rewrite /fsum_l2r_rec.
 { by simpl; apply f_equal, f_equal2; [by []|]; apply f_equal, ord_inj. }
 rewrite -/fsum_l2r_rec (IHn (fplus _ _) _) ffunE.
 rewrite /fplus; do 2 apply f_equal; apply f_equal2.
-{ apply fsum_l2r_rec_eq => [|i]; rewrite !ffunE; do 2 apply f_equal.
+{ do 2 f_equal; [|apply ffunP=> i]; rewrite !ffunE; apply f_equal.
   { apply Rplus_eq_compat_l; do 2 apply f_equal.
     by apply ord_inj; rewrite inordK. }
   apply ord_inj; rewrite inordK /=.
@@ -91,7 +76,7 @@ case: n x => [|n] x.
 { by rewrite /fplus /F0 /= Rplus_0_l frnd_F; apply f_equal, f_equal, ord_inj. }
 rewrite /fsum_l2r fsum_l2r_rec_r.
 rewrite /fplus; do 2 apply f_equal; apply f_equal2.
-{ apply fsum_l2r_rec_eq => [|i]; rewrite !ffunE; do 2 apply f_equal.
+{ do 2 f_equal; [|apply ffunP=> i]; rewrite !ffunE; apply f_equal.
   { by apply ord_inj; rewrite inordK. }
   apply ord_inj; rewrite !lift0 inordK.
   { rewrite inordK // -addn2 -(addn2 n) leq_add2r; apply ltnW, ltn_ord. }

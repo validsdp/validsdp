@@ -9,7 +9,8 @@
     binary64 with unbounded exponents and binary64 without overflow
     and with gradual underflow. *)
 
-Require Import Reals Psatz Flocq.Core.Raux.
+Require Import Reals Rstruct Psatz Flocq.Core.Raux.
+From mathcomp Require Import ssreflect ssrbool eqtype choice.
 
 Require Export bounded.
 
@@ -20,12 +21,28 @@ Open Scope R_scope.
 
 Delimit Scope R_scope with Re.
 
-Record FS_of format := { FS_val :> R; FS_prop : format FS_val }.
+Section FS.
+
+Variable format : R -> bool.
+
+Record FS_of := { FS_val :> R; _ : format FS_val }.
+
+Canonical FS_subType := [subType for FS_val].
+(** Now that FS_of has an eqtype structure, one can use val_inj
+    as a proof that FS_val is injective *)
+
+(** FS_of inherits the eqType and choiceType structures of R (see Rstruct.v) *)
+Definition FS_eqMixin := [eqMixin of FS_of by <:].
+Canonical FS_eqType := EqType FS_of FS_eqMixin.
+Definition FS_choiceMixin := [choiceMixin of FS_of by <:].
+Canonical FS_choiceType := ChoiceType FS_of FS_choiceMixin.
+
+End FS.
 
 Record Float_spec := {
 
   (** [format x] means that the real number [x] is a floating point value. *)
-  format : R -> Prop;
+  format : R -> bool;
 
   (** The type of floating point values (coercible to R). *)
   FS := FS_of format;
@@ -56,7 +73,7 @@ Record Float_spec := {
   (** Some rounding. *)
   frnd : R -> FS;
 
-  frnd_F (x : FS) : frnd x = x :> R;
+  frnd_F (x : FS) : frnd x = x;
 
   frnd_spec x :
     exists (d : b_epsd1peps) (e : b_eta),
@@ -102,15 +119,15 @@ Proof. apply Rmult_le_pos; [|apply Rlt_le, Rinv_0_lt_compat]; lra. Qed.
 Lemma epsd1peps_le_eps : eps / (1 + eps) <= eps.
 Proof.
 apply (Rmult_le_reg_r (1 + eps)); [lra|].
-unfold Rdiv; rewrite Rmult_assoc, Rinv_l; [|lra].
+unfold Rdiv; rewrite Rmult_assoc Rinv_l; [|lra].
 assert (0 <= eps * eps); [apply misc.sqr_ge_0|lra].
 Qed.
 
 Lemma om1ds1p2eps_pos : 0 <= 1 - 1 / sqrt (1 + 2 * eps).
 Proof.
-unfold Rdiv; rewrite Rmult_1_l, <-Rinv_1 at 1.
+unfold Rdiv; rewrite Rmult_1_l -{1}Rinv_1.
 apply Rle_0_minus, Rinv_le; [lra|].
-rewrite <- sqrt_1 at 1; apply sqrt_le_1_alt; lra.
+rewrite -{1}sqrt_1; apply sqrt_le_1_alt; lra.
 Qed.
   
 Lemma om1ds1p2eps_le_epsd1peps : 1 - 1 / sqrt (1 + 2 * eps) <= eps / (1 + eps).
@@ -118,7 +135,7 @@ Proof.
 apply (Rmult_le_reg_r (sqrt (1 + 2 * eps) * (1 + eps))).
 { apply Rmult_lt_0_compat; [apply sqrt_lt_R0|]; lra. }
 field_simplify; [|lra|intro H; apply sqrt_eq_0 in H; lra].
-unfold Rdiv, Rminus; rewrite Rinv_1, !Rmult_1_r, !Rplus_assoc.
+unfold Rdiv, Rminus; rewrite Rinv_1 !Rmult_1_r !Rplus_assoc.
 rewrite <-(Rplus_0_r (sqrt _ * _)) at 2; apply Rplus_le_compat_l.
 apply (Rplus_le_reg_r (1 + eps)); ring_simplify.
 rewrite <-(sqrt_square (_ + 1)); [|lra]; apply sqrt_le_1_alt.
@@ -144,9 +161,9 @@ Notation b_epsd1peps := (b_epsd1peps fs).
 Notation eta := (eta fs).
 Notation b_eta := (b_eta fs).
 
-Definition F0 : F := {| FS_val := 0; FS_prop := format0 fs |}.
+Definition F0 : F := Build_FS_of (format0 fs).
 
-Definition F1 : F := {| FS_val := 1; FS_prop := format1 fs |}.
+Definition F1 : F := Build_FS_of (format1 fs).
 
 Definition eps_0 : b_eps := bounded_0 (eps_pos fs).
 
@@ -155,30 +172,30 @@ Definition epsd1peps_0 : b_epsd1peps := bounded_0 (epsd1peps_pos (eps_pos fs)).
 Definition eta_0 : b_eta := bounded_0 (eta_pos fs).
 
 (** Opposite. *)
-Definition fopp (x : F) : F :=
-  {| FS_val := -x; FS_prop := format_opp (FS_prop x) |}.
+Program Definition fopp (x : F) : F := @Build_FS_of _ (- (FS_val x)) _.
+Next Obligation. by apply format_opp; case x. Qed.
 
 (** Rounding. *)
 Lemma frnd_spec_separate (x : R) :
   exists x' : R,
-    frnd x' = frnd x :> R /\ (exists e : b_eta, x' = x + e)
+    frnd x' = frnd x /\ (exists e : b_eta, x' = x + e)
     /\ (exists d : b_epsd1peps, frnd x' = (1 + d) * x' :> R).
 Proof.
 destruct (frnd_spec fs x) as (d, (e, (Hde, Hde0))).
 destruct (Rlt_or_le (Rabs (d * x)) (Rabs e)) as [HdxLte|HeLedx].
 { exists (frnd x); split; [|split].
-  { apply frnd_F. }
+  { by rewrite frnd_F. }
   { exists e; rewrite Hde; destruct (Rmult_integral _ _ Hde0) as [Zd|Ze].
-    { now rewrite Zd, Rplus_0_r, Rmult_1_l. }
-    exfalso; revert HdxLte; rewrite Ze, Rabs_R0; apply Rle_not_lt, Rabs_pos. }
-  now exists epsd1peps_0; rewrite frnd_F, Rplus_0_r, Rmult_1_l. }
+    { now rewrite Zd Rplus_0_r Rmult_1_l. }
+    exfalso; revert HdxLte; rewrite Ze Rabs_R0; apply Rle_not_lt, Rabs_pos. }
+  now exists epsd1peps_0; rewrite frnd_F Rplus_0_r Rmult_1_l. }
 exists x; split; [now simpl|split].
 { now exists eta_0; rewrite Rplus_0_r. }
 exists d; rewrite Hde; destruct (Rmult_integral _ _ Hde0) as [Zd|Ze].
-{ assert (Ze : e = 0 :> R); [|now rewrite Ze, Rplus_0_r].
+{ assert (Ze : e = 0 :> R); [|now rewrite Ze Rplus_0_r].
   apply Rcomplements.Rabs_eq_0, Rle_antisym; [|now apply Rabs_pos].
-  now revert HeLedx; rewrite Zd, Rmult_0_l, Rabs_R0. }
-now rewrite Ze, Rplus_0_r.
+  now revert HeLedx; rewrite Zd Rmult_0_l Rabs_R0. }
+now rewrite Ze Rplus_0_r.
 Qed.
 
 Lemma frnd_spec_round x :
@@ -188,29 +205,29 @@ destruct (frnd_spec fs x) as (d, (e, (Hde, Zde))).
 destruct (Rmult_integral _ _ Zde) as [Zd|Ze].
 { exists (bounded_0 (eps_pos fs)), (bounded_opp e).
   rewrite Rmult_0_l; split; [|reflexivity].
-  rewrite Hde, Zd, !Rplus_0_r, !Rmult_1_l; simpl; ring. }
+  rewrite Hde Zd !Rplus_0_r !Rmult_1_l; simpl; ring. }
 assert (H := Interval_missing.Rabs_def2_le _ _ (bounded_prop d)).
 assert (H' := epsd1peps_le_eps (eps_pos fs)); assert (H'' := eps_lt_1 fs).
 destruct (Req_dec (frnd x) 0) as [Zfx|Nzfx].
 { assert (Zx : x = 0).
-  { revert Hde; rewrite Zfx, Ze, Rplus_0_r; intro Hde.
+  { revert Hde; rewrite Zfx Ze Rplus_0_r; intro Hde.
     now destruct (Rmult_integral _ _ (sym_eq Hde)) as [Hx|Hx]; [lra|]. }
-  now exists eps_0, eta_0; rewrite !Rplus_0_r, Rmult_1_l, Rmult_0_l, Zfx. }
+  now exists eps_0, eta_0; rewrite !Rplus_0_r Rmult_1_l Rmult_0_l Zfx. }
 destruct (Req_dec x 0) as [Zx|Nzx].
-{ now exfalso; revert Hde; rewrite Zx at 2; rewrite Ze, Rmult_0_r, Rplus_0_r. }
+{ now exfalso; revert Hde; rewrite {2}Zx; rewrite Ze Rmult_0_r Rplus_0_r. }
 set (d' := (x - frnd x) / frnd x).
 assert (Hd' : Rabs d' <= eps).
-{ unfold d'; rewrite Hde, Ze, Rplus_0_r.
+{ unfold d'; rewrite Hde Ze Rplus_0_r.
   replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
-  unfold Rdiv; rewrite Rabs_mult, Rabs_Ropp.
+  unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
   rewrite (Rabs_pos_eq (/ _)); [|apply Rlt_le, Rinv_0_lt_compat; lra].
   apply (Rmult_le_reg_r (1 + d)); [lra|].
-  rewrite Rmult_assoc, Rinv_l, Rmult_1_r; [|lra].
+  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; [|lra].
   apply (Rle_trans _ _ _ (bounded_prop d)).
   unfold Rdiv; apply Rmult_le_compat_l; [now apply eps_pos|].
   apply (Rle_trans _ (1 - eps / (1 + eps))); [right; field|]; lra. }
 exists (Build_bounded Hd'), eta_0.
-now rewrite Rplus_0_r, Rmult_0_r; split; [unfold d'; simpl; field|].
+now rewrite Rplus_0_r Rmult_0_r; split; [unfold d'; simpl; field|].
 Qed.
 
 Lemma frnd_spec_round_max x :
@@ -218,12 +235,12 @@ Lemma frnd_spec_round_max x :
 Proof.
 assert (Hde := frnd_spec_round x).
 destruct Hde as (d, (e, (Hde, Hde0))).
-rewrite Rabs_minus_sym; rewrite Hde at 1.
+rewrite Rabs_minus_sym; rewrite {1}Hde.
 replace (_ - _) with (d * frnd x + e); [|ring].
 assert (H := Rmult_integral _ _ Hde0); destruct H as [Hd|He].
-{ rewrite Hd, Rmult_0_l, Rplus_0_l.
+{ rewrite Hd Rmult_0_l Rplus_0_l.
   apply (Rle_trans _ _ _ (bounded_prop _)), Rmax_r. }
-rewrite He, Rplus_0_r, Rabs_mult.
+rewrite He Rplus_0_r Rabs_mult.
 assert (H := Rmax_l (eps * Rabs (frnd x)) eta); revert H.
 apply Rle_trans, Rmult_le_compat_r; [apply Rabs_pos|apply bounded_prop].
 Qed.
@@ -237,18 +254,18 @@ assert (H := Interval_missing.Rabs_def2_le _ _ (bounded_prop d)).
 assert (H' := epsd1peps_le_eps (eps_pos fs)); assert (H'' := eps_lt_1 fs).
 destruct (Req_dec (fplus x y) 0) as [Zfxy|Nzfxy].
 { exists (bounded_0 (eps_pos fs)).
-  rewrite Rplus_0_r, Rmult_1_l, Zfxy.
+  rewrite Rplus_0_r Rmult_1_l Zfxy.
   now rewrite Zfxy in Hd; destruct (Rmult_integral _ _ (sym_eq Hd)); [lra|]. }
 destruct (Req_dec (x + y) 0) as [Zxy|Nzxy].
-{ now exfalso; revert Hd; rewrite Zxy, Rmult_0_r. }
+{ now exfalso; revert Hd; rewrite Zxy Rmult_0_r. }
 set (d' := ((x + y) - fplus x y) / fplus x y).
 assert (Hd' : Rabs d' <= eps).
 { unfold d'; rewrite Hd.
   replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
-  unfold Rdiv; rewrite Rabs_mult, Rabs_Ropp.
+  unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
   rewrite (Rabs_pos_eq (/ _)); [|apply Rlt_le, Rinv_0_lt_compat; lra].
   apply (Rmult_le_reg_r (1 + d)); [lra|].
-  rewrite Rmult_assoc, Rinv_l, Rmult_1_r; [|lra].
+  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; [|lra].
   apply (Rle_trans _ _ _ (bounded_prop d)).
   unfold Rdiv; apply Rmult_le_compat_l; [now apply eps_pos|].
   apply (Rle_trans _ (1 - eps / (1 + eps))); [right; field|]; lra. }
@@ -297,18 +314,18 @@ assert (H'' := epsd1peps_le_eps (eps_pos fs)); assert (H''' := eps_lt_1 fs).
 assert (Hpos := s1p2epsm1_pos (eps_pos fs)).
 destruct (Req_dec (fsqrt x) 0) as [Zfx|Nzfx].
 { exists (bounded_0 Hpos).
-  rewrite Rplus_0_r, Rmult_1_l, Zfx.
+  rewrite Rplus_0_r Rmult_1_l Zfx.
   now rewrite Zfx in Hd; destruct (Rmult_integral _ _ (sym_eq Hd)); [lra|]. }
 destruct (Req_dec (sqrt x) 0) as [Zx|Nzx].
-{ now exfalso; revert Hd; rewrite Zx, Rmult_0_r. }
+{ now exfalso; revert Hd; rewrite Zx Rmult_0_r. }
 set (d' := (sqrt x - fsqrt x) / fsqrt x).
 assert (Hd' : Rabs d' <= sqrt (1 + 2 * eps) - 1).
 { unfold d'; rewrite Hd.
   replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
-  unfold Rdiv; rewrite Rabs_mult, Rabs_Ropp.
+  unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
   rewrite (Rabs_pos_eq (/ _)); [|apply Rlt_le, Rinv_0_lt_compat; lra].
   apply (Rmult_le_reg_r (1 + d)); [lra|].
-  rewrite Rmult_assoc, Rinv_l, Rmult_1_r; [|lra].
+  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; [|lra].
   apply (Rle_trans _ _ _ (bounded_prop d)).
   apply (Rle_trans _ ((sqrt (1 + 2 * eps) - 1) * (1/sqrt (1 + 2 * eps))));
     [right; field|apply Rmult_le_compat_l]; lra. }

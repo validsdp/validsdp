@@ -42,19 +42,19 @@ Record Float_infnan_spec := {
   FIS2FS : FIS -> FS fis;
 
   FIS2FS_spec x : (FIS2FS x <> 0 :> R) -> finite x;
-  FIS2FS0 : FIS2FS (FIS0) = F0 fis :> R;
-  FIS2FS1 : FIS2FS (FIS1) = F1 fis :> R;
+  FIS2FS0 : FIS2FS (FIS0) = F0 fis;
+  FIS2FS1 : FIS2FS (FIS1) = F1 fis;
 
   (** Some rounding. *)
   firnd : R -> FIS;
 
-  firnd_spec x : finite (firnd x) -> FIS2FS (firnd x) = frnd fis x :> R;
+  firnd_spec x : finite (firnd x) -> FIS2FS (firnd x) = frnd fis x;
   firnd_spec_f x : Rabs (frnd fis x) < m -> finite (firnd x);
 
   (** Opposite. *)
   fiopp : FIS -> FIS;
 
-  fiopp_spec x : finite (fiopp x) -> FIS2FS (fiopp x) = fopp (FIS2FS x) :> R;
+  fiopp_spec x : finite (fiopp x) -> FIS2FS (fiopp x) = fopp (FIS2FS x);
   fiopp_spec_f1 x : finite (fiopp x) -> finite x;
   fiopp_spec_f x : finite x -> finite (fiopp x);
 
@@ -62,7 +62,7 @@ Record Float_infnan_spec := {
   fiplus : FIS -> FIS -> FIS;
 
   fiplus_spec x y : finite (fiplus x y) ->
-    FIS2FS (fiplus x y) = fplus (FIS2FS x) (FIS2FS y) :> R;
+    FIS2FS (fiplus x y) = fplus (FIS2FS x) (FIS2FS y);
   fiplus_spec_fl x y : finite (fiplus x y) -> finite x;
   fiplus_spec_fr x y : finite (fiplus x y) -> finite y;
   fiplus_spec_f x y : finite x -> finite y ->
@@ -72,7 +72,7 @@ Record Float_infnan_spec := {
   fimult : FIS -> FIS -> FIS;
 
   fimult_spec x y : finite (fimult x y) ->
-    FIS2FS (fimult x y) = fmult (FIS2FS x) (FIS2FS y) :> R;
+    FIS2FS (fimult x y) = fmult (FIS2FS x) (FIS2FS y);
   fimult_spec_fl x y : finite (fimult x y) -> finite x;
   fimult_spec_fr x y : finite (fimult x y) -> finite y;
   fimult_spec_f x y : finite x -> finite y ->
@@ -82,7 +82,7 @@ Record Float_infnan_spec := {
   fidiv : FIS -> FIS -> FIS;
 
   fidiv_spec x y : finite (fidiv x y) -> finite y ->
-    FIS2FS (fidiv x y) = fdiv (FIS2FS x) (FIS2FS y) :> R;
+    FIS2FS (fidiv x y) = fdiv (FIS2FS x) (FIS2FS y);
   fidiv_spec_fl x y : finite (fidiv x y) -> finite y -> finite x;
   fidiv_spec_f x y : finite x -> (FIS2FS y <> 0 :> R) ->
     Rabs (fdiv (FIS2FS x) (FIS2FS y)) < m -> finite (fidiv x y);
@@ -90,7 +90,7 @@ Record Float_infnan_spec := {
   (** Square root. *)
   fisqrt : FIS -> FIS;
 
-  fisqrt_spec x : finite (fisqrt x) -> FIS2FS (fisqrt x) = fsqrt (FIS2FS x) :> R;
+  fisqrt_spec x : finite (fisqrt x) -> FIS2FS (fisqrt x) = fsqrt (FIS2FS x);
   fisqrt_spec_f1 x : finite (fisqrt x) -> finite x;
   fisqrt_spec_f x : finite x -> FIS2FS x >= 0 -> finite (fisqrt x);
 
@@ -99,7 +99,7 @@ Record Float_infnan_spec := {
 
   ficompare_spec x y : finite x -> finite y ->
     ficompare x y = Some (Rcompare (FIS2FS x) (FIS2FS y));
-  ficompare_spec_eq x y : ficompare x y = Some Eq -> FIS2FS x = FIS2FS y :> R;
+  ficompare_spec_eq x y : ficompare x y = Some Eq -> FIS2FS x = FIS2FS y;
   ficompare_spec_eq_f x y : ficompare x y = Some Eq -> (finite x <-> finite y)
 }.
 
@@ -117,7 +117,7 @@ Qed.
 Definition fiminus (x y : FIS fs) : FIS fs := fiplus x (fiopp y).
 
 Lemma fiminus_spec x y : finite (fiminus x y) ->
-  FIS2FS (fiminus x y) = fminus (FIS2FS x) (FIS2FS y) :> R.
+  FIS2FS (fiminus x y) = fminus (FIS2FS x) (FIS2FS y).
 Proof.
 unfold fiminus, fminus; intro H.
 assert (Hy : finite (fiopp y)) by apply (fiplus_spec_fr H).
@@ -144,7 +144,7 @@ Definition fieq (x y : FIS fs) : bool :=
     | _ => false
   end.
 
-Lemma fieq_spec x y : fieq x y = true -> FIS2FS x = FIS2FS y :> R.
+Lemma fieq_spec x y : fieq x y = true -> FIS2FS x = FIS2FS y.
 Proof.
 intro H; apply ficompare_spec_eq; revert H; unfold fieq.
 now case (ficompare _ _); [intro c; case c|].
@@ -277,7 +277,7 @@ Definition fiminus_down (x y : FIS fs) := (fiopp (fiplus_up y (fiopp x))).
 Lemma fiminus_down_spec x y : finite (fiminus_down x y) ->
   FIS2FS (fiminus_down x y) <= FIS2FS x - FIS2FS y.
 Proof.
-intros Fxy; unfold fiminus_down.
+intros Fxy.
 rewrite (fiopp_spec Fxy) -Ropp_minus_distr; apply Ropp_le_contravar.
 assert (Fxy' : finite (fiplus_up y (fiopp x))); [by apply fiopp_spec_f1|].
 apply (Rle_trans _ (FIS2FS y + FIS2FS (fiopp x))); [|by apply fiplus_up_spec].

@@ -538,9 +538,9 @@ pose a' := \row_(i < n.+1) a ord0 (inord (lift ord0 i)).
 pose b' := \row_(i < n.+1) b ord0 (inord (lift ord0 i)).
 rewrite (@fsum_l2r_rec_eq _ _ _ _ _ _
   [ffun i : 'I_k => (- (a' ord0 (inord i) * b' ord0 (inord i)))%C] erefl).
-{ rewrite (IHk (ltnW Hk)).
-  by apply stilde_infnan_eq => [|i|i]; rewrite !ffunE // mxE /=;
-    do 3 apply f_equal; apply inordK, (ltn_trans (ltn_ord i)), ltnW. }
+{ by rewrite (IHk (ltnW Hk)); f_equal; [|apply ffunP => i..];
+    rewrite !ffunE // mxE /=;
+    do 3 apply f_equal; apply /inordK /(ltn_trans (ltn_ord i)) /ltnW. }
 by move=> i; rewrite !ffunE !mxE /=; apply f_equal, f_equal2;
   do 3 apply f_equal; apply sym_eq, inordK, (ltn_trans (ltn_ord i)), ltnW.
 Qed.
@@ -567,9 +567,10 @@ Lemma cholesky_spec_correct (A R : 'M[FIS fs]_n.+1) :
 Proof.
 move=> H; split.
 { move=> j i Hij; rewrite (proj1 H) // ytilded_correct /ytilded_infnan.
-  by apply f_equal2=>//; apply stilde_infnan_eq=>// k; rewrite !ffunE !mxE. }
+  by apply f_equal2 => //; apply f_equal3 => //; apply /ffunP => k;
+    rewrite !ffunE !mxE. }
 move=> j; rewrite (proj2 H) ytildes_correct /ytildes_infnan; apply f_equal.
-by apply stilde_infnan_eq=>// i; rewrite !ffunE !mxE.
+by apply f_equal3 => //; apply ffunP => k; rewrite !ffunE !mxE.
 Qed.
 
 (** ... which enables to restate corollaries from [cholesky.v]. *)
@@ -626,7 +627,7 @@ Lemma is_sym_correct (A : 'M[FIS fs]_n.+1) :
   is_sym A -> MF2R (MFI2F A^T) = MF2R (MFI2F A).
 Proof.
 move/is_sym_correct_aux=> H; apply /matrixP=> i j.
-move: (H i j); rewrite !mxE; apply fieq_spec.
+by move: (H i j); rewrite !mxE => H'; apply /f_equal /fieq_spec.
 Qed.
 
 Definition max_diag_ssr (A : 'M[FIS fs]_n.+1) : FIS fs :=

@@ -4,7 +4,8 @@
     record [Float_infnan_spec] corresponding to IEEE754 binary64 format with
     a rounding to nearest with overflows and NaN. *)
 
-Require Import Reals.
+Require Import Reals Rstruct.
+From mathcomp Require Import ssreflect ssrbool eqtype.
 
 Require Import float_spec binary64 float_infnan_spec.
 
@@ -55,41 +56,41 @@ Definition m := bpow radix2 emax.
 Lemma m_ge_2 : 2 <= m.
 Proof. now change 2 with (bpow radix2 1); apply bpow_le. Qed.
 
-Definition FI2FS (x : FI) : FS fis :=
-  {| FS_val := B2R prec emax x; FS_prop := generic_format_B2R prec emax x |}.
+Program Definition FI2FS (x : FI) : FS fis := @Build_FS_of _ (B2R prec emax x) _.
+Next Obligation. apply /eqP; apply (generic_format_B2R prec emax x). Qed.
 
 Lemma FI2FS_spec x : (FI2FS x <> 0 :> R) -> finite x.
 Proof. case x; unfold finite; auto. Qed.
 
-Lemma FI2FS0 : FI2FS (FI0) = F0 fis :> R.
-Proof. now simpl. Qed.
+Lemma FI2FS0 : FI2FS (FI0) = F0 fis.
+Proof. by apply val_inj. Qed.
 
-Lemma FI2FS1 : FI2FS (FI1) = F1 fis :> R.
+Lemma FI2FS1 : FI2FS (FI1) = F1 fis.
 Proof.
-apply Rinv_r; change 0 with (IZR 0).
+apply /val_inj /Rinv_r; change 0 with (IZR 0).
 now change 4503599627370496 with (Z2R 4503599627370496); apply IZR_neq.
 Qed.
 
 Definition firnd (x : R) : FI :=
   binary_normalize
-    prec emax (@eq_refl comparison Lt) (@eq_refl comparison Lt)
+    prec emax (@refl_equal comparison Lt) (@refl_equal comparison Lt)
     mode_NE
     (round_mode mode_NE (scaled_mantissa binary64.radix2 fexp x))
     (cexp binary64.radix2 fexp x)
     false.
 
-Lemma firnd_spec x : finite (firnd x) -> FI2FS (firnd x) = frnd fis x :> R.
+Lemma firnd_spec x : finite (firnd x) -> FI2FS (firnd x) = frnd fis x.
 Proof.
-intro Frx.
+intro Frx; apply val_inj.
 unfold FI2FS, firnd; simpl.
 set (mx := round_mode mode_NE (scaled_mantissa binary64.radix2 fexp x)).
 set (ex := cexp binary64.radix2 fexp x).
-assert (H := binary_normalize_correct prec emax
-                                      (@eq_refl comparison Lt) (@eq_refl comparison Lt)
-                                      mode_NE mx ex false).
+assert (H := binary_normalize_correct
+               prec emax (@refl_equal comparison Lt) (@refl_equal comparison Lt)
+               mode_NE mx ex false).
 revert H; case (Rlt_bool (Rabs _) _).
 { unfold mx, round_mode; intro H; destruct H as (H, _); rewrite H.
-  rewrite round_generic; [now unfold round|now apply valid_rnd_N|].
+  rewrite round_generic; [now unfold round|].
   now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N]. }
 unfold binary_overflow, overflow_to_inf.
 change (binary_normalize _ _ _ _ _ _ _ _) with (firnd x).
@@ -101,22 +102,20 @@ Proof.
 intro Hm.
 set (mx := round_mode mode_NE (scaled_mantissa binary64.radix2 fexp x)).
 set (ex := cexp binary64.radix2 fexp x).
-assert (H := binary_normalize_correct prec emax
-                                      (@eq_refl comparison Lt) (@eq_refl comparison Lt)
-                                      mode_NE mx ex false).
+assert (H := binary_normalize_correct
+               prec emax (@refl_equal comparison Lt) (@refl_equal comparison Lt)
+               mode_NE mx ex false).
 revert H.
 replace (round _ _ _ _) with (frnd fis x : R).
 { now fold emax m; rewrite (Rlt_bool_true _ _ Hm); intro. }
-rewrite round_generic; [now unfold round|now apply valid_rnd_N|].
+rewrite round_generic; [now unfold round|].
 now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N].
 Qed.
 
 Definition fiopp := b64_opp.
 
-Lemma fiopp_spec x : finite (fiopp x) -> FI2FS (fiopp x) = fopp (FI2FS x) :> R.
-Proof.
-now intro Hox; unfold FI2FS, fiopp, b64_opp, fopp; simpl; rewrite B2R_Bopp.
-Qed.
+Lemma fiopp_spec x : finite (fiopp x) -> FI2FS (fiopp x) = fopp (FI2FS x).
+Proof. now intro Hox; apply val_inj; rewrite /= B2R_Bopp. Qed.
 
 Lemma fiopp_spec_f1 x : finite (fiopp x) -> finite x.
 Proof. case x; unfold finite; auto. Qed.
@@ -139,15 +138,15 @@ now intros b b'; case (Bool.eqb b' b).
 Qed.
 
 Lemma fiplus_spec x y : finite (fiplus x y) ->
-  FI2FS (fiplus x y) = fplus (FI2FS x) (FI2FS y) :> R.
+  FI2FS (fiplus x y) = fplus (FI2FS x) (FI2FS y).
 Proof.
-intro Fxy.
+intro Fxy; apply val_inj.
 assert (Fx := fiplus_spec_fl _ _ Fxy); assert (Fy := fiplus_spec_fr _ _ Fxy).
 unfold FI2FS, fiplus, b64_plus, prec, emax.
 change ((53 ?= 1024)%Z) with Lt; simpl.
-assert (H := Bplus_correct 53 1024
-                           (@eq_refl comparison Lt) (@eq_refl comparison Lt)
-                           binop_nan_pl64 mode_NE _ _ Fx Fy).
+assert (H := Bplus_correct
+               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
+               binop_nan_pl64 mode_NE _ _ Fx Fy).
 revert H; case (Rlt_bool _ _); intro H; destruct H as (H, _); [now rewrite H|].
 casetype False; revert Fxy H.
 change Lt with ((0 ?= 53)%Z) at 1.
@@ -160,9 +159,9 @@ Lemma fiplus_spec_f x y : finite x -> finite y ->
   Rabs (fplus (FI2FS x) (FI2FS y)) < m -> finite (fiplus x y).
 Proof.
 intros Fx Fy Hm.
-assert (H := Bplus_correct 53 1024
-                           (@eq_refl comparison Lt) (@eq_refl comparison Lt)
-                           binop_nan_pl64 mode_NE _ _ Fx Fy).
+assert (H := Bplus_correct
+               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
+               binop_nan_pl64 mode_NE _ _ Fx Fy).
 revert H.
 replace (round _ _ _ _) with (fplus (FI2FS x) (FI2FS y) : R); [|now simpl].
 now fold emax m; rewrite (Rlt_bool_true _ _ Hm); intro.
@@ -181,14 +180,14 @@ case x; case y; unfold finite, fimult; auto.
 Qed.
 
 Lemma fimult_spec x y : finite (fimult x y) ->
-  FI2FS (fimult x y) = fmult (FI2FS x) (FI2FS y) :> R.
+  FI2FS (fimult x y) = fmult (FI2FS x) (FI2FS y).
 Proof.
-intro Fxy.
+intro Fxy; apply val_inj.
 unfold FI2FS, fimult, b64_mult, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
-assert (H := Bmult_correct 53 1024
-                           (@eq_refl comparison Lt) (@eq_refl comparison Lt)
-                           binop_nan_pl64 mode_NE x y).
+assert (H := Bmult_correct
+               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
+               binop_nan_pl64 mode_NE x y).
 revert H; case (Rlt_bool _ _); intro H; [now rewrite (proj1 H)|].
 casetype False; revert Fxy H.
 change Lt with ((0 ?= 53)%Z) at 1.
@@ -201,13 +200,13 @@ Lemma fimult_spec_f x y : finite x -> finite y ->
   Rabs (fmult (FI2FS x) (FI2FS y)) < m -> finite (fimult x y).
 Proof.
 intros Fx Fy Hm.
-assert (H := Bmult_correct 53 1024
-                           (@eq_refl comparison Lt) (@eq_refl comparison Lt)
-                           binop_nan_pl64 mode_NE x y).
+assert (H := Bmult_correct
+               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
+               binop_nan_pl64 mode_NE x y).
 revert H.
 replace (round _ _ _ _) with (fmult (FI2FS x) (FI2FS y) : R); [|now simpl].
 fold emax m; rewrite (Rlt_bool_true _ _ Hm).
-now fold prec; rewrite Fx, Fy; intro H.
+now fold prec; rewrite Fx Fy; intro H.
 Qed.
 
 Definition fidiv (x y : FI) : FI := b64_div mode_NE x y.
@@ -226,17 +225,17 @@ now apply F2R_gt_0.
 Qed.
 
 Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
-  FI2FS (fidiv x y) = fdiv (FI2FS x) (FI2FS y) :> R.
+  FI2FS (fidiv x y) = fdiv (FI2FS x) (FI2FS y).
 Proof.
 unfold FI2FS, fidiv, b64_div, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
-intros Fxy Fy.
+intros Fxy Fy; apply val_inj => /=.
 assert (Nzy : B2R prec emax y <> 0).
 { revert Fxy Fy; case x; case y; unfold finite, Bdiv, B2R; auto;
   intros; apply F2R_cond_pos_not_0. }
-assert (H := Bdiv_correct 53 1024
-                          (@eq_refl comparison Lt) (@eq_refl comparison Lt)
-                          binop_nan_pl64 mode_NE x _ Nzy).
+assert (H := Bdiv_correct
+               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
+               binop_nan_pl64 mode_NE x _ Nzy).
 revert H; case (Rlt_bool _ _); intro H.
 { now rewrite (proj1 H). }
 casetype False; revert Fxy H.
@@ -251,9 +250,9 @@ Lemma fidiv_spec_f x y : finite x -> (FI2FS y <> 0 :> R) ->
   Rabs (fdiv (FI2FS x) (FI2FS y)) < m -> finite (fidiv x y).
 Proof.
 intros Fx Nzy Hm.
-assert (H := Bdiv_correct 53 1024
-                          (@eq_refl comparison Lt) (@eq_refl comparison Lt)
-                          binop_nan_pl64 mode_NE x _ Nzy).
+assert (H := Bdiv_correct
+               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
+               binop_nan_pl64 mode_NE x _ Nzy).
 revert H.
 replace (round _ _ _ _) with (fdiv (FI2FS x) (FI2FS y) : R); [|now simpl].
 fold emax m; rewrite (Rlt_bool_true _ _ Hm).
@@ -268,23 +267,22 @@ case x; unfold finite, fisqrt; simpl; try auto.
 now intros b; case b.
 Qed.
 
-Lemma fisqrt_spec x : finite (fisqrt x) ->
-  FI2FS (fisqrt x) = fsqrt (FI2FS x) :> R.
+Lemma fisqrt_spec x : finite (fisqrt x) -> FI2FS (fisqrt x) = fsqrt (FI2FS x).
 Proof.
 unfold FI2FS, fisqrt, b64_sqrt, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
-intros Fx.
-assert (H := Bsqrt_correct 53 1024
-                           (@eq_refl comparison Lt) (@eq_refl comparison Lt)
-                           unop_nan_pl64 mode_NE x).
+intros Fx; apply val_inj => /=.
+assert (H := Bsqrt_correct
+               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
+               unop_nan_pl64 mode_NE x).
 now rewrite (proj1 H).
 Qed.
 
 Lemma fisqrt_spec_f x : finite x -> FI2FS x >= 0 -> finite (fisqrt x).
 Proof.
-assert (H := Bsqrt_correct 53 1024
-                           (@eq_refl comparison Lt) (@eq_refl comparison Lt)
-                           unop_nan_pl64 mode_NE x).
+assert (H := Bsqrt_correct
+               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
+               unop_nan_pl64 mode_NE x).
 destruct H as (_, (H, _)); revert H; fold prec emax.
 replace (Bsqrt _ _ _ _ _ _ _ : binary_float prec emax) with (fisqrt x).
 { intro H; unfold finite; rewrite H; unfold is_finite, FI2FS, B2R; simpl.
@@ -303,9 +301,9 @@ Lemma ficompare_spec x y : finite x -> finite y ->
   ficompare x y = Some (Rcompare (FI2FS x) (FI2FS y)).
 Proof. apply Bcompare_correct. Qed.
 
-Lemma ficompare_spec_eq x y : ficompare x y = Some Eq -> FI2FS x = FI2FS y :> R.
+Lemma ficompare_spec_eq x y : ficompare x y = Some Eq -> FI2FS x = FI2FS y.
 Proof.
-unfold ficompare.
+unfold ficompare => H; apply val_inj => /=; move: H.
 case x; case y; try now simpl.
 { now intro b; case b. }
 { now intros b m e e' b'; case b'. }
@@ -315,11 +313,11 @@ intros b m e B b' m' e' B'; simpl; case b'; case b; try now simpl.
 { case_eq (Z.compare e' e); try now simpl.
   intro He; apply Z.compare_eq in He; rewrite Pos.compare_cont_antisym; simpl.
   intro Hm; inversion Hm as (Hm'); apply Pcompare_Eq_eq in Hm'.
-  now rewrite He, Hm'. }
+  now rewrite He Hm'. }
 case_eq (Z.compare e' e); try now simpl.
 intro He; apply Z.compare_eq in He.
 intro Hm; inversion Hm as (Hm'); apply Pcompare_Eq_eq in Hm'.
-now rewrite He, Hm'.
+now rewrite He Hm'.
 Qed.
 
 Lemma ficompare_spec_eq_f x y : ficompare x y = Some Eq ->

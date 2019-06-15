@@ -6,7 +6,8 @@
     model of binary64 with gradual underflow but without NaNs nor
     overflows (which could be easily handled afterward). *)
 
-Require Import Reals.
+Require Import Reals Rstruct.
+From mathcomp Require Import ssreflect ssrbool eqtype.
 
 Require Import float_spec.
 Require flx64.
@@ -41,18 +42,23 @@ Proof. now apply FLT_exp_valid. Qed.
 
 Definition radix2 := Build_radix 2 (refl_equal true).
 
-Definition format x := generic_format radix2 fexp x.
+Definition generic_format_pred (x : R) : bool :=
+  x == @F2R radix2
+            {| Fnum := Ztrunc (scaled_mantissa radix2 fexp x);
+               Fexp := cexp radix2 fexp x |}.
+
+Definition format x := generic_format_pred x.
 
 Let F := FS_of format.
 
 Lemma format0 : format 0.
-Proof. apply generic_format_0. Qed.
+Proof. apply /eqP /generic_format_0. Qed.
 
 Lemma format1 : format 1.
-Proof. now apply generic_format_FLT_1. Qed.
+Proof. now apply /eqP; apply generic_format_FLT_1. Qed.
 
 Lemma format_opp x : format x -> format (- x).
-Proof. apply generic_format_opp. Qed.
+Proof. by move /eqP => ?; apply /eqP; apply generic_format_opp. Qed.
 
 Definition eps := bpow radix2 (-53).
 
@@ -85,11 +91,17 @@ Let b_eta := bounded eta.
 Variable choice : Z -> bool.
 
 (** All we need is rounding to nearest. *)
-Definition frnd (x : R) : F :=
-  Build_FS_of (generic_format_round radix2 fexp (Znearest choice) x).
+Program Definition frnd (x : R) : F :=
+  @Build_FS_of _ (round radix2 fexp (Znearest choice) x) _.
+Next Obligation.
+apply /eqP.
+now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N].
+Qed.
 
-Lemma frnd_F (x : F) : round radix2 fexp (Znearest choice) x = x :> R.
-Proof. apply round_generic; [apply valid_rnd_N|apply FS_prop]. Qed.
+Lemma frnd_F (x : F) : frnd x = x.
+apply val_inj => /=.
+by apply round_generic; [apply valid_rnd_N|apply /eqP; case x].
+Qed.
 
 Lemma frnd_spec (x : R) :
   exists (d : b_epsd1peps) (e : b_eta),
@@ -105,14 +117,14 @@ replace (_ * _) with eta in He;
   [|now unfold eta; change (/2) with (bpow radix2 (-1));
     rewrite <-bpow_plus].
 exists (Build_bounded Hd), (Build_bounded He); simpl.
-now rewrite Hde, Rmult_comm.
+now rewrite Hde Rmult_comm.
 Qed.
 
 Lemma fplus_spec (x y : F) :
   exists d : b_epsd1peps, frnd (x + y) = (1 + d) * (x + y) :> R.
 Proof.
-destruct (@FLT_plus_error_N_ex radix2 emin _ Pprec choice _ _
-                               (FS_prop x) (FS_prop y))
+move: x => [x /= /eqP fx]; move: y => [y /= /eqP fy].
+destruct (@FLT_plus_error_N_ex radix2 emin _ Pprec choice _ _ fx fy)
   as (d, (Hd, Hr)).
 replace (u_ro _ _) with eps in Hd;
   [|now unfold u_ro, eps; change (/2) with (bpow radix2 (-1));
@@ -123,7 +135,7 @@ Qed.
 
 Lemma fplus_spec_l (x y : F) : Rabs (frnd (x + y) - (x + y)) <= Rabs x.
 Proof.
-now apply plus_error_le_l; [apply FLT_exp_valid|apply FS_prop|apply FS_prop].
+by apply plus_error_le_l; [apply FLT_exp_valid|apply /eqP..]; [|case x|case y].
 Qed.
 
 Lemma fplus_spec2 (x y : F) : y <= 0 -> frnd (x + y) <= x.
@@ -131,7 +143,7 @@ Proof.
 intros Hy.
 unfold frnd; simpl.
 rewrite <- (round_generic radix2 fexp (Znearest choice) x) at 2;
-  [|now apply FS_prop].
+  [|now apply /eqP; case x].
 now apply round_le; [apply FLT_exp_valid|apply valid_rnd_N|lra].
 Qed.
 
@@ -149,7 +161,8 @@ Lemma fsqrt_spec (x : F) :
 Proof.
 assert (Hprec1 : (1 < prec)%Z); [now simpl|].
 assert (Hemin : (emin <= 2 * (1 - prec))%Z); [now simpl|].
-destruct (@sqrt_error_N_FLT_ex radix2 _ Pprec choice Hprec1 _ Hemin _ (FS_prop x))
+move: x => [x /= /eqP fx].
+destruct (@sqrt_error_N_FLT_ex radix2 _ Pprec choice Hprec1 _ Hemin _ fx)
   as (d, (Hd, Hr)).
 replace (u_ro _ _) with eps in Hd;
   [|now unfold eps, u_ro; change (/ 2) with (bpow radix2 (-1));

@@ -42,11 +42,6 @@ Notation eta := (eta fs).
 Definition fcmsum_l2r n (c : F) (x : R^n) : F :=
   fsum_l2r_rec c [ffun i => fopp (frnd (x i))].
 
-Lemma fcmsum_l2r_eq k (c1 : F) (x1 : R ^ k) (c2 : F) (x2 : R ^ k) :
-  (c1 = c2 :> R) -> (forall i, x1 i = x2 i :> R) ->
-  fcmsum_l2r c1 x1 = fcmsum_l2r c2 x2 :> R.
-Proof. by move=> Hc Hx; apply fsum_l2r_rec_eq => [//|i]; rewrite !ffunE Hx. Qed.
-
 (** Theorem 3.1 in the paper. *)
 Theorem fcmsum_l2r_err_no_underflow n (c : F) (x : R^n) (rho : R) (l : nat) :
   (forall i, Rabs (frnd (x i) - x i) <= eps * Rabs (x i)) ->  (** no underflow *)
@@ -67,7 +62,7 @@ set Delta2 := (x ord0 - frnd (x ord0))%Re.
 have Hshat :
   shat = fcmsum_l2r s1hat [ffun i => x (lift ord0 i)] :> R.
 { rewrite /shat /fcmsum_l2r /= ffunE.
-  by apply fsum_l2r_rec_eq => [//|i]; rewrite !ffunE. }
+  by do 2 f_equal; apply ffunP=> i; rewrite !ffunE. }
 have HDelta_decomp :
   (Rabs Delta <= Rabs Delta1 + Rabs (s1hat - s1) + Rabs Delta2)%Re.
 { apply (Rle_trans _ (Rabs (Delta1 + s1hat - s1 + Delta2))); [right|].
@@ -170,8 +165,9 @@ apply (Rle_trans _ (INR (n + l) * eps * (Rabs rho + \big[+%R/0]_i Rabs (x' i))
     replace (_ - _)%Re with (d * x' i)%Re by ring.
     rewrite Rabs_mult; apply Rmult_le_compat_r; [apply Rabs_pos|].
     by apply (Rle_trans _ _ _ (bounded_prop _)), epsd1peps_le_eps, eps_pos. }
-  by move: Hl; apply Rle_trans; right; do 2 f_equal; apply fsum_l2r_rec_eq;
-    [|move=> i; rewrite !ffunE /fopp /= (proj1 (Hx' i))]. }
+  move: Hl; apply Rle_trans; right; do 2 f_equal.
+  rewrite /fcmsum_l2r; do 2 f_equal; apply ffunP=> i; rewrite !ffunE.
+  f_equal; apply Hx'. }
 rewrite (Rplus_comm 1) (Rmult_plus_distr_r _ 1) Rmult_1_l -Rplus_assoc.
 apply Rplus_le_compat; [|exact Hdxx'].
 rewrite -Rmult_plus_distr_l; apply Rmult_le_compat_l.
