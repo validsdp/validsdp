@@ -164,37 +164,37 @@ Ltac prove_FP2B SFop_Bop FPop_SFop op_nan :=
   reflexivity.
 
 Theorem FPopp_Bopp : forall opp_nan x, (-(B2Prim x))%float = B2Prim (Bopp prec emax opp_nan x).
-  prove_FP2B @SFopp_Bopp opp_SFopp opp_nan.
+  prove_FP2B @SFopp_Bopp opp_spec opp_nan.
 Qed.
 
 Theorem FPabs_Babs : forall abs_nan x, abs (B2Prim x) = B2Prim (Babs prec emax abs_nan x).
-  prove_FP2B @SFabs_Babs abs_SFabs abs_nan.
+  prove_FP2B @SFabs_Babs abs_spec abs_nan.
 Qed.
 
 Theorem FPcompare_Bcompare : forall x y,
   ((B2Prim x) ?= (B2Prim y))%float = flatten_cmp_opt (Bcompare prec emax x y).
-  intros. rewrite compare_SFcompare. rewrite <- SFcompare_Bcompare. unfold B2Prim.
+  intros. rewrite compare_spec. rewrite <- SFcompare_Bcompare. unfold B2Prim.
   rewrite !Prim2SF_SF2Prim by apply valid_binary_B2SF. reflexivity.
 Qed.
 
-Theorem FPmult_Bmult : forall mult_nan x y, ((B2Prim x)*(B2Prim y))%float = B2Prim (Bmult prec emax eq_refl eq_refl mult_nan mode_NE x y).
-  prove_FP2B @SFmult_Bmult mult_SFmult mult_nan.
+Theorem FPmul_Bmult : forall mult_nan x y, ((B2Prim x)*(B2Prim y))%float = B2Prim (Bmult prec emax eq_refl eq_refl mult_nan mode_NE x y).
+  prove_FP2B @SFmul_Bmult mul_spec mult_nan.
 Qed.
 
-Theorem FPplus_Bplus : forall plus_nan x y, ((B2Prim x)+(B2Prim y))%float = B2Prim (Bplus prec emax eq_refl eq_refl plus_nan mode_NE x y).
-  prove_FP2B @SFplus_Bplus plus_SFplus plus_nan.
+Theorem FPadd_Bplus : forall plus_nan x y, ((B2Prim x)+(B2Prim y))%float = B2Prim (Bplus prec emax eq_refl eq_refl plus_nan mode_NE x y).
+  prove_FP2B @SFadd_Bplus add_spec plus_nan.
 Qed.
 
-Theorem FPminus_Bminus : forall minus_nan x y, ((B2Prim x)-(B2Prim y))%float = B2Prim (Bminus prec emax eq_refl eq_refl minus_nan mode_NE x y).
-  prove_FP2B @SFminus_Bminus minus_SFminus minus_nan.
+Theorem FPsub_Bminus : forall minus_nan x y, ((B2Prim x)-(B2Prim y))%float = B2Prim (Bminus prec emax eq_refl eq_refl minus_nan mode_NE x y).
+  prove_FP2B @SFsub_Bminus sub_spec minus_nan.
 Qed.
 
 Theorem FPdiv_Bdiv : forall div_nan x y, ((B2Prim x)/(B2Prim y))%float = B2Prim (Bdiv prec emax eq_refl eq_refl div_nan mode_NE x y).
-  prove_FP2B @SFdiv_Bdiv div_SFdiv div_nan.
+  prove_FP2B @SFdiv_Bdiv div_spec div_nan.
 Qed.
 
 Theorem FPsqrt_Bsqrt : forall sqrt_nan x, sqrt (B2Prim x) = B2Prim (Bsqrt prec emax eq_refl eq_refl sqrt_nan mode_NE x).
-  prove_FP2B @SFsqrt_Bsqrt sqrt_SFsqrt sqrt_nan.
+  prove_FP2B @SFsqrt_Bsqrt sqrt_spec sqrt_nan.
 Qed.
 
 Theorem FPnormfr_mantissa_Bnormfr_mantissa :
@@ -204,7 +204,7 @@ Proof.
 intro x; unfold B2Prim.
 rewrite <-SFnormfr_mantissa_Bnormfr_mantissa.
 rewrite <-(Prim2SF_SF2Prim (B2SF x)) at 2; [|apply valid_binary_B2SF].
-rewrite <-normfr_mantissa_SFnormfr_mantissa.
+rewrite <-normfr_mantissa_spec.
 now rewrite Int63.of_to_Z.
 Qed.
 
@@ -215,7 +215,7 @@ Proof.
 intros x e; unfold B2Prim.
 rewrite <-SFldexp_Bldexp.
 rewrite <-(Prim2SF_SF2Prim (B2SF x)) at 2; [|apply valid_binary_B2SF].
-rewrite <-ldexp_SFldexp.
+rewrite <-ldexp_spec.
 now rewrite SF2Prim_Prim2SF.
 Qed.
 
@@ -231,7 +231,7 @@ intro x; unfold B2Prim.
 rewrite <-(proj1 (SFfrexp_Bfrexp prec_gt_0 Hemax _)).
 rewrite <-(proj2 (SFfrexp_Bfrexp prec_gt_0 Hemax _)).
 rewrite <-(Prim2SF_SF2Prim (B2SF x)) at 2 4; [|apply valid_binary_B2SF].
-generalize (frexp_SFfrexp (SF2Prim (B2SF x))).
+generalize (frexp_spec (SF2Prim (B2SF x))).
 case_eq (frexp (SF2Prim (B2SF x))); intros f z Hfz Hfrexp.
 now rewrite <-Hfrexp; simpl; rewrite SF2Prim_Prim2SF.
 Qed.
@@ -245,12 +245,12 @@ Theorem FPulp_Bulp :
 Proof.
 intros x; unfold B2Prim, ulp.
 rewrite <-SFulp_Bulp; unfold SFulp.
-generalize (frexp_SFfrexp (SF2Prim (B2SF x))).
+generalize (frexp_spec (SF2Prim (B2SF x))).
 case_eq (frexp (SF2Prim (B2SF x))); intros f z Hfz.
 rewrite Prim2SF_SF2Prim; [|apply valid_binary_B2SF].
 intro Hfrexp; rewrite <-Hfrexp; unfold snd.
 change (SFone prec emax) with (Prim2SF one).
-now rewrite <-ldexp_SFldexp, SF2Prim_Prim2SF.
+now rewrite <-ldexp_spec, SF2Prim_Prim2SF.
 Qed.
 
 Theorem FPnext_up_Bsucc :
@@ -261,7 +261,7 @@ Proof.
 intros succ_nan x; unfold B2Prim.
 rewrite <-SFsucc_Bsucc.
 rewrite <-(Prim2SF_SF2Prim (B2SF x)) at 2; [|apply valid_binary_B2SF].
-rewrite <-next_up_SFsucc.
+rewrite <-next_up_spec.
 now rewrite SF2Prim_Prim2SF.
 Qed.
 
@@ -273,7 +273,7 @@ Proof.
 intros pred_nan x; unfold B2Prim.
 rewrite <-SFpred_Bpred.
 rewrite <-(Prim2SF_SF2Prim (B2SF x)) at 2; [|apply valid_binary_B2SF].
-rewrite <-next_down_SFpred.
+rewrite <-next_down_spec.
 now rewrite SF2Prim_Prim2SF.
 Qed.
 

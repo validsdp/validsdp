@@ -115,18 +115,18 @@ Theorem SFcompare_Bcompare : forall x y, SFcompare (B2SF x) (B2SF y) = Bcompare 
   intros. destruct x, y; auto.
 Qed.
 
-Theorem SFmult_Bmult : forall mult_nan x y, SFmult prec emax (B2SF x) (B2SF y) = B2SF (Bmult prec emax prec_gt_0_ Hmax mult_nan mode_NE x y).
+Theorem SFmul_Bmult : forall mult_nan x y, SFmul prec emax (B2SF x) (B2SF y) = B2SF (Bmult prec emax prec_gt_0_ Hmax mult_nan mode_NE x y).
   intros. destruct x, y; auto; simpl; try (apply B2SF_build_nan). unfold B2SF.
   rewrite B2FF_FF2B. change loc_Exact with (Floc2loc Bracket.loc_Exact). apply binary_round_aux_equiv.
 Qed.
 
-Theorem SFplus_Bplus : forall plus_nan x y, SFplus prec emax (B2SF x) (B2SF y) = B2SF (Bplus prec emax prec_gt_0_ Hmax plus_nan mode_NE x y).
+Theorem SFadd_Bplus : forall plus_nan x y, SFadd prec emax (B2SF x) (B2SF y) = B2SF (Bplus prec emax prec_gt_0_ Hmax plus_nan mode_NE x y).
   intros.
   destruct x, y; auto; simpl; try (apply B2SF_build_nan); try (destruct (Bool.eqb _ _)); auto.
   apply binary_normalize_equiv.
 Qed.
 
-Theorem SFminus_Bminus : forall minus_nan x y, SFminus prec emax (B2SF x) (B2SF y) = B2SF (Bminus prec emax prec_gt_0_ Hmax minus_nan mode_NE x y).
+Theorem SFsub_Bminus : forall minus_nan x y, SFsub prec emax (B2SF x) (B2SF y) = B2SF (Bminus prec emax prec_gt_0_ Hmax minus_nan mode_NE x y).
   intros.
   destruct x, y; auto; simpl; try (apply B2SF_build_nan); try (destruct (Bool.eqb _ _)); auto.
   apply binary_normalize_equiv.
@@ -223,10 +223,10 @@ rewrite fexp_equiv, (proj2 (SFfrexp_Bfrexp _)), SFulp_Bulp.
 rewrite SFone_Bone, SFldexp_Bldexp.
 set (d1 := Bldexp _ _ _ _ _ _ _).
 set (d2 := Bulp _ _ _ _ _ _).
-Opaque SFminus Bminus.
+Opaque SFsub Bminus.
 simpl.
-Transparent SFminus Bminus.
-case (_ =? _)%positive; apply SFminus_Bminus.
+Transparent SFsub Bminus.
+case (_ =? _)%positive; apply SFsub_Bminus.
 Qed.
 
 Theorem SFmax_float_Bmax_float :
@@ -245,7 +245,7 @@ intros succ_nan [s|s|s pl H|s m e Hme]; [| |now easy|].
 - rewrite (SFopp_Bopp succ_nan), (SFpred_pos_Bpred_pos succ_nan).
   rewrite (SFopp_Bopp succ_nan), SFulp_Bulp.
   set (plus_nan := fun _ => succ_nan).
-  now rewrite (SFplus_Bplus plus_nan); case s.
+  now rewrite (SFadd_Bplus plus_nan); case s.
 Qed.
 
 Theorem SFpred_Bpred :

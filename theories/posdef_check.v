@@ -267,7 +267,7 @@ Proof.
       cbv in H.
       revert H.
       case_eq (t ?= 0)%int63 ; try discriminate.
-      rewrite compare_spec.
+      rewrite Int63.compare_spec.
       rewrite Z.compare_eq_iff.
       intros H _.
       now apply to_Z_inj.
@@ -283,11 +283,11 @@ Proof.
       cbv in H.
       revert H.
       case_eq (0 ?= t)%int63; try discriminate.
-      * rewrite compare_spec.
+      * rewrite Int63.compare_spec.
         rewrite Z.compare_eq_iff.
         intros H _.
         now apply to_Z_inj.
-      * rewrite compare_spec.
+      * rewrite Int63.compare_spec.
         rewrite Z.compare_gt_iff.
         intro Hl.
         exfalso.
@@ -467,7 +467,7 @@ simpl; intro Hb; specialize (Hb (refl_equal _)).
 rewrite <-(B2Prim_Prim2B primitive_floats_infnan.nan_pl (ldshiftexp _ _)) at 1.
 rewrite is_finite_spec; simpl.
 unfold Prim2B; rewrite B2R_FF2B is_finite_FF2B.
-rewrite ldshiftexp_SFldexp.
+rewrite ldshiftexp_spec.
 rewrite <-(B2SF_Prim2B primitive_floats_infnan.nan_pl m'').
 assert (Hprec : (prec < emax)%Z); [now simpl| ].
 rewrite SFldexp_Bldexp.
@@ -507,11 +507,11 @@ assert (He''shift : Z.sub (to_Z e'') (to_Z shift) = e).
     rewrite /SpecFloat.bounded => /andP [] _ /Zle_bool_imp_le.
     unfold emin, emax, prec; lia. }
   unfold e'', e; case se.
-  { rewrite sub_spec Zmod_small; [ring|split].
+  { rewrite Int63.sub_spec Zmod_small; [ring|split].
     { rewrite shift_value; revert He'; unfold emin, emax, prec; lia. }
     apply (Z.le_lt_trans _ (to_Z shift)); [ |now simpl].
     assert (H := to_Z_bounded e'); lia. }
-  rewrite add_spec Zmod_small; [ring|split].
+  rewrite Int63.add_spec Zmod_small; [ring|split].
   { assert (H := conj (to_Z_bounded shift) (to_Z_bounded e')); lia. }
   apply (Z.le_lt_trans _ (4 * emax)); [ |now simpl].
   rewrite shift_value; revert He'; unfold emin, emax, prec; lia. }
