@@ -17,7 +17,14 @@ build: [
 ]
 install: [make "-C" "libvalidsdp" "install"]
 depends: [
-  "coq" {>= "8.7" & < "8.10~"} "coq-interval" {>= "3" & < "4~"} "coq-mathcomp-field" {>= "1.7" & < "1.8~"} "ocamlfind" "camlp4" "coq-flocq" {>= "3.1.0"} "coq-bignums"
+  "ocaml"
+  "coq" {>= "8.7" & < "8.10~"}
+  "coq-interval" {>= "3" & < "4~"}
+  "coq-mathcomp-field" {>= "1.7" & < "1.10~"}
+  "ocamlfind"
+  "camlp4"
+  "coq-flocq" {>= "3.1.0"}
+  "coq-bignums"
   "conf-autoconf" {build}
 ]
 synopsis: "LibValidSDP"
