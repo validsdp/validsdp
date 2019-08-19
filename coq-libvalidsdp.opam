@@ -1,4 +1,4 @@
-opam-version: "1.2"
+opam-version: "2.0"
 name: "coq-libvalidsdp"
 version: "dev"
 maintainer: [
@@ -7,7 +7,7 @@ maintainer: [
 ]
 
 homepage: "https://sourcesup.renater.fr/validsdp/"
-dev-repo: "https://github.com/validsdp/validsdp.git"
+dev-repo: "git+https://github.com/validsdp/validsdp.git"
 bug-reports: "https://github.com/validsdp/validsdp/issues"
 license: "LGPL"
 
@@ -16,7 +16,6 @@ build: [
   [make "-C" "libvalidsdp" "-j%{jobs}%"]
 ]
 install: [make "-C" "libvalidsdp" "install"]
-remove: ["rm" "-R" "%{lib}%/coq/user-contrib/libValidSDP"]
 depends: [
   "coq" {>= "8.7" & < "8.10~"} "coq-interval" {>= "3" & < "4~"} "coq-mathcomp-field" {>= "1.7" & < "1.8~"} "ocamlfind" "camlp4" "coq-flocq" {>= "3.1.0"} "coq-bignums"
   "conf-autoconf" {build}
@@ -31,7 +30,7 @@ multivariate inequalities using SDP solvers.
 Once installed, the following modules can be imported :
 From libValidSDP Require Import Rstruct.v misc.v real_matrix.v bounded.v float_spec.v fsum.v fcmsum.v binary64.v cholesky.v float_infnan_spec.v binary64_infnan.v cholesky_infnan.v flx64.v zulp.v coqinterval_infnan.v.
 """
-          
+
 tags: [
   "keyword:libValidSDP"
   "keyword:ValidSDP"
@@ -46,6 +45,6 @@ authors: [
   "Érik Martin-Dorel <erik.martin-dorel@irit.fr>"
 ]
 #url: {
-#  archive: "https://github.com/coq-community/paramcoq/releases/download/v1.1.1+coq8.9/coq-paramcoq.1.1.1+coq8.9.tgz"
-#  checksum: "md5=TODO curl -L archive | md5sum"
+#  archive: "https://github.com/validsdp/validsdp/releases/download/v0.6/coq-libvalidsdp.0.6.tgz"
+#  checksum: "sha256sum=TODO curl -L archive | sha256sum"
 #}
