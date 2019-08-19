@@ -28,8 +28,8 @@ install: |
     opam update -y
     : Installing OPAM deps
     sudo chown -R coq:coq /home/coq/${CONTRIB_NAME}
-    opam pin add -n -k path coq-libvalidsdp .
-    opam pin add -n -k path coq-validsdp .
+    opam pin add -n -y -k path coq-libvalidsdp .
+    opam pin add -n -y -k path coq-validsdp .
     opam remove -y coq-mathcomp-character  # Check coq-mathcomp-field is enough
     opam install -y -v -j ${NJOBS} coq-libvalidsdp --deps-only
     opam config list; opam repo list; opam list
