@@ -1,7 +1,5 @@
-dist: trusty
-sudo: required
-
-language: generic
+dist: bionic
+language: minimal
 
 services:
   - docker
@@ -16,56 +14,62 @@ env:
   - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.7"
   - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.8"
   - COQ_IMAGE="mathcomp/mathcomp:1.7.0-coq-8.9"
+  - COQ_IMAGE="mathcomp/mathcomp:1.8.0-coq-8.7"
+  - COQ_IMAGE="mathcomp/mathcomp:1.8.0-coq-8.8"
+  - COQ_IMAGE="mathcomp/mathcomp:1.8.0-coq-8.9"
+  - COQ_IMAGE="mathcomp/mathcomp:1.9.0-coq-8.7"
+  - COQ_IMAGE="mathcomp/mathcomp:1.9.0-coq-8.8"
+  - COQ_IMAGE="mathcomp/mathcomp:1.9.0-coq-8.9"
 
 install: |
   # Prepare the COQ container
   docker pull ${COQ_IMAGE}
   docker run -d -i --init --name=COQ -v ${TRAVIS_BUILD_DIR}:/home/coq/${CONTRIB_NAME} -w /home/coq/${CONTRIB_NAME} ${COQ_IMAGE}
   docker exec COQ /bin/bash --login -c "
-    # pass --login so we can use “travis_retry” and omit “opam config exec --”
-    # and this bash script is double-quoted to interpolate Travis CI env vars:
-    echo \"Build triggered by ${TRAVIS_EVENT_TYPE}\"
-    export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '
-    set -ex  # -e = exit on failure; -x = trace for debug
+    export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '; set -ex
     : Updating OPAM cache
     opam update -y
-    : Updating APT cache
-    exec {fd}>&2 # copy stderr to some unused fd
-    travis_retry bash -o pipefail -c \"sudo apt-get update -y -q 2>&1 | tee /dev/fd/\$fd | ( ! grep -q -e '^Err:' -e '^E:' )\"
-    exec {fd}>&- # close file descriptor
-    : Installing APT deps
-    # “sudo apt-get update -y -q” is mandatory before “opam depext -i”
-    travis_retry opam depext -i -y conf-gmp.1 conf-csdp.1 conf-sdpa.1
-    sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
     : Installing OPAM deps
     sudo chown -R coq:coq /home/coq/${CONTRIB_NAME}
-    opam repo add --all-switches --set-default coq-extra-dev https://coq.inria.fr/opam/extra-dev
     opam pin add -n -k path coq-libvalidsdp .
-    opam install -y -j ${NJOBS} coq-libvalidsdp --deps-only
-    opam install -y -j ${NJOBS} coq-mathcomp-multinomials.1.1 coq-paramcoq osdp
-    opam config list
-    opam repo list
-    opam list
-    : Building CoqEAL
-    git clone -n ${COQEAL_URL} ~coq/coqeal
-    cd ~coq/coqeal
-    git checkout ${COQEAL_VERSION}
-    pushd theory && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install && popd
-    pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && popd
+    opam remove -y coq-mathcomp-character  # Check coq-mathcomp-field is enough
+    opam install -y -v -j ${NJOBS} coq-libvalidsdp --deps-only
+    opam config list; opam repo list; opam list
     : done" install
 
 script:
-- echo -e "${ANSI_YELLOW}Building ${CONTRIB_NAME}...${ANSI_RESET}" && echo -en 'travis_fold:start:script\\r'
+- echo -e "${ANSI_YELLOW}Building coq-libvalidsdp...${ANSI_RESET}" && echo -en 'travis_fold:start:coq-libvalidsdp\\r'
 - |
-  # In case of no-output timeout, prepend "travis_wait" to:
   docker exec COQ /bin/bash --login -c "
-    export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '
-    set -ex
+    export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '; set -ex
     opam install -y -v -j ${NJOBS} coq-libvalidsdp
-    cd /home/coq/${CONTRIB_NAME}
-    ./autogen.sh
-    ./configure
-    make install
-    : done" script
-- docker stop COQ  # optional
-- echo -en 'travis_fold:end:script\\r'
+    opam config list; opam repo list; opam list
+    : done" coq-libvalidsdp
+- echo -en 'travis_fold:end:coq-libvalidsdp\\r'
+# - echo -e "${ANSI_YELLOW}Building coq-validsdp...${ANSI_RESET}" && echo -en 'travis_fold:start:coq-validsdp\\r'
+# - |
+#   docker exec COQ /bin/bash --login -c "
+#     export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '; set -ex
+#     : Updating APT cache
+#     exec {fd}>&2 # copy stderr to some unused fd
+#     travis_retry bash -o pipefail -c \"sudo apt-get update -y -q 2>&1 | tee /dev/fd/\$fd | ( ! grep -q -e '^Err:' -e '^E:' )\"
+#     exec {fd}>&- # close file descriptor
+#     : Installing APT deps
+#     travis_retry opam depext -i -y conf-gmp.1 conf-csdp.1 conf-sdpa.1
+#     sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
+#     # opam install -y -v -j ${NJOBS} coq-mathcomp-multinomials.1.1 coq-paramcoq osdp
+#     # : Building CoqEAL
+#     # git clone -n ${COQEAL_URL} ~coq/coqeal
+#     # cd ~coq/coqeal
+#     # git checkout ${COQEAL_VERSION}
+#     # pushd theory && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} all && make install && popd
+#     # pushd refinements && make Makefile.coq && make -f Makefile.coq -j ${NJOBS} && make install && pop
+#     # cd /home/coq/${CONTRIB_NAME}
+#     # ./autogen.sh
+#     # ./configure
+#     # make install
+#     : done" coq-validsdp
+# - echo -en 'travis_fold:end:coq-validsdp\\r'
+
+after_script:
+- docker stop COQ
