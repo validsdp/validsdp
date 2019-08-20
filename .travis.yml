@@ -51,7 +51,7 @@ script:
     export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '; set -ex
     cd /home/coq/${CONTRIB_NAME}
     : Installing SDPA
-    ./install_sdpa_on_debian_10.sh  # implies "sudo apt-get update -y -q"
+    ./install_sdpa_on_debian_10.sh  # implies 'sudo apt-get update -y -q'
     sdpa --version
     : Installing APT deps from OPAM
     # sudo apt-get update -y -q  # already done above
