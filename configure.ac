@@ -134,6 +134,16 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find library libValidSDP (c.f. directory libvalidsdp)])])
 rm -f conftest.v conftest.vo conftest.err
 
+AC_CHECK_TOOL([SDPA], [sdpa], [no])
+if test "x$SDPA" != xno; then
+  SDPA_AVAILABLE="true"
+  AC_MSG_NOTICE([Optional dependency sdpa was found. Assuming osdp was built accordingly.])
+else
+  SDPA_AVAILABLE=""
+  AC_MSG_NOTICE([Optional dependency sdpa was not found.])
+fi
+AC_SUBST(SDPA_AVAILABLE)
+
 # Create files
 AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/_CoqProject])
 AC_OUTPUT
