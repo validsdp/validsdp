@@ -36,6 +36,7 @@ install: |
     : done" deps-coq-libvalidsdp
 
 script:
+- set -e
 - echo -e "${ANSI_YELLOW}Building coq-libvalidsdp...${ANSI_RESET}" && echo -en 'travis_fold:start:coq-libvalidsdp\\r'
 - |
   docker exec COQ /bin/bash --login -c "
@@ -68,6 +69,7 @@ script:
     opam config list; opam repo list; opam list
     : done" coq-validsdp
 - echo -en 'travis_fold:end:coq-validsdp\\r'
+- set +e
 
 after_script:
 - docker stop COQ
