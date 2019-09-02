@@ -1,0 +1,19 @@
+-R . libValidSDP
+Rstruct.v
+misc.v
+real_matrix.v
+bounded.v
+float_spec.v
+fsum.v
+fsum_l2r.v
+fcmsum.v
+binary64.v
+cholesky.v
+float_infnan_spec.v
+binary64_infnan.v
+cholesky_infnan.v
+flx64.v
+zulp.v
+coqinterval_infnan.v
+
+COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R . libValidSDP"

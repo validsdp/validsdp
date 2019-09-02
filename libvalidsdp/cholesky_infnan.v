@@ -153,7 +153,7 @@ rewrite fisqrt_spec // /fsqrt stilde_infnan_eq_stilde //.
 apply (fisqrt_spec_f1 H).
 Qed.
 
-Definition MFI2F := map_mx (@FIS2FS fs).
+Definition MFI2F := @map_mx _ _ (@FIS2FS fs).
 
 Lemma cholesky_spec_infnan_cholesky_spec :
   (forall j, FIS2FS (Rt j j) <> 0 :> R) ->

@@ -179,7 +179,7 @@ rewrite -Rmult_plus_distr_l; apply Rmult_le_compat_l.
 rewrite Rplus_assoc; apply Rplus_le_compat_l.
 apply (Rle_trans _ (\sum_i Rabs (x i) + dxx')); [|by apply Rplus_le_compat_l].
 rewrite /dxx' -big_split; apply Rle_big_compat => i /=.
-have {1}->: x' i = (x i + (x' i - x i))%Re; [ring|rewrite Rabs_minus_sym].
+have {1}->: x' i = (x i + (x' i - x i))%Re; [lra|rewrite Rabs_minus_sym].
 apply Rabs_triang.
 Qed.
 
