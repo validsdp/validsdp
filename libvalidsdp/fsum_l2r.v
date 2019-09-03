@@ -241,7 +241,7 @@ apply (Rle_trans _ _ _ (Rabs_triang _ _)).
 apply (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ (fsum_l2r_err rx))).
 set INRnp1 := INR n.+1.
 rewrite Nat.pred_succ /Rminus big_sum_Ropp -big_split /=.
-apply (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ (big_Rabs_triang _))).
+apply (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ (big_Rabs_triang _ _))).
 have H : \sum_i Rabs (rx i) <= \sum_i Rabs (x i) + \sum_i Rabs (x i - rx i).
 { rewrite -big_split; apply Rle_big_compat=> i /=.
   have{1}->: (rx i = x i + (rx i - x i) :> R); [ring|].

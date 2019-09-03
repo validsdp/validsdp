@@ -257,7 +257,7 @@ Lemma Mabs_mul (A : 'M_(n, p)) (B : 'M_(p, m)) :
   Mabs (A *m B) <=m: Mabs A *m Mabs B.
 Proof.
 move=> i j; rewrite !mxE.
-apply (Rle_trans _ _ _ (big_Rabs_triang _)).
+apply (Rle_trans _ _ _ (big_Rabs_triang _ _)).
 by right; apply /eq_bigr => k _; rewrite !mxE Rabs_mult.
 Qed.
 

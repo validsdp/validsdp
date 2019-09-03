@@ -155,7 +155,7 @@ move: n x; elim=> [|n IHk] x.
 by rewrite big_ord_recl S_INR Rplus_comm Rmult_plus_distr_r Rmult_1_l IHk.
 Qed.
 
-Lemma big_sum_pred_const (I : Type) (r : seq I) (P : pred I) (x : R) :
+Lemma big_sum_pred_const I (r : seq I) (P : pred I) (x : R) :
   \big[+%R/0]_(i <- r | P i) x = INR (size [seq i <- r | P i]) * x.
 Proof.
 rewrite -big_filter; set l := [seq x <- r | P x]; elim l => [|h t IH].
@@ -163,47 +163,50 @@ rewrite -big_filter; set l := [seq x <- r | P x]; elim l => [|h t IH].
 simpl size; rewrite big_cons S_INR IH /GRing.add /GRing.mul /=; ring.
 Qed.
 
-Lemma big_sum_pred_pos_pos n (P : pred 'I_n) F :
-  ((forall i : 'I_n, P i -> 0 <= F i) -> 0 <= \sum_(i | P i) F i)%Re.
+Lemma big_sum_pred_pos_pos I (P : pred I) (F : I -> R) r :
+  ((forall i, P i -> 0 <= F i) -> 0 <= \sum_(i <- r | P i) F i)%Re.
 Proof.
-move=> HF.
-apply big_rec; [by right|]; move=> i x HP Hx.
-by apply Rplus_le_le_0_compat; [apply HF|].
+move=> HF. (* Check big_seq_cond. *)
+apply: big_rec; [by right|] => i x HP Hx.
+by apply: Rplus_le_le_0_compat; [apply HF|].
 Qed.
 
-Lemma big_sum_pos_pos n F : ((forall i : 'I_n, 0 <= F i) -> 0 <= \sum_i F i)%Re.
-Proof. by move=> HF; apply big_sum_pred_pos_pos. Qed.
+Lemma big_sum_pos_pos I (F : I -> R) r :
+  ((forall i, 0 <= F i) -> 0 <= \sum_(i <- r) F i)%Re.
+Proof. move=> HF; apply big_sum_pred_pos_pos => *; exact: HF. Qed.
 
-Lemma big_sum_Rabs_pos n (F : 'I_n -> _) : (0 <= \sum_i (Rabs (F i)))%Re.
-Proof. apply big_sum_pos_pos => i; apply Rabs_pos. Qed.
+Lemma big_sum_Rabs_pos I (F : I -> R) r :
+  (0 <= \sum_(i <- r) (Rabs (F i)))%Re.
+Proof. by apply: big_sum_pos_pos => i; apply: Rabs_pos. Qed.
 
-Lemma big_sum_sqr_pos n (F : 'I_n -> _) : (0 <= \sum_i (F i * F i)%Re)%Re.
-Proof. apply big_sum_pos_pos => i; apply sqr_ge_0. Qed.
+Lemma big_sum_sqr_pos I (F : I -> R) r :
+  (0 <= \sum_(i <- r) (F i * F i))%Re.
+Proof. by apply: big_sum_pos_pos => i; apply: sqr_ge_0. Qed.
 
 (** If a sum of nonnegative values is zero, then all terms are zero. *)
-Lemma big_sum_pos_eq_0 n (F : 'I_n -> R) :
+Lemma big_sum_pos_eq_0 (I : finType) (F : I -> R) :
   ((forall i, 0 <= F i) -> \sum_i F i = 0 -> forall i, F i = 0)%Re.
 Proof.
-move=> H Hi i.
-have [R|//] := Rle_lt_or_eq_dec _ _ (H i).
-suff HH: (0 < \big[+%R/0]_j F j)%Re by move: Hi HH; simpl_re; lra.
+move=> Hpos H0 i.
+have [R|//] := Rle_lt_or_eq_dec _ _ (Hpos i).
+suff HH: (0 < \big[+%R/0]_j F j)%Re by move: H0 HH; simpl_re; lra.
 rewrite (bigD1 i) //=.
-set X := \big[_/_]_(_|_) _.
+set X := bigop _ _ _.
 suff: (0 <= X)%Re by simpl_re; lra.
-by apply big_sum_pred_pos_pos.
+exact: big_sum_pred_pos_pos.
 Qed.
 
-Lemma big_Rabs_triang n (F : 'I_n -> R) :
-  (Rabs (\sum_i (F i)) <= \sum_i (Rabs (F i)))%Re.
-Proof. elim/big_rec2: _ => [|i y x _]; split_Rabs; simpl_re; lra. Qed.
+Lemma big_Rabs_triang I (F : I -> R) r :
+  (Rabs (\sum_(i <- r) (F i)) <= \sum_(i <- r) (Rabs (F i)))%Re.
+Proof. elim/big_rec2: _ =>[|i y x _]; split_Rabs; simpl_re; lra. Qed.
 
-Lemma Rle_big_compat n (F F' : 'I_n -> R) :
-  (forall i, F i <= F' i) -> \sum_i F i <= \sum_i F' i.
+Lemma Rle_big_compat I (F F' : I -> R) r :
+  (forall i, F i <= F' i) -> \sum_(i <- r) F i <= \sum_(i <- r) F' i.
 Proof.
-move=> H; apply big_rec2 => [|i s1 s2 _ Hs12]; [by right|].
-by rewrite /GRing.add /=; apply Rplus_le_compat.
-Qed.  
-  
+move=> H; apply: big_rec2 =>[|i s1 s2 _ Hs12]; [by right|].
+by rewrite /GRing.add /=; apply: Rplus_le_compat.
+Qed.
+
 End Big_misc.
 
 (** *** A maximum on tuples. *)
