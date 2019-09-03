@@ -10,4 +10,4 @@ From Ltac2 Require Import Ltac2.
 
 Declare ML Module "soswitness".
 
-Ltac2 @ external soswitness2 : constr -> ident -> unit := "soswitness" "soswitness2".
+Ltac2 @ external soswitness2 : constr -> constr list -> constr := "soswitness" "soswitness2".
