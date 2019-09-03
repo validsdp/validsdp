@@ -11,6 +11,9 @@ Require Import misc.
 
 Require Import Psatz.
 
+(* NOTE: this dependency should probably be specified in coq-libvalidsdp.opam *)
+From Coquelicot Require Import Rcomplements.
+
 From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat.
 From mathcomp Require Import fintype finfun ssralg bigop eqtype seq path.
 
@@ -27,6 +30,11 @@ Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
 
 Require Export float_spec.
+
+Import GRing.Theory.
+
+Lemma inord0E n : inord 0 = ord0 :> 'I_n.+1.
+Proof. by apply: ord_inj; rewrite inordK. Qed.
 
 Section order.
 
@@ -55,6 +63,13 @@ Qed.
 Lemma nat_finset_disjoint_merge_size s1 s2 (H : disjoint s1 s2) :
   (size (nat_finset_disjoint_merge H) = size s1 + size s2)%N.
 Proof. by rewrite size_merge size_cat. Qed.
+
+(* Get integral indexes from [0:nat] to [n-1:nat] for [x:F^n] *)
+Program Definition nat_finset_iota n :=
+  @Build_nat_finset (iota 0 n) _.
+Next Obligation.
+exact: iota_ltn_sorted.
+Qed.
 
 Inductive binary_tree :=
 | Leaf : nat -> binary_tree
@@ -154,95 +169,208 @@ rewrite /fplus; do 2 apply f_equal; apply f_equal2.
 by apply IHr => i Hi; apply Hx12; rewrite mem_merge mem_cat Hi orbC.
 Qed.
 
-(* TODO: Theorems to update
-(** Theorem 4.1 in the paper. *)
-Theorem fsum_l2r_err n (x : F^n) :
-  (Rabs (\sum_i (x i : R) - fsum_l2r x)
-   <= INR n.-1 * eps / (1 + eps) * \sum_i Rabs (x i))%Re.
+Lemma leaves_size t : (0 < size (leaves t))%N.
 Proof.
-elim: n x => [|n IHn] x.
-{ rewrite !big_ord0 Rmult_0_r /fsum_l2r /Rminus Rplus_0_l Rabs_Ropp Rabs_R0.
-  by right. }
-case: n IHn x => [|n] IHn x.
-{ rewrite big_ord_recl big_ord0 GRing.addr0 /fsum_l2r /= /Rdiv !Rmult_0_l.
-  by rewrite Rminus_diag_eq // Rabs_R0; right. }
+elim: t =>[//=| t1 IHt1 t2 IHt2]; rewrite size_merge size_cat.
+by rewrite addn_gt0 IHt1.
+Qed.
+
+Lemma merge_leq_leaves_size t1 t2 :
+  (1 < size (merge leq (leaves t1) (leaves t2)))%N.
+Proof.
+rewrite size_merge size_cat.
+have H1 := leaves_size t1.
+have H2 := leaves_size t2.
+rewrite -addn1.
+exact: leq_add.
+Qed.
+
+Ltac fold_eps1 :=
+  rewrite ?[INR _ * _ / _]Rmult_assoc ?[(INR _ + INR _) * _ / _]Rmult_assoc;
+  fold (Rdiv eps (1 + eps)); set eps1 := (Rdiv eps (1 + eps)).
+
+(** Theorem 4.1 in the paper. *)
+Theorem fsum_l2r_err n (x : F^n.+1) (sn : nat_finset)  (o : order sn) :
+  (Rabs (\sum_(i <- sn) (x (inord i) : R) - fsum o x)
+   <= INR (size sn).-1 * eps / (1 + eps) * \sum_(i <- sn) Rabs (x (inord i)))%Re.
+Proof.
+(* The discussion "n = 1" / "n >= 2" followed in the paper is unneeded
+   as we can directly reason by structural induction: *)
+elim/order_ind: o n x.
+(* Leaf case *)
+{ move=> i n x.
+  rewrite !big_seq1 /= /Rminus Rplus_opp_r Rabs_R0.
+  have Habs := Rabs_pos (x (inord i)).
+  have Heps := eps_pos fs.
+  have Heps1 := Rplus_lt_le_0_compat _ _ Rlt_0_1 Heps.
+  apply: Rmult_le_pos =>//.
+  apply: Rcomplements.Rdiv_le_0_compat =>//.
+  rewrite Rmult_0_l; exact: Req_le. }
+(* Node case *)
+move=> sl sr Hslr l r IHl IHr n x /=.
 set s := \sum_i (x i : R).
-set shat := fsum_l2r x.
-set s1hat := fsum_l2r [ffun i : 'I_n.+1 => x (inord i)].
-set s2hat := x ord_max.
+set s1hat := fsum l x.
+set s2hat := fsum r x.
 set delta := s1hat + s2hat - fplus s1hat s2hat.
-set s1 := \sum_(i < n.+1) (x (inord i) : R).
+set s1 := \sum_(i <- sl) (x (inord i) : R).
+set s2 := \sum_(i <- sr) (x (inord i) : R).
 set delta1 := s1 - s1hat.
-apply (Rle_trans _ (Rabs (delta + delta1))).
+set delta2 := s2 - s2hat.
+apply (Rle_trans _ (Rabs (delta + (delta1 + delta2)))).
 { right; f_equal.
-  rewrite /s /shat fsum_l2r_r -/s1hat big_ord_recr /= /GRing.add /= -/s2hat.
-  rewrite /delta /delta1.
-  apply (Rplus_eq_reg_r (fplus s1hat s2hat - s2hat)); ring_simplify.
-  by apply eq_bigr => i _; do 2 f_equal; apply ord_inj; rewrite inordK /=;
-    [|apply (ltn_trans (ltn_ord i))]. }
+  rewrite /s /delta /delta1 /delta2 /s1hat /s2hat /s1 /s2.
+  apply (Rplus_eq_reg_r (fplus (fsum l x) (fsum r x))); ring_simplify.
+  by rewrite -big_cat; apply: eq_big_perm; rewrite perm_merge. }
 apply (Rle_trans _ _ _ (Rabs_triang _ _)).
-set s1t := \sum_(i < n.+1) Rabs (x (inord i)).
-set s2t := Rabs (x ord_max).
-have Hdelta1 : Rabs delta1 <= INR n * eps / (1 + eps) * s1t.
-{ rewrite /delta1.
-  have->: s1 = \sum_i ([ffun i : 'I_n.+1 => x (inord i)] i : R).
-  { by apply eq_bigr=> i _; rewrite ffunE. }
-  apply (Rle_trans _ _ _ (IHn _)).
-  by right; f_equal; apply eq_bigr=> i _; rewrite ffunE. }
+apply (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ (Rabs_triang _ _))).
+set s1t := \sum_(i <- sl) Rabs (x (inord i)).
+set s2t := \sum_(i <- sr) Rabs (x (inord i)).
+rewrite size_merge size_cat.
+set n1 := size sl.
+set n2 := size sr.
+have Hdelta1 : Rabs delta1 <= INR n1.-1 * eps / (1 + eps) * s1t by exact: IHl.
+have Hdelta2 : Rabs delta2 <= INR n2.-1 * eps / (1 + eps) * s2t by exact: IHr.
 have Hs1hat : Rabs s1hat <= Rabs delta1 + s1t.
 { have->: (s1hat = s1hat - s1 + s1 :> R)%Re; [ring|].
   apply (Rle_trans _ _ _ (Rabs_triang _ _)).
-  rewrite Rabs_minus_sym; apply Rplus_le_compat_l, big_Rabs_triang. }
-apply (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ Hdelta1)).
-apply (Rplus_le_reg_r (- (INR n * eps / (1 + eps) * s1t))); ring_simplify.
-apply (Rle_trans _ (eps / (1 + eps) * (s1t + INR n.+1 * s2t))); last first.
-{ right; rewrite !Ropp_mult_distr_l !Rmult_assoc.
-  rewrite (Rmult_comm (- _)) (Rmult_comm (INR n.+2.-1)) !Rmult_assoc.
-  rewrite -!Rmult_plus_distr_l; do 2 f_equal.
-  rewrite Nat.pred_succ S_INR big_ord_recr /= /GRing.add /=.
-  replace (\sum_(i < n.+1) Rabs _) with s1t; last first.
-  { by apply eq_bigr=> i _; do 3 f_equal; apply ord_inj; rewrite inordK;
-      [|apply (ltn_trans (ltn_ord i))]. }
-  have->:Rabs (x ord_max) = s2t; [|ring].
-  by rewrite /s2t; do 3 f_equal; apply ord_inj; rewrite inordK. }
-destruct (Rle_or_lt s2t (eps / (1 + eps) * s1t)) as [Hs12t|Hs12t].
-{ apply (Rle_trans _ s2t).
-  { rewrite /delta /s2t Rabs_minus_sym; apply fplus_spec_r. }
-  apply (Rle_trans _ _ _ Hs12t).
-  apply (Rplus_le_reg_r (- (eps / (1 + eps) * s1t))); ring_simplify.
-  apply Rmult_le_pos; [|by apply Rabs_pos].
-  apply Rmult_le_pos; [apply epsd1peps_pos, eps_pos|apply pos_INR]. }
-destruct (Rle_or_lt s1t (eps / (1 + eps) * s2t)) as [Hs21t|Hs21t].
-{ apply (Rle_trans _ (Rabs s1hat)).
-  { rewrite /delta Rabs_minus_sym; apply fplus_spec_l. }
-  apply (Rle_trans _ _ _ Hs1hat).
-  apply (Rle_trans _ _ _ (Rplus_le_compat _ _ _ _ Hdelta1 Hs21t)).  
-  rewrite S_INR; apply (Rplus_le_reg_r (- (eps / (1 + eps) * s2t))); ring_simplify.
-  rewrite -(Rplus_0_l (_ * _)); apply Rplus_le_compat.
-  { apply Rmult_le_pos; [apply big_sum_Rabs_pos|apply epsd1peps_pos, eps_pos]. }
-  rewrite (Rmult_comm _ (INR _)) -!Rmult_assoc; apply Rmult_le_compat_l.
-  { rewrite Rmult_assoc; apply Rmult_le_pos; [apply pos_INR|].
-    apply epsd1peps_pos, eps_pos. }
-  apply (Rle_trans _ _ _ Hs21t).
-  rewrite -{2}(Rmult_1_l s2t); apply Rmult_le_compat_r; [apply Rabs_pos|].
-  apply (Rle_trans _ _ _ (epsd1peps_le_eps (eps_pos fs))), Rlt_le, eps_lt_1. }
-apply (Rle_trans _ (eps / (1 + eps) * Rabs (s1hat + s2hat))).
-{ have [d Hd] := fplus_spec s1hat s2hat.
-  rewrite /delta Hd.
-  replace (_ - _)%Re with (-d * (s1hat + s2hat))%Re; [|ring].
-  rewrite Rabs_mult Rabs_Ropp; apply Rmult_le_compat_r; [apply Rabs_pos|].
-  apply bounded_prop. }
-apply Rmult_le_compat_l; [by apply epsd1peps_pos, eps_pos|].
-apply (Rle_trans _ _ _ (Rabs_triang _ _)); rewrite -/s2t.
-rewrite S_INR; apply (Rplus_le_reg_r (- s2t)); ring_simplify.
-apply (Rle_trans _ _ _ Hs1hat).
-apply (Rplus_le_reg_r (- s1t)); ring_simplify.
-apply (Rle_trans _ _ _ Hdelta1).
-rewrite (Rmult_comm _ (INR n)) !Rmult_assoc.
-apply Rmult_le_compat_l; [apply pos_INR|].
-by rewrite -!Rmult_assoc; apply Rlt_le.
+  rewrite Rabs_minus_sym /delta1 /s1 /s1t; apply: Rplus_le_compat_l.
+  exact: big_Rabs_triang. }
+have Hs2hat : Rabs s2hat <= Rabs delta2 + s2t.
+{ have->: (s2hat = s2hat - s2 + s2 :> R)%Re; [ring|].
+  apply (Rle_trans _ _ _ (Rabs_triang _ _)).
+  rewrite Rabs_minus_sym /delta1 /s2 /s2t; apply: Rplus_le_compat_l.
+  exact: big_Rabs_triang. }
+have Hdelta12 := Rplus_le_compat _ _ _ _ Hdelta1 Hdelta2.
+apply (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ Hdelta12)).
+have n1_pos : (0 < size sl)%N by case: (l) => o /eqP<-; rewrite leaves_size.
+have n2_pos : (0 < size sr)%N by case: (r) => o /eqP<-; rewrite leaves_size.
+have n1n2_pos : (0 < size sl + size sr)%N by rewrite addn_gt0 n1_pos.
+suff B1: Rabs delta <= eps / (1 + eps) * (INR n1 * s2t + INR n2 * s1t).
+{ apply (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ B1)).
+  have->: \sum_(i <- merge leq sl sr) Rabs (x (inord i)) = s1t + s2t.
+    by rewrite -big_cat; apply: eq_big_perm; rewrite perm_merge.
+  fold_eps1; rewrite -!subn1 !minus_INR ?plus_INR; first 1 [idtac] || exact/ltP.
+  apply: Req_le; ring. }
+
+have s1t_pos : 0 <= s1t by exact: big_sum_Rabs_pos.
+have s2t_pos : 0 <= s2t by exact: big_sum_Rabs_pos.
+
+have [Hs21t|Hs21t] := Rle_or_lt s2t (eps / (1 + eps) * s1t).
+
+(* Hs21t : s2t <= eps / (1 + eps) * s1t *)
+{ have Hs21t': s2t <= s1t.
+  { apply (Rle_trans _ _ _ Hs21t).
+    apply (Rle_trans _ (1 * s1t)).
+    apply Rmult_le_compat_r =>//.
+    apply (Rle_trans _ eps).
+    { exact: epsd1peps_le_eps (eps_pos fs). }
+    { exact: Rlt_le _ _ (eps_lt_1 fs). }
+    by rewrite Rmult_1_l; exact: Req_le. }
+  rewrite /delta Rabs_minus_sym.
+  apply: (Rle_trans _ _ _ (fplus_spec_r _ _)).
+  apply: (Rle_trans _ _ _ Hs2hat).
+  apply: (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ Hdelta2)).
+  apply: (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ Hs21t)).
+  fold_eps1.
+  apply (Rle_trans _ (INR n2 * eps1 * s1t)).
+  { have Heps := epsd1peps_pos  (eps_pos fs).
+    fold eps1 in Heps.
+    have Hn2 := pos_INR n2.-1.
+    fold eps1 in Hs21t.
+    ring_simplify.
+    have Hn2e : 0 <= INR n2.-1 * eps1.
+    { exact: Rmult_le_pos. }
+    apply: (Rle_trans _ (INR n2.-1 * eps1 * s1t + eps1 * s1t)).
+    { apply: Rplus_le_compat_r =>//.
+      exact: Rmult_le_compat_l. }
+    rewrite -subn1 minus_INR ?[INR 1]/=; first lra.
+    exact/leP. }
+  { ring_simplify.
+    rewrite -[X in X <= _]Rplus_0_r.
+    apply: Rplus_le_compat_l.
+    do 2![apply: Rmult_le_pos =>//].
+    { rewrite /eps1; apply: epsd1peps_pos; exact: eps_pos. }
+    { exact: pos_INR. } } }
+
+(* Hs21t : eps / (1 + eps) * s1t < s2t *)
+
+have [Hs12t|Hs12t] := Rle_or_lt s1t (eps / (1 + eps) * s2t).
+
+(* Hs12t : s1t <= eps / (1 + eps) * s2t *)
+
+{ have Hs12t': s1t <= s2t.
+  { apply (Rle_trans _ _ _ Hs12t).
+    apply (Rle_trans _ (1 * s2t)).
+    apply Rmult_le_compat_r =>//.
+    apply (Rle_trans _ eps).
+    { exact: epsd1peps_le_eps (eps_pos fs). }
+    { exact: Rlt_le _ _ (eps_lt_1 fs). }
+    by rewrite Rmult_1_l; exact: Req_le. }
+  rewrite /delta Rabs_minus_sym.
+  apply: (Rle_trans _ _ _ (fplus_spec_l _ _)).
+  apply: (Rle_trans _ _ _ Hs1hat).
+  apply: (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ Hdelta1)).
+  apply: (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ Hs12t)).
+  fold_eps1.
+  apply (Rle_trans _ (INR n1 * eps1 * s2t)).
+  { have Heps := epsd1peps_pos  (eps_pos fs).
+    fold eps1 in Heps.
+    have Hn2 := pos_INR n1.-1.
+    fold eps1 in Hs12t.
+    ring_simplify.
+    have Hn2e : 0 <= INR n1.-1 * eps1.
+    { exact: Rmult_le_pos. }
+    apply: (Rle_trans _ (INR n1.-1 * eps1 * s2t + eps1 * s2t)).
+    { apply: Rplus_le_compat_r =>//.
+      exact: Rmult_le_compat_l. }
+    rewrite -subn1 minus_INR ?[INR 1]/=; first lra.
+    exact/leP. }
+  { ring_simplify.
+    rewrite -[X in X <= _]Rplus_0_r.
+    apply: Rplus_le_compat_l.
+    do 2![apply: Rmult_le_pos =>//].
+    { rewrite /eps1; apply: epsd1peps_pos; exact: eps_pos. }
+    { exact: pos_INR. } } }
+
+(* Hs12t : eps / (1 + eps) * s2t < s1t *)
+
+rewrite /delta Rabs_minus_sym.
+have [[d Hd] ->] := fplus_spec s1hat s2hat.
+rewrite [X in X <= _]/=.
+rewrite (_: ?[a] - ?[b] = d * ?b); last ring.
+rewrite Rabs_mult.
+apply: (Rle_trans _ (eps / (1 + eps) * Rabs (s1hat + s2hat))).
+apply: Rmult_le_compat_r; [exact: Rabs_pos|done].
+apply: Rmult_le_compat_l; first apply epsd1peps_pos, eps_pos.
+have Tri: Rabs (s1hat + s2hat) <= Rabs (s1hat - s1) + s1t + (Rabs (s2hat - s2) + s2t).
+{ have->: s1hat + s2hat = (s1hat - s1 + s1) + (s2hat - s2 + s2) by ring.
+  apply Rle_trans with (1 := Rabs_triang _ _).
+  apply: Rplus_le_compat.
+  { apply Rle_trans with (1 := Rabs_triang _ _).
+    apply: Rplus_le_compat_l.
+    exact: big_Rabs_triang. }
+  { apply Rle_trans with (1 := Rabs_triang _ _).
+    apply: Rplus_le_compat_l.
+    exact: big_Rabs_triang. } }
+
+apply/(Rle_trans _ _ _ Tri).
+rewrite Rabs_minus_sym -[_ - _]/delta1.
+rewrite Rabs_minus_sym -[_ - _]/delta2.
+rewrite (_: ?[d1] + s1t + (?[d2] + s2t) = ?d1 + s2t + (?d2 + s1t)); last ring.
+apply: Rplus_le_compat.
+{ apply (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ Hdelta1)).
+  have Ha := Rmult_le_compat_l _ _ _ (pos_INR n1.-1) (Rlt_le _ _ Hs21t).
+  apply (Rle_trans _ (INR n1.-1 * s2t + s2t)).
+  { apply Rplus_le_compat_r =>//; lra. }
+  { rewrite -[n1 in X in _ <= X]prednK // -addn1 plus_INR [INR 1]/=; lra. } }
+{ apply (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ Hdelta2)).
+  have Ha := Rmult_le_compat_l _ _ _ (pos_INR n2.-1) (Rlt_le _ _ Hs12t).
+  apply (Rle_trans _ (INR n2.-1 * s1t + s1t)).
+  { apply Rplus_le_compat_r =>//; lra. }
+  { rewrite -[n2 in X in _ <= X]prednK // -addn1 plus_INR [INR 1]/=; lra. } }
 Qed.
 
+(*
 (** Theorem 4.2 in the paper (plus underflows). *)
 Theorem fsum_l2r_reals_err n (x : R^n) :
   let zeta := ((INR n * eps + INR (2 * n - 1) * eps²) / (1 + eps)²)%Re in
