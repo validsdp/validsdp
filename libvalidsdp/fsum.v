@@ -43,11 +43,9 @@ Record nat_finset := {
   _ : sorted ltn nat_finset_seq
 }.
 
-Lemma nat_finset_seq_inj : injective nat_finset_seq.
-Proof.
-move=> [] s1 H1 [] s2 H2 /= Hs12.
-by move: H1; rewrite Hs12 => H1; rewrite (bool_irrelevance H1 H2).
-Qed.
+Canonical nat_finset_subType := [subType for nat_finset_seq].
+(* Definition nat_finset_eqMixin := Eval hnf in [eqMixin of nat_finset by <:]. *)
+(* Canonical nat_finset_eqType := Eval hnf in EqType nat_finset nat_finset_eqMixin. *)
 
 Definition disjoint (s1 s2 : nat_finset) := uniq (s1 ++ s2).
 
@@ -84,16 +82,18 @@ Fixpoint leaves b :=
 Lemma leaves_sorted t : sorted leq (leaves t).
 Proof. by elim: t => //= l Hl r Hr; apply (merge_sorted leq_total). Qed.
 
-Record order (s : nat_finset) := {
+Section OrderRecord.
+
+Variable s : nat_finset.
+
+Record order := {
   order_tree :> binary_tree ;
   _ : leaves order_tree == s
 }.
 
-Lemma order_tree_inj s : injective (@order_tree s).
-Proof.
-move=> [] t1 H1 [] t2 H2 /= Ht12.
-by move: H1; rewrite Ht12 => H1; rewrite (bool_irrelevance H1 H2).
-Qed.
+Canonical order_subType := [subType for order_tree].
+
+End OrderRecord.
 
 Program Definition order_leaf n : order (@Build_nat_finset [:: n] _) :=
   @Build_order _ (Leaf n) _.
@@ -114,10 +114,10 @@ elim: t s=> [i s Hi|l Hl r Hr s Hlr].
 { move: (H0 i).
   set s' := Build_nat_finset _.
   have Hs' : s' = s.
-  { by apply nat_finset_seq_inj; move: Hi => /eqP <-. }
+  { by apply val_inj; move: Hi => /eqP /= <-. }
   move: Hi; rewrite -Hs' => Hi.
   have -> : order_leaf i = Build_order Hi; [|by []].
-  by apply order_tree_inj => /=. }
+  by apply val_inj. }
 have Hus : uniq s.
 { by move: s {Hlr} => [] s /=; rewrite ltn_sorted_uniq_leq=> /andP []. }
 have Hsl : sorted ltn (leaves l).
@@ -135,9 +135,9 @@ set ol := @Build_order sl l (eq_refl _).
 set or := @Build_order sr r (eq_refl _).
 move: (Hind sl sr Hdisj ol or (Hl sl (eq_refl _)) (Hr sr (eq_refl _))).
 have Hs : nat_finset_disjoint_merge Hdisj = s.
-{ by apply nat_finset_seq_inj; move: Hlr => /eqP. }
+{ by apply val_inj; move: Hlr => /eqP. }
 move: Hlr; rewrite -Hs => Hlr.
-by have -> : order_node Hdisj ol or = Build_order Hlr; [apply order_tree_inj|].
+by have -> : order_node Hdisj ol or = Build_order Hlr; [apply val_inj|].
 Qed.
 
 End order.
