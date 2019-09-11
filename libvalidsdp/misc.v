@@ -142,17 +142,23 @@ Lemma big_Rabs_ffunE idx op n F :
   \big[op/idx]_(i < n) Rabs ([ffun i => F i] i) = \big[op/idx]_i Rabs (F i).
 Proof. by apply eq_bigr => i; rewrite ffunE. Qed.
 
-Lemma big_sum_Ropp n F : (- (\sum_(i < n) F i) = \sum_i (- F i)%Re)%Re.
+Lemma big_sum_Ropp I (r : seq I) F :
+  (- (\sum_(i <- r) F i) = \sum_(i <- r) (- F i)%Re)%Re.
 Proof.
 apply (big_rec2 (fun x y => (- x = y)%Re)); [by rewrite Ropp_0|].
 by move=> i y1 y2 _ H; rewrite -H /GRing.add /= Ropp_plus_distr.
 Qed.
 
+Lemma big_sum_const_seq I (r : seq I) x : (\sum_(i <- r) x = INR (size r) * x)%Re.
+Proof.
+elim: r=> [|e r IHr].
+{ by rewrite big_nil /= Rmult_0_l. }
+by rewrite big_cons S_INR Rplus_comm Rmult_plus_distr_r Rmult_1_l IHr.
+Qed.
+
 Lemma big_sum_const n x : (\sum_(i < n) x = INR n * x)%Re.
 Proof.
-move: n x; elim=> [|n IHk] x.
-{ by rewrite big_ord0 /= Rmult_0_l. }
-by rewrite big_ord_recl S_INR Rplus_comm Rmult_plus_distr_r Rmult_1_l IHk.
+by rewrite big_sum_const_seq /= /index_enum /= -enumT size_enum_ord.
 Qed.
 
 Lemma big_sum_pred_const I (r : seq I) (P : pred I) (x : R) :
