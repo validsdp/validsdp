@@ -58,7 +58,7 @@ apply (merge_sorted leq_total).
 by move: s2 => [] s2 /=; rewrite ltn_sorted_uniq_leq=> /andP [].
 Qed.
 
-Lemma nat_finset_disjoint_merge_size s1 s2 (H : disjoint s1 s2) :
+Lemma size_nat_finset_disjoint_merge s1 s2 (H : disjoint s1 s2) :
   (size (nat_finset_disjoint_merge H) = size s1 + size s2)%N.
 Proof. by rewrite size_merge size_cat. Qed.
 
@@ -140,6 +140,12 @@ move: Hlr; rewrite -Hs => Hlr.
 by have -> : order_node Hdisj ol or = Build_order Hlr; [apply val_inj|].
 Qed.
 
+Lemma size_order (sn : nat_finset) (o : order sn) : (0 < size sn)%N.
+Proof.
+elim: o =>// sl sr ? ?? Hsl ?.
+by rewrite size_nat_finset_disjoint_merge addn_gt0 Hsl.
+Qed.
+
 End order.
 
 Section Fsum.
@@ -169,18 +175,18 @@ rewrite /fplus; do 2 apply f_equal; apply f_equal2.
 by apply IHr => i Hi; apply Hx12; rewrite mem_merge mem_cat Hi orbC.
 Qed.
 
-Lemma leaves_size t : (0 < size (leaves t))%N.
+Lemma size_leaves t : (0 < size (leaves t))%N.
 Proof.
 elim: t =>[//=| t1 IHt1 t2 IHt2]; rewrite size_merge size_cat.
 by rewrite addn_gt0 IHt1.
 Qed.
 
-Lemma merge_leq_leaves_size t1 t2 :
+Lemma size_merge_leq_leaves t1 t2 :
   (1 < size (merge leq (leaves t1) (leaves t2)))%N.
 Proof.
 rewrite size_merge size_cat.
-have H1 := leaves_size t1.
-have H2 := leaves_size t2.
+have H1 := size_leaves t1.
+have H2 := size_leaves t2.
 rewrite -addn1.
 exact: leq_add.
 Qed.
@@ -190,13 +196,13 @@ Ltac fold_eps1 :=
   fold (Rdiv eps (1 + eps)); set eps1 := (Rdiv eps (1 + eps)).
 
 (** Theorem 4.1 in the paper. *)
-Theorem fsum_l2r_err n (x : F^n.+1) (sn : nat_finset)  (o : order sn) :
+Theorem fsum_l2r_err m (x : F^m.+1) (sn : nat_finset) (o : order sn) :
   (Rabs (\sum_(i <- sn) (x (inord i) : R) - fsum o x)
-   <= INR (size sn).-1 * eps / (1 + eps) * \sum_(i <- sn) Rabs (x (inord i)))%Re.
+   <= INR (size sn).-1 * (eps / (1 + eps)) * \sum_(i <- sn) Rabs (x (inord i)))%Re.
 Proof.
 (* The discussion "n = 1" / "n >= 2" followed in the paper is unneeded
    as we can directly reason by structural induction: *)
-elim/order_ind: o n x.
+elim/order_ind: o m x.
 (* Leaf case *)
 { move=> i n x.
   rewrite !big_seq1 /= /Rminus Rplus_opp_r Rabs_R0.
@@ -204,8 +210,7 @@ elim/order_ind: o n x.
   have Heps := eps_pos fs.
   have Heps1 := Rplus_lt_le_0_compat _ _ Rlt_0_1 Heps.
   apply: Rmult_le_pos =>//.
-  apply: Rcomplements.Rdiv_le_0_compat =>//.
-  rewrite Rmult_0_l; exact: Req_le. }
+  by rewrite Rmult_0_l; apply: Req_le. }
 (* Node case *)
 move=> sl sr Hslr l r IHl IHr n x /=.
 set s := \sum_i (x i : R).
@@ -228,8 +233,8 @@ set s2t := \sum_(i <- sr) Rabs (x (inord i)).
 rewrite size_merge size_cat.
 set n1 := size sl.
 set n2 := size sr.
-have Hdelta1 : Rabs delta1 <= INR n1.-1 * eps / (1 + eps) * s1t by exact: IHl.
-have Hdelta2 : Rabs delta2 <= INR n2.-1 * eps / (1 + eps) * s2t by exact: IHr.
+have Hdelta1 : Rabs delta1 <= INR n1.-1 * (eps / (1 + eps)) * s1t by exact: IHl.
+have Hdelta2 : Rabs delta2 <= INR n2.-1 * (eps / (1 + eps)) * s2t by exact: IHr.
 have Hs1hat : Rabs s1hat <= Rabs delta1 + s1t.
 { have->: (s1hat = s1hat - s1 + s1 :> R)%Re; [ring|].
   apply (Rle_trans _ _ _ (Rabs_triang _ _)).
@@ -242,8 +247,8 @@ have Hs2hat : Rabs s2hat <= Rabs delta2 + s2t.
   exact: big_Rabs_triang. }
 have Hdelta12 := Rplus_le_compat _ _ _ _ Hdelta1 Hdelta2.
 apply (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ Hdelta12)).
-have n1_pos : (0 < size sl)%N by case: (l) => o /eqP<-; rewrite leaves_size.
-have n2_pos : (0 < size sr)%N by case: (r) => o /eqP<-; rewrite leaves_size.
+have n1_pos : (0 < size sl)%N by case: (l) => o /eqP<-; rewrite size_leaves.
+have n2_pos : (0 < size sr)%N by case: (r) => o /eqP<-; rewrite size_leaves.
 have n1n2_pos : (0 < size sl + size sr)%N by rewrite addn_gt0 n1_pos.
 suff B1: Rabs delta <= eps / (1 + eps) * (INR n1 * s2t + INR n2 * s1t).
 { apply (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ B1)).
@@ -370,90 +375,94 @@ apply: Rplus_le_compat.
   { rewrite -[n2 in X in _ <= X]prednK // -addn1 plus_INR [INR 1]/=; lra. } }
 Qed.
 
-(*
-(** Theorem 4.2 in the paper (plus underflows). *)
-Theorem fsum_l2r_reals_err n (x : R^n) :
+(** Theorem 4.2 in the paper (plus underflows).
+
+Note that the type of [x] is [R^_] (not [F^_]), so the theorem can be
+applied to scalar products, beyond mere sums of floating-point numbers.
+*)
+Theorem fsum_l2r_reals_err m (x : R^m.+1) (sn : nat_finset) (o : order sn) :
+  let: n := size sn in
   let zeta := ((INR n * eps + INR (2 * n - 1) * eps²) / (1 + eps)²)%Re in
-  (Rabs (\sum_i x i - fsum_l2r [ffun i => frnd (x i)])
-   <= zeta * (\sum_i Rabs (x i)) + (1 + INR n * eps) * INR n * eta)%Re.
+  (Rabs (\sum_(i <- sn) (x (inord i) : R) - fsum o [ffun i => frnd (x i)])
+   <= zeta * (\sum_(i <- sn) (Rabs (x (inord i)))) + (1 + INR n * eps) * INR n * eta)%Re.
 Proof.
-have Peps := eps_pos fs.
-case: n x => [|n] x.
-{ rewrite !big_ord0 /fsum_l2r /F0 /= !Rmult_0_r Rmult_0_l /Rminus !Rplus_0_l.
-  by rewrite Rabs_Ropp Rabs_R0; right. }
 move=> zeta.
+have Peps := eps_pos fs.
+pose v := eps / (1 + eps).
+case En: (size sn) o @zeta => [|n'] o zeta.
+{ have Ko := size_order o.
+  by exfalso; rewrite En in Ko. }
 set rx := [ffun _ => _].
-replace (_ - _)%Re
-  with (\sum_i (rx i : R) - fsum_l2r rx + (\sum_i x i - \sum_i (rx i : R)))%Re;
-  [|ring].
-apply (Rle_trans _ _ _ (Rabs_triang _ _)).
-apply (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ (fsum_l2r_err rx))).
-set INRnp1 := INR n.+1.
-rewrite Nat.pred_succ /Rminus big_sum_Ropp -big_split /=.
-apply (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ (big_Rabs_triang _))).
-have H : \sum_i Rabs (rx i) <= \sum_i Rabs (x i) + \sum_i Rabs (x i - rx i).
-{ rewrite -big_split; apply Rle_big_compat=> i /=.
-  have{1}->: (rx i = x i + (rx i - x i) :> R); [ring|].
-  by apply (Rle_trans _ _ _ (Rabs_triang _ _)); rewrite Rabs_minus_sym; right. }
-have H' : \sum_i Rabs (x i - rx i)
-          <= eps / (1 + eps) * (\sum_i Rabs (x i)) + INR n.+1 * eta.
-{ apply (Rle_trans _ (\sum_i (eps / (1 + eps) * Rabs (x i) + eta)%Re)).
-  { apply Rle_big_compat=> i.
-    have [d [e [Hde _]]] := frnd_spec fs (x i).
+pose srx := \sum_(i <- sn) (rx (inord i) : R).
+rewrite (_: ?[x] - ?[o] = srx - ?o + (?x - srx)); last by ring.
+apply: (Rle_trans _ _ _ (Rabs_triang _ _)).
+apply: (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ (fsum_l2r_err rx o))).
+fold v.
+rewrite /srx /Rminus big_sum_Ropp -big_split.
+apply: (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ (big_Rabs_triang _ _))).
+set INRnp1 := INR n'.+1; simpl.
+have H : \sum_(i <- sn) Rabs (rx (inord i)) <= \sum_(i <- sn) Rabs (x (inord i)) + \sum_(i <- sn) Rabs (x (inord i) - rx (inord i)).
+{ rewrite -big_split; apply: Rle_big_compat=> i /=.
+  have{1}->: (rx (inord i) = x (inord i) + (rx (inord i) - x (inord i)) :> R); [ring|].
+  by apply: (Rle_trans _ _ _ (Rabs_triang _ _)); rewrite Rabs_minus_sym; right. }
+have H' : \sum_(i <- sn) Rabs (x (inord i) - rx (inord i))
+          <= eps / (1 + eps) * (\sum_(i <- sn) Rabs (x (inord i))) + INR n'.+1 * eta.
+{ apply (Rle_trans _ (\sum_(i <- sn) (eps / (1 + eps) * Rabs (x (inord i)) + eta)%Re)).
+  { apply: Rle_big_compat => i.
+    have [d [e [Hde _]]] := frnd_spec fs (x (inord i)).
     rewrite Rabs_minus_sym /rx ffunE Hde.
-    replace (_ - _)%Re with (d * x i + e)%Re; [|ring].
-    apply (Rle_trans _ _ _ (Rabs_triang _ _)); rewrite Rabs_mult.
-    apply Rplus_le_compat; [apply Rmult_le_compat_r; [apply Rabs_pos|]|];
-      apply bounded_prop. }
-  by rewrite big_split /= /GRing.add /= -big_distrr /= big_sum_const; right. }
-have H'' : \sum_i Rabs (rx i)
-           <= (1 + eps / (1 + eps)) * (\sum_i Rabs (x i)) + INR n.+1 * eta.
+    rewrite (_: _ - _ = d * x (inord i) + e)%Re; [|ring].
+    apply: (Rle_trans _ _ _ (Rabs_triang _ _)); rewrite Rabs_mult.
+    apply: Rplus_le_compat; [apply Rmult_le_compat_r; [apply Rabs_pos|]|];
+    exact: bounded_prop. }
+  by rewrite big_split /= /GRing.add /= -big_distrr /= big_sum_const_seq En; right. }
+have H'' : \sum_(i <- sn) Rabs (rx (inord i))
+           <= (1 + eps / (1 + eps)) * (\sum_(i <- sn) Rabs (x (inord i))) + INR n'.+1 * eta.
 { rewrite Rmult_plus_distr_r Rmult_1_l Rplus_assoc.
   by apply (Rle_trans _ _ _ H), Rplus_le_compat_l. }
-apply (Rle_trans _ ((INR n * eps / (1 + eps) * (1 + eps / (1 + eps))
-                     + eps / (1 + eps))
-                    * (\sum_i Rabs (x i))
-                    + (INR n * eps / (1 + eps) + 1) * INR n.+1 * eta)).
+apply: (Rle_trans _ ((INR n' * v * (1 + v) + v) * (\sum_(i <- sn) Rabs (x (inord i)))
+                    + (INR n' * v + 1) * INR n'.+1 * eta)).
 {
   rewrite !Rmult_plus_distr_r Rmult_1_l.
   rewrite -Rplus_assoc (Rplus_comm _ (_ * _ * eta)) -Rplus_assoc Rplus_assoc.
-  apply Rplus_le_compat; [|apply H'].
-  rewrite (Rplus_comm (_ * _ * eta)) 2!Rmult_assoc -Rmult_plus_distr_l.
-  apply Rmult_le_compat_l; [|apply H''].
-  rewrite /Rdiv Rmult_assoc; apply Rmult_le_pos; [apply pos_INR|].
+  apply Rplus_le_compat; [|exact: H'].
+  rewrite (Rplus_comm (_ * _ * eta)).
+  rewrite ![INR n' * v * _ * _]Rmult_assoc -Rmult_plus_distr_l En.
+  apply: Rmult_le_compat_l; [|exact: H''].
+  apply: Rmult_le_pos; [exact: pos_INR|].
   by apply epsd1peps_pos. }
-apply Rplus_le_compat.
-{ apply Rmult_le_compat_r; [apply big_sum_Rabs_pos|].
-  apply (Rmult_le_reg_r (1 + eps)²); [apply Rlt_0_sqr; lra|].
-  rewrite /zeta /Rsqr; field_simplify; [|lra|lra].
+apply: Rplus_le_compat.
+{ apply: Rmult_le_compat_r; [exact: big_sum_Rabs_pos|].
+  apply: (Rmult_le_reg_r (1 + eps)²); [apply: Rlt_0_sqr; lra|].
+  rewrite /zeta /Rsqr /v; field_simplify; [|lra|lra].
   rewrite /Rdiv Rinv_1 !Rmult_1_r.
   rewrite mul2n doubleS subn1 Nat.pred_succ !S_INR -mul2n mult_INR /=.
-  right; ring. }
-apply Rmult_le_compat_r; [apply Rlt_le, eta_pos|].
-apply Rmult_le_compat_r; [apply pos_INR|].
-rewrite Rplus_comm /Rdiv Rmult_assoc; apply Rplus_le_compat_l, Rmult_le_compat.
-{ apply pos_INR. }
-{ by apply epsd1peps_pos. }
-{ by apply /le_INR /leP. }
-by apply epsd1peps_le_eps.
-Qed.  
+  apply: Req_le; ring. }
+apply: Rmult_le_compat_r; [exact: eta_pos|].
+apply: Rmult_le_compat_r; [exact: pos_INR|].
+rewrite Rplus_comm /v /Rdiv; apply: Rplus_le_compat_l; apply: Rmult_le_compat.
+{ apply: pos_INR. }
+{ exact: epsd1peps_pos. }
+{ exact/le_INR/leP. }
+exact: epsd1peps_le_eps.
+Qed.
 
-Corollary fsum_l2r_reals_err' n (x : R^n) :
-  (Rabs (\sum_i x i - fsum_l2r [ffun i => frnd (x i)])
-   <= INR n * eps * (\sum_i Rabs (x i)) + (1 + INR n * eps) * INR n * eta)%Re.
+Corollary fsum_l2r_reals_err' m (x : R^m.+1) (sn : nat_finset) (o : order sn) :
+  let: n := size sn in
+  (Rabs (\sum_(i <- sn) x (inord i) - fsum o [ffun i => frnd (x i)])
+   <= INR n * eps * (\sum_(i <- sn) Rabs (x (inord i))) + (1 + INR n * eps) * INR n * eta)%Re.
 Proof.
 have Peps := eps_pos fs.
-move: (fsum_l2r_reals_err x) => /= H.
-apply (Rle_trans _ _ _ H), Rplus_le_compat_r.
-apply Rmult_le_compat_r; [apply big_sum_Rabs_pos|].
-apply (Rmult_le_reg_r (1 + eps)²); [apply Rlt_0_sqr; lra|].
+move: (fsum_l2r_reals_err x o) => /= H.
+apply: (Rle_trans _ _ _ H); apply: Rplus_le_compat_r.
+apply: Rmult_le_compat_r; [exact: big_sum_Rabs_pos|].
+apply: (Rmult_le_reg_r (1 + eps)²); [apply: Rlt_0_sqr; lra|].
 rewrite /Rsqr; field_simplify; [rewrite /Rdiv Rinv_1 !Rmult_1_r|lra].
-apply (Rplus_le_reg_r (- (INR n * eps))); ring_simplify.
-rewrite -(Rplus_0_l (_ ^ 2 * _)); apply Rplus_le_compat.
-{ apply Rmult_le_pos; [apply pos_INR|apply pow_le, eps_pos]. }
+apply: (Rplus_le_reg_r (- (INR (size sn) * eps))); ring_simplify.
+rewrite -(Rplus_0_l (_ ^ 2 * _)); apply: Rplus_le_compat.
+{ apply: Rmult_le_pos; [apply: pos_INR|apply: pow_le; exact: eps_pos]. }
 rewrite Rmult_comm; apply Rmult_le_compat_r; [apply pow2_ge_0|].
 by rewrite -[2]/(INR 2) -mult_INR; apply /le_INR /leP; rewrite multE leq_subr.
 Qed.
-*)
 
 End Fsum.
