@@ -319,10 +319,10 @@ case_eq (to_Z m) => [ |mp|mp] Hm; [exact I| | ].
   { rewrite /ez; move: He; case se => /=.
     { rewrite /emin /emax /prec /= => He.
       rewrite -Pos2Z.opp_pos -Z.opp_le_mono.
-      by move: He; rewrite /is_true leb_spec. }
+      by move: He; rewrite /is_true Int63.leb_spec. }
     move=> _; apply (Z.le_trans _ 0) => //; apply to_Z_bounded. }
   have Hubmp : IZR (Z.pos mp) < bpow radix2 prec.
-  { move: Hubm; rewrite /is_true ltb_spec Hm /prec /= => Hmp.
+  { move: Hubm; rewrite /is_true Int63.ltb_spec Hm /prec /= => Hmp.
     by apply IZR_lt. }
   have Hubmp' : (mag radix2 (IZR (Z.pos mp)) <= prec)%Z.
   { by apply mag_le_bpow => //; rewrite Rabs_pos_eq => //; apply IZR_le. }
@@ -330,8 +330,8 @@ case_eq (to_Z m) => [ |mp|mp] Hm; [exact I| | ].
   { move: Hlbm => [] Hlbm; [left|right].
     { apply Z.le_antisymm => //; rewrite /ez; move: Hlbm; case se => //= He'.
       rewrite /emin /emax /prec /= -Pos2Z.opp_pos -Z.opp_le_mono.
-      by move: He'; rewrite /is_true leb_spec. }
-    move: Hlbm; rewrite /is_true leb_spec Hm => Hlbm.
+      by move: He'; rewrite /is_true Int63.leb_spec. }
+    move: Hlbm; rewrite /is_true Int63.leb_spec Hm => Hlbm.
     by rewrite /prec /=; apply IZR_le. }
   rewrite /Binary.canonical_mantissa /fexp /FLT_exp -/emin; apply Zeq_bool_true.
   rewrite Digits.Zpos_digits2_pos Zdigits_mag //.
@@ -363,7 +363,7 @@ rewrite /boundedPrim /Binary.bounded => cmc /andP [] /orP He cm.
 rewrite (cmc cm) /= /ez.
 rewrite /is_true Z.leb_le; move: He; case se => He.
 { move: (to_Z_bounded e); lia. }
-by case He => //; rewrite /is_true leb_spec.
+by case He => //; rewrite /is_true Int63.leb_spec.
 Qed.
 
 Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=

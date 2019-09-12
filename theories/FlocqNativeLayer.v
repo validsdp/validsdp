@@ -279,14 +279,16 @@ Qed.
 
 Lemma is_nan_spec : forall x, is_nan (B2Prim x) = Binary.is_nan prec emax x.
   intro.
-  now destruct x, s; auto; unfold is_nan; rewrite FPcompare_Bcompare; unfold Bcompare; destruct (e ?= e)%Z; simpl; rewrite ?Pcompare_refl.
+  now destruct x, s; auto; unfold is_nan;
+  rewrite eqb_spec; unfold SFeqb; rewrite Prim2SF_B2Prim, SFcompare_Bcompare;
+  unfold Bcompare; rewrite Z.compare_refl, Pcompare_refl.
 Qed.
 
 Lemma is_zero_spec : forall x, is_zero (B2Prim x) = match x with B754_zero _ => true | _ => false end.
   intro.
   unfold is_zero.
   replace zero with (B2Prim (B754_zero false)) by reflexivity.
-  rewrite FPcompare_Bcompare.
+  rewrite eqb_spec; unfold SFeqb; rewrite !Prim2SF_B2Prim, SFcompare_Bcompare.
   destruct x, s; auto.
 Qed.
 
@@ -295,7 +297,7 @@ Lemma is_infinity_spec : forall x, is_infinity (B2Prim x) = match x with B754_in
   unfold is_infinity.
   replace infinity with (B2Prim (B754_infinity false)) by reflexivity.
   replace neg_infinity with (B2Prim (B754_infinity true)) by reflexivity.
-  rewrite !FPcompare_Bcompare.
+  rewrite eqb_spec, abs_spec; unfold SFeqb; rewrite !Prim2SF_B2Prim.
   destruct x, s; auto.
 Qed.
 
@@ -303,8 +305,10 @@ Lemma get_sign_spec : forall x, Binary.is_nan prec emax x = false -> get_sign (B
   intros.
   unfold get_sign, is_zero.
   replace zero with (B2Prim (B754_zero false)) by reflexivity.
-  rewrite FPcompare_Bcompare.
-  destruct x, s; auto; simpl; rewrite FPcompare_Bcompare; reflexivity.
+  rewrite eqb_spec; unfold SFeqb; rewrite !Prim2SF_B2Prim.
+  rewrite SFcompare_Bcompare.
+  now destruct x, s; auto; simpl;
+    rewrite ltb_spec; unfold SFltb; rewrite !Prim2SF_B2Prim.
 Qed.
 
 Lemma is_finite_spec : forall x, is_finite (B2Prim x) = Binary.is_finite prec emax x.
