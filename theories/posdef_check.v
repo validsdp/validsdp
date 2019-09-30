@@ -13,12 +13,12 @@ From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
-Require Import Rstruct.
-Require Import iteri_ord float_infnan_spec real_matrix.
+Require Import libValidSDP.Rstruct.
+Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog coqinterval_infnan.
-From ValidSDP Require Import zulp.
-From ValidSDP Require Import misc.
+Require Import cholesky_prog libValidSDP.coqinterval_infnan.
+Require Import zulp.
+Require Import libValidSDP.misc misc.
 
 Import GRing.Theory.
 Import Num.Theory.
@@ -222,7 +222,7 @@ Let ord := ordinal.
 
 Let mx := matrix.
 
-Context {fs : Float_round_up_infnan_spec}.
+Context {fs : Float_round_up_infnan_spec} (eta_neq_0 : eta fs <> 0).
 Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion for finite values *)
 Context {T2F : T -> F}.  (* overapproximation *)
@@ -250,7 +250,7 @@ Lemma posdefcheck_correct s Q :
   posdef (cholesky.MF2R (cholesky_infnan.MFI2F Q)).
 Proof.
 rewrite /posdefcheck_ssr /posdefcheck.
-apply posdef_check_correct.
+by apply posdef_check_correct.
 Qed.
 
 Hypothesis T2R_multiplicative : multiplicative T2R.
@@ -756,7 +756,8 @@ have Hpos : posdefcheck_ssr Qb.
   { by rewrite (eqP HQ'1) Hs'. }
   { by rewrite Hs'. } }
 have HQb : posdef (cholesky.MF2R (cholesky_infnan.MFI2F Qb)).
-{ by apply posdefcheck_correct with (Q0 := Qb). }
+{ by apply posdefcheck_correct with (Q0 := Qb);
+    [apply Rgt_not_eq => /=; apply bpow_gt_0|]. }
 have Hfin := posdef_check_f1 Hpos.
 have := HQb.
 have HszQ : s'.+1 = size Q by rewrite Hs'.

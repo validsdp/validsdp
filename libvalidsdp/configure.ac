@@ -2,8 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([ValidSDP], [0.6-git])
-AC_CONFIG_SRCDIR([theories/validsdp.v])
+AC_INIT([libValidSDP], [0.6-git])
+AC_CONFIG_SRCDIR([cholesky_infnan.v])
 
 # Check for programs
 AC_CHECK_TOOL([OCAMLC], [ocamlc], [no])
@@ -19,16 +19,6 @@ if test "v$majmin" != "v8.7" -a "v$majmin" != "v8.8" -a "v$majmin" != "v8.9"; th
   AC_MSG_ERROR([Coq version must be 8.7.x or 8.8.x or 8.9.x (you have version $coq_version).])
 fi
 AC_MSG_RESULT($coq_version)
-
-minor=`echo "$coq_version" | cut -d . -f 2`
-if test "$minor" -le 7; then
-  COQ_VERSION="v87"
-else if test "$minor" -le 8; then
-  COQ_VERSION="v88"
-else
-  COQ_VERSION="v89"
-fi ; fi
-AC_SUBST(COQ_VERSION)
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
@@ -81,41 +71,6 @@ if test "$libdir" = '${exec_prefix}/lib'; then
   libdir="`$COQC -where`/user-contrib/Interval"
 fi
 
-AC_MSG_CHECKING([for Multinomials])
-AS_IF(
-  [ echo "From mathcomp Require Import ssreflect ssrfun." \
-    	 "From SsrMultinomials Require Import mpoly freeg." > conftest.v
-    $COQC conftest.v > conftest.err ],
-  [ AC_MSG_RESULT([yes]) ],
-  [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library Multinomials >= 1.0 (https://github.com/math-comp/multinomials/)])])
-rm -f conftest.v conftest.vo conftest.err
-
-AC_MSG_CHECKING([for CoqEAL])
-AS_IF(
-  [ echo "From CoqEAL.refinements Require Import hrel refinements param binord binnat binint rational binrat multipoly." > conftest.v
-    $COQC conftest.v > conftest.err ],
-  [ AC_MSG_RESULT([yes]) ],
-  [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library CoqEAL (https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev)])])
-rm -f conftest.v conftest.vo conftest.err
-
-AC_MSG_CHECKING([for OSDP])
-AS_IF(
-  [ req_maj="0"
-    req_min="5"
-    req_pat="2"
-    osdp_version=`ocamlfind query -format %v osdp 2>/dev/null`
-    major=`echo $osdp_version | cut -d . -f 1`
-    minor=`echo $osdp_version | cut -d . -f 2`
-    patch=`echo $osdp_version | cut -d . -f 3 | cut -d - -f 1`
-    test "0$major" -gt "0$req_maj" || { test "0$major" -eq "0$req_maj" && \
-      test "0$minor" -gt "0$req_min" || { test "0$minor" -eq "0$req_min" && \
-        test "0$patch" -ge "0$req_pat"; }; } ],
-  [ AC_MSG_RESULT($osdp_version) ],
-  [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library OSDP >= $req_maj.$req_min.$req_pat (https://cavale.enseeiht.fr/osdp/)])])
-
 AC_MSG_CHECKING([for coq-bignums])
 AS_IF(
   [ echo "Require Import Bignums.BigQ.BigQ." > conftest.v
@@ -125,31 +80,11 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find library Bignums.BigQ.BigQ (opam package coq-bignums)])])
 rm -f conftest.v conftest.vo conftest.err
 
-AC_MSG_CHECKING([for libValidSDP])
-AS_IF(
-  [ echo "From libValidSDP Require Import misc." > conftest.v
-    $COQC conftest.v > conftest.err ],
-  [ AC_MSG_RESULT([yes]) ],
-  [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library libValidSDP (c.f. directory libvalidsdp)])])
-rm -f conftest.v conftest.vo conftest.err
-
-AC_CHECK_TOOL([SDPA], [sdpa], [no])
-if test "x$SDPA" != xno; then
-  SDPA_AVAILABLE="true"
-  AC_MSG_NOTICE([Optional dependency sdpa was found. Assuming osdp was built accordingly.])
-else
-  SDPA_AVAILABLE=""
-  AC_MSG_NOTICE([Optional dependency sdpa was not found.])
-fi
-AC_SUBST(SDPA_AVAILABLE)
-
 # Create files
-AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/_CoqProject])
+AC_CONFIG_FILES([_CoqProject])
 AC_OUTPUT
-chmod a-w Makefile plugins/soswitness/Makefile theories/_CoqProject
+chmod a-w _CoqProject
 
 echo ""
-echo "  Now run 'make external' to build and install extra Coq dependencies"
-echo "  then run 'make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
+echo "  Now run 'make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
 echo ""

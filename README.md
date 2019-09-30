@@ -1,7 +1,7 @@
 ValidSDP
 ========
 
-[![Build Status](https://travis-ci.com/validsdp/validsdp.svg?branch=master)](https://travis-ci.com/validsdp/validsdp)
+[![Build Status](https://travis-ci.com/validsdp/validsdp.svg?branch=libvalidsdp)](https://travis-ci.com/validsdp/validsdp)
 
 ValidSDP is a library for the Coq formal proof assistant.  It provides
 Coq tactics to prove multivariate inequalities using SDP solvers.
@@ -9,16 +9,19 @@ Coq tactics to prove multivariate inequalities using SDP solvers.
 Dependencies
 ------------
 
-- [Coq](https://coq.inria.fr) version 8.8.x or 8.7.x
-- [Bignums](https://github.com/coq/bignums) (version 8.8 or 8.7 depending on Coq)
-- [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.7.0)
-- [Flocq](http://flocq.gforge.inria.fr/) (tested with 3.0.0 and master)
-- [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.2)
-- [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.4.0)
-- [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 0.6.0)
-- [multinomials](https://github.com/math-comp/multinomials.git) (tested with version 1.1)
-- [paramcoq](https://github.com/CohenCyril/paramcoq.git) (tested with version 1.1.0)
-- [CoqEAL](https://github.com/CoqEAL/CoqEAL/tree/paramcoq-dev) (branch master)
+- [Coq](https://coq.inria.fr) version 8.9.x or 8.8.x or 8.7.x
+- [Bignums](https://github.com/coq/bignums) (Coq version specific)
+- [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.8.0)
+- [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.2.0)
+- [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.3)
+- [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.4.1)
+- [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 1.0.0)
+- [multinomials](https://github.com/math-comp/multinomials) (tested with version 1.1)
+- [paramcoq](https://github.com/coq-community/paramcoq) (tested with version 1.1.1)
+- [CoqEAL](https://github.com/CoqEAL/CoqEAL) (tested with version 1.0.0)
+
+See also the [coq-validsdp.opam](./coq-validsdp.opam) file for the
+detail of ValidSDP dependencies' version contraints.
 
 Remark
 ------
@@ -32,21 +35,21 @@ be retrieved and installed manually: they are available in the
 Installation
 ------------
 
-Most of the dependencies (Coq, Bignums, MathComp, Multinomials, Flocq,
-Coquelicot, Coq-interval, paramcoq and OSDP) can be easily installed
-with [OPAM](https://opam.ocaml.org/).
+First install libValidSDP (see instructions in libvalidsdp/README.md).
+
+Most of the remaining dependencies (Multinomials, paramcoq and OSDP)
+can be easily installed with [OPAM](https://opam.ocaml.org/).
 Once OPAM is installed, run:
 
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
-    $ opam pin -n -k version add coq 8.7.2
-    $ opam install --jobs=2 coq coq-interval coq-mathcomp-field coq-mathcomp-multinomials coq-paramcoq osdp camlp4
+    $ opam install --jobs=2 coq-mathcomp-multinomials coq-paramcoq osdp
 
-To ensure that you have these dependencies properly installed, run:
+To ensure that you have all dependencies properly installed, run:
 
     $ ./configure
 
-Then, to build and install paramcoq and CoqEAL, run:
+Then, to build and install CoqEAL, run:
 
     $ make external
 

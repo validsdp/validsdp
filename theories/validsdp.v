@@ -13,13 +13,13 @@ From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
 From SsrMultinomials Require Import mpoly.
 Require Import ssrmultinomials_complements.
-Require Import Rstruct.
-Require Import iteri_ord float_infnan_spec real_matrix.
+Require Import libValidSDP.Rstruct.
+Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog coqinterval_infnan.
+Require Import cholesky_prog libValidSDP.coqinterval_infnan.
 From CoqEAL.refinements Require Import multipoly. Import PolyAVL.
-From ValidSDP Require Import zulp.
-Require Import misc.
+Require Import zulp.
+Require Import libValidSDP.misc misc.
 From ValidSDP Require Export soswitness.
 
 Import GRing.Theory.
@@ -691,6 +691,7 @@ Proof.
 elim/abstr_poly_ind': ap l n => //.
 { by move=> ? ? ? _ _ /=; rewrite map_mpolyC mevalC bigQ2R_rat. }
 { move=> ? ? [|?] ? //= ?.
+  try (by rewrite map_mpolyX mevalXU; f_equal; rewrite inordK) ||
   by rewrite map_mpolyX mevalX; f_equal; rewrite inordK. }
 { move=> p Hp q Hq l n Hn /= /andP [] Hnp Hnq.
   by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphD. }
@@ -979,7 +980,7 @@ Let mx := matrix.
 
 Definition max_coeff_ssr : polyT -> T := max_coeff.
 
-Context {fs : Float_round_up_infnan_spec}.
+Context {fs : Float_round_up_infnan_spec} (eta_neq_0 : eta fs <> 0).
 Let F := FIS fs.
 Context {F2T : F -> T}.  (* exact conversion for finite values *)
 Context {T2F : T -> F}.  (* overapproximation *)
@@ -1176,7 +1177,7 @@ replace (matrix.map_mx _ _) with (matrix.map_mx (T2R \o F2T) Q);
   [|by apply/matrixP => i j;
     rewrite !mxE /= map_mpolyC mevalC].
 have Hposdef : posdef (map_mx (T2R \o F2T) Q + E).
-{ apply (posdef_check_itv_correct Hpcheck).
+{ apply (posdef_check_itv_correct eta_neq_0 Hpcheck).
   apply Mle_trans with (Mabs E).
   { right; rewrite !mxE /=; f_equal.
     by rewrite T2R_F2T GRing.addrC GRing.addKr. }
@@ -1657,7 +1658,7 @@ rewrite /max !ifE; eapply refines_if_expr; tc.
 all: by move=> _ _; eapply refinesP; tc.
 Qed.
 
-Context {fs : Float_round_up_infnan_spec}.
+Context {fs : Float_round_up_infnan_spec} (eta_neq_0 : eta fs <> 0).
 Let F := FIS fs.
 Context {F2A : F -> A}.  (* exact conversion for finite values *)
 Context {A2F : A -> F}.  (* overapproximation *)
@@ -2180,13 +2181,14 @@ suff: 0 <= papx /\ (has_const_ssr zb -> 0 < papx).
   by apply listR_seqmultinom_map. }
 move: Hall_prop'.
 apply soscheck_hyps_correct with
-  (1 := GRing.RMorphism.base (ratr_is_rmorphism _))
-  (2 := rat2FIS_correct)
-  (3 := rat2R_FIS2rat)
-  (4 := max_l)
-  (5 := max_r)
-  (6 := GRing.RMorphism.mixin (ratr_is_rmorphism _))
+  (2 := GRing.RMorphism.base (ratr_is_rmorphism _))
+  (3 := rat2FIS_correct)
+  (4 := rat2R_FIS2rat)
+  (5 := max_l)
+  (6 := max_r)
+  (7 := GRing.RMorphism.mixin (ratr_is_rmorphism _))
   (Q0 := Qb).
+{ apply Rgt_not_eq => /=; apply bpow_gt_0. }
 move: Hsos_hyps; apply etrans.
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1;
