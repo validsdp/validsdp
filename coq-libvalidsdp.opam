@@ -21,6 +21,7 @@ depends: [
   "coq" {>= "8.7" & < "8.10~"}
   "coq-bignums"
   "coq-flocq" {>= "3.1.0"}
+  "coq-coquelicot" {>= "3.0"}
   "coq-interval" {>= "3.4.0" & < "4~"}
   "coq-mathcomp-field" {>= "1.7" & < "1.10~"}
   "ocamlfind"
