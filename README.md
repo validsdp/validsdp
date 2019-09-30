@@ -1,7 +1,7 @@
 ValidSDP
 ========
 
-[![Build Status](https://travis-ci.com/validsdp/validsdp.svg?branch=libvalidsdp)](https://travis-ci.com/validsdp/validsdp)
+[![Build Status](https://travis-ci.com/validsdp/validsdp.svg?branch=master)](https://travis-ci.com/validsdp/validsdp)
 
 ValidSDP is a library for the Coq formal proof assistant.  It provides
 Coq tactics to prove multivariate inequalities using SDP solvers.
@@ -16,7 +16,7 @@ Dependencies
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.3)
 - [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.4.1)
 - [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 1.0.0)
-- [multinomials](https://github.com/math-comp/multinomials) (tested with version 1.1)
+- [multinomials](https://github.com/math-comp/multinomials) (tested with version 1.3)
 - [paramcoq](https://github.com/coq-community/paramcoq) (tested with version 1.1.1)
 - [CoqEAL](https://github.com/CoqEAL/CoqEAL) (tested with version 1.0.0)
 
