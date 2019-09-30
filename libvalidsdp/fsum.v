@@ -62,13 +62,6 @@ Lemma size_nat_finset_disjoint_merge s1 s2 (H : disjoint s1 s2) :
   (size (nat_finset_disjoint_merge H) = size s1 + size s2)%N.
 Proof. by rewrite size_merge size_cat. Qed.
 
-(* Get integral indexes from [0:nat] to [n-1:nat] for [x:F^n] *)
-Program Definition nat_finset_iota n :=
-  @Build_nat_finset (iota 0 n) _.
-Next Obligation.
-exact: iota_ltn_sorted.
-Qed.
-
 Inductive binary_tree :=
 | Leaf : nat -> binary_tree
 | Node : binary_tree -> binary_tree -> binary_tree.
