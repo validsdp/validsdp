@@ -196,7 +196,7 @@ Ltac fold_eps1 :=
   fold (Rdiv eps (1 + eps)); set eps1 := (Rdiv eps (1 + eps)).
 
 (** Theorem 4.1 in the paper. *)
-Theorem fsum_l2r_err m (x : F^m.+1) (sn : nat_finset) (o : order sn) :
+Theorem fsum_err m (x : F^m.+1) (sn : nat_finset) (o : order sn) :
   (Rabs (\sum_(i <- sn) (x (inord i) : R) - fsum o x)
    <= INR (size sn).-1 * (eps / (1 + eps)) * \sum_(i <- sn) Rabs (x (inord i)))%Re.
 Proof.
@@ -380,7 +380,7 @@ Qed.
 Note that the type of [x] is [R^_] (not [F^_]), so the theorem can be
 applied to scalar products, beyond mere sums of floating-point numbers.
 *)
-Theorem fsum_l2r_reals_err m (x : R^m.+1) (sn : nat_finset) (o : order sn) :
+Theorem fsum_reals_err m (x : R^m.+1) (sn : nat_finset) (o : order sn) :
   let: n := size sn in
   let zeta := ((INR n * eps + INR (2 * n - 1) * eps²) / (1 + eps)²)%Re in
   (Rabs (\sum_(i <- sn) (x (inord i) : R) - fsum o [ffun i => frnd (x i)])
@@ -396,7 +396,7 @@ set rx := [ffun _ => _].
 pose srx := \sum_(i <- sn) (rx (inord i) : R).
 rewrite (_: ?[x] - ?[o] = srx - ?o + (?x - srx)); last by ring.
 apply: (Rle_trans _ _ _ (Rabs_triang _ _)).
-apply: (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ (fsum_l2r_err rx o))).
+apply: (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ (fsum_err rx o))).
 fold v.
 rewrite /srx /Rminus big_sum_Ropp -big_split.
 apply: (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ (big_Rabs_triang _ _))).
@@ -447,13 +447,13 @@ rewrite Rplus_comm /v /Rdiv; apply: Rplus_le_compat_l; apply: Rmult_le_compat.
 exact: epsd1peps_le_eps.
 Qed.
 
-Corollary fsum_l2r_reals_err' m (x : R^m.+1) (sn : nat_finset) (o : order sn) :
+Corollary fsum_reals_err' m (x : R^m.+1) (sn : nat_finset) (o : order sn) :
   let: n := size sn in
   (Rabs (\sum_(i <- sn) x (inord i) - fsum o [ffun i => frnd (x i)])
    <= INR n * eps * (\sum_(i <- sn) Rabs (x (inord i))) + (1 + INR n * eps) * INR n * eta)%Re.
 Proof.
 have Peps := eps_pos fs.
-move: (fsum_l2r_reals_err x o) => /= H.
+move: (fsum_reals_err x o) => /= H.
 apply: (Rle_trans _ _ _ H); apply: Rplus_le_compat_r.
 apply: Rmult_le_compat_r; [exact: big_sum_Rabs_pos|].
 apply: (Rmult_le_reg_r (1 + eps)²); [apply: Rlt_0_sqr; lra|].
