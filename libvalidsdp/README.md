@@ -16,6 +16,9 @@ Dependencies
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.0.3)
 - [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.4.1)
 
+See also the [coq-libvalidsdp.opam](../coq-libvalidsdp.opam) file for the
+detail of libValidSDP dependencies' version contraints.
+
 Installation
 ------------
 

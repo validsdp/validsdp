@@ -23,15 +23,6 @@ Dependencies
 See also the [coq-validsdp.opam](./coq-validsdp.opam) file for the
 detail of ValidSDP dependencies' version contraints.
 
-Remark
-------
-
-For CoqEAL you may get more info
-(the SHA-1 of the corresponding commits) by cloning our Git repository
-and running `git submodule status`. However these libraries need not
-be retrieved and installed manually: they are available in the
-"external" folder and their installation can be automated (see below).
-
 Installation
 ------------
 
