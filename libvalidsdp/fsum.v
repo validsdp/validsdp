@@ -11,7 +11,6 @@ Require Import misc.
 
 Require Import Psatz.
 
-(* NOTE: this dependency should probably be specified in coq-libvalidsdp.opam *)
 From Coquelicot Require Import Rcomplements.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat.
