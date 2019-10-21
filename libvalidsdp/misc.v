@@ -54,6 +54,9 @@ Section Misc.
 Lemma ord_1_0 (i : 'I_1) : i = ord0.
 Proof. by case: i => [[]] // HH; apply /eqP. Qed.
 
+Lemma inord0E n : inord 0 = ord0 :> 'I_n.+1.
+Proof. by apply: ord_inj; rewrite inordK. Qed.
+
 (** About [Rabs]. *)
 Lemma Rge_opp_abs x : - Rabs x <= x.
 Proof. split_Rabs; lra. Qed.

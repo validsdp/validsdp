@@ -32,9 +32,6 @@ Require Export float_spec.
 
 Import GRing.Theory.
 
-Lemma inord0E n : inord 0 = ord0 :> 'I_n.+1.
-Proof. by apply: ord_inj; rewrite inordK. Qed.
-
 Section order.
 
 Record nat_finset := {
@@ -70,6 +67,12 @@ Fixpoint leaves b :=
   | Leaf n => [:: n]
   | Node l r => merge leq (leaves l) (leaves r)
   end.
+
+Lemma size_leaves t : (0 < size (leaves t))%N.
+Proof.
+elim: t =>[//=| t1 IHt1 t2 IHt2]; rewrite size_merge size_cat.
+by rewrite addn_gt0 IHt1.
+Qed.
 
 Lemma leaves_sorted t : sorted leq (leaves t).
 Proof. by elim: t => //= l Hl r Hr; apply (merge_sorted leq_total). Qed.
@@ -132,12 +135,6 @@ move: Hlr; rewrite -Hs => Hlr.
 by have -> : order_node Hdisj ol or = Build_order Hlr; [apply val_inj|].
 Qed.
 
-Lemma size_order (sn : nat_finset) (o : order sn) : (0 < size sn)%N.
-Proof.
-elim: o =>// sl sr ? ?? Hsl ?.
-by rewrite size_nat_finset_disjoint_merge addn_gt0 Hsl.
-Qed.
-
 End order.
 
 Section Fsum.
@@ -165,22 +162,6 @@ elim/order_ind: o n1 n2 x1 x2 => [i|sl sr Hslr l r IHl IHr] n1 n2 x1 x2 Hx12 /=.
 rewrite /fplus; do 2 apply f_equal; apply f_equal2.
 { by apply IHl => i Hi; apply Hx12; rewrite mem_merge mem_cat Hi. }
 by apply IHr => i Hi; apply Hx12; rewrite mem_merge mem_cat Hi orbC.
-Qed.
-
-Lemma size_leaves t : (0 < size (leaves t))%N.
-Proof.
-elim: t =>[//=| t1 IHt1 t2 IHt2]; rewrite size_merge size_cat.
-by rewrite addn_gt0 IHt1.
-Qed.
-
-Lemma size_merge_leq_leaves t1 t2 :
-  (1 < size (merge leq (leaves t1) (leaves t2)))%N.
-Proof.
-rewrite size_merge size_cat.
-have H1 := size_leaves t1.
-have H2 := size_leaves t2.
-rewrite -addn1.
-exact: leq_add.
 Qed.
 
 Ltac fold_eps1 :=
@@ -382,7 +363,7 @@ move=> zeta.
 have Peps := eps_pos fs.
 pose v := eps / (1 + eps).
 case En: (size sn) o @zeta => [|n'] o zeta.
-{ have Ko := size_order o.
+{ have Ko : (0 < size sn)%nat by case: o => ? /eqP <-; apply size_leaves.
   by exfalso; rewrite En in Ko. }
 set rx := [ffun _ => _].
 pose srx := \sum_(i <- sn) (rx (inord i) : R).
