@@ -135,7 +135,7 @@ Proof.
 apply (Rmult_le_reg_r (sqrt (1 + 2 * eps) * (1 + eps))).
 { apply Rmult_lt_0_compat; [apply sqrt_lt_R0|]; lra. }
 field_simplify; [|lra|intro H; apply sqrt_eq_0 in H; lra].
-unfold Rdiv, Rminus; rewrite Rinv_1 !Rmult_1_r !Rplus_assoc.
+unfold Rdiv, Rminus; (try rewrite Rinv_1 !Rmult_1_r); rewrite !Rplus_assoc.
 rewrite <-(Rplus_0_r (sqrt _ * _)) at 2; apply Rplus_le_compat_l.
 apply (Rplus_le_reg_r (1 + eps)); ring_simplify.
 rewrite <-(sqrt_square (_ + 1)); [|lra]; apply sqrt_le_1_alt.

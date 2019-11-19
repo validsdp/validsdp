@@ -198,7 +198,7 @@ apply (Rle_trans _ (Rabs (delta + (delta1 + delta2)))).
 { right; f_equal.
   rewrite /s /delta /delta1 /delta2 /s1hat /s2hat /s1 /s2.
   apply (Rplus_eq_reg_r (fplus (fsum l x) (fsum r x))); ring_simplify.
-  by rewrite -big_cat; apply: eq_big_perm; rewrite perm_merge. }
+  by rewrite -big_cat; apply: perm_big; rewrite perm_merge. }
 apply (Rle_trans _ _ _ (Rabs_triang _ _)).
 apply (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ (Rabs_triang _ _))).
 set s1t := \sum_(i <- sl) Rabs (x (inord i)).
@@ -226,7 +226,7 @@ have n1n2_pos : (0 < size sl + size sr)%N by rewrite addn_gt0 n1_pos.
 suff B1: Rabs delta <= eps / (1 + eps) * (INR n1 * s2t + INR n2 * s1t).
 { apply (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ B1)).
   have->: \sum_(i <- merge leq sl sr) Rabs (x (inord i)) = s1t + s2t.
-    by rewrite -big_cat; apply: eq_big_perm; rewrite perm_merge.
+    by rewrite -big_cat; apply: perm_big; rewrite perm_merge.
   fold_eps1; rewrite -!subn1 !minus_INR ?plus_INR; first 1 [idtac] || exact/ltP.
   apply: Req_le; ring. }
 
@@ -408,7 +408,7 @@ apply: Rplus_le_compat.
 { apply: Rmult_le_compat_r; [exact: big_sum_Rabs_pos|].
   apply: (Rmult_le_reg_r (1 + eps)²); [apply: Rlt_0_sqr; lra|].
   rewrite /zeta /Rsqr /v; field_simplify; [|lra|lra].
-  rewrite /Rdiv Rinv_1 !Rmult_1_r.
+  try rewrite /Rdiv Rinv_1 !Rmult_1_r.
   rewrite mul2n doubleS subn1 Nat.pred_succ !S_INR -mul2n mult_INR /=.
   apply: Req_le; ring. }
 apply: Rmult_le_compat_r; [exact: eta_pos|].
@@ -430,7 +430,7 @@ move: (fsum_reals_err x o) => /= H.
 apply: (Rle_trans _ _ _ H); apply: Rplus_le_compat_r.
 apply: Rmult_le_compat_r; [exact: big_sum_Rabs_pos|].
 apply: (Rmult_le_reg_r (1 + eps)²); [apply: Rlt_0_sqr; lra|].
-rewrite /Rsqr; field_simplify; [rewrite /Rdiv Rinv_1 !Rmult_1_r|lra].
+rewrite /Rsqr; field_simplify; [try rewrite /Rdiv Rinv_1 !Rmult_1_r|lra].
 apply: (Rplus_le_reg_r (- (INR (size sn) * eps))); ring_simplify.
 rewrite -(Rplus_0_l (_ ^ 2 * _)); apply: Rplus_le_compat.
 { apply: Rmult_le_pos; [apply: pos_INR|apply: pow_le; exact: eps_pos]. }
