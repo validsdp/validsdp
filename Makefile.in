@@ -10,25 +10,14 @@ doc::
 
 info::
 	@echo "You can run:"
-	@echo "    'make external' to build and install extra Coq dependencies"
 	@echo "    'make install' to build and install ValidSDP"
+	@echo "    'make doc' to build the documentation of the library"
 	@echo "    'make clean' to remove all generated files"
 	@echo "    'make dist' to prepare an archive for distribution"
 
 DIST1 = dist1
 DIST2 = dist2
 FILES = AUTHORS README.md configure Makefile.in
-
-external::
-	@if test -r .gitmodules; then \
-		echo Retrieving external dependencies...; \
-		echo git submodule update --init; \
-		git submodule update --init; \
-		echo; \
-	fi
-	@echo Installing external dependencies...
-	( cd external/CoqEAL/theory && $(MAKE) && $(MAKE) install )
-	( cd external/CoqEAL/refinements && $(MAKE) && $(MAKE) install )
 
 install::
 	$(MAKE) -C plugins/soswitness
