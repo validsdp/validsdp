@@ -42,6 +42,10 @@ tramp
 *.v.d
 .*.aux
 .depend
+.coqdeps.d
+.lia.cache
+Makefile.coq
+Makefile.coq.conf
 
 ### OCaml ###
 *.annot
@@ -71,15 +75,25 @@ setup.log
 /config.status
 /Makefile
 /autom4te.cache/
+/libvalidsdp/autom4te.cache/
+/libvalidsdp/configure
+/libvalidsdp/config.status
+/libvalidsdp/coqinterval_infnan.v
 /theories/coqgraph
 /theories/html/
 /theories/Makefile.coq
-/plugins/soswitness/Makefile.coq
-*.ml4.d
+/plugins/soswitness/Makefile
+/plugins/soswitness/src/soswitness.cmt
+/plugins/soswitness/src/soswitness.ml
+/plugins/soswitness/src/soswitness.ml4
+/plugins/soswitness/src/soswitness.ml4.d
+/plugins/soswitness/src/soswitness.mlg
+/plugins/soswitness/src/soswitness.mlg.d
 *.mllib.d
 *.log
 csdp.cache
 lia.cache
+_CoqProject
 
 # PVS
 *.summary
