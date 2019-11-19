@@ -23,12 +23,19 @@ AC_MSG_RESULT($coq_version)
 minor=`echo "$coq_version" | cut -d . -f 2`
 if test "$minor" -le 7; then
   COQ_VERSION="v87"
+  COQPP_EXT="ml4"
 else if test "$minor" -le 8; then
   COQ_VERSION="v88"
-else
+  COQPP_EXT="ml4"
+else if test "$minor" -le 8; then
   COQ_VERSION="v89"
-fi ; fi
+  COQPP_EXT="ml4"
+else
+  COQ_VERSION="v810"
+  COQPP_EXT="mlg"
+fi ; fi ; fi
 AC_SUBST(COQ_VERSION)
+AC_SUBST(COQPP_EXT)
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])

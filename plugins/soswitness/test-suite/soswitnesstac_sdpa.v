@@ -1,3 +1,4 @@
+Require Import NArith.
 Require Import ValidSDP.soswitness.
 
 Open Scope N_scope.

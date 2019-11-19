@@ -1,6 +1,6 @@
 NAME = @PACKAGE_NAME@
 MODULES_BASE :=\
-  src/soswitness.ml4\
+  src/soswitness.@COQPP_EXT@\
   src/soswitness.mllib\
   theories/soswitness.v\
   test-suite/soswitnesstac.v
@@ -16,7 +16,7 @@ endif
 all: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
-src/soswitness.ml4: src/soswitness_@COQ_VERSION@.ml4
+src/soswitness.@COQPP_EXT@: src/soswitness_@COQ_VERSION@.@COQPP_EXT@
 	rm -f $@
 	cp $< $@
 	chmod a-w $@
@@ -35,7 +35,7 @@ install: Makefile.coq
 
 clean: Makefile.coq
 	-$(MAKE) -f Makefile.coq clean
-	rm -f Makefile.coq Makefile.coq.conf src/soswitness.ml4
+	rm -f Makefile.coq Makefile.coq.conf src/soswitness.@COQPP_EXT@
 
 dist: $(MODULES) Makefile
 	T=$$(mktemp -d ../../dist1.XXX) && S=$$T/plugins/soswitness && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ../../dist1 && ln -rsv $$T ../../dist1
