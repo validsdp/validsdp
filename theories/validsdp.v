@@ -18,7 +18,7 @@ Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog libValidSDP.coqinterval_infnan.
 From CoqEAL.refinements Require Import multipoly. Import PolyAVL.
-Require Import zulp.
+Require Import libValidSDP.zulp.
 Require Import libValidSDP.misc misc.
 From ValidSDP Require Export soswitness.
 
@@ -1577,9 +1577,9 @@ Instance zero_mpoly : zero_of (mpoly n A) := 0%R.
 
 (* Goal forall n, nat_R n.+1 n.+1 <=> nat_R_S_R (nat_Rxx n). *)
 
-Instance refine_check_base {s} :
-  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==> eq)
-    (check_base_ssr (s:=s)) (check_base_eff (s:=s)).
+Instance refine_check_base {s'} :
+  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s'.+1) (nat_Rxx 1) ==> eq)
+    (check_base_ssr (s:=s')) (check_base_eff (s:=s')).
 Proof.
 rewrite refinesE=> p p' rp z z' rz.
 rewrite /check_base_ssr /check_base_eff /check_base.
@@ -1690,11 +1690,11 @@ Context `{!refines (nat_R ==> eqFIS) nat2Fup_instFIS nat2Fup_instFIS}.
 
 Hypothesis eqFIS_P : forall x y, reflect (eqFIS x y) (eq_instFIS x y).
 
-Local Instance refine_soscheck {s} :
-  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s.+1) (nat_Rxx 1) ==>
-          RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==> bool_R)
-    (soscheck_ssr (s:=s) (F2T:=F2A) (T2F:=A2F))
-    (soscheck_eff (n:=n) (s:=s) (F2T:=F2C) (T2F:=C2F)).
+Local Instance refine_soscheck {s'} :
+  refines (ReffmpolyC rAC ==> RseqmxC (@Rseqmultinom n) (nat_Rxx s'.+1) (nat_Rxx 1) ==>
+          RseqmxC eq_F (nat_Rxx s'.+1) (nat_Rxx s'.+1) ==> bool_R)
+    (soscheck_ssr (s:=s') (F2T:=F2A) (T2F:=A2F))
+    (soscheck_eff (n:=n) (s:=s') (F2T:=F2C) (T2F:=C2F)).
 Proof.
 rewrite refinesE=> p p' rp z z' rz Q Q' rQ.
 rewrite /soscheck_ssr /soscheck_eff /soscheck.
@@ -2159,7 +2159,7 @@ suff: apapi -> if b then 0 < interp_p_abstr_poly vm pap
                else 0 <= interp_p_abstr_poly vm pap by case b.
 rewrite {}/apapi => Hall_prop.
 rewrite interp_poly_ssr_correct' //.
-set x := fun _ => _.
+set x := fun i : ordinal (size vm) => _.
 have Hall_prop' :
   all_prop (fun pszQ => 0 <= (map_mpoly ratr pszQ.1).@[x]) pszQlb.
 { move: Hsbpl Hltn' Hall_prop; rewrite /pszQlb /bplb /bpl /apl.

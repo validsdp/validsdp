@@ -1,4 +1,4 @@
-Require Import Reals Psatz ROmega.
+Require Import Reals Psatz.
 From Bignums Require Import BigZ BigQ.
 From Flocq Require Import Core.Raux Core.Defs Core.Digits.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
@@ -9,7 +9,7 @@ From Interval Require Import Interval_xreal.
 From Interval Require Import Interval_definitions.
 From Interval Require Import Interval_specific_ops.
 Require Import libValidSDP.Rstruct libValidSDP.misc.
-Require Import libValidSDP.coqinterval_infnan zulp.
+Require Import libValidSDP.coqinterval_infnan libValidSDP.zulp.
 Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Require Import libValidSDP.cholesky libValidSDP.cholesky_infnan.
 
@@ -1549,10 +1549,10 @@ exact: refinesP.
 exact: refinesP.
 Qed.
 
-Global Instance refine_is_sym_seqmx n1 :
+Global Instance refine_is_sym_seqmx n1' :
   refines (list_R (list_R eqFIS) ==> bool_R)
-    (@is_sym _ _ n1.+1 (@heq_seqmx (FIS fs) (@fieq fs)) trmx_seqmx)
-    (@is_sym _ _ n1.+1 (@heq_seqmx (FIS fs) (@fieq fs)) trmx_seqmx) | 99.
+    (@is_sym _ _ n1'.+1 (@heq_seqmx (FIS fs) (@fieq fs)) trmx_seqmx)
+    (@is_sym _ _ n1'.+1 (@heq_seqmx (FIS fs) (@fieq fs)) trmx_seqmx) | 99.
 Proof.
 refines_abstr.
 rewrite /is_sym /trmx_op /heq_op.
@@ -1600,13 +1600,13 @@ rewrite refinesE =>??-> ??->.
 by rewrite (refines_eq ref_f).
 Qed.
 
-Global Instance refine_foldl_diag_seqmx T' n1 :
+Global Instance refine_foldl_diag_seqmx T' n1' :
   forall eqf : T' -> T' -> Type,
   refines ((eqf ==> eqFIS ==> eqf) ==> eqf ==> list_R (list_R eqFIS)  ==> eqf)
-    (@foldl_diag _ _ (@hseqmx) (@fun_of_seqmx (FIS fs) (FIS0 fs)) n1.+1
-       (@I0_instN n1) (@succ0_instN n1) T')
-    (@foldl_diag _ _ (@hseqmx) (@fun_of_seqmx (FIS fs) (FIS0 fs)) n1.+1
-       (@I0_instN n1) (@succ0_instN n1) T').
+    (@foldl_diag _ _ (@hseqmx) (@fun_of_seqmx (FIS fs) (FIS0 fs)) n1'.+1
+       (@I0_instN n1') (@succ0_instN n1') T')
+    (@foldl_diag _ _ (@hseqmx) (@fun_of_seqmx (FIS fs) (FIS0 fs)) n1'.+1
+       (@I0_instN n1') (@succ0_instN n1') T').
 Proof.
 move=> eqf.
 ref_abstr => a a' ref_a.
@@ -1634,9 +1634,9 @@ rewrite /fun_of_op.
   suff_eq nat_Rxx.
   congr S; exact: unify_rel.
   rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n0)).
+  exact: (Rordn_eq (n1 := n1')).
   rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n0)). }
+  exact: (Rordn_eq (n1 := n1')). }
 Qed.
 
 Global Instance refine_foldl_diag' T' :
@@ -1679,14 +1679,14 @@ tc.
 by rewrite refinesE.
 Qed.
 
-Global Instance refine_all_diag_seqmx n1 :
+Global Instance refine_all_diag_seqmx n1' :
   refines ((eqFIS ==> bool_R) ==> list_R (list_R eqFIS) ==> bool_R)
     (@all_diag _ _ (@hseqmx)
-       (@fun_of_seqmx _ (@zero_instFIS fs)) n1.+1 (@I0_instN n1)
-       (@succ0_instN n1))
+       (@fun_of_seqmx _ (@zero_instFIS fs)) n1'.+1 (@I0_instN n1')
+       (@succ0_instN n1'))
     (@all_diag _ _ (@hseqmx)
-       (@fun_of_seqmx _ (@zero_instFIS fs)) n1.+1 (@I0_instN n1)
-       (@succ0_instN n1)).
+       (@fun_of_seqmx _ (@zero_instFIS fs)) n1'.+1 (@I0_instN n1')
+       (@succ0_instN n1')).
 Proof.
 rewrite /all_diag.
 ref_abstr => x x' Hx.
@@ -1752,10 +1752,10 @@ by rewrite refinesE.
 by rewrite refinesE.
 Qed.
 
-Global Instance refine_compute_c_aux_seqmx n1 :
+Global Instance refine_compute_c_aux_seqmx n1' :
   refines (eqFIS ==> eqFIS ==> list_R (list_R eqFIS)  ==> eqFIS ==> eqFIS)
-    (compute_c_aux (ord := ord_instN) (mx := @hseqmx) (n := n1.+1) (T := FIS fs))
-    (compute_c_aux (ord := ord_instN) (mx := @hseqmx) (n := n1.+1) (T := FIS fs)).
+    (compute_c_aux (ord := ord_instN) (mx := @hseqmx) (n := n1'.+1) (T := FIS fs))
+    (compute_c_aux (ord := ord_instN) (mx := @hseqmx) (n := n1'.+1) (T := FIS fs)).
 Proof.
 ref_abstr => a a' ref_a.
 ref_abstr => b b' ref_b.

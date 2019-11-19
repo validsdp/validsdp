@@ -17,7 +17,7 @@ Require Import libValidSDP.Rstruct.
 Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog libValidSDP.coqinterval_infnan.
-Require Import zulp.
+Require Import libValidSDP.zulp.
 Require Import libValidSDP.misc misc.
 
 Import GRing.Theory.
@@ -646,10 +646,10 @@ Context `{!refines (nat_R ==> eqFIS) nat2Fup_instFIS nat2Fup_instFIS}.
 
 Hypothesis eqFIS_P : forall x y, reflect (eqFIS x y) (eq_instFIS x y).
 
-Local Instance refine_posdefcheck {s} :
-  refines (RseqmxC eq_F (nat_Rxx s.+1) (nat_Rxx s.+1) ==> bool_R)
-    (posdefcheck_ssr (s:=s))
-    (posdefcheck_eff (s:=s)).
+Local Instance refine_posdefcheck {s'} :
+  refines (RseqmxC eq_F (nat_Rxx s'.+1) (nat_Rxx s'.+1) ==> bool_R)
+    (posdefcheck_ssr (s:=s'))
+    (posdefcheck_eff (s:=s')).
 Proof.
 rewrite refinesE=> Q Q' rQ.
 rewrite /posdefcheck_ssr /posdefcheck_eff /posdefcheck.
