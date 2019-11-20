@@ -27,7 +27,7 @@ Once OPAM is installed, run:
 
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
-    $ opam install --jobs=2 coq coq-interval coq-mathcomp-field camlp4
+    $ opam install --jobs=2 coq coq-interval coq-mathcomp-field
 
 To ensure that you have these dependencies properly installed, run:
 

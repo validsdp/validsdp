@@ -24,7 +24,6 @@ depends: [
   "coq-interval" {>= "3.4.0" & < "4~"}
   "coq-mathcomp-field" {>= "1.8" & < "1.10~"}
   "ocamlfind"
-  "camlp4"
   "conf-autoconf" {build}
 ]
 synopsis: "LibValidSDP"

@@ -17,7 +17,7 @@ all install html gallinahtml deps.dot deps.png doc dist clean: $(COQ_MAKEFILE)
 
 clean:
 	-$(COQ_MAKE) clean
-	$(RM) $(COQ_MAKEFILE) depend depend.dot depend.png depend.html makedot dependtodot.cm*
+	$(RM) $(COQ_MAKEFILE) depend depend.dot depend.png depend.map makedot dependtodot.cm*
 
 distclean: clean
 	rm -rf autom4te.cache config.status $(COQ_MAKEFILE) $(COQ_MAKEFILE).conf *~ .*.aux .lia.cache

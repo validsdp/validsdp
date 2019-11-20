@@ -1,24 +1,31 @@
-makedot: dependtodot.ml
-	ocamlc -o $@ -pp camlp4o $<
-
-depend.dot:: $(VFILES) makedot
-	coqdep -noglob $(VFILES) | grep -v -e '\.vio:' > depend
-	sed -i -e 's|[/0-9A-Za-z_]*\.v\.beautified||g' depend
-	./makedot depend
-	sed -i -e 's|\./|./ValidSDP.|g' $@
+depend.dot:: $(VFILES)
+	(echo "digraph ValidSDP_deps {" ; \
+	echo "node [shape=ellipse, style=filled, URL=\"ValidSDP.\N.html\", color=white];"; \
+	(coqdep -R . ValidSDP $(VFILES)) | \
+	  sed -n -e 's,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' | \
+	  while read src dst; do \
+	    color=$$(echo "$$src" | sed -e 's,[A-Za-z].*,cornflowerblue,') ; \
+	    echo "\"$$src\" [fillcolor=$$color];" ; \
+	    for d in $${dst}; do \
+	      echo "\"$$src\" -> \"$${d%.vo}\" ;" ; \
+	    done \
+	  done; \
+	echo "}") | tred > $@
 
 depend.png:: depend.dot
 	dot -Tpng $< -o $@
 
-depend.html:: depend.dot
-	dot -Tcmapx $< -o $@
+depend.map:: depend.dot
+	echo "<map name=\"depend\" id=\"depend\">" > $@
+	dot -Tcmap $< | sed -e 's,>$$,/>,' >> $@
+	echo "</map>" >> $@
 
-doc:: html depend.png depend.html validsdp.vo
+doc:: html depend.png depend.map validsdp.vo
 	cp depend.png html/
 	if ! grep -e 'depend[.]png' html/toc.html; then \
 	  sed -i html/toc.html \
 	  -e 's,id=.main.>,&<img src='\''depend.png'\'' border=0 usemap='\''#depend'\'' />,' \
-	  -e '/<img src='\''depend.png'\''/r depend.html'; \
+	  -e '/<img src='\''depend.png'\''/r depend.map'; \
 	fi
 
 test:: testsuite.v validsdp.v

@@ -20,7 +20,7 @@ test:
 
 clean:
 	-$(COQ_MAKE) clean
-	$(RM) $(COQ_MAKEFILE) depend depend.dot depend.png depend.html makedot
+	$(RM) $(COQ_MAKEFILE) depend depend.dot depend.png depend.map makedot
 
 $(COQ_MAKEFILE): $(COQ_PROJ)
 	$(COQBIN)coq_makefile -f $< -o $@
