@@ -8,15 +8,14 @@ env:
   global:
   - NJOBS="2"
   - CONTRIB_NAME="validsdp"
-  - COQEAL_URL="https://github.com/CoqEAL/CoqEAL.git"
-  - COQEAL_VERSION="1993703c194043b0c5e3f1c1877f4b58f3b7b266"
   matrix:
   - COQ_IMAGE="mathcomp/mathcomp:1.8.0-coq-8.7"
   - COQ_IMAGE="mathcomp/mathcomp:1.8.0-coq-8.8"
   - COQ_IMAGE="mathcomp/mathcomp:1.8.0-coq-8.9"
-  # - COQ_IMAGE="mathcomp/mathcomp:1.9.0-coq-8.7"
-  # - COQ_IMAGE="mathcomp/mathcomp:1.9.0-coq-8.8"
-  # - COQ_IMAGE="mathcomp/mathcomp:1.9.0-coq-8.9"
+  - COQ_IMAGE="mathcomp/mathcomp:1.9.0-coq-8.7"
+  - COQ_IMAGE="mathcomp/mathcomp:1.9.0-coq-8.8"
+  - COQ_IMAGE="mathcomp/mathcomp:1.9.0-coq-8.9"
+  - COQ_IMAGE="mathcomp/mathcomp:1.9.0-coq-8.10"
 
 install: |
   # Prepare the COQ container
