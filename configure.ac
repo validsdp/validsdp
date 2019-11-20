@@ -27,13 +27,15 @@ if test "$minor" -le 7; then
 else if test "$minor" -le 8; then
   COQ_VERSION="v88"
   COQPP_EXT="ml4"
-else if test "$minor" -le 8; then
+else if test "$minor" -le 9; then
   COQ_VERSION="v89"
   COQPP_EXT="ml4"
 else
   COQ_VERSION="v810"
   COQPP_EXT="mlg"
 fi ; fi ; fi
+sh -c "cd plugins/soswitness/theories && ln -sf soswitness_${COQ_VERSION}.v soswitness.v"
+
 AC_SUBST(COQ_VERSION)
 AC_SUBST(COQPP_EXT)
 
