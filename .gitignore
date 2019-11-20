@@ -99,3 +99,6 @@ _CoqProject
 *.summary
 *.prf
 *.pvscontext
+
+# autoconf
+ChangeLog
