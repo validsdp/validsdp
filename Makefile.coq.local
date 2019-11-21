@@ -1,7 +1,7 @@
 depend.dot:: $(VFILES)
 	(echo "digraph ValidSDP_deps {" ; \
 	echo "node [shape=ellipse, style=filled, URL=\"ValidSDP.\N.html\", color=white];"; \
-	(coqdep -R . ValidSDP $(VFILES)) | \
+	(coqdep -f _CoqProject $(VFILES)) | \
 	  sed -n -e 's,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' | \
 	  while read src dst; do \
 	    color=$$(echo "$$src" | sed -e 's,[A-Za-z].*,cornflowerblue,') ; \
@@ -20,7 +20,7 @@ depend.map:: depend.dot
 	dot -Tcmap $< | sed -e 's,>$$,/>,' >> $@
 	echo "</map>" >> $@
 
-doc:: html depend.png depend.map validsdp.vo
+doc:: html depend.png depend.map theories/validsdp.vo
 	cp depend.png html/
 	if ! grep -e 'depend[.]png' html/toc.html; then \
 	  sed -i html/toc.html \
@@ -28,5 +28,5 @@ doc:: html depend.png depend.map validsdp.vo
 	  -e '/<img src='\''depend.png'\''/r depend.map'; \
 	fi
 
-test:: testsuite.v validsdp.v
+test:: test-suite/testsuite.v theories/validsdp.v
 	$(COQC) $(COQDEBUG) $(COQFLAGS) $<

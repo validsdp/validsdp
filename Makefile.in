@@ -1,40 +1,70 @@
 # Makefile for ValidSDP
 
-all::
-	$(MAKE) -C plugins/soswitness
-	$(MAKE) -C plugins/soswitness install
-	$(MAKE) -C theories
+COQ_PROJ := _CoqProject
+COQ_MAKEFILE := Makefile.coq
+COQ_MAKE := +$(MAKE) -f $(COQ_MAKEFILE)
 
-doc::
-	$(MAKE) -C theories doc
+ifneq "$(COQBIN)" ""
+	COQBIN := $(COQBIN)/
+else
+	COQBIN := $(dir $(shell which coqc))
+endif
+export COQBIN
 
-info::
+PLUGDIR := plugins/soswitness
+
+MODULE_SDPA := $(PLUGDIR)/test-suite/soswitnesstac_sdpa.v
+
+ifeq (@SDPA_AVAILABLE@,true)
+MODULES := $(MODULE_SDPA)
+else
+MODULES :=
+endif
+
+all test install html gallinahtml doc deps.dot deps.png: $(COQ_MAKEFILE)
+	$(COQ_MAKE) $@
+
+# This rule could be moved to Makefile.coq.local
+$(PLUGDIR)/src/soswitness.@COQPP_EXT@: $(PLUGDIR)/src/soswitness_@COQ_VERSION@.@COQPP_EXT@
+	$(RM) $@
+	cp -f -- $< $@
+	chmod a-w $@
+
+%.vo: %.v
+	$(COQ_MAKE) $@
+
+$(COQ_MAKEFILE): $(COQ_PROJ) $(MODULES) $(PLUGDIR)/src/soswitness.@COQPP_EXT@
+	@ocamlfind query zarith >/dev/null
+	@ocamlfind query ocplib-simplex >/dev/null
+	@ocamlfind query osdp >/dev/null
+	$(COQBIN)coq_makefile \
+		-I "$(shell ocamlfind query zarith)" \
+		-I "$(shell ocamlfind query ocplib-simplex)" \
+		-I "$(shell ocamlfind query osdp)" \
+		-f $< $(MODULES) -o $@
+	# FIXME: This sed hack is fragile (if we do "make -B" for example)
+	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
+
+clean:
+	-$(COQ_MAKE) clean
+	$(RM) depend depend.dot depend.png depend.map
+	$(RM) theories/testsuite.vo theories/testsuite.glob
+
+distclean: clean
+	$(RM) -r autom4te.cache
+	$(RM) config.log config.status configure
+	$(RM) _CoqProject Makefile Makefile.coq.conf
+	$(RM) $(COQ_MAKEFILE) $(PLUGDIR)/src/soswitness.@COQPP_EXT@
+	$(RM) $(PLUGDIR)/theories/soswitness.v
+
+info:
+	@echo $(SOSWITNESS_DIR)
 	@echo "You can run:"
-	@echo "    'make install' to build and install ValidSDP"
+	@echo "    'make' to build ValidSDP"
+	@echo "    'make install' to install ValidSDP"
+	@echo "    'make test' to run several tests"
 	@echo "    'make doc' to build the documentation of the library"
-	@echo "    'make clean' to remove all generated files"
-	@echo "    'make dist' to prepare an archive for distribution"
+	@echo "    'make clean' to remove generated files"
+	@echo "    'make distclean' to remove all generated files"
 
-DIST1 = dist1
-DIST2 = dist2
-FILES = AUTHORS README.md configure Makefile.in
-
-install::
-	$(MAKE) -C plugins/soswitness
-	$(MAKE) -C plugins/soswitness install
-	$(MAKE) -C theories
-	$(MAKE) -C theories install
-
-clean::
-	([ -f external/CoqEAL/theory/Makefile ] && $(MAKE) -C external/CoqEAL/theory clean )
-	([ -f external/CoqEAL/refinements/Makefile ] && $(MAKE) -C external/CoqEAL/refinements clean )
-	$(MAKE) -C plugins/soswitness clean
-	$(MAKE) -C theories clean
-
-dist::
-	autoreconf
-	$(MAKE) -C plugins/soswitness dist
-	$(MAKE) -C theories dist
-	export T=$$(readlink -f $$(mktemp -d dist.XXX)) && export S=@PACKAGE_TARNAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDvR $(FILES) $$T/$$S && rsync -rlpgoDv $$(readlink $(DIST1))/ $$(readlink $(DIST2))/ $$T/$$S && git submodule foreach 'git archive --format=tar HEAD | (mkdir -p $$T/$$S/$$path && cd $$T/$$S/$$path && tar xf -)' && rm -fr $$T/$$S/external/CoqEAL/{v0.1,0.2,release}; (cd $$T && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
-	$(RM) -r $$(readlink $(DIST1)) $$(readlink $(DIST2))
-	$(RM) $(DIST1) $(DIST2)
+.PHONY: all clean distclean test install html gallinahtml doc info

@@ -18,7 +18,7 @@ Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog libValidSDP.coqinterval_infnan.
 Require Import libValidSDP.zulp.
-Require Import libValidSDP.misc misc.
+Require Import libValidSDP.misc ValidSDP.misc.
 
 Import GRing.Theory.
 Import Num.Theory.

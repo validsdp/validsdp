@@ -19,8 +19,8 @@ Import Refinements.Op.
 Require Import cholesky_prog libValidSDP.coqinterval_infnan.
 From CoqEAL.refinements Require Import multipoly. Import PolyAVL.
 Require Import libValidSDP.zulp.
-Require Import libValidSDP.misc misc.
-From ValidSDP Require Export soswitness.
+Require Import libValidSDP.misc ValidSDP.misc.
+Require Export soswitness.
 
 Import GRing.Theory.
 Import Num.Theory.

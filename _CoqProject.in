@@ -1,0 +1,22 @@
+-I plugins/soswitness/src
+-R plugins/soswitness/src @PACKAGE_NAME@
+-R plugins/soswitness/theories @PACKAGE_NAME@
+-R plugins/soswitness/test-suite @PACKAGE_NAME@
+-R theories @PACKAGE_NAME@
+
+plugins/soswitness/src/soswitness.@COQPP_EXT@
+plugins/soswitness/src/soswitness.mllib
+plugins/soswitness/theories/soswitness.v
+plugins/soswitness/test-suite/soswitnesstac.v
+# OPTIONAL: plugins/soswitness/test-suite/soswitnesstac_sdpa.v
+
+theories/misc.v
+theories/cholesky_prog.v
+theories/iteri_ord.v
+theories/bigop_tactics.v
+theories/ssrmultinomials_complements.v
+theories/matrices.v
+theories/posdef_check.v
+theories/validsdp.v
+
+COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R . @PACKAGE_NAME@"

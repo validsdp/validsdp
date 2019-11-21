@@ -4,7 +4,7 @@
 
 Require Import Reals Flocq.Core.Fcore_Raux.
 
-Require Import misc.
+Require Import ValidSDP.misc.
 
 Require Import Psatz.
 

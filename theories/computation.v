@@ -1,5 +1,5 @@
 Require Import Reals Flocq.Core.Fcore_Raux.
-Require Import misc.
+Require Import ValidSDP.misc.
 Require Import Psatz.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
 Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.algebra.ssralg mathcomp.ssreflect.bigop.

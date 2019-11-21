@@ -144,10 +144,10 @@ fi
 AC_SUBST(SDPA_AVAILABLE)
 
 # Create files
-AC_CONFIG_FILES([Makefile plugins/soswitness/Makefile theories/_CoqProject])
+AC_CONFIG_FILES([Makefile _CoqProject])
 AC_OUTPUT
-chmod a-w Makefile plugins/soswitness/Makefile theories/_CoqProject
+chmod a-w Makefile _CoqProject
 
 echo ""
-echo "  Now run 'make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
+echo "  Now run 'make && make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
 echo ""
