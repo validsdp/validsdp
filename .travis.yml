@@ -21,7 +21,8 @@ install: |
   # Prepare the COQ container
   docker pull ${COQ_IMAGE}
   docker run -d -i --init --name=COQ -v ${TRAVIS_BUILD_DIR}:/home/coq/${CONTRIB_NAME} -w /home/coq/${CONTRIB_NAME} ${COQ_IMAGE}
-  docker exec COQ /bin/bash --login -c "
+  # travis_wait to get 20 min timeout instead of 10 because of Flocq very large files Pff*
+  travis_wait docker exec COQ /bin/bash --login -c "
     export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '; set -ex
     : Updating OPAM cache
     opam update -y
@@ -30,8 +31,7 @@ install: |
     opam pin add -n -y -k path coq-libvalidsdp .
     opam pin add -n -y -k path coq-validsdp .
     opam remove -y coq-mathcomp-character  # Check coq-mathcomp-field is enough
-    # travis_wait to get 20 min timeout instead of 10 because of Flocq very large files Pff*
-    travis_wait opam install -y -v -j ${NJOBS} coq-libvalidsdp --deps-only
+    opam install -y -v -j ${NJOBS} coq-libvalidsdp --deps-only
     opam config list; opam repo list; opam list
     : done" deps-coq-libvalidsdp
 
