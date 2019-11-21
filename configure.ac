@@ -42,16 +42,6 @@ AC_SUBST(COQPP_EXT)
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
 
-# Camlp4 is used to compile documentation
-AC_MSG_CHECKING([for camlp4])
-AS_IF(
-  [ echo "" > conftest.ml
-    $OCAMLC -o conftest -pp camlp4o conftest.ml > conftest.err ],
-  [ AC_MSG_RESULT([yes]) ],
-  [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find camlp4o (opam package camlp4)])])
-rm -f conftest conftest.cmi conftest.cmo conftest.ml conftest.err
-
 # Check for libraries
 AC_MSG_CHECKING([for Mathcomp])
 AS_IF(
