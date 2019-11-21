@@ -130,7 +130,7 @@ AS_IF(
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library libValidSDP (c.f. directory libvalidsdp)])])
+    AC_MSG_ERROR([ *** Unable to find library libValidSDP (cf. directory libvalidsdp)])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_CHECK_TOOL([SDPA], [sdpa], [no])
@@ -149,6 +149,5 @@ AC_OUTPUT
 chmod a-w Makefile plugins/soswitness/Makefile theories/_CoqProject
 
 echo ""
-echo "  Now run 'make external' to build and install extra Coq dependencies"
-echo "  then run 'make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
+echo "  Now run 'make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
 echo ""
