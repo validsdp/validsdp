@@ -30,7 +30,8 @@ install: |
     opam pin add -n -y -k path coq-libvalidsdp .
     opam pin add -n -y -k path coq-validsdp .
     opam remove -y coq-mathcomp-character  # Check coq-mathcomp-field is enough
-    opam install -y -v -j ${NJOBS} coq-libvalidsdp --deps-only
+    # travis_wait to get 20 min timeout instead of 10 because of Flocq very large files Pff*
+    travis_wait opam install -y -v -j ${NJOBS} coq-libvalidsdp --deps-only
     opam config list; opam repo list; opam list
     : done" deps-coq-libvalidsdp
 
