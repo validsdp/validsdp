@@ -143,3 +143,9 @@ run:
 
 The documentation can then be browsed from "theories/html/toc.html"
 with your favorite browser.
+
+License
+-------
+
+The ValidSDP and libValidSDP libraries are distributed under the terms
+of the [GNU Lesser General Public License v2.1 or later](./LICENSE).

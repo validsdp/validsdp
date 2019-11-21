@@ -8,7 +8,7 @@ maintainer: [
 homepage: "https://sourcesup.renater.fr/validsdp/"
 dev-repo: "git+https://github.com/validsdp/validsdp.git"
 bug-reports: "https://github.com/validsdp/validsdp/issues"
-license: "LGPL"
+license: "LGPL-2.1-or-later"
 
 build: [
   ["sh" "-c" "cd libvalidsdp && ./autogen.sh && ./configure"]
