@@ -57,7 +57,7 @@ distclean: clean
 	$(RM) $(COQ_MAKEFILE) $(PLUGDIR)/src/soswitness.@COQPP_EXT@
 	$(RM) $(PLUGDIR)/theories/soswitness.v
 
-info:
+help:
 	@echo $(SOSWITNESS_DIR)
 	@echo "You can run:"
 	@echo "    'make' to build ValidSDP"
@@ -67,4 +67,4 @@ info:
 	@echo "    'make clean' to remove generated files"
 	@echo "    'make distclean' to remove all generated files"
 
-.PHONY: all clean distclean test install html gallinahtml doc info
+.PHONY: all clean distclean test install html gallinahtml doc help
