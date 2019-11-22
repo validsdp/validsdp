@@ -19,23 +19,37 @@ Dependencies
 See also the [coq-libvalidsdp.opam](../coq-libvalidsdp.opam) file for the
 detail of libValidSDP dependencies' version contraints.
 
-Installation
-------------
+Install the dev version with Autoconf and OPAM
+----------------------------------------------
 
-All dependencies can be easily installed with [OPAM](https://opam.ocaml.org/).
-Once OPAM is installed, run:
+If you rely on [OPAM](https://opam.ocaml.org) to manage your Coq
+installation, you can install the libValidSDP library by doing:
+
+	$ cd ..
+    $ opam pin add -n -y -k path coq-libvalidsdp.dev .
+    $ opam install --jobs=2 coq-libvalidsdp
+
+All libValidSDP dependencies are hosted in the
+[opam-coq-archive](https://github.com/coq/opam-coq-archive) project,
+so you will have to type the following commands beforehand, if your
+OPAM installation does not know yet about this OPAM repository:
 
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
-    $ opam install --jobs=2 coq coq-interval coq-mathcomp-field
 
-To ensure that you have these dependencies properly installed, run:
+Build the dev version with Autoconf and Make
+--------------------------------------------
 
-    $ ./configure
+We assume you have [Autoconf](https://www.gnu.org/software/autoconf/)
+and a Coq installation managed by [OPAM](https://opam.ocaml.org).
 
-Finally, to build and install libValidSDP, run:
+Then, you can install the libValidSDP dependencies by doing:
 
-    $ make install
+    $ ( cd .. && opam install coq-libvalidsdp . --deps-only )
+
+Finally, you can build and install the libValidSDP library by doing:
+
+    $ ./autogen.sh && ./configure && make && make install
 
 Documentation
 -------------
@@ -45,5 +59,5 @@ run:
 
     $ make doc
 
-The documentation can then be browsed from "html/toc.html"
+The documentation can then be browsed from the page `html/toc.html`
 with your favorite browser.

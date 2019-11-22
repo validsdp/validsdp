@@ -23,26 +23,49 @@ Dependencies
 See also the [coq-validsdp.opam](./coq-validsdp.opam) file for the
 detail of ValidSDP dependencies' version contraints.
 
-Installation
-------------
+Install the dev version with Autoconf and OPAM
+----------------------------------------------
 
-First install libValidSDP (see instructions in libvalidsdp/README.md).
+If you rely on [OPAM](https://opam.ocaml.org) to manage your Coq
+installation, you can install the ValidSDP library by doing:
 
-Most of the remaining dependencies (Multinomials, paramcoq, CoqEAL and OSDP)
-can be easily installed with [OPAM](https://opam.ocaml.org/).
-Once OPAM is installed, run:
+    $ opam pin add -n -y -k path coq-libvalidsdp.dev .
+    $ opam pin add -n -y -k path coq-validsdp.dev .
+    $ opam install --jobs=2 coq-validsdp
+
+All ValidSDP dependencies are hosted in the
+[opam-coq-archive](https://github.com/coq/opam-coq-archive) project,
+so you will have to type the following commands beforehand, if your
+OPAM installation does not know yet about this OPAM repository:
 
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
-    $ opam install --jobs=2 coq-mathcomp-multinomials coq-coqeal osdp
 
-To ensure that you have all dependencies properly installed, run:
+Build the dev version with Autoconf and Make
+--------------------------------------------
 
-    $ ./configure
+We assume you have [Autoconf](https://www.gnu.org/software/autoconf/)
+and a Coq installation managed by [OPAM](https://opam.ocaml.org).
 
-Finally, to build and install ValidSDP, run:
+Then, you can install the ValidSDP dependencies by doing:
 
-    $ make install
+    $ opam pin add -n -y -k path coq-libvalidsdp.dev .
+    $ opam install coq-validsdp . --deps-only
+
+Finally, you can build and install the ValidSDP library by doing:
+
+    $ ./autogen.sh && ./configure && make && make install
+
+Documentation
+-------------
+
+To generate documentation from the Coq code, you should just have to
+run:
+
+    $ make doc
+
+The documentation can then be browsed from the page `html/toc.html`
+with your favorite browser.
 
 Usage
 -----
@@ -131,18 +154,6 @@ Examples
 
 Examples of usage of the tactic can be found at the end of the file
 "theories/validsdp.v" as well as in the file "theories/testsuite.v"
-
-Documentation
--------------
-
-To generate documentation from the Coq code, you should just have to
-run:
-
-    $ cd theories
-    $ make doc
-
-The documentation can then be browsed from "theories/html/toc.html"
-with your favorite browser.
 
 License
 -------
