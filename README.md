@@ -159,5 +159,5 @@ Examples of usage of the tactic can be found at the end of the file
 License
 -------
 
-The ValidSDP and libValidSDP libraries are distributed under the terms
-of the [GNU Lesser General Public License v2.1 or later](./LICENSE).
+The ValidSDP and [libValidSDP](./libvalidsdp/) libraries are distributed under
+the terms of the [GNU Lesser General Public License v2.1 or later](./LICENSE).
