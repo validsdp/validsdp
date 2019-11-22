@@ -150,4 +150,5 @@ chmod a-w Makefile _CoqProject
 
 echo ""
 echo "  Now run 'make && make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
+echo "  (or run 'make help' to get for more info on the available rules)"
 echo ""
