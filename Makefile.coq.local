@@ -2,7 +2,7 @@ depend.dot:: $(VFILES)
 	(echo "digraph ValidSDP_deps {" ; \
 	echo "node [shape=ellipse, style=filled, URL=\"ValidSDP.\N.html\", color=white];"; \
 	(coqdep -f _CoqProject $(VFILES)) | \
-	  sed -n -e 's,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' | \
+	sed -n -e 's,plugins/soswitness/\|src/\|test-suite/\|theories/,,g;s/[.]vo.*: [^ ]*[.]v//p' | \
 	  while read src dst; do \
 	    color=$$(echo "$$src" | sed -e 's,[A-Za-z].*,cornflowerblue,') ; \
 	    echo "\"$$src\" [fillcolor=$$color];" ; \
