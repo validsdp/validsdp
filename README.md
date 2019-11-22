@@ -153,7 +153,8 @@ Examples
 
 
 Examples of usage of the tactic can be found at the end of the file
-"theories/validsdp.v" as well as in the file "theories/testsuite.v"
+[theories/validsdp.v](./theories/validsdp.v) as well as in the file
+[test-suite/testsuite.v](./test-suite/testsuite.v)
 
 License
 -------
