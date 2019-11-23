@@ -1,3 +1,5 @@
+# Makefile for libValidSDP
+
 COQ_PROJ := _CoqProject
 COQ_MAKEFILE := Makefile.coq
 COQ_MAKE := +$(MAKE) -f $(COQ_MAKEFILE)
@@ -9,11 +11,14 @@ else
 endif
 export COQBIN
 
-all install html gallinahtml doc deps.dot deps.png: $(COQ_MAKEFILE)
+all install html gallinahtml doc deps.dot deps.png: $(COQ_MAKEFILE) Makefile
 	$(COQ_MAKE) $@
 
 %.vo: %.v
 	$(COQ_MAKE) $@
+
+$(COQ_MAKEFILE): $(COQ_PROJ)
+	$(COQBIN)coq_makefile -f $< -o $@
 
 clean:
 	-$(COQ_MAKE) clean
@@ -22,29 +27,32 @@ clean:
 distclean: clean
 	$(RM) -r autom4te.cache
 	$(RM) config.log config.status configure
-	$(RM) _CoqProject
+	$(RM) _CoqProject Makefile
 	$(RM) $(COQ_MAKEFILE) $(COQ_MAKEFILE).conf
+	$(RM) coqinterval_infnan.v
 	$(RM) *~ .*.aux .lia.cache
 
-$(COQ_MAKEFILE): $(COQ_PROJ)
-	$(COQBIN)coq_makefile -f $< -o $@
 
-
-FILES = ../AUTHORS ../LICENSE Makefile Makefile.coq.local _CoqProject.in\
+FILES = ../AUTHORS ../LICENSE Makefile.in Makefile.coq.local _CoqProject.in\
   README.md
 
 # This must be disabled to cope with the distributed (stable) tarballs
 # configure: configure.ac
 # 	./autogen.sh
 
-_CoqProject: _CoqProject.in configure
+Makefile: Makefile.in configure
 	./configure
+
+_CoqProject: _CoqProject.in configure | Makefile
+#	./configure
 
 -include $(COQ_MAKEFILE).conf
 
+EXTRA_VFILES := coqinterval_infnan_31.v coqinterval_infnan_63.v
+
 # Create a tarball dist.YYYY-MM-DD.XXX/libvalidsdp-a.b.c.tar.gz
 # containing libvalidsdp-a.b.c/ with $(FILES), configure, and the *.v
-dist: configure $(COQMF_VFILES)
-	export T=$$(readlink -f $$(mktemp -d dist.$$(date -I).XXX)) && export S=@PACKAGE_TARNAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDvR $(FILES) $^ $$T/$$S && (cd $$T && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
+dist: configure $(filter-out coqinterval_infnan.v, $(COQMF_VFILES)) $(EXTRA_VFILES)
+	export T=$$(readlink -f $$(mktemp -d dist.$$(date -I).XXX)) && export S=@PACKAGE_TARNAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDv $(FILES) $^ $$T/$$S && (cd $$T && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
 
 .PHONY: all plugin install html gallinahtml doc clean distclean dist
