@@ -3,24 +3,17 @@
 Require Import Reals Rstruct.
 From Bignums Require Import BigZ.
 
-Require Import Flocq.Core.Zaux.
-Require Import Flocq.Core.Raux.
 Require Import Flocq.Core.Defs.
 Require Import Flocq.Core.Digits.
 Require Import Flocq.Core.Generic_fmt.
 Require Import Flocq.Core.FLX.
-Require Import Flocq.Core.Float_prop.
 
-Require Import Interval.Interval_float_sig.
-Require Import Interval.Interval_specific_ops.
-Require Import Interval.Interval_interval.
-Require Import Interval.Interval_interval_float_full.
-Require Import Interval.Interval_bigint_carrier.
-Require Import Interval.Interval_definitions.
-Require Import Interval.Interval_generic.
-Require Import Interval.Interval_generic_proof.
-Require Import Interval.Interval_xreal.
-Require Import Interval.Interval_missing.
+Require Import Interval.Float.Specific_bigint.
+Require Import Interval.Float.Specific_ops.
+Require Import Interval.Float.Basic.
+Require Import Interval.Float.Generic_proof.
+Require Import Interval.Real.Xreal.
+Require Import Interval.Missing.Stdlib.
 
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 
@@ -91,7 +84,7 @@ have {Hn} [Zn|NZn] := Hn.
     exists p; by rewrite -E.
     clear NZn; exfalso; simpl in E.
     by have := BigN.spec_pos n; rewrite E; auto. }
-  rewrite -Interval_generic_proof.digits_conversion.
+  rewrite -digits_conversion.
   rewrite /Zdigits2; f_equal.
   rewrite /= /Bir.MtoP; simpl in NZn.
   have := BigN.spec_pos n; case: [n]%bigN NZn => [p|p|] NZn; try done. }
@@ -109,7 +102,7 @@ have {Hn} [Zn|NZn] := Hn.
     exists p; by rewrite -E.
     clear NZn; exfalso; simpl in E.
     by have := BigN.spec_pos n; rewrite E; auto. }
-  rewrite -Interval_generic_proof.digits_conversion.
+  rewrite -digits_conversion.
   rewrite [RHS]Zdigits_opp /Zdigits2; f_equal.
   rewrite /= /Bir.MtoP; simpl in NZn.
   have := BigN.spec_pos n; case: [n]%bigN NZn => [p|p|] NZn; try done. }
@@ -138,11 +131,11 @@ Definition signif_digits (m : bigZ) :=
 
 Lemma signif_digits_correct m e :
   (signif_digits m <=? prec)%bigZ <=>
-  mantissa_bounded (Interval_specific_ops.Float m e).
+  mantissa_bounded (Specific_ops.Float m e).
 Proof.
 split => H.
 { rewrite /mantissa_bounded /x_bounded; right.
-  exists (toR (Interval_specific_ops.Float m e)); first by rewrite -real_FtoX_toR.
+  exists (toR (Specific_ops.Float m e)); first by rewrite -real_FtoX_toR.
   rewrite /signif_digits in H.
   exists (Defs.Float radix2
                       [m / bigZulp m]%bigZ
@@ -271,8 +264,8 @@ Qed.
 
 Definition is_mantissa_bounded (x : F.type) :=
   match x with
-  | Interval_specific_ops.Fnan => true
-  | Interval_specific_ops.Float m e => (signif_digits m <=? prec)%bigZ
+  | Specific_ops.Fnan => true
+  | Specific_ops.Float m e => (signif_digits m <=? prec)%bigZ
   end.
 
 Lemma mantissa_boundedP x : is_mantissa_bounded x <=> mantissa_bounded x.
@@ -285,9 +278,9 @@ Record FI := { FI_val :> F.type; FI_prop : is_mantissa_bounded FI_val }.
 
 Definition F2FI_val (f : F.type) : F.type :=
   match f with
-    | Interval_specific_ops.Fnan => Interval_specific_ops.Fnan
-    | Interval_specific_ops.Float m e =>
-      if (signif_digits m <=? 53)%bigZ then f else Interval_specific_ops.Fnan
+    | Specific_ops.Fnan => Specific_ops.Fnan
+    | Specific_ops.Float m e =>
+      if (signif_digits m <=? 53)%bigZ then f else Specific_ops.Fnan
   end.
 
 Lemma F2FI_proof (x : F.type) : is_mantissa_bounded (F2FI_val x).
@@ -318,12 +311,12 @@ Qed.
 Definition FI0 := Build_FI FI0_proof.
 
 Lemma mantissa_bounded_bpow n :
-  is_mantissa_bounded (Interval_specific_ops.Float 1%bigZ n).
+  is_mantissa_bounded (Specific_ops.Float 1%bigZ n).
 Proof.
 apply/mantissa_boundedP.
 unfold mantissa_bounded, x_bounded; simpl; right; exists (bpow radix2 [n]%bigZ).
 { unfold F.toX, F.toF, FtoX.
-  change (Bir.mantissa_sign 1) with (Interval_specific_sig.Mnumber false 1%bigN).
+  change (Bir.mantissa_sign 1) with (Specific_sig.Mnumber false 1%bigN).
   simpl.
   unfold FtoR, Bir.EtoZ; simpl.
   case ([n]%bigZ); [now simpl| |]; intro p; unfold bpow; simpl.
@@ -353,7 +346,7 @@ Lemma m_ge_2 : 2 <= m.
 Proof. apply Rle_refl. Qed.
 
 Lemma toR_Float (m e : bigZ) :
-  toR (Interval_specific_ops.Float m e) = (IZR [m]%bigZ * bpow F.radix [e]%bigZ)%Re.
+  toR (Specific_ops.Float m e) = (IZR [m]%bigZ * bpow F.radix [e]%bigZ)%Re.
 Proof.
 rewrite /F.toX /F.toF /=.
 have := Bir.mantissa_sign_correct m.

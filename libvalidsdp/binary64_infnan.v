@@ -4,13 +4,10 @@
     record [Float_infnan_spec] corresponding to IEEE754 binary64 format with
     a rounding to nearest with overflows and NaN. *)
 
-Require Import Reals Rstruct.
+Require Import Reals Rstruct Psatz.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 
 Require Import float_spec binary64 float_infnan_spec.
-
-Require Import Flocq.IEEE754.Binary.
-Require Import Flocq.IEEE754.Bits.
 
 Require Import Flocq.Core.Zaux.
 Require Import Flocq.Core.Raux.
@@ -19,7 +16,8 @@ Require Import Flocq.Core.Generic_fmt.
 Require Import Flocq.Core.FLT.
 Require Import Flocq.Core.Float_prop.
 
-Require Import Psatz.
+Require Import Flocq.IEEE754.Binary.
+Require Import Flocq.IEEE754.Bits.
 
 Open Scope R_scope.
 
