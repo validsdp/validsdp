@@ -38,6 +38,8 @@ tramp
 
 ### Coq ###
 *.vo
+*.vos
+*.vok
 *.glob
 *.v.d
 .*.aux
