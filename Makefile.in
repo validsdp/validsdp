@@ -48,13 +48,14 @@ $(COQ_MAKEFILE): $(COQ_PROJ) $(MODULES) $(PLUGDIR)/src/soswitness.@COQPP_EXT@
 clean:
 	-$(COQ_MAKE) clean
 	$(RM) depend depend.dot depend.png depend.map
+	$(RM) $(PLUGDIR)/src/soswitness.@COQPP_EXT@
 	$(RM) theories/testsuite.vo theories/testsuite.glob
 
 distclean: clean
 	$(RM) -r autom4te.cache
 	$(RM) config.log config.status configure
 	$(RM) _CoqProject Makefile Makefile.coq.conf
-	$(RM) $(COQ_MAKEFILE) $(PLUGDIR)/src/soswitness.@COQPP_EXT@
+	$(RM) $(COQ_MAKEFILE)
 	$(RM) $(PLUGDIR)/theories/soswitness.v
 
 FILES = AUTHORS LICENSE Makefile.in Makefile.coq.local _CoqProject.in\
