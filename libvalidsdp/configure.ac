@@ -36,7 +36,7 @@ AS_IF(
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find theories rat, matrix, countalg from mathcomp >= 1.6.1 (http://coq.io/opam/coq-mathcomp-field.1.6.1.html)])])
+    AC_MSG_ERROR([ *** Unable to find theories rat, matrix, countalg from mathcomp >= 1.8.0 (http://coq.io/opam/coq-mathcomp-field.1.8.0.html)])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Flocq])
