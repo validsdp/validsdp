@@ -19,7 +19,6 @@ coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$
 AC_MSG_RESULT($coq_version)
 AX_VERSION_GE([$coq_version], 8.11, [],
   [ AC_MSG_ERROR([must be at least 8.11.]) ])
-
 COQ_VERSION="v811"
 AC_SUBST(COQ_VERSION)
 

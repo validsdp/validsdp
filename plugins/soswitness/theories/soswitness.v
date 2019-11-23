@@ -12,4 +12,8 @@ Register s_csdp as validsdp.soswitness.tac_parameters.s_csdp.
 Register s_mosek as validsdp.soswitness.tac_parameters.s_mosek.
 Register s_verbose as validsdp.soswitness.tac_parameters.s_verbose.
 
+From Ltac2 Require Import Ltac2.
+
 Declare ML Module "soswitness".
+
+Ltac2 @ external soswitness2 : constr -> constr list -> constr := "soswitness" "soswitness2".

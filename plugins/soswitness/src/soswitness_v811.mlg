@@ -1,8 +1,35 @@
-(*i camlp4deps: "grammar/grammar.cma" i*)
-
-DECLARE PLUGIN "soswitness"
-
 {
+
+open Ltac2_plugin
+module Value = Tac2ffi
+open Value
+(* open Proofview.Notations *)
+
+(* Helper functions *)
+
+let return x = Proofview.tclUNIT x
+let pname s = { Tac2expr.mltac_plugin = "soswitness"; mltac_tactic = s }
+
+let define_primitive name arity f =
+  Tac2env.define_primitive (pname name) (mk_closure arity f)
+
+let define0 name f = define_primitive name arity_one (fun _ -> f)
+
+let define1 name r0 f = define_primitive name arity_one begin fun x ->
+  f (Value.repr_to r0 x)
+end
+
+let define2 name r0 r1 f = define_primitive name (arity_suc arity_one) begin fun x y ->
+  f (Value.repr_to r0 x) (Value.repr_to r1 y)
+end
+
+let define3 name r0 r1 r2 f = define_primitive name (arity_suc (arity_suc arity_one)) begin fun x y z ->
+  f (Value.repr_to r0 x) (Value.repr_to r1 y) (Value.repr_to r2 z)
+end;;
+
+let v_unit = Value.of_unit ()
+
+let thaw f = Tac2ffi.apply f [v_unit]
 
 exception Parse_error
 
@@ -431,16 +458,18 @@ let soswitness intro options c =
   if not intro then (wits, t)
   else (mkPair ty_bigQ t mkBigQ (fun t -> t) (lb, wits), tyPair ty_bigQ t)
 
-let soswitness intro options gl c id =
+let soswitness intro options c =
   let (v, t), ti = Osdp.Utils.profile (fun () -> soswitness intro options c) in
   if options.Sos.verbose > 0 then
     Format.printf "soswitness took: %.2fs@." ti;
   let v = EConstr.of_constr v in
-  let t = EConstr.of_constr t in
-  Tactics.letin_tac None (Names.Name id) v (Some t) Locusops.nowhere
-
-let soswitness_opts ?(intro=false) gl c id opts =
-  let opts = ofList ofParameters opts in
+  (* let t = EConstr.of_constr t in *)
+  (* Tactics.letin_tac None (Names.Name id) v (Some t) Locusops.nowhere *)
+  v
+  
+let soswitness_opts ?(intro=false) c opts =
+  let opts = List.map (* ofList *) ofParameters opts in
+  Format.printf "len: %d@." (List.length opts);
   let options =
     List.fold_left
       (fun options opt -> match opt with
@@ -462,38 +491,64 @@ let soswitness_opts ?(intro=false) gl c id opts =
              Sos.sdp =
                { options.Sos.sdp with Osdp.Sdp.verbose = n } } )
       Sos.default opts in
-  try soswitness intro options gl c id
-  with SosFail (level, msg) -> failtac level msg
-     | Failure msg -> failtac maxlevel (Pp.str msg)
-     | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
-            failtac maxlevel Pp.(str msg)
+  try
+    let c = soswitness intro options c in
+    let () = Format.printf "  *** success@." in
+    let res = Proofview.tclUNIT (Value.of_constr c) in
+    let () = Format.printf "  *** apres of_constr@." in
+    res
+  with e ->
+    let () = Format.printf "  *** exception@." in
+    Proofview.tclZERO e (* SosFail (level, msg) -> failtac level msg
+      * | Failure msg -> failtac maxlevel (Pp.str msg)
+      * | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
+      *        failtac maxlevel Pp.(str msg) *)
 
-open Stdarg
-open Ltac_plugin
+(* (\** constr -> ident -> unit *\)
+ * let () = define2 "soswitness2" constr ident begin fun c id ->
+ *   Proofview.Goal.enter (fun gl ->
+ *     let c = EConstr.Unsafe.to_constr c in
+ *     let opts =
+ *       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
+ *     soswitness_opts gl c id opts) >>= fun () -> return v_unit
+ *   end *)
+
+(** constr -> constr list -> constr *)
+let () = define2 "soswitness2" constr (list constr) begin fun c opts ->
+  let c = EConstr.Unsafe.to_constr c in
+  let opts = List.map EConstr.Unsafe.to_constr opts in
+  soswitness_opts c opts (* >>= fun c -> Proofview.tclUNIT (Value.of_constr c) *)
+end
+
+(* open Stdarg
+ * open Ltac_plugin
+ * 
+ * TACTIC EXTEND soswitness_of_as
+ * ["soswitness" "of" constr(c) "as" ident(id) ] ->
+ * [ Proofview.Goal.enter (fun gl ->
+ *     let c = EConstr.Unsafe.to_constr c in
+ *     let opts =
+ *       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
+ *     soswitness_opts gl c id opts) ]
+ * |
+ * ["soswitness" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
+ * [ Proofview.Goal.enter (fun gl ->
+ *     let c = EConstr.Unsafe.to_constr c in
+ *     let opts = EConstr.Unsafe.to_constr opts in
+ *     soswitness_opts gl c id opts) ]
+ * |
+ * ["soswitness_intro" "of" constr(c) "as" ident(id) ] ->
+ * [ Proofview.Goal.enter (fun gl ->
+ *     let c = EConstr.Unsafe.to_constr c in
+ *     let opts =
+ *       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
+ *     soswitness_opts ~intro:true gl c id opts) ]
+ * |
+ * ["soswitness_intro" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
+ * [ Proofview.Goal.enter (fun gl ->
+ *     let c = EConstr.Unsafe.to_constr c in
+ *     let opts = EConstr.Unsafe.to_constr opts in
+ *     soswitness_opts ~intro:true gl c id opts) ]
+ * END *)
 
 }
-
-TACTIC EXTEND soswitness_of_as
-| ["soswitness" "of" constr(c) "as" ident(id) ] ->
-{ Proofview.Goal.enter (fun gl ->
-    let c = EConstr.Unsafe.to_constr c in
-    let opts =
-      mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
-    soswitness_opts gl c id opts) }
-| ["soswitness" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
-{ Proofview.Goal.enter (fun gl ->
-    let c = EConstr.Unsafe.to_constr c in
-    let opts = EConstr.Unsafe.to_constr opts in
-    soswitness_opts gl c id opts) }
-| ["soswitness_intro" "of" constr(c) "as" ident(id) ] ->
-{ Proofview.Goal.enter (fun gl ->
-    let c = EConstr.Unsafe.to_constr c in
-    let opts =
-      mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
-    soswitness_opts ~intro:true gl c id opts) }
-| ["soswitness_intro" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
-{ Proofview.Goal.enter (fun gl ->
-    let c = EConstr.Unsafe.to_constr c in
-    let opts = EConstr.Unsafe.to_constr opts in
-    soswitness_opts ~intro:true gl c id opts) }
-END
