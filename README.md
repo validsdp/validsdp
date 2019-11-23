@@ -57,6 +57,12 @@ Finally, you can build and install the ValidSDP library by doing:
 
     $ ./autogen.sh && ./configure && make && make install
 
+Note that the command above is necessary if you build the dev version
+of ValidSDP (e.g. from a git clone) while the release tarballs already
+contain a `configure` script, so in this case you'll just need to run:
+
+    $ ./configure && make && make install
+
 Documentation
 -------------
 
