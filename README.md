@@ -23,6 +23,30 @@ Dependencies
 See also the [coq-validsdp.opam](./coq-validsdp.opam) file for the
 detail of ValidSDP dependencies' version contraints.
 
+Install the stable version with OPAM
+------------------------------------
+
+ValidSDP can be easily installed using [OPAM](https://opam.ocaml.org),
+to do this you will just need to run:
+
+    $ opam install --jobs=2 coq-validsdp
+
+ValidSDP and all its dependencies are hosted in the
+[opam-coq-archive](https://github.com/coq/opam-coq-archive) project,
+so you will have to type the following commands beforehand, if your
+OPAM installation does not know yet about this OPAM repository:
+
+    $ opam repo add coq-released https://coq.inria.fr/opam/released
+    $ opam update
+
+Note that coq-validsdp does rely on a few system packages such as
+conf-gmp or conf-csdp. If OPAM installation fails on those, you can
+either install the system packages by hand or use the depext mechanism
+of OPAM:
+
+    $ opam install -y opam-depext  # install depext in the switch
+    $ opam depext -u -i -y conf-gmp conf-csdp
+
 Install the dev version with Autoconf and OPAM
 ----------------------------------------------
 
