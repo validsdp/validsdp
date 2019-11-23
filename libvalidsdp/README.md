@@ -25,8 +25,7 @@ Install the dev version with Autoconf and OPAM
 If you rely on [OPAM](https://opam.ocaml.org) to manage your Coq
 installation, you can install the libValidSDP library by doing:
 
-	$ cd ..
-    $ opam pin add -n -y -k path coq-libvalidsdp.dev .
+    $ opam pin add -n -y -k path coq-libvalidsdp.dev ..
     $ opam install --jobs=2 coq-libvalidsdp
 
 All libValidSDP dependencies are hosted in the
@@ -45,7 +44,8 @@ and a Coq installation managed by [OPAM](https://opam.ocaml.org).
 
 Then, you can install the libValidSDP dependencies by doing:
 
-    $ ( cd .. && opam install coq-libvalidsdp . --deps-only )
+    $ opam pin add -n -y -k path coq-libvalidsdp.dev ..
+    $ opam install --jobs=2 coq-libvalidsdp --deps-only
 
 Finally, you can build and install the libValidSDP library by doing:
 

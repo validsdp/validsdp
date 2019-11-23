@@ -50,7 +50,8 @@ and a Coq installation managed by [OPAM](https://opam.ocaml.org).
 Then, you can install the ValidSDP dependencies by doing:
 
     $ opam pin add -n -y -k path coq-libvalidsdp.dev .
-    $ opam install coq-validsdp . --deps-only
+    $ opam pin add -n -y -k path coq-validsdp.dev .
+    $ opam install --jobs=2 coq-validsdp --deps-only
 
 Finally, you can build and install the ValidSDP library by doing:
 
