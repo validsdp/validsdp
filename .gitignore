@@ -48,6 +48,7 @@ tramp
 .lia.cache
 Makefile.coq
 Makefile.coq.conf
+.Makefile.coq.d
 
 ### OCaml ###
 *.annot
@@ -80,9 +81,15 @@ setup.log
 /libvalidsdp/autom4te.cache/
 /libvalidsdp/configure
 /libvalidsdp/config.status
-/libvalidsdp/coqinterval_infnan.v
+/libvalidsdp/depend.dot
+/libvalidsdp/depend.map
+/libvalidsdp/depend.png
+/libvalidsdp/html/
 /theories/coqgraph
-/theories/html/
+/depend.dot
+/depend.map
+/depend.png
+/html/
 /theories/Makefile.coq
 /plugins/soswitness/Makefile
 /plugins/soswitness/src/soswitness.cmt
