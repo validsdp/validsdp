@@ -1,6 +1,7 @@
 (** * CoqInterval floats satisfy hypothesis in [Float_infnan_spec] *)
 
 Require Import Reals Rstruct.
+Require Import Floats.
 From Bignums Require Import BigZ.
 
 Require Import Flocq.Core.Defs.
@@ -382,11 +383,11 @@ Proof. by rewrite /FI2FS /F2FI /=; case: f =>//= m e; case (_ <=? _)%bigZ. Qed.
 Lemma FI2FS_spec x : (FI2FS x <> 0 :> R) -> finite x.
 Proof. by case x => [[|m e] Hf]. Qed.
 
-Lemma FI2FS0 : FI2FS (FI0) = F0 fis.
-Proof. by apply val_inj. Qed.
+Lemma FI2FS0 : FI2FS (FI0) = F0 fis :> R.
+Proof. by []. Qed.
 
-Lemma FI2FS1 : FI2FS (FI1) = F1 fis.
-Proof. by apply val_inj. Qed.
+Lemma FI2FS1 : FI2FS (FI1) = F1 fis :> R.
+Proof. by []. Qed.
 
 Lemma toF_fromF_id (x : float radix2) : F.toF (F.fromF x) = x.
 Proof.
@@ -447,9 +448,8 @@ Qed.
 Definition firnd (x : R) : FI :=
   {| FI_val := firnd_val x; FI_prop := firnd_proof x |}.
 
-Lemma firnd_spec_aux x : FI2FS (firnd x) = frnd fis x.
+Lemma firnd_spec_aux x : FI2FS (firnd x) = frnd fis x :> R.
 Proof.
-apply val_inj.
 rewrite /FI2FS /=.
 set (f := Generic_fmt.round _ _ _ _).
 assert (Hfr : Generic_fmt.round radix2 (FLX_exp 53) Ztrunc f = f).
@@ -472,7 +472,7 @@ intros p Hp; unfold FtoR; case e.
 now simpl.
 Qed.
 
-Lemma firnd_spec x : finite (firnd x) -> FI2FS (firnd x) = frnd fis x.
+Lemma firnd_spec x : finite (firnd x) -> FI2FS (firnd x) = frnd fis x :> R.
 Proof. intros _; apply firnd_spec_aux. Qed.
 
 Lemma firnd_spec_f_aux x : finite (firnd x).
@@ -543,8 +543,8 @@ rewrite round_generic //.
 by apply: generic_format_FLX.
 Qed.
 
-Lemma fiopp_spec x : finite (fiopp x) -> FI2FS (fiopp x) = fopp (FI2FS x).
-Proof. intros _; apply val_inj; apply fiopp_spec_aux. Qed.
+Lemma fiopp_spec x : finite (fiopp x) -> FI2FS (fiopp x) = fopp (FI2FS x) :> R.
+Proof. intros _; apply fiopp_spec_aux. Qed.
 
 Lemma fiplus_proof rm (x y : FI) : is_mantissa_bounded (F.add rm 53%bigZ x y).
 apply/mantissa_boundedP.
@@ -581,10 +581,10 @@ Lemma fiplus_spec_f x y : finite x -> finite y ->
 Proof. now intros Fx Fy _; apply fiplus_spec_f_aux. Qed.
 
 Lemma fiplus_spec x y : finite (fiplus x y) ->
-  FI2FS (fiplus x y) = fplus (FI2FS x) (FI2FS y).
+  FI2FS (fiplus x y) = fplus (FI2FS x) (FI2FS y) :> R.
 Proof.
 move=> H.
-suff: FI2FS (fiplus x y) = fplus (FI2FS x) (FI2FS y) :> R; [by apply val_inj|].
+suff: FI2FS (fiplus x y) = fplus (FI2FS x) (FI2FS y) :> R; [by []|].
 move: H.
 unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fiplus; simpl; rewrite F.add_correct.
@@ -632,10 +632,10 @@ Lemma fimult_spec_f x y : finite x -> finite y ->
 Proof. now intros Fx Fy _; apply fimult_spec_f_aux. Qed.
 
 Lemma fimult_spec x y : finite (fimult x y) ->
-  FI2FS (fimult x y) = fmult (FI2FS x) (FI2FS y).
+  FI2FS (fimult x y) = fmult (FI2FS x) (FI2FS y) :> R.
 Proof.
 move=> H.
-suff: FI2FS (fimult x y) = fmult (FI2FS x) (FI2FS y) :> R; [by apply val_inj|].
+suff: FI2FS (fimult x y) = fmult (FI2FS x) (FI2FS y) :> R; [by []|].
 move: H.
 unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fimult; simpl; rewrite F.mul_correct.
@@ -699,8 +699,8 @@ now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
 Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
-  FI2FS (fidiv x y) = fdiv (FI2FS x) (FI2FS y).
-Proof. now intros Fxy Fy; apply val_inj; apply fidiv_spec_aux. Qed.
+  FI2FS (fidiv x y) = fdiv (FI2FS x) (FI2FS y) :> R.
+Proof. now intros Fxy Fy; apply fidiv_spec_aux. Qed.
 
 Lemma fisqrt_proof (x : F.type) : is_mantissa_bounded (F.sqrt rnd_NE 53%bigZ x).
 Proof.
@@ -731,10 +731,10 @@ rewrite /Xsqrt'; case: (is_negative_spec r) =>//.
 by move/Rlt_not_ge.
 Qed.
 
-Lemma fisqrt_spec x : finite (fisqrt x) -> FI2FS (fisqrt x) = fsqrt (FI2FS x).
+Lemma fisqrt_spec x : finite (fisqrt x) -> FI2FS (fisqrt x) = fsqrt (FI2FS x) :> R.
 Proof.
 move=> H.
-suff: FI2FS (fisqrt x) = fsqrt (FI2FS x) :> R; [by apply val_inj|].
+suff: FI2FS (fisqrt x) = fsqrt (FI2FS x) :> R; [by []|].
 move: H.
 unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fisqrt; simpl; rewrite F.sqrt_correct.
@@ -746,17 +746,17 @@ rewrite round_generic.
 now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
-Definition ficompare (x y : FI) : option comparison :=
+Definition ficompare (x y : FI) : float_comparison :=
   match F.cmp x y with
-    | Xlt => Some Lt
-    | Xgt => Some Gt
-    | Xeq => Some Eq
+    | Xlt => FLt
+    | Xgt => FGt
+    | Xeq => FEq
     | Xund =>
-      if ~~ F.real x && ~~ F.real y then Some Eq else None
+      if ~~ F.real x && ~~ F.real y then FEq else FNotComparable
   end.
 
 Lemma ficompare_spec x y : finite x -> finite y ->
-  ficompare x y = Some (Rcompare (FI2FS x) (FI2FS y)).
+  ficompare x y = flatten_cmp_opt (Some (Rcompare (FI2FS x) (FI2FS y))).
 Proof.
 unfold ficompare; rewrite F.cmp_correct.
 unfold finite; rewrite !FtoX_real !FI2FS_X2F_FtoX.
@@ -774,9 +774,9 @@ case: Rcompare_spec =>//= H0.
   by rewrite Rcompare_Gt.
 Qed.
 
-Lemma ficompare_spec_eq x y : ficompare x y = Some Eq -> FI2FS x = FI2FS y.
+Lemma ficompare_spec_eq x y : ficompare x y = FEq -> FI2FS x = FI2FS y :> R.
 Proof.
-move=> H; suff: FI2FS x = FI2FS y :> R; [by apply val_inj|move: H].
+move=> H; suff: FI2FS x = FI2FS y :> R; [by []|move: H].
 unfold ficompare; rewrite F.cmp_correct !F.real_correct.
 unfold Xcmp.
 case Ex: (F.toX x) =>[|rx]; case Ey: (F.toX y) =>[|ry] //=;
@@ -784,7 +784,7 @@ case Ex: (F.toX x) =>[|rx]; case Ey: (F.toX y) =>[|ry] //=;
 by case: Rcompare_spec =>//; rewrite Ex Ey =>->.
 Qed.
 
-Lemma ficompare_spec_eq_f x y : ficompare x y = Some Eq ->
+Lemma ficompare_spec_eq_f x y : ficompare x y = FEq ->
   (finite x <-> finite y).
 Proof.
 unfold ficompare, finite; rewrite F.cmp_correct !F.real_correct.

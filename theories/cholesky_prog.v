@@ -310,7 +310,7 @@ Lemma dotmulB0_ssr_eq k (i : 'I_k)
 Proof.
 case: k i c1 a1 b1 c2 a2 b2 => //= k i c1 a1 b1 c2 a2 b2 Hc Ha Hb.
 apply fsum_l2r_rec_eq => // j; rewrite !ffunE Ha ?Hb //;
-  (rewrite inordK; [|apply (ltn_trans (ltn_ord j))]); apply ltn_ord.
+  (rewrite inordK; [ |apply (ltn_trans (ltn_ord j))]); apply ltn_ord.
 Qed.
 
 Lemma ytilded_ssr_eq (k : 'I_n.+1)
@@ -321,7 +321,7 @@ Lemma ytilded_ssr_eq (k : 'I_n.+1)
   ytilded_ssr k c1 a1 b1 bk1 = ytilded_ssr k c2 a2 b2 bk2.
 Proof.
 move=> Hc Ha Hb Hbk.
-by rewrite /ytilded_ssr /ytilded; apply f_equal2; [apply dotmulB0_ssr_eq|].
+by rewrite /ytilded_ssr /ytilded; apply f_equal2; [apply dotmulB0_ssr_eq| ].
 Qed.
 
 Lemma ytildes_ssr_eq (k : 'I_n.+1) (c1 : T) (a1 : 'rV_n.+1) (c2 : T) (a2 : 'rV_n.+1) :
@@ -361,14 +361,14 @@ Lemma inner_loop_correct (A R : 'M_n.+1) (j : 'I_n.+1) :
   inner_loop_inv A R j 0 -> inner_loop_inv A (inner_loop_ssr j A R) j n.+1.
 Proof.
 move=> H; cut (inner_loop_inv A (inner_loop_ssr j A R) j j).
-{ by move=> {H} [Ho Hi]; split; [|move=> j' i' Hj' _ Hi'; apply Hi]. }
+{ by move=> {H} [Ho Hi]; split; [ |move=> j' i' Hj' _ Hi'; apply Hi]. }
 rewrite /inner_loop_ssr /inner_loop /nat_of /nat_of_ssr.
 set P := fun i s => inner_loop_inv A s j i; rewrite -/(P _ _).
 apply iteri_ord_ind => //.
 { apply /ltnW /(ltn_ord j). }
-move=> i R' _ [Ho Hi]; split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
+move=> i R' _ [Ho Hi]; split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']| ].
 { rewrite store_ssr_lt1 // (proj1 Ho _ _ Hj' Hi').
-  apply ytilded_ssr_eq => // [i''|i''|]; try rewrite 2!mxE.
+  apply ytilded_ssr_eq => // [i''|i''| ]; try rewrite 2!mxE.
   { by rewrite store_ssr_lt1 //; apply (ltn_trans Hi'). }
   { by rewrite store_ssr_lt1. }
   by rewrite store_ssr_lt1 //; apply (ltn_trans Hi'). }
@@ -376,15 +376,15 @@ move=> i R' _ [Ho Hi]; split; [split; [move=> j' i' Hj' Hi'|move=> j' Hj']|].
   by apply ytildes_ssr_eq => // i''; rewrite 2!mxE store_ssr_lt1. }
 move=> j' i' Hj' Hi' Hi'j; case (ltnP i' i) => Hii'.
 { rewrite store_ssr_lt2 // (Hi _ _ Hj' Hii' Hi'j).
-  apply ytilded_ssr_eq => // [i'' Hi''|i'' Hi''|]; try rewrite 2!mxE.
+  apply ytilded_ssr_eq => // [i'' Hi''|i'' Hi''| ]; try rewrite 2!mxE.
   { by rewrite store_ssr_lt1. }
   { by rewrite store_ssr_lt2 //; apply ltn_trans with i'. }
   by rewrite store_ssr_lt2. }
 have Hi'i : nat_of_ord i' = i.
 { apply anti_leq; rewrite Hii' Bool.andb_true_r -ltnS //. }
 rewrite store_ssr_eq //.
-have Hini : inord i = i'; [by rewrite -Hi'i inord_val|].
-have Hinj : inord j = j'; [by rewrite -Hj' inord_val|].
+have Hini : inord i = i'; [by rewrite -Hi'i inord_val| ].
+have Hinj : inord j = j'; [by rewrite -Hj' inord_val| ].
 move: Hini Hinj; rewrite !inord_val => <- <-; apply ytilded_ssr_eq => //.
 { by move=> i''' Hi'''; rewrite 2!mxE store_ssr_lt2. }
 { by move=> i''' Hi'''; rewrite 2!mxE store_ssr_lt2. }
@@ -396,12 +396,12 @@ Proof.
 rewrite /outer_loop_ssr /outer_loop.
 set P := fun i s => outer_loop_inv A s i; rewrite -/(P _ _).
 apply iteri_ord_ind => // j R' _ H.
-have Hin_0 : inner_loop_inv A R' j 0; [by []|].
+have Hin_0 : inner_loop_inv A R' j 0; [by []| ].
 have Hin_n := inner_loop_correct Hin_0.
 split; [move=> j' i' Hj' Hi'|move=> j' Hj'].
 { case (ltnP j' j) => Hjj'.
   { rewrite store_ssr_lt1 // (proj1 (proj1 Hin_n) _ _ Hjj' Hi').
-    apply ytilded_ssr_eq => // [i''|i''|]; try rewrite 2!mxE.
+    apply ytilded_ssr_eq => // [i''|i''| ]; try rewrite 2!mxE.
     { by rewrite store_ssr_lt1 //; apply (ltn_trans Hi'). }
     { by rewrite store_ssr_lt1. }
     by rewrite store_ssr_lt1 //; apply (ltn_trans Hi'). }
@@ -409,7 +409,7 @@ split; [move=> j' i' Hj' Hi'|move=> j' Hj'].
   { by apply anti_leq; rewrite Hjj' Bool.andb_true_r -ltnS. }
   have Hi'j : (i' < j)%N by rewrite -Hj'j.
   rewrite store_ssr_lt2 // (proj2 Hin_n _ _ Hj'j (ltn_ord i') Hi'j).
-  apply ytilded_ssr_eq => // [i'' Hi''|i'' Hi''|]; try rewrite 2!mxE.
+  apply ytilded_ssr_eq => // [i'' Hi''|i'' Hi''| ]; try rewrite 2!mxE.
   { by rewrite store_ssr_lt1. }
   { by rewrite store_ssr_lt2 //; move: Hi'j; apply ltn_trans. }
   by rewrite store_ssr_lt2. }
@@ -419,7 +419,7 @@ case (ltnP j' j) => Hjj'.
   by rewrite store_ssr_lt1. }
 have Hj'j : nat_of_ord j' = j.
 { by apply anti_leq; rewrite Hjj' Bool.andb_true_r -ltnS. }
-have Hinjj' : inord j = j'; [by rewrite -Hj'j inord_val|].
+have Hinjj' : inord j = j'; [by rewrite -Hj'j inord_val| ].
 rewrite store_ssr_eq //.
 move: Hinjj'; rewrite inord_val => <-; apply ytildes_ssr_eq => // i'' Hi''.
 by rewrite 2!mxE store_ssr_lt2.
@@ -435,7 +435,7 @@ split; [move=> j i Hij|move=> j]; rewrite !mxE.
                    (row i (cholesky_ssr A)) (row j (cholesky_ssr A))
                    ((cholesky_ssr A) i i)).
   { by apply /ytilded_ssr_eq => // i' Hi'; rewrite !mxE. }
-  by apply sym_eq, outer_loop_correct; [apply ltn_ord|]. }
+  by apply sym_eq, outer_loop_correct; [apply ltn_ord| ]. }
 replace ((cholesky_ssr A) j j)
 with (ytildes_ssr j (A j j) (row j (cholesky_ssr A))).
 { by apply ytildes_ssr_eq => // i' Hi'; rewrite !mxE. }
@@ -482,10 +482,10 @@ rewrite /map_diag_ssr /map_diag /iteri_ord; set f' := fun _ _ => _.
 suff H : forall k R i',
            (matrix.fun_of_matrix (@iteri_ord_rec _ _ succ0_ssr _ k i' f' R) i j
             = R i j) => //; elim => // k IHk R i' /=.
-rewrite IHk; case (ltnP i' j) => Hi'j; [by rewrite store_ssr_gt2|].
+rewrite IHk; case (ltnP i' j) => Hi'j; [by rewrite store_ssr_gt2| ].
 case (ltnP i j) => Hij'.
 { by rewrite store_ssr_lt1 //; apply (leq_trans Hij'). }
-case (ltnP i' i) => Hi'i; [by rewrite store_ssr_gt1|].
+case (ltnP i' i) => Hi'i; [by rewrite store_ssr_gt1| ].
 rewrite store_ssr_lt2 //; move: Hi'i; apply leq_trans.
 case (leqP i j) => Hij'' //.
 by casetype False; apply Hij, ord_inj, anti_leq; rewrite Hij''.
@@ -646,7 +646,7 @@ suff : (finite (foldl_diag_ssr f (FIS0 fs) A)
 { by move=> H; elim H. }
 have Hf : f =2 @fimax fs.
 { move=> x y; rewrite /f/fimax/leq_op/leq_instFIS/file.
-  by case (ficompare y x) => [[]|]. }
+  by case ficompare. }
 set P := fun j s => finite s /\ P' j s; rewrite -/(P _ _).
 apply foldl_diag_correct; rewrite /P /P'.
 { move=> i z Hind; destruct Hind as (Hind, Hind'); split.
@@ -670,7 +670,7 @@ suff : (finite (foldl_diag_ssr f (FIS0 fs) A)
 { by move=> H; elim H. }
 have Hf : f =2 @fimax fs.
 { move=> x y; rewrite /f/fimax/leq_op/leq_instFIS/file.
-  by case (ficompare y x) => [[]|]. }
+  by case ficompare. }
 set P := fun (j : nat) s => @finite fs s /\ 0 <= FIS2FS s.
 apply foldl_diag_correct with (P0 := P); rewrite /P.
 { move=> i z Hind; destruct Hind as (Hind, Hind'); split.
@@ -686,7 +686,7 @@ Lemma tr_up_correct (A : 'M[FIS fs]_n.+1) : finite (tr_up_ssr A) ->
 Proof.
 rewrite /tr_up_ssr /tr_up -/(foldl_diag_ssr _ _ _).
 replace (\tr _) with (\sum_(i < n.+1) (FIS2FS (A (inord i) (inord i)) : R));
-  [|by apply eq_big => // i _; rewrite !mxE inord_val].
+  [ |by apply eq_big => // i _; rewrite !mxE inord_val].
 set P := fun j (s : FIS fs) => finite s ->
   (\sum_(i < j) (FIS2FS (A (inord i) (inord i)) : R)) <= FIS2FS s.
 rewrite -/(P _ _); apply foldl_diag_correct; rewrite /P.
@@ -802,13 +802,13 @@ Proof.
 move=> Heps Fdiag Pdiag c.
 rewrite /compute_c_ssr /compute_c.
 set nem1 := addup _ _.
-case_eq (finite nem1 && (nem1 < 0)%C); [|by []].
+case_eq (finite nem1 && (nem1 < 0)%C); [ |by []].
 rewrite Bool.andb_true_iff => H; elim H => Fnem1 Nnem1.
 set c' := compute_c_aux _ _ _ _.
-case_eq (finite c') => Hite'; [|by []]; move=> Hc'.
+case_eq (finite c') => Hite'; [ |by []]; move=> Hc'.
 have Hc'' : c' = c by injection Hc'.
 rewrite -Hc''; apply compute_c_aux_correct => //.
-{ eapply (Rlt_le_trans _ (FIS2FS zero_instFIS)); [|by right; rewrite FIS2FS0].
+{ eapply (Rlt_le_trans _ (FIS2FS zero_instFIS)); [ |by right; rewrite FIS2FS0].
   apply filt_spec => //; apply finite0. }
 by apply max_diag_pos.
 Qed.
@@ -825,8 +825,8 @@ move: H4; set cc := compute_c _ _ _ _; case_eq cc => // c' Hc'.
 set At := map_diag _ _; set Rt := cholesky _.
 move/andP => [Had Hpd].
 suff: forall i j : 'I_n.+1, (i <= j)%N -> finite (A i j).
-{ move=> H i j; case (ltnP j i); [|by apply H]; move=> Hij.
-  rewrite -(@fieq_spec_f _ (A^T i j)); [by rewrite mxE; apply H, ltnW|].
+{ move=> H i j; case (ltnP j i); [ |by apply H]; move=> Hij.
+  rewrite -(@fieq_spec_f _ (A^T i j)); [by rewrite mxE; apply H, ltnW| ].
   by apply is_sym_correct_aux. }
 move=> i j Hij; suff: finite (At i j).
 { case_eq (i == j :> nat) => Hij'.
@@ -839,7 +839,7 @@ apply (@cholesky_success_infnan_f1 _ _ At Rt^T) => //; split.
   apply cholesky_spec_correct, cholesky_correct. }
 move=> i'; rewrite mxE.
 have->: 0%Re = FIS2FS (FIS0 fs) by rewrite FIS2FS0.
-apply filt_spec; [by apply finite0| |].
+apply filt_spec; [by apply finite0| | ].
 { move: Had i'; rewrite -/(all_diag_ssr _ _); apply all_diag_correct. }
 move: Hpd i'; rewrite /pos_diag -/(all_diag_ssr _ _); apply all_diag_correct.
 Qed.
@@ -862,13 +862,13 @@ move=> Htpdiag HtfRt HtpRt.
 have Htpdiag' := all_diag_correct Htpdiag.
 have Hpdiag : forall i, 0 <= FIS2FS (A i i).
 { move=> i.
-  eapply (Rle_trans _ (FIS2FS zero_instFIS)); [by right; rewrite FIS2FS0|].
+  eapply (Rle_trans _ (FIS2FS zero_instFIS)); [by right; rewrite FIS2FS0| ].
   by apply file_spec => //; [apply finite0|apply Htpdiag']. }
 have HfRt := all_diag_correct HtfRt.
 have HtpRt' := all_diag_correct HtpRt.
 have HpRt : forall i, 0 < (MFI2F Rt) i i.
 { move=> i.
-  eapply (Rle_lt_trans _ (FIS2FS zero_instFIS)); [by right; rewrite FIS2FS0|].
+  eapply (Rle_lt_trans _ (FIS2FS zero_instFIS)); [by right; rewrite FIS2FS0| ].
   rewrite mxE; apply filt_spec => //; [apply finite0|apply HtpRt']. }
 move {Htpdiag HtfRt HtpRt Htpdiag' HtpRt'}.
 apply corollary_2_4_with_c_upper_bound with
@@ -881,7 +881,7 @@ have Hfat : forall i, finite (At i i).
   elim=> _ Hs; move: (Hs i); rewrite mxE /cholesky_ssr => {Hs} Hs.
   move: (HfRt i); rewrite /Rt Hs /ytildes_infnan => H.
   move: (fisqrt_spec_f1 H); apply stilde_infnan_fc. }
-split; move=> i; [move=> j Hij|].
+split; move=> i; [move=> j Hij| ].
 { by apply /map_diag_correct_ndiag /eqP; rewrite neq_ltn Hij. }
 move: (Hfat i); rewrite !mxE /At map_diag_correct_diag; apply fiminus_down_spec.
 by rewrite andbF in Hc'.
@@ -920,7 +920,7 @@ Lemma posdef_check_itv_f1 A r : posdef_check_itv_ssr A r ->
 Proof.
 rewrite /posdef_check_itv_ssr /posdef_check_itv; set A' := map_diag _ _.
 move/and3P => [H1 H2 H3] i j.
-suff: finite (A' i j); [|by apply posdef_check_f1].
+suff: finite (A' i j); [ |by apply posdef_check_f1].
 case_eq (i == j :> nat) => Hij'.
 { move /eqP /ord_inj in Hij'; rewrite Hij' map_diag_correct_diag.
   apply fiminus_down_spec_fl. }
@@ -956,7 +956,7 @@ apply Mle_sub.
 apply Mle_trans with (- Mabs (x^T *m (Xt - MF2R (MFI2F A)) *m x));
   [apply Mopp_le_contravar|by apply Mge_opp_abs].
 apply Mle_trans with ((Mabs x)^T *m Mabs (Xt - MF2R (MFI2F A)) *m Mabs x).
-{ apply (Mle_trans (Mabs_mul _ _)), Mmul_le_compat_r; [by apply Mabs_pos|].
+{ apply (Mle_trans (Mabs_mul _ _)), Mmul_le_compat_r; [by apply Mabs_pos| ].
   rewrite map_trmx; apply (Mle_trans (Mabs_mul _ _)).
   by apply Mmul_le_compat_l; [apply Mabs_pos|apply Mle_refl]. }
 apply (Mle_trans (Mmul_abs_lr _ HXt)).
@@ -967,10 +967,10 @@ apply Mle_trans with (INR n.+1 * FIS2FS r)%Re%:M.
 set IN := INR n.+1; rewrite Mle_scalar !mxE /GRing.natmul /= -(Rmult_1_r (_ * _)).
 replace 1%Re with (1%Re^2) by ring; rewrite /GRing.one /= in Hx; rewrite -Hx.
 rewrite norm2_sqr_dotprod /dotprod mxE /= big_distrr /=.
-apply big_rec2 => [|i y1 y2 _ Hy12]; [by right|]; rewrite mul_mx_diag !mxE.
+apply big_rec2 => [ |i y1 y2 _ Hy12]; [by right| ]; rewrite mul_mx_diag !mxE.
 rewrite /GRing.add /GRing.mul /=; apply Rplus_le_compat => //.
 rewrite (Rmult_comm _ (d _ _)) !Rmult_assoc -Rmult_assoc.
-apply Rmult_le_compat_r; [by apply Rle_0_sqr|].
+apply Rmult_le_compat_r; [by apply Rle_0_sqr| ].
 have Fnr : finite nr.
 { move: (HF' ord0); rewrite /fiminus_down => F.
   apply fiopp_spec_f1 in F; apply (fiplus_up_spec_fl F). }
@@ -1041,12 +1041,12 @@ move: ha1; case Ea' : a'=>[//|a'0 a'1] _ /=.
 move: hb1; case Eb' : b'=>[//|b'0 b'1] _ /=.
 move: (ha2 O erefl) (hb2 O erefl) (ha3 ord0) (hb3 ord0).
 rewrite Ea' Eb' /= -(nat_R_eq rn).
-elim: n1 k {ha3} a {hb3} b c c' {Ea'} a'0 {Eb'} b'0 ref_c => [|n' IH] k a b c c' a'0 b'0 ref_c.
+elim: n1 k {ha3} a {hb3} b c c' {Ea'} a'0 {Eb'} b'0 ref_c => [ |n' IH] k a b c c' a'0 b'0 ref_c.
 { by rewrite (ord_1_0 k) /=. }
 case Ea'0 : a'0 => [//|a'00 a'01].
 case Eb'0 : b'0 => [//|b'00 b'01] ha1 hb1 ha3 hb3.
 case k => {k} k Hk.
-case: k Hk => [|k Hk] //=; set cc := (c' + - _)%C.
+case: k Hk => [ |k Hk] //=; set cc := (c' + - _)%C.
 rewrite ltnS in Hk.
 rewrite ffunE.
 have->: [ffun i => [ffun k0 : 'I__ => (- (a ord0 (inord k0) * b ord0 (inord k0)))%C]
@@ -1057,7 +1057,7 @@ rewrite <-(IH (Ordinal Hk) (\row_(i < n'.+1) a ord0 (lift ord0 i))
              (\row_(i < n'.+1) b ord0 (lift ord0 i))
           (c + - (a ord0 (@inord n'.+1 (@ord0 k.+1)) * b ord0 (@inord n'.+1 (@ord0 k.+1))))%C).
 { (* apply eq_subrelation; tc. *)
-  apply fsum_l2r_rec_eq => [|i] //.
+  apply fsum_l2r_rec_eq => [ |i] //.
   rewrite !ffunE /cc !mxE; repeat f_equal; apply/val_inj; rewrite /= !inordK //;
   by apply (ltn_trans (ltn_ord _)). }
 { rewrite /cc ha3 hb3 !inordK //= ref_c; reflexivity. }
@@ -1240,12 +1240,12 @@ ref_abstr => c c' ref_c.
 ref_abstr => a0 a0' ref_a.
 ref_abstr => b0 b0' ref_b.
 elim: k k' ref_k c c' ref_c a0 a0' ref_a b0 b0' ref_b =>
-  [|k IHk] k' ref_k c c' ref_c a0 a0' ref_a b0 b0' ref_b.
+  [ |k IHk] k' ref_k c c' ref_c a0 a0' ref_a b0 b0' ref_b.
 { rewrite refinesE in ref_k; move/nat_R_eq: ref_k => <- //. }
 rewrite refinesE in ref_k; move/nat_R_eq: ref_k => <- /=.
 rewrite refinesE in ref_a ref_b.
-case: ref_a => [|a1 a1' Ha1 a2 a2' Ha2]; tc.
-case: ref_b => [|b1 b1' Hb1 b2 b2' Hb2]; tc.
+case: ref_a => [ |a1 a1' Ha1 a2 a2' Ha2]; tc.
+case: ref_b => [ |b1 b1' Hb1 b2 b2' Hb2]; tc.
 apply IHk.
 by rewrite refinesE; exact: nat_Rxx.
 refines_apply.
@@ -1419,7 +1419,7 @@ Instance composable_Rordn_impl :
 Proof.
 intros A' B' C' R1 R2 R3.
 rewrite !composableE => R123 fA fC [fB [RfAB RfBC]] a c rABac.
-apply: R123; exists (fB c); split; [ exact: RfAB |].
+apply: R123; exists (fB c); split; [ exact: RfAB | ].
 apply: RfBC.
 red in rABac |- *.
 split=>//.
@@ -1742,7 +1742,7 @@ Global Instance refine_compute_c_aux :
 Proof.
 rewrite refinesE=> a a' ra x _ <-; rewrite /compute_c_aux.
 set ta := tr_up a; set ta' := tr_up a'.
-have <- : ta = ta'; [|by rewrite -(nat_R_eq rn)].
+have <- : ta = ta'; [ |by rewrite -(nat_R_eq rn)].
 rewrite /ta /ta' /tr_up; apply refinesP.
 refines_apply1.
 eapply refines_apply. (*!*)
@@ -1838,7 +1838,7 @@ Proof.
 rewrite refinesE=> a a' ra; rewrite /compute_c.
 set ca := compute_c_aux _ _ a _.
 set ca' := compute_c_aux _ _ a' _.
-have <- : ca = ca'; [by exact: refinesP|].
+have <- : ca = ca'; [by exact: refinesP| ].
 by rewrite -(nat_R_eq rn).
 Qed.
 
@@ -1982,7 +1982,7 @@ f_equal.
   by rewrite refinesE. }
 set c := compute_c _ _ _ a.
 set c' := compute_c _ _ _ a'.
-have <- : c = c'; [by exact: refinesP|]; case c=>// m.
+have <- : c = c'; [by exact: refinesP| ]; case c=>// m.
 set r := cholesky _; set r' := cholesky _.
 suff rr : refines (Rseqmx (H:=FIS0 fs) rn rn) r r'.
 { f_equal; rewrite/pos_diag; apply refinesP, refines_bool_eq.
@@ -2025,7 +2025,7 @@ suff rb : refines (Rseqmx (H:=FIS0 fs) rn rn) b b'.
   by rewrite refinesE. }
   set c := compute_c _ _ _ b.
   set c' := compute_c _ _ _ b'.
-  have <- : c = c'; [by exact: refinesP|]; case c=>// m.
+  have <- : c = c'; [by exact: refinesP| ]; case c=>// m.
   set d := cholesky _; set d' := cholesky _.
   suff rd : refines (Rseqmx (H:=FIS0 fs) rn rn) d d'.
   { f_equal; rewrite/pos_diag; apply refinesP, refines_bool_eq.

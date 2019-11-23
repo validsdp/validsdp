@@ -13,167 +13,96 @@ From Bignums Require Import BigZ.
 Local Open Scope bigZ_scope.
 
 Require Import mathcomp.algebra.matrix.
-Require Import CoqEAL_refinements.seqmatrix.
-Require Import CoqEAL_refinements.refinements.
-
-Require Import CoqEAL_theory.hrel.
+Require Import CoqEAL.refinements.seqmx.
+Require Import CoqEAL.refinements.refinements.
+Require Import CoqEAL.refinements.hrel.
+Require Import CoqEAL.refinements.seqmx_complements.
 
 Import Refinements.Op.
 
-Require Import computation testsuite.
+Require Import cholesky_prog iteri_ord posdef_check.
+
+Require Import matrices.
 
 (* Profile each floating-point arithmetic operation. *)
 
-Section test_CoqInterval_add.
+Lemma blackhole A (t : A) : unit.
+exact tt.
+Qed.
+Notation "§" := (@blackhole _ _).
 
-Local Notation T := F.type.
+Fixpoint fib (n : nat) :=
+  match n with
+    O => 1%nat
+  | S O => 1%nat
+  | S ((S p) as q) => (fib p + fib q)%nat
+  end.
 
-Instance : add T := fun a b =>
-  let r1 := F.add rnd_NE 53%bigZ a b in
-  let r2 := F.add rnd_NE 53%bigZ a b in
-  r2.
-Instance : mul T := F.mul rnd_NE 53%bigZ.
-Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
-Instance : div T := F.div rnd_NE 53%bigZ.
-Instance : opp T := F.neg.
-Instance : zero T := F.zero.
-Instance : Refinements.Op.one T := Float 1%bigZ 0%bigZ.
+Require Import Float.
 
-Goal True. idtac "test_CoqInterval_add". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
+Definition select_intvl (a b : F.type) := a.
+Definition select_float (a b : float) := a.
 
-End test_CoqInterval_add.
+Notation doubling1 f := (let r1 := (f) in
+                        let r2 := (f) in
+                        select_intvl r1 r2) (only parsing).
+Notation doubling2 f := (let r1 := (f) in
+                        let r2 := (f) in
+                        select_float r1 r2) (only parsing).
 
-Section test_CoqInterval_mul.
+Notation no_doubling1 f := (f) (only parsing).
+Notation no_doubling2 f := (f) (only parsing).
 
-Local Notation T := F.type.
+Section test_CoqInterval.
+Local Notation T := F.type (only parsing).
 
-Instance : mul T := fun a b =>
-  let r1 := F.mul rnd_NE 53%bigZ a b in
-  let r2 := F.mul rnd_NE 53%bigZ a b in
-  r2.
-Instance : add T := F.add rnd_NE 53%bigZ.
-Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
-Instance : div T := F.div rnd_NE 53%bigZ.
-Instance : opp T := F.neg.
-Instance : zero T := F.zero.
-Instance : Refinements.Op.one T := Float 1%bigZ 0%bigZ.
+Definition two := Eval compute in
+      let one := Float 1%bigZ 0%bigZ in
+      F.add rnd_NE 53%bigZ one one.
 
-Goal True. idtac "test_CoqInterval_mul". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
+Instance : add_of T := fun a b => no_doubling1 (F.add rnd_NE 53%bigZ a b).
+Instance : mul_of T := fun a b => no_doubling1 (F.mul rnd_NE 53%bigZ a b).
+Instance : sqrt_of T := fun a => no_doubling1 (F.sqrt rnd_NE 53%bigZ a).
+Instance : div_of T := fun a b => no_doubling1 (F.div rnd_NE 53%bigZ a b).
+Instance : opp_of T := fun a => no_doubling1 (F.neg a).
+Instance : zero_of T := F.zero.
+Instance : one_of T := Float 1%bigZ 0%bigZ.
 
-End test_CoqInterval_mul.
+Time Eval vm_compute in blackhole _ (cholesky_seqmx (n := seq.size matrix) matrix).
 
-Section test_CoqInterval_div.
+(* 9.397 = *)
+(* 13.81 mul *)
+(* 12.168 add *)
+(* 9.711 opp *)
+(* 9.589 div *)
+(* 9.373 sqrt *)
 
-Local Notation T := F.type.
+(*old:*)
+(* Finished transaction in 8.933 secs (8.92u,0.008s) (successful) with no doubling *)
+(* Finished transaction in 15.454 secs (15.444u,0.008s) (successful) *)
+(* Finished transaction in 18.175 secs (18.172u,0.004s) (successful) *)
+End test_CoqInterval.
 
-Instance : add T := F.add rnd_NE 53%bigZ.
-Instance : mul T := F.mul rnd_NE 53%bigZ.
-Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
-Instance : div T := fun a b =>
-  let r1 := F.div rnd_NE 53%bigZ a b in
-  let r2 := F.div rnd_NE 53%bigZ a b in
-  r2.
-Instance : opp T := F.neg.
-Instance : zero T := F.zero.
-Instance : Refinements.Op.one T := Float 1%bigZ 0%bigZ.
+Section test_Prim.
+Local Notation T := float (only parsing).
 
-Goal True. idtac "test_CoqInterval_div". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
+Instance : add_of T := fun a b => no_doubling2 (add a b).
+Instance : mul_of T := fun a b => no_doubling2 (mul a b).
+Instance : sqrt_of T := fun a => doubling2 (sqrt a).
+Instance : div_of T := fun a b => no_doubling2 (div a b).
+Instance : opp_of T := fun a => no_doubling2 (opp a).
+Instance : zero_of T := zero.
+Instance : one_of T := one.
 
-End test_CoqInterval_div.
+Definition matrix_float := Eval compute in map (map BigZFloat2Prim) matrix.
 
-Section test_CoqInterval_sqrt.
+Time Eval vm_compute in blackhole _ (cholesky_seqmx (n := seq.size matrix_float) matrix_float).
 
-Local Notation T := F.type.
+(* 0.523 = *)
+(* 0.566 add *)
+(* 0.533 mul *)
 
-Instance : add T := F.add rnd_NE 53%bigZ.
-Instance : mul T := F.mul rnd_NE 53%bigZ.
-Instance : sqrt T := fun a =>
-  let r1 := F.sqrt rnd_NE 53%bigZ a in
-  let r2 := F.sqrt rnd_NE 53%bigZ a in
-  r2.
-Instance : div T := F.div rnd_NE 53%bigZ.
-Instance : opp T := F.neg.
-Instance : zero T := F.zero.
-Instance : Refinements.Op.one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_sqrt". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_sqrt.
-
-Section test_CoqInterval_opp.
-
-Local Notation T := F.type.
-
-Instance : add T := F.add rnd_NE 53%bigZ.
-Instance : mul T := F.mul rnd_NE 53%bigZ.
-Instance : opp T := fun a =>
-  let r1 := F.neg a in
-  let r2 := F.neg a in
-  r2.
-Instance : div T := F.div rnd_NE 53%bigZ.
-Instance : sqrt T := F.sqrt rnd_NE 53%bigZ.
-Instance : zero T := F.zero.
-Instance : Refinements.Op.one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_opp". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_opp.
-
-Section test_CoqInterval_all.
-
-Local Notation T := F.type.
-
-Instance : add T := fun a b =>
-  let r1 := F.add rnd_NE 53%bigZ a b in
-  let r2 := F.add rnd_NE 53%bigZ a b in
-  r2.
-Instance : mul T := fun a b =>
-  let r1 := F.mul rnd_NE 53%bigZ a b in
-  let r2 := F.mul rnd_NE 53%bigZ a b in
-  r2.
-Instance : opp T := fun a =>
-  let r1 := F.neg a in
-  let r2 := F.neg a in
-  r2.
-Instance : div T := fun a b =>
-  let r1 := F.div rnd_NE 53%bigZ a b in
-  let r2 := F.div rnd_NE 53%bigZ a b in
-  r2.
-Instance : sqrt T := fun a =>
-  let r1 := F.sqrt rnd_NE 53%bigZ a in
-  let r2 := F.sqrt rnd_NE 53%bigZ a in
-  r2.
-Instance : zero T := F.zero.
-Instance : Refinements.Op.one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_all". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_all.
-
-Section test_CoqInterval_none.
-
-Local Notation T := F.type.
-
-Instance : add T := fun a b =>
-  a.
-Instance : mul T := fun a b =>
-  a.
-Instance : opp T := fun a =>
-  a.
-Instance : div T := fun a b =>
-  a.
-Instance : sqrt T := fun a =>
-  a.
-Instance : zero T := F.zero.
-Instance : Refinements.Op.one T := Float 1%bigZ 0%bigZ.
-
-Goal True. idtac "test_CoqInterval_none". done. Qed.
-Time Eval vm_compute in let res := cholesky4 (n := seq.size m12) m12 in tt.
-
-End test_CoqInterval_none.
+(*old:*)
+(* Finished transaction in 0.524 secs (0.524u,0.s) (successful) *)
+(* Finished transaction in 0.556 secs (0.555u,0.s) (successful) *)
+End test_Prim.

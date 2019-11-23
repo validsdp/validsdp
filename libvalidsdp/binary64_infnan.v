@@ -5,6 +5,7 @@
     a rounding to nearest with overflows and NaN. *)
 
 Require Import Reals Rstruct Psatz.
+Require Import Floats.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 
 Require Import float_spec binary64 float_infnan_spec.
@@ -60,12 +61,12 @@ Next Obligation. apply /eqP; apply (generic_format_B2R prec emax x). Qed.
 Lemma FI2FS_spec x : (FI2FS x <> 0 :> R) -> finite x.
 Proof. case x; unfold finite; auto. Qed.
 
-Lemma FI2FS0 : FI2FS (FI0) = F0 fis.
-Proof. by apply val_inj. Qed.
+Lemma FI2FS0 : FI2FS (FI0) = F0 fis :> R.
+Proof. by []. Qed.
 
-Lemma FI2FS1 : FI2FS (FI1) = F1 fis.
+Lemma FI2FS1 : FI2FS (FI1) = F1 fis :> R.
 Proof.
-apply /val_inj /Rinv_r; change 0 with (IZR 0).
+apply /Rinv_r; change 0 with (IZR 0).
 now change 4503599627370496 with (Z2R 4503599627370496); apply IZR_neq.
 Qed.
 
@@ -77,9 +78,9 @@ Definition firnd (x : R) : FI :=
     (cexp binary64.radix2 fexp x)
     false.
 
-Lemma firnd_spec x : finite (firnd x) -> FI2FS (firnd x) = frnd fis x.
+Lemma firnd_spec x : finite (firnd x) -> FI2FS (firnd x) = frnd fis x :> R.
 Proof.
-intro Frx; apply val_inj.
+intro Frx.
 unfold FI2FS, firnd; simpl.
 set (mx := round_mode mode_NE (scaled_mantissa binary64.radix2 fexp x)).
 set (ex := cexp binary64.radix2 fexp x).
@@ -112,8 +113,8 @@ Qed.
 
 Definition fiopp := b64_opp.
 
-Lemma fiopp_spec x : finite (fiopp x) -> FI2FS (fiopp x) = fopp (FI2FS x).
-Proof. now intro Hox; apply val_inj; rewrite /= B2R_Bopp. Qed.
+Lemma fiopp_spec x : finite (fiopp x) -> FI2FS (fiopp x) = fopp (FI2FS x) :> R.
+Proof. now intro Hox; rewrite /= B2R_Bopp. Qed.
 
 Lemma fiopp_spec_f1 x : finite (fiopp x) -> finite x.
 Proof. case x; unfold finite; auto. Qed.
@@ -136,9 +137,9 @@ now intros b b'; case (Bool.eqb b' b).
 Qed.
 
 Lemma fiplus_spec x y : finite (fiplus x y) ->
-  FI2FS (fiplus x y) = fplus (FI2FS x) (FI2FS y).
+  FI2FS (fiplus x y) = fplus (FI2FS x) (FI2FS y) :> R.
 Proof.
-intro Fxy; apply val_inj.
+intro Fxy.
 assert (Fx := fiplus_spec_fl _ _ Fxy); assert (Fy := fiplus_spec_fr _ _ Fxy).
 unfold FI2FS, fiplus, b64_plus, prec, emax.
 change ((53 ?= 1024)%Z) with Lt; simpl.
@@ -178,9 +179,9 @@ case x; case y; unfold finite, fimult; auto.
 Qed.
 
 Lemma fimult_spec x y : finite (fimult x y) ->
-  FI2FS (fimult x y) = fmult (FI2FS x) (FI2FS y).
+  FI2FS (fimult x y) = fmult (FI2FS x) (FI2FS y) :> R.
 Proof.
-intro Fxy; apply val_inj.
+intro Fxy.
 unfold FI2FS, fimult, b64_mult, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
 assert (H := Bmult_correct
@@ -223,11 +224,11 @@ now apply F2R_gt_0.
 Qed.
 
 Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
-  FI2FS (fidiv x y) = fdiv (FI2FS x) (FI2FS y).
+  FI2FS (fidiv x y) = fdiv (FI2FS x) (FI2FS y) :> R.
 Proof.
 unfold FI2FS, fidiv, b64_div, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
-intros Fxy Fy; apply val_inj => /=.
+intros Fxy Fy => /=.
 assert (Nzy : B2R prec emax y <> 0).
 { revert Fxy Fy; case x; case y; unfold finite, Bdiv, B2R; auto;
   intros; apply F2R_cond_pos_not_0. }
@@ -265,11 +266,11 @@ case x; unfold finite, fisqrt; simpl; try auto.
 now intros b; case b.
 Qed.
 
-Lemma fisqrt_spec x : finite (fisqrt x) -> FI2FS (fisqrt x) = fsqrt (FI2FS x).
+Lemma fisqrt_spec x : finite (fisqrt x) -> FI2FS (fisqrt x) = fsqrt (FI2FS x) :> R.
 Proof.
 unfold FI2FS, fisqrt, b64_sqrt, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
-intros Fx; apply val_inj => /=.
+intros Fx => /=.
 assert (H := Bsqrt_correct
                53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
                unop_nan_pl64 mode_NE x).
@@ -293,34 +294,29 @@ replace (Bsqrt _ _ _ _ _ _ _ : binary_float prec emax) with (fisqrt x).
 now simpl.
 Qed.
 
-Definition ficompare (x y : FI) : option comparison := Bcompare 53 1024 x y.
+Definition ficompare (x y : FI) : float_comparison :=
+  flatten_cmp_opt (Bcompare 53 1024 x y).
 
 Lemma ficompare_spec x y : finite x -> finite y ->
-  ficompare x y = Some (Rcompare (FI2FS x) (FI2FS y)).
-Proof. apply Bcompare_correct. Qed.
+  ficompare x y = flatten_cmp_opt (Some (Rcompare (FI2FS x) (FI2FS y))).
+Proof. now intros Fx Fy; unfold ficompare; rewrite Bcompare_correct. Qed.
 
-Lemma ficompare_spec_eq x y : ficompare x y = Some Eq -> FI2FS x = FI2FS y.
+Lemma ficompare_spec_eq x y : ficompare x y = FEq -> FI2FS x = FI2FS y :> R.
 Proof.
-unfold ficompare => H; apply val_inj => /=; move: H.
+unfold ficompare => H /=; move: H.
 case x; case y; try now simpl.
 { now intro b; case b. }
 { now intros b m e e' b'; case b'. }
 { now intros b b'; case b'. }
 { now intros b b'; case b'; case b. }
-(* required due to old nan def in Flocq <= 3.0.0 *)
-try (now intros b pl Hpl b' m e B; case b').
-intros b m e B b' m' e' B'; simpl; case b'; case b; try now simpl.
-{ case_eq (Z.compare e' e); try now simpl.
-  intro He; apply Z.compare_eq in He; rewrite Pos.compare_cont_antisym; simpl.
-  intro Hm; inversion Hm as (Hm'); apply Pcompare_Eq_eq in Hm'.
-  now rewrite He Hm'. }
-case_eq (Z.compare e' e); try now simpl.
-intro He; apply Z.compare_eq in He.
-intro Hm; inversion Hm as (Hm'); apply Pcompare_Eq_eq in Hm'.
-now rewrite He Hm'.
+intros s m e Hb s' m' e' Hb'; case s', s; simpl;
+  (destruct (Z.compare_spec e' e) as [He|He|He]; try discriminate;
+   rewrite He Pos.compare_cont_spec; unfold Pos.switch_Eq;
+   destruct (Pos.compare_spec m' m) as [Hm|Hm|Hm]; try discriminate;
+   now rewrite Hm).
 Qed.
 
-Lemma ficompare_spec_eq_f x y : ficompare x y = Some Eq ->
+Lemma ficompare_spec_eq_f x y : ficompare x y = FEq ->
   (finite x <-> finite y).
 Proof.
 unfold ficompare.

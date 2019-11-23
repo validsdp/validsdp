@@ -35,7 +35,7 @@ Proof. by rewrite /Q2R /= /Rdiv Rmult_0_l. Qed.
 
 Lemma Q2R_inv x : Q2R x <> 0%Re -> Q2R (/ x) = / (Q2R x).
 Proof.
-move: x => [[|a|a] b] Hx; rewrite /Q2R /Qinv /=.
+move: x => [[ |a|a] b] Hx; rewrite /Q2R /Qinv /=.
 { by rewrite /Q2R /= /Rdiv Rmult_0_l in Hx. }
 { clear Hx; rewrite Rinv_Rdiv //. }
 { clear Hx; rewrite /Rdiv !Ropp_mult_distr_l_reverse -Ropp_inv_permute.
@@ -91,7 +91,7 @@ rewrite /BigQ.check_int.
 case E: (_ ?= _)%bigN=>//.
 move: E; rewrite BigN.compare_lt_iff=> E H.
 apply (BigN.lt_irrefl BigN.one).
-apply (BigN.lt_trans _ BigN.zero); [|apply BigN.lt_0_1].
+apply (BigN.lt_trans _ BigN.zero); [ |apply BigN.lt_0_1].
 by move: E; rewrite -BigN.ltb_lt BigN.spec_ltb H /=.
 Qed.
 
