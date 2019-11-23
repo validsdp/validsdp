@@ -19,6 +19,22 @@ Dependencies
 See also the [coq-libvalidsdp.opam](../coq-libvalidsdp.opam) file for the
 detail of libValidSDP dependencies' version contraints.
 
+Install the stable version with OPAM
+------------------------------------
+
+libValidSDP can be easily installed using [OPAM](https://opam.ocaml.org),
+to do this you will just need to run:
+
+    $ opam install --jobs=2 coq-libvalidsdp
+
+libValidSDP and all its dependencies are hosted in the
+[opam-coq-archive](https://github.com/coq/opam-coq-archive) project,
+so you will have to type the following commands beforehand, if your
+OPAM installation does not know yet about this OPAM repository:
+
+    $ opam repo add coq-released https://coq.inria.fr/opam/released
+    $ opam update
+
 Install the dev version with Autoconf and OPAM
 ----------------------------------------------
 
