@@ -1,6 +1,6 @@
 -I plugins/soswitness/src
--R plugins/soswitness/src @PACKAGE_NAME@
 -R plugins/soswitness/theories @PACKAGE_NAME@
+-R plugins/soswitness/src @PACKAGE_NAME@
 -R plugins/soswitness/test-suite @PACKAGE_NAME@
 -R theories @PACKAGE_NAME@
 
