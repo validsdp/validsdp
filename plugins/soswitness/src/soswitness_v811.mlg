@@ -40,7 +40,7 @@ let coq_list_nil = lazy (init_constant "core.list.nil")
 let coq_list_cons = lazy (init_constant "core.list.cons")
 
 let tyList tye = Constr.mkApp (Lazy.force coq_list_ind, [|tye|])
-                         
+
 let mkList tye mke l =
   let nil = Lazy.force coq_list_nil in
   let cons = Lazy.force coq_list_cons in
@@ -48,7 +48,7 @@ let mkList tye mke l =
     | [] -> Constr.mkApp (nil, [|tye|])
     | h :: t -> Constr.mkApp (cons, [|tye; mke h; aux t|]) in
   aux l
-                
+
 let rec ofList ofe c = match snd (Constr.decompose_app c) with
   | [] | [_] (*nil*) -> []
   | [_; h; t] (*cons*) -> ofe h :: ofList ofe t
@@ -58,10 +58,10 @@ let coq_prod = lazy (init_constant "core.prod.type")
 let coq_pair = lazy (init_constant "core.prod.intro")
 
 let tyPair tya tyb = Constr.mkApp (Lazy.force coq_prod, [|tya; tyb|])
-                        
+
 let mkPair tya tyb mka mkb (a, b) =
   Constr.mkApp (Lazy.force coq_pair, [|tya; tyb; mka a; mkb b|])
-                
+
 let ofPair ofa ofb c = match snd (Constr.decompose_app c) with
   | [_; _; a; b] -> ofa a, ofb b
   | _ -> raise Parse_error
@@ -126,7 +126,7 @@ let coq_zn2z_WW = lazy (init_constant' zn2z_path "WW")
 let rec tyZn2z hght =
   if hght <= 0 then Lazy.force coq_int63
   else Constr.mkApp (Lazy.force coq_zn2z_ind, [|tyZn2z (hght - 1)|])
-                       
+
 let mkZn2z hght n =
   let w0 = Lazy.force coq_zn2z_W0 in
   let wW = Lazy.force coq_zn2z_WW in
@@ -136,7 +136,7 @@ let mkZn2z hght n =
       let h, l = Z.div_rem n (Z.shift_left Z.one (63 * (1 lsl hght'))) in
       Constr.mkApp (wW, [|tyZn2z hght'; aux hght' h; aux hght' l|]) in
   aux hght n
-  
+
 let ofZn2z hght c =
   let rec aux hght c =
     if hght <= 0 then ofInt63 c else
@@ -173,7 +173,7 @@ let mkBigN n =
   | 5 -> Constr.mkApp (Lazy.force coq_bigN_N5, [|word|])
   | 6 -> Constr.mkApp (Lazy.force coq_bigN_N6, [|word|])
   | _ -> Constr.mkApp (Lazy.force coq_bigN_Nn, [|mkNat (hght - 7); word|])
-  
+
 let ofBigN c = match Constr.decompose_app c with
   | c, [i] when eq_cst c coq_bigN_N0 -> ofInt63 i
   | c, [d] when eq_cst c coq_bigN_N1 -> ofZn2z 1 d
@@ -209,13 +209,13 @@ let mkBigQ q =
     Constr.mkApp (Lazy.force coq_bigQ_Qz, [|mkBigZ (Q.num q)|])
   else
     Constr.mkApp (Lazy.force coq_bigQ_Qq, [|mkBigZ (Q.num q); mkBigN (Q.den q)|])
-                
+
 let ofBigQ c = match snd (Constr.decompose_app c) with
   | [n] (*Qz*) -> Q.of_bigint (ofBigZ n)
   | [n; d] (*Qq*) -> Q.make (ofBigZ n) (ofBigN d)
   | _ -> raise Parse_error
 
-let float_path = ["Interval"; "Interval_specific_ops"]
+let float_path = ["Interval"; "Float"; "Specific_ops"]
 let coq_float_ind = lazy (init_constant' float_path "s_float")
 let coq_float_nan = lazy (init_constant' float_path "Fnan")
 let coq_float_float = lazy (init_constant' float_path "Float")
@@ -268,7 +268,7 @@ let errorpp msg = failpp maxlevel msg
 let failtac level msg = Tacticals.New.tclFAIL level msg
 
 (* The actual tactic. *)
-       
+
 module Sos = Osdp.Sos.Q
 module SosP = Sos.Poly
 

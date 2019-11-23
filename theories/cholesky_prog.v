@@ -5,9 +5,9 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype matrix ssralg bigop.
 From CoqEAL Require Import hrel.
 From CoqEAL Require Import param refinements seqmx seqmx_complements.
-From Interval Require Import Interval_xreal.
-From Interval Require Import Interval_definitions.
-From Interval Require Import Interval_specific_ops.
+From Interval Require Import Real.Xreal.
+From Interval Require Import Float.Basic.
+From Interval Require Import Float.Specific_ops.
 Require Import libValidSDP.Rstruct libValidSDP.misc.
 Require Import libValidSDP.coqinterval_infnan libValidSDP.zulp.
 Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
@@ -2265,8 +2265,8 @@ Definition bigQ2F (q : bigQ) : F.type * F.type :=
         | BigQ.Qz m => (m, 1%bigN)
         | BigQ.Qq m n => (m, n)
       end in
-  let m0 := Interval_specific_ops.Float m Bir.exponent_zero in
-  let n0 := Interval_specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
+  let m0 := Specific_ops.Float m Bir.exponent_zero in
+  let n0 := Specific_ops.Float (BigZ.Pos n) Bir.exponent_zero in
   (F.div rnd_DN prec m0 n0, F.div rnd_UP prec m0 n0).
 
 End refinement_cholesky_2.

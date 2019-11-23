@@ -2,8 +2,8 @@
 
 Require Import ZArith.
 From Flocq Require Import Core. Require Import Datatypes.
-From Interval Require Import Interval_definitions Interval_xreal.
-From Interval Require Import Interval_missing.
+From Interval Require Import Float.Basic Real.Xreal.
+From Interval Require Import Missing.Stdlib.
 From CoqEAL.theory Require Import ssrcomplements.
 From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint rational binrat.
 Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
@@ -147,7 +147,7 @@ Lemma eq_map_all_prop T1 T2 (f1 f2 : T1 ->  T2) (s : seq T1) :
   [seq f2 i | i <- s].
 Proof.
 elim: s => [|x s IHs] H //=.
-have /= [-> H2] := H; congr cons; exact: IHs.
+have /= [-> H2] := H; congr Datatypes.cons; exact: IHs.
 Qed.
 
 Lemma all_prop_cat (T : Type) (a : T -> Prop) (s1 s2 : seq T) :
@@ -701,7 +701,7 @@ elim/abstr_poly_ind': ap l n => //.
   by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphM. }
 { move=> p Hp m l n Hn /= Hnp; rewrite (Hp _ _ Hn Hnp).
   rewrite -{1}[m]spec_NK /binnat.implem_N bin_of_natE nat_N_Z.
-  by rewrite -Interval_missing.pow_powerRZ misc.pow_rexp !rmorphX. }
+  by rewrite -pow_powerRZ misc.pow_rexp !rmorphX. }
 move=> p Hp qi Hqi l n Hn /= /andP [Hqi' Hp'].
 case (sumb _) => [e|]; [|by rewrite size_map eqxx].
 set qi' := map _ _.
@@ -1256,8 +1256,8 @@ Qed.
 
 Definition F2bigQ (q : coqinterval_infnan.F.type) : bigQ :=
   match q with
-  | Interval_specific_ops.Float m e => bigZZ2Q m e
-  | Interval_specific_ops.Fnan => 0%bigQ
+  | Specific_ops.Float m e => bigZZ2Q m e
+  | Specific_ops.Fnan => 0%bigQ
   end.
 
 (* TODO LATER:
@@ -1436,7 +1436,7 @@ exact: bool_irrelevance.
 Qed.
 
 Lemma eqF_signif_digits m e m' e' :
-  eqF (Float m e) (Float m' e') ->
+  eqF (Specific_ops.Float m e) (Specific_ops.Float m' e') ->
   (signif_digits m <=? 53)%bigZ = (signif_digits m' <=? 53)%bigZ.
 Proof.
 move=> HeqF.
@@ -2070,8 +2070,8 @@ Qed.
 
 Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
   (szQi : seq (seq (seq BinNums.N * bigQ)
-               * (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))))
-  (zQ : seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ))) :=
+               * (seq (seq BinNums.N) * seq (seq (Specific_ops.s_float bigZ bigZ)))))
+  (zQ : seq (seq BinNums.N) * seq (seq (Specific_ops.s_float bigZ bigZ))) :=
   let '(papi, pap, strict) := abstr_goal_of_p_abstr_goal g in
   let n := size vm in
   let ap := abstr_poly_of_p_abstr_poly pap in
@@ -2118,8 +2118,8 @@ Definition soscheck_hyps_eff_wrapup (vm : seq R) (g : p_abstr_goal)
 Theorem soscheck_hyps_eff_wrapup_correct
   (vm : seq R) (g : p_abstr_goal)
   (szQi : seq (seq (seq BinNums.N * bigQ)
-               * (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))))
-  (zQ : (seq (seq BinNums.N) * seq (seq (s_float bigZ bigZ)))) :
+               * (seq (seq BinNums.N) * seq (seq (Specific_ops.s_float bigZ bigZ)))))
+  (zQ : (seq (seq BinNums.N) * seq (seq (Specific_ops.s_float bigZ bigZ)))) :
   soscheck_hyps_eff_wrapup vm g szQi zQ ->
   interp_p_abstr_goal vm g.
 Proof.

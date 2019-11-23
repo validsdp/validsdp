@@ -3,9 +3,9 @@
 
 Require Import ZArith.
 From Flocq Require Import Core. Require Import Datatypes.
-From Interval Require Import Interval_definitions Interval_xreal.
-From Interval Require Import Interval_missing.
-From Interval Require Import Interval_specific_ops. (* for Float *)
+From Interval Require Import Float.Basic Real.Xreal.
+From Interval Require Import Missing.Stdlib.
+From Interval Require Import Float.Specific_ops. (* for Float *)
 From CoqEAL.theory Require Import ssrcomplements.
 From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint rational binrat.
 Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
@@ -58,7 +58,7 @@ Lemma eq_map_all_prop T1 T2 (f1 f2 : T1 ->  T2) (s : seq T1) :
   [seq f2 i | i <- s].
 Proof.
 elim: s => [ |x s IHs] H //=.
-have /= [-> H2] := H; congr cons; exact: IHs.
+have /= [-> H2] := H; congr Datatypes.cons; exact: IHs.
 Qed.
 
 Lemma all_prop_cat (T : Type) (a : T -> Prop) (s1 s2 : seq T) :
@@ -293,8 +293,8 @@ Qed.
 
 Definition F2bigQ (q : coqinterval_infnan.F.type) : bigQ :=
   match q with
-  | Interval_specific_ops.Float m e => bigZZ2Q m e
-  | Interval_specific_ops.Fnan => 0%bigQ
+  | Specific_ops.Float m e => bigZZ2Q m e
+  | Specific_ops.Fnan => 0%bigQ
   end.
 
 (* TODO LATER:

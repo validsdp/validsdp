@@ -4,7 +4,7 @@
 -R plugins/soswitness/test-suite @PACKAGE_NAME@
 -R theories @PACKAGE_NAME@
 
-plugins/soswitness/src/soswitness.@COQPP_EXT@
+plugins/soswitness/src/soswitness.mlg
 plugins/soswitness/src/soswitness.mllib
 plugins/soswitness/theories/soswitness.v
 plugins/soswitness/test-suite/soswitnesstac.v

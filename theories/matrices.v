@@ -1,7 +1,7 @@
 (** This theory can be either loaded with the command [Load "testsuite".], or
     compiled and required. *)
 From Bignums Require Import BigZ.
-Require Import Interval.Interval_specific_ops.
+Require Import Interval.Float.Specific_ops.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
 
 Local Open Scope bigZ_scope.
