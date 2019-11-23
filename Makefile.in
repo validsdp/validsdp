@@ -61,8 +61,7 @@ distclean: clean
 	$(RM) $(PLUGDIR)/theories/soswitness.v
 
 FILES = AUTHORS LICENSE Makefile.in Makefile.coq.local _CoqProject.in\
-  README.md coq-validsdp.opam\
-  install_sdpa_on_debian_10.sh
+  README.md coq-validsdp.opam install_sdpa_on_debian_10.sh
 
 # This must be disabled to cope with the distributed (stable) tarballs
 # configure: configure.ac
@@ -79,7 +78,7 @@ _CoqProject: _CoqProject.in configure | Makefile
 # git-archive export of dirs {theories,test-suite,$(PLUGDIR)}
 dist: configure
 	@echo Exporting files from: $$(git describe --all --long --abbrev=40 --always --dirty)
-	export T=$$(readlink -f $$(mktemp -d dist.$$(date -I).XXX)) && export S=@PACKAGE_TARNAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDvR $(FILES) $^ $$T/$$S && for dir in theories test-suite $(PLUGDIR); do git archive --format=tar HEAD -- $$dir | (mkdir -p $$T/$$S/$$dir && cd $$T/$$S && tar xf -); done && (cd $$T && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
+	export T=$$(readlink -f $$(mktemp -d dist.$$(date -I).XXX)) && export S=@PACKAGE_TARNAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDvR $(FILES) $^ $$T/$$S && for dir in theories test-suite $(PLUGDIR); do git archive --format=tar HEAD -- $$dir | (mkdir -p $$T/$$S/$$dir && cd $$T/$$S && tar xf -); done && (cd $$T && sed -i -e 's,./autogen.sh &&,,' $$S/coq-validsdp.opam && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
 
 help:
 	@echo $(SOSWITNESS_DIR)
