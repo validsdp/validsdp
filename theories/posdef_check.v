@@ -70,8 +70,6 @@ Definition posdefcheck_ssr (s : nat) : 'M[F]_s.+1 -> bool := posdefcheck.
 
 (** *** Proofs *)
 
-Require Import bigop_tactics.
-
 Lemma posdefcheck_correct s Q :
   @posdefcheck_ssr s Q ->
   posdef (cholesky.MF2R (cholesky_infnan.MFI2F Q)).
