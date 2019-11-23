@@ -56,8 +56,8 @@ clean:
 distclean: clean
 	$(RM) -r autom4te.cache
 	$(RM) config.log config.status configure
-	$(RM) _CoqProject Makefile Makefile.coq.conf
-	$(RM) $(COQ_MAKEFILE)
+	$(RM) _CoqProject Makefile
+	$(RM) $(COQ_MAKEFILE) $(COQ_MAKEFILE).conf
 	$(RM) $(PLUGDIR)/theories/soswitness.v
 
 FILES = AUTHORS LICENSE Makefile.in Makefile.coq.local _CoqProject.in\
@@ -75,7 +75,7 @@ _CoqProject: _CoqProject.in configure | Makefile
 #	./configure
 
 # Create a tarball dist.YYYY-MM-DD.XXX/validsdp-a.b.c.tar.gz
-# containing validsdp-1.0.0/ with $(FILES), configure, and the
+# containing validsdp-a.b.c/ with $(FILES), configure, and the
 # git-archive export of dirs {theories,test-suite,$(PLUGDIR)}
 dist: configure
 	@echo Exporting files from: $$(git describe --all --long --abbrev=40 --always --dirty)

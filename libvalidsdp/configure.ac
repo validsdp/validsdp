@@ -76,5 +76,5 @@ AC_OUTPUT
 chmod a-w _CoqProject
 
 echo ""
-echo "  Now run 'make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
+echo "  Now run 'make && make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
 echo ""
