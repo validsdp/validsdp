@@ -19,4 +19,4 @@ theories/matrices.v
 theories/posdef_check.v
 theories/validsdp.v
 
-COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R . @PACKAGE_NAME@"
+COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R theories @PACKAGE_NAME@"
