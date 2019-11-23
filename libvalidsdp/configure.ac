@@ -71,9 +71,9 @@ AS_IF(
 rm -f conftest.v conftest.vo conftest.err
 
 # Create files
-AC_CONFIG_FILES([_CoqProject])
+AC_CONFIG_FILES([Makefile _CoqProject])
 AC_OUTPUT
-chmod a-w _CoqProject
+chmod a-w Makefile _CoqProject
 
 echo ""
 echo "  Now run 'make && make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
