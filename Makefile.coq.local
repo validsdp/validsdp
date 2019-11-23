@@ -30,3 +30,13 @@ doc:: html depend.png depend.map theories/validsdp.vo
 
 test:: test-suite/testsuite.v theories/validsdp.v
 	$(COQC) $(COQDEBUG) $(COQFLAGS) $<
+
+# Compile COQMF_ML{4,G}FILES and COQMF_VFILES__in__plugins/soswitness.
+# We cannot use $(VOFILES) here, because it is defined after the line:
+# "-include Makefile.coq.local"
+plugin-ml:: $(if $(USEBYTE),bytefiles,optfiles) $(filter plugins/soswitness/%, $(VFILES:.v=.vo))
+
+plugin::
+	$(HIDE)$(MAKE) --no-print-directory -f "$(SELF)" pre-all
+	$(HIDE)$(MAKE) --no-print-directory -f "$(SELF)" plugin-ml
+	$(HIDE)$(MAKE) --no-print-directory -f "$(SELF)" post-all
