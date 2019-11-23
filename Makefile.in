@@ -21,7 +21,7 @@ else
 MODULES :=
 endif
 
-all test install html gallinahtml doc deps.dot deps.png: $(COQ_MAKEFILE) Makefile
+all plugin test install html gallinahtml doc deps.dot deps.png: $(COQ_MAKEFILE) Makefile
 	$(COQ_MAKE) $@
 
 %.vo: %.v
@@ -84,6 +84,7 @@ help:
 	@echo $(SOSWITNESS_DIR)
 	@echo "You can run:"
 	@echo "    'make' to build ValidSDP"
+	@echo "    'make plugin' to only build the soswitness plugin"
 	@echo "    'make install' to install ValidSDP"
 	@echo "    'make test' to run several tests"
 	@echo "    'make doc' to build the documentation of the library"
@@ -91,4 +92,4 @@ help:
 	@echo "    'make distclean' to remove all generated files"
 	@echo "    'make dist' to prepare a tarball release"
 
-.PHONY: all clean distclean dist test install html gallinahtml doc help
+.PHONY: all plugin test install html gallinahtml doc help clean distclean dist
