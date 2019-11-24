@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([libValidSDP], [0.6-git])
+AC_INIT([libValidSDP], [0.6.0])
 AC_CONFIG_SRCDIR([cholesky_infnan.v])
 
 # Check for programs

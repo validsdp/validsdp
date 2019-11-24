@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([ValidSDP], [0.6-git])
+AC_INIT([ValidSDP], [0.6.0])
 AC_CONFIG_SRCDIR([theories/validsdp.v])
 
 # Check for programs
