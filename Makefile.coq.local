@@ -28,8 +28,10 @@ doc:: html depend.png depend.map theories/validsdp.vo
 	  -e '/<img src='\''depend.png'\''/r depend.map'; \
 	fi
 
-test:: test-suite/testsuite.v theories/validsdp.v
-	$(COQC) $(COQDEBUG) $(COQFLAGS) $<
+test:: test-suite/matrices.v test-suite/testsuite.v
+	for f in $^ ; do \
+	  $(COQC) $(COQDEBUG) $(COQFLAGS) $(COQMF_COQLIBS) $$f ; \
+	done
 
 # Compile COQMF_ML{4,G}FILES and COQMF_VFILES__in__plugins/soswitness.
 # We cannot use $(VOFILES) here, because it is defined after the line:

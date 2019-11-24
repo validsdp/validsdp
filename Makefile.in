@@ -51,7 +51,7 @@ clean:
 	-$(COQ_MAKE) clean
 	$(RM) depend depend.dot depend.png depend.map
 	$(RM) $(PLUGDIR)/src/soswitness.mlg
-	$(RM) theories/testsuite.vo theories/testsuite.glob
+	$(RM) test-suite/*.vo test-suite/*.glob
 
 distclean: clean
 	$(RM) -r autom4te.cache

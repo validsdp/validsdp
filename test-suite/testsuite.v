@@ -1,5 +1,6 @@
 Require Import Reals.
-From ValidSDP Require Import validsdp.
+From ValidSDP Require Import validsdp posdef_check.
+Require matrices.
 Local Open Scope R_scope.
 
 Goal forall x y : R, 0 <= y -> 2 / 3 * x ^ 2 + y + 1 / 4 > 0.
@@ -200,5 +201,12 @@ Lemma p_ind' (x0 x1 x2 : R) :
   - (sigma1 x0 x1 x2) * (x0^2 + x1^2 + x2^2 - 1) >= 0.
 Time validsdp.
 Time Qed.
+
+(* Eval vm_compute in posdef_check matrices.m4. Bug. *)
+Time Eval vm_compute in posdefcheck_eff_wrapup matrices.m4.
+
+Goal posdef_seqF matrices.m4.
+Time posdef_check.
+Qed.
 
 End testsuite.

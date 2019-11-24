@@ -2,6 +2,7 @@
 -R plugins/soswitness/theories @PACKAGE_NAME@
 -R plugins/soswitness/src @PACKAGE_NAME@
 -R plugins/soswitness/test-suite @PACKAGE_NAME@
+-R test-suite @PACKAGE_NAME@
 -R theories @PACKAGE_NAME@
 
 plugins/soswitness/src/soswitness.mlg
@@ -13,7 +14,6 @@ plugins/soswitness/test-suite/soswitnesstac.v
 theories/misc.v
 theories/cholesky_prog.v
 theories/iteri_ord.v
-theories/matrices.v
 theories/posdef_check.v
 theories/validsdp.v
 
