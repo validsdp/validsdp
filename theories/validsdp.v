@@ -12,7 +12,6 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
 From SsrMultinomials Require Import mpoly.
-Require Import ssrmultinomials_complements.
 Require Import libValidSDP.Rstruct.
 Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
@@ -706,7 +705,7 @@ move=> p Hp qi Hqi l n Hn /= /andP [Hqi' Hp'].
 case (sumb _) => [e|]; [|by rewrite size_map eqxx].
 set qi' := map _ _.
 rewrite (Hp qi' (size qi)); [|by rewrite /qi' /= size_map|by []].
-rewrite (map_mpoly_comp (@ratr_inj _)) comp_mpoly_meval /=.
+rewrite (map_mpoly_comp _ _ (@ratr_inj _)) comp_mpoly_meval /=.
 apply meval_eq => i.
 rewrite tnth_map tcastE /tnth /= (set_nth_default 0%R (tnth_default _ _));
   [|by rewrite /= size_map; case i].

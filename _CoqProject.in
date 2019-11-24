@@ -14,7 +14,6 @@ theories/misc.v
 theories/cholesky_prog.v
 theories/iteri_ord.v
 theories/bigop_tactics.v
-theories/ssrmultinomials_complements.v
 theories/matrices.v
 theories/posdef_check.v
 theories/validsdp.v
