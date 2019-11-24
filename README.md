@@ -77,9 +77,12 @@ with your favorite browser.
 Usage
 -----
 
-This library provides the tactics `validsdp` and `validsdp_intro` for
-proving inequalities on multivariate polynomials involving real-valued
-variables and rational constants.
+This library provides three tactics `validsdp`, `validsdp_intro` and
+`posdef_check`. See the
+[test-suite/testsuite.v](./test-suite/testsuite.v) file for examples
+of the last tactic, to prove that matrices are symmetric positive
+definite. The first two tactics prove inequalities on multivariate
+polynomials involving real-valued variables and rational constants.
 
 First, one has to import the validsdp Coq theory:
 
@@ -145,6 +148,7 @@ The syntax `with (param1, ...)` supports the same options as the
 Examples
 --------
 
+    From ValidSDP Require Import validsdp.
     Require Import Reals.
     Local Open Scope R_scope.
     
