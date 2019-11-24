@@ -818,8 +818,6 @@ have H2 := F2FI_correct H1.
 by rewrite -H2.
 Qed.
 
-Require matrices.
-
 Ltac posdef_check :=
   match goal with
   | [ |- posdef_seqF ?Q ] =>
@@ -827,9 +825,18 @@ Ltac posdef_check :=
       vm_cast_no_check (erefl true))
   end.
 
-(* Eval vm_compute in posdef_check matrices.m4. Bug. *)
-Time Eval vm_compute in posdefcheck_eff_wrapup matrices.m4.
-
-Goal posdef_seqF matrices.m4.
+Goal posdef_seqF
+  [:: [:: Float (4844268357668941) (-51); Float (-6010289013563096) (-55); Float (-8527459789388090) (-59); Float (-4778266098206664) (-50); Float (5667663619731675) (-55);
+          Float (4683274154211911) (-51)];
+      [:: Float (-6010289013563096) (-55); Float (7396430339592472) (-51); Float (-7289940589024767) (-57); Float (-6805625889340557) (-58); Float (-6772467775663301) (-51);
+          Float (5856798786847734) (-55)];
+      [:: Float (-8527459789388090) (-59); Float (-7289940589024767) (-57); Float (4853298392673210) (-52); Float (-6022680283661423) (-56); Float (-6234500978567578) (-55);
+          Float (7135901130999799) (-56)];
+      [:: Float (-4778266098206664) (-50); Float (-6805625889340557) (-58); Float (-6022680283661423) (-56); Float (4783306079007354) (-49); Float (5238162149477632) (-57);
+          Float (-4748548273910727) (-50)];
+      [:: Float (5667663619731675) (-55); Float (-6772467775663301) (-51); Float (-6234500978567578) (-55); Float (5238162149477632) (-57); Float (6311840486445046) (-51);
+          Float (-6079338910151020) (-55)];
+      [:: Float (4683274154211911) (-51); Float (5856798786847734) (-55); Float (7135901130999799) (-56); Float (-4748548273910727) (-50); Float (-6079338910151020) (-55);
+          Float (4765808075135984) (-51)]]%bigZ.
 Time posdef_check.
 Qed.
