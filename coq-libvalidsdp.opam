@@ -50,7 +50,7 @@ authors: [
   "Pierre Roux <pierre.roux@onera.fr>"
   "Érik Martin-Dorel <erik.martin-dorel@irit.fr>"
 ]
-#url: {
-#  archive: "https://github.com/validsdp/validsdp/releases/download/v0.6/coq-libvalidsdp.0.6.tgz"
-#  checksum: "sha256sum=TODO curl -L archive | sha256sum"
+#url {
+#  src: "https://github.com/validsdp/validsdp/releases/download/v0.6/coq-libvalidsdp.0.6.tgz"
+#  checksum: "sha256=TODO curl -L archive | sha256sum"
 #}
