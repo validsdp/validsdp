@@ -1973,10 +1973,10 @@ Lemma eqFIS_P x y : reflect (eqFIS x y) (eq_instFIS x y).
 Proof.
 apply: (iffP idP).
 { rewrite /eqFIS /eq_instFIS /fieq /float_infnan_spec.ficompare /= /ficompare;
-  rewrite F.cmp_correct !F.real_correct;
+  rewrite F'.cmp_correct !F.real_correct;
   do 2![case: F.toX =>//=] => rx ry /=; case: Rcompare_spec =>// ->//. }
 rewrite /eqFIS /eq_instFIS /fieq /float_infnan_spec.ficompare /= /ficompare;
-  rewrite F.cmp_correct !F.real_correct;
+  rewrite F'.cmp_correct !F.real_correct;
   do 2![case: F.toX =>//=] => rx ry [] <-; case: Rcompare_spec =>//;
   by move/Rlt_irrefl.
 Qed.
@@ -2302,9 +2302,9 @@ Unshelve.
 { by op2 F.div_correct. }
 { op1 F.real_correct; exact: bool_Rxx. }
 { by op202 ltac:(rewrite /leq_instFIS /file /= /ficompare /=; suff_eq bool_Rxx)
-  F.cmp_correct F.real_correct. }
+  F'.cmp_correct F.real_correct. }
 { by op202 ltac:(rewrite /lt_instFIS /filt /= /ficompare /=; suff_eq bool_Rxx)
-  F.cmp_correct F.real_correct. }
+  F'.cmp_correct F.real_correct. }
 { by op2 F.add_correct. }
 { by op22 F.neg_correct F.add_correct. }
 { by op2 F.mul_correct. }

@@ -1,7 +1,6 @@
 {
 
 module Tac2ffi = Ltac2_plugin.Tac2ffi
-module Tac2expr = Ltac2_plugin.Tac2expr
 module Tac2env = Ltac2_plugin.Tac2env
 
 module Value = Tac2ffi

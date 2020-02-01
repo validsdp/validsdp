@@ -4,6 +4,7 @@ Require Import Reals Rstruct.
 Require Import Floats.
 From Bignums Require Import BigZ.
 
+Require Import Flocq.Core.Raux.
 Require Import Flocq.Core.Defs.
 Require Import Flocq.Core.Digits.
 Require Import Flocq.Core.Generic_fmt.
@@ -27,6 +28,7 @@ Unset Printing Implicit Defensive.
 Module Bir := BigIntRadix2.
 
 Module F := SpecificFloat Bir.
+Module F' := Interval.Float.Sig.FloatExt F.
 
 Notation toR := (fun f => proj_val (F.toX f)).
 
@@ -79,7 +81,7 @@ have {Hn} [Zn|NZn] := Hn.
 { rewrite /= Zn /= BigN.spec_sub.
   apply/Z.max_l_iff.
   rewrite BigN.spec_Ndigits BigN.spec_head00 //.
-  zify; omega. }
+  lia. }
 { rewrite [LHS]Bir.mantissa_digits_correct; last first.
   { case E: [BigZ.Pos n]%bigZ NZn => [|p|p] //= NZn.
     exists p; by rewrite -E.
@@ -97,7 +99,7 @@ have {Hn} [Zn|NZn] := Hn.
 { rewrite /= Zn /= BigN.spec_sub.
   apply/Z.max_l_iff.
   rewrite BigN.spec_Ndigits BigN.spec_head00 //.
-  zify; omega. }
+  lia. }
 { rewrite [LHS]Bir.mantissa_digits_correct; last first.
   { case E: [BigZ.Pos n]%bigZ NZn => [|p|p] //= NZn.
     exists p; by rewrite -E.
@@ -144,7 +146,7 @@ split => H.
   { rewrite /F.toX /F.toF.
     case: Bir.mantissa_sign (Bir.mantissa_sign_correct m) =>[/=|s n].
     { rewrite /F2R /= BigZ.spec_div.
-      by rewrite /Bir.MtoZ =>->; rewrite Zdiv_0_l Rmult_0_l. }
+      by rewrite /Bir.MtoZ =>->; rewrite Zdiv.Zdiv_0_l Rmult_0_l. }
     case=> Hm Vn; rewrite /= FtoR_split.
     case: s Hm => Hm; rewrite /= -Hm /F2R /= /Bir.MtoZ /Bir.EtoZ.
     { rewrite BigZ.spec_add bpow_plus /= -Rmult_assoc; congr Rmult.
@@ -747,7 +749,7 @@ now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
 Definition ficompare (x y : FI) : float_comparison :=
-  match F.cmp x y with
+  match F'.cmp x y with
     | Xlt => FLt
     | Xgt => FGt
     | Xeq => FEq
@@ -758,7 +760,7 @@ Definition ficompare (x y : FI) : float_comparison :=
 Lemma ficompare_spec x y : finite x -> finite y ->
   ficompare x y = flatten_cmp_opt (Some (Rcompare (FI2FS x) (FI2FS y))).
 Proof.
-unfold ficompare; rewrite F.cmp_correct.
+unfold ficompare; rewrite F'.cmp_correct.
 unfold finite; rewrite !FtoX_real !FI2FS_X2F_FtoX.
 caseFI x Hx Hx1 Hx2; caseFI y Hy Hy1 Hy2.
 rewrite /Xcmp.
@@ -777,7 +779,7 @@ Qed.
 Lemma ficompare_spec_eq x y : ficompare x y = FEq -> FI2FS x = FI2FS y :> R.
 Proof.
 move=> H; suff: FI2FS x = FI2FS y :> R; [by []|move: H].
-unfold ficompare; rewrite F.cmp_correct !F.real_correct.
+unfold ficompare; rewrite F'.cmp_correct !F.real_correct.
 unfold Xcmp.
 case Ex: (F.toX x) =>[|rx]; case Ey: (F.toX y) =>[|ry] //=;
   first by rewrite Ex Ey.
@@ -787,7 +789,7 @@ Qed.
 Lemma ficompare_spec_eq_f x y : ficompare x y = FEq ->
   (finite x <-> finite y).
 Proof.
-unfold ficompare, finite; rewrite F.cmp_correct !F.real_correct.
+unfold ficompare, finite; rewrite F'.cmp_correct !F.real_correct.
 by case Ex: (F.toX x) =>[|rx]; case Ey: (F.toX y) =>[|ry].
 Qed.
 

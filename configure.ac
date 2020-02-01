@@ -26,6 +26,23 @@ AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
 
 # Check for libraries
+AC_MSG_CHECKING([for Ltac2])
+# Ltac2 is installed wit Coq 8.11 but in different places
+# whether it is compiled with Make or dune
+COQTOP_WHERE=`coqtop -where`
+LTAC2_MAKE="${COQTOP_WHERE}/user-contrib/Ltac2"
+LTAC2_DUNE="${COQTOP_WHERE}/plugins/ltac2"
+LTAC2_CAML_FILES=""
+AS_IF([test -d ${LTAC2_MAKE}],
+      [LTAC2_CAML_FILES="${LTAC2_CAML_FILES} -I ${LTAC2_MAKE}"], [])
+AS_IF([test -d ${LTAC2_DUNE}],
+      [LTAC2_CAML_FILES="${LTAC2_CAML_FILES} -I ${LTAC2_DUNE}"], [])
+AS_IF([test -n "${LTAC2_CAML_FILES}"],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq >= 8.11])])
+AC_SUBST(LTAC2_CAML_FILES)
+
 AC_MSG_CHECKING([for Mathcomp])
 AS_IF(
   [ echo "From mathcomp Require Import rat matrix countalg." > conftest.v
