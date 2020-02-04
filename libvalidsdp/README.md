@@ -83,3 +83,35 @@ run:
 
 The documentation can then be browsed from the page `html/toc.html`
 with your favorite browser.
+
+Overview of the libValidSDP files
+---------------------------------
+
+### Prerequisites
+
+* [Rstruct.v](./Rstruct.v): Instance of [mathcomp's `realFieldType`](https://math-comp.github.io/htmldoc/mathcomp.algebra.ssrnum.html) for [`Reals`](https://coq.github.io/doc/master/stdlib/Coq.Reals.Reals.html)
+* [misc.v](./misc.v): Miscellaneous lemmas
+* [bounded.v](./bounded.v): Real numbers with bounded absolute value
+* [real_matrix.v](./real_matrix.v): Basic results about matrices over the reals
+
+### Arithmetic model
+
+* [float_spec.v](./float_spec.v): **Specification of a "standard model" of floating-point arithmetic**
+* [float_infnan_spec.v](./float_infnan_spec.v): Extension of this specification with overflow
+
+### Results
+
+* [fsum.v](./fsum.v): **Bounds on the rounding error of sums in any summation order**
+* [fsum_l2r.v](./fsum_l2r.v): Instanciation for the left-to-right order
+* [fcmsum.v](./fcmsum.v): Error bounds on `c - \sum_{i=0}^n x_i`
+* [cholesky.v](./cholesky.v): **Application: proof of a positive definiteness check**
+* [cholesky_infnan.v](./cholesky_infnan.v): **Extension of this proof with overflows** (see also the corresponding tactic in [`posdef_check.v`](https://github.com/validsdp/validsdp/blob/master/theories/posdef_check.v)
+
+### Instances
+
+* [flx64.v](./flx64.v): Proof that the Flocq format "FLX, precision-53" is a `Float_spec` instance
+* [binary64.v](./binary64.v): Proof that the IEEE-754 binary64 format (formalized in Flocq) is a `Float_spec` instance
+* [binary64_infnan.v](./binary64_infnan.v): Same for the `Float_infnan_spec`
+* [zulp.v](./zulp.v): Helper formalization of `ulp`s (unit in the last place) for signed integers
+* [`coqinterval_infnan_31.v`](./coqinterval_infnan_31.v): Proof that the precision-53 restriction of CoqInterval's `Interval_specific_ops` is a `Float_spec` instance (before Coq 8.10)
+* [`coqinterval_infnan_63.v`](./coqinterval_infnan_63.v): Same for Coq 8.10+
