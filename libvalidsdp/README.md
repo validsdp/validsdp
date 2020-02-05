@@ -103,15 +103,15 @@ Overview of the libValidSDP files
 
 * [fsum.v](./fsum.v): **Bounds on the rounding error of sums in any summation order**
 * [fsum_l2r.v](./fsum_l2r.v): Instanciation for the left-to-right order
-* [fcmsum.v](./fcmsum.v): Error bounds on `c - \sum_{i=0}^n x_i`
+* [fcmsum.v](./fcmsum.v): Error bounds on `c - \sum_{i=0}^n x_i`, `c` float and `x` in R^n
 * [cholesky.v](./cholesky.v): **Application: proof of a positive definiteness check**
-* [cholesky_infnan.v](./cholesky_infnan.v): **Extension of this proof with overflows** (see also the corresponding tactic in [`posdef_check.v`](https://github.com/validsdp/validsdp/blob/master/theories/posdef_check.v)
+* [cholesky_infnan.v](./cholesky_infnan.v): **Extension of this proof with overflows** (see also the corresponding tactic in [`posdef_check.v`](https://github.com/validsdp/validsdp/blob/master/theories/posdef_check.v))
 
 ### Instances
 
 * [flx64.v](./flx64.v): Proof that the Flocq format "FLX, precision-53" is a `Float_spec` instance
-* [binary64.v](./binary64.v): Proof that the IEEE-754 binary64 format (formalized in Flocq) is a `Float_spec` instance
-* [binary64_infnan.v](./binary64_infnan.v): Same for the `Float_infnan_spec`
+* [binary64.v](./binary64.v): Proof that the IEEE-754 binary64 format without overflow (formalized as FLT in Flocq) is a `Float_spec` instance
+* [binary64_infnan.v](./binary64_infnan.v): Same for the `Float_infnan_spec` with overflows
 * [zulp.v](./zulp.v): Helper formalization of `ulp`s (unit in the last place) for signed integers
 * [`coqinterval_infnan_31.v`](./coqinterval_infnan_31.v): Proof that the precision-53 restriction of CoqInterval's `Interval_specific_ops` is a `Float_spec` instance (before Coq 8.10)
 * [`coqinterval_infnan_63.v`](./coqinterval_infnan_63.v): Same for Coq 8.10+
