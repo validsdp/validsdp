@@ -50,6 +50,6 @@ authors: [
   "Érik Martin-Dorel <erik.martin-dorel@irit.fr>"
 ]
 #url {
-#  src: "https://github.com/validsdp/validsdp/releases/download/v0.6/coq-libvalidsdp.0.6.tgz"
+#  src: "https://github.com/validsdp/validsdp/releases/download/v0.8.0/libvalidsdp-0.8.0.tar.gz
 #  checksum: "sha256=TODO curl -L archive | sha256sum"
 #}
