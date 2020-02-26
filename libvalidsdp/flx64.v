@@ -8,8 +8,6 @@
 Require Import Reals Rstruct.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 
-Require Import float_spec.
-
 Require Import Flocq.Core.Zaux.
 Require Import Flocq.Core.Raux.
 Require Import Flocq.Core.Defs.
@@ -21,6 +19,8 @@ Require Import Flocq.Prop.Plus_error.
 Require Import Flocq.Prop.Div_sqrt_error.
 
 Require Import Psatz.
+
+Require Import float_spec.
 
 Open Scope R_scope.
 

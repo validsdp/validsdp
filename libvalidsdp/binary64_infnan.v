@@ -7,8 +7,6 @@
 Require Import Reals Rstruct.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 
-Require Import float_spec binary64 float_infnan_spec.
-
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
 
@@ -21,6 +19,8 @@ Require Import Flocq.Core.Float_prop.
 
 Require Import Psatz.
 
+Require Import float_spec binary64 float_infnan_spec.
+
 Open Scope R_scope.
 
 Section Binary64_infnan.
@@ -32,11 +32,11 @@ Let emin := (3 - emax - prec)%Z.
 Let fexp := FLT_exp emin prec.
 
 (** Binary64 defined in [Fappli_IEEE_bits]. *)
-Definition FI := binary64.
+Definition FI := Bits.binary64.
 
 Definition FI0 := B754_zero prec emax false.
 
-Lemma FI1_proof : bounded prec emax 4503599627370496 (-52) = true.
+Lemma FI1_proof : Binary.bounded prec emax 4503599627370496 (-52) = true.
 Proof. now simpl. Qed.
 
 Definition FI1 := B754_finite prec emax false 4503599627370496 (-52) FI1_proof.
