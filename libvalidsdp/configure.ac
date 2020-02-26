@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([libValidSDP], [0.6.1-git])
+AC_INIT([libValidSDP], [0.7.0])
 AC_CONFIG_SRCDIR([cholesky_infnan.v])
 
 # Check for programs
@@ -16,7 +16,7 @@ AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
 majmin=`echo "$coq_version" | cut -d . -f "1 2"`
 if test "v$majmin" != "v8.7" -a "v$majmin" != "v8.8" -a "v$majmin" != "v8.9" -a "v$majmin" != "v8.10" -a "v$majmin" != "v8.11"; then
-  AC_MSG_ERROR([Coq version must be 8.7.x or 8.8.x or 8.9.x or 8.10.x 8.11.x (you have version $coq_version).])
+  AC_MSG_ERROR([Coq version must be 8.7.x or 8.8.x or 8.9.x or 8.10.x or 8.11.x (you have version $coq_version).])
 fi
 AC_MSG_RESULT($coq_version)
 
