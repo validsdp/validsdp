@@ -1,5 +1,6 @@
+os: linux
 dist: bionic
-language: minimal
+language: shell
 
 services:
   - docker
@@ -8,7 +9,7 @@ env:
   global:
   - NJOBS="2"
   - CONTRIB_NAME="validsdp"
-  matrix:
+  jobs:
   - COQ_IMAGE="mathcomp/mathcomp:1.8.0-coq-8.7"
   - COQ_IMAGE="mathcomp/mathcomp:1.8.0-coq-8.8"
   - COQ_IMAGE="mathcomp/mathcomp:1.8.0-coq-8.9"
