@@ -2442,7 +2442,7 @@ Ltac2 pop_state_ltac2 () :=
 
 Ltac2 soswitness_wrapper ppi params :=
   Control.plus
-    (fun () => soswitness2 ppi params)
+    (fun () => soswitness ppi params)
     (fun e => Control.throw e (*constr:(cannot_conclude)*)).
 
 (* Ltac2 soswitness_intro_wrapper ppi params := *)
@@ -2503,7 +2503,7 @@ Ltac2 do_validsdp params :=
                                           abstr_poly_of_p_abstr_poly) $p) in
             let ppi := Std.eval_vm None constr:(($p, $pi)) in
             deb_sc "(g, vm):" constr:(($g, $vm));
-            match! soswitness2 ppi params with
+            match! soswitness ppi params with
             | cannot_conclude => failwith_c "soswitness failed on" constr:(($g, $vm))
             | ?zQ_szQi =>
               deb_sc "zQ_szQi:" zQ_szQi;

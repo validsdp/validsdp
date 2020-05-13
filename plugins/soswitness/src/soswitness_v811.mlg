@@ -2,38 +2,36 @@
 
 module Tac2ffi = Ltac2_plugin.Tac2ffi
 module Tac2env = Ltac2_plugin.Tac2env
+module Tac2interp = Ltac2_plugin.Tac2interp
 
 module Value = Tac2ffi
 open Value
-(* open Proofview.Notations *)
 
 (* Helper functions *)
 
-let return x = Proofview.tclUNIT x
 let pname s = { Tac2expr.mltac_plugin = "soswitness"; mltac_tactic = s }
 
 let define_primitive name arity f =
   Tac2env.define_primitive (pname name) (mk_closure arity f)
 
-let define0 name f = define_primitive name arity_one (fun _ -> f)
-
-let define1 name r0 f = define_primitive name arity_one begin fun x ->
-  f (Value.repr_to r0 x)
-end
-
 let define2 name r0 r1 f = define_primitive name (arity_suc arity_one) begin fun x y ->
   f (Value.repr_to r0 x) (Value.repr_to r1 y)
 end
 
-let define3 name r0 r1 r2 f = define_primitive name (arity_suc (arity_suc arity_one)) begin fun x y z ->
-  f (Value.repr_to r0 x) (Value.repr_to r1 y) (Value.repr_to r2 z)
-end;;
+let core_prefix path n = Names.(KerName.make path (Label.of_id (Id.of_string_soft n)))
 
-let v_unit = Value.of_unit ()
+(* Beware: this list is in "reverse" order *)
+let coq_prefix =
+  Names.(MPfile (DirPath.make (List.map Id.of_string ["soswitness"; "ValidSDP"])))
 
-let thaw f = Tac2ffi.apply f [v_unit]
+let err_parse_error =
+  Tac2interp.LtacError (core_prefix coq_prefix "Parse_error", [||])
 
-exception Parse_error
+let err_no_witness =
+  Tac2interp.LtacError (core_prefix coq_prefix "No_witness", [||])
+
+let err_constant_input =
+  Tac2interp.LtacError (core_prefix coq_prefix "Constant_input", [||])
 
 (* Various constructors and destructors needed. *)
 
@@ -81,7 +79,7 @@ let mkList tye mke l =
 let rec ofList ofe c = match snd (Constr.decompose_app c) with
   | [] | [_] (*nil*) -> []
   | [_; h; t] (*cons*) -> ofe h :: ofList ofe t
-  | _ -> raise Parse_error
+  | _ -> raise err_parse_error
 
 let coq_prod = lazy (init_constant "core.prod.type")
 let coq_pair = lazy (init_constant "core.prod.intro")
@@ -93,7 +91,7 @@ let mkPair tya tyb mka mkb (a, b) =
 
 let ofPair ofa ofb c = match snd (Constr.decompose_app c) with
   | [_; _; a; b] -> ofa a, ofb b
-  | _ -> raise Parse_error
+  | _ -> raise err_parse_error
 
 let coq_positive_ind = lazy (init_constant "num.pos.type")
 let coq_positive_I = lazy (init_constant "num.pos.xI")
@@ -111,7 +109,7 @@ let rec ofPositive c = match Constr.decompose_app c with
   | c, [] -> 1
   | c, [n] when eq_cst c coq_positive_O -> 2 * ofPositive n
   | c, [n] (*when eq_cst c coq_positive_I*) -> 2 * ofPositive n + 1
-  | _ -> raise Parse_error
+  | _ -> raise err_parse_error
 
 let coq_N_ind = lazy (init_constant "num.N.type")
 let coq_N_0 = lazy (init_constant "num.N.N0")
@@ -145,7 +143,7 @@ let ofInt63 c = match Constr.kind c with
      let h = Uint63.(to_string (l_sr i uint63_32)) in
      let l = Uint63.(to_string (l_and i uint63_mask32)) in
      Z.(((of_string h) lsl 32) lor (of_string l))
-  | _ -> raise Parse_error
+  | _ -> raise err_parse_error
 
 let zn2z_path = ["Coq"; "Numbers"; "Cyclic"; "Abstract"; "DoubleType"]
 let coq_zn2z_ind = lazy (init_constant' zn2z_path "zn2z")
@@ -175,7 +173,7 @@ let ofZn2z hght c =
          let hght' = hght - 1 in
          let h, l = aux hght' h, aux hght' l in
          Z.add (Z.shift_left h (63 * (1 lsl hght'))) l
-      | _ -> raise Parse_error in
+      | _ -> raise err_parse_error in
   aux hght c
 
 let bigN_path = ["Bignums"; "BigN"; "BigN"; "BigN"]
@@ -212,7 +210,7 @@ let ofBigN c = match Constr.decompose_app c with
   | c, [d] when eq_cst c coq_bigN_N5 -> ofZn2z 5 d
   | c, [d] when eq_cst c coq_bigN_N6 -> ofZn2z 6 d
   | c, [n; d] when eq_cst c coq_bigN_Nn -> ofZn2z (ofNat n + 7) d
-  | _ -> raise Parse_error
+  | _ -> raise err_parse_error
 
 let bigZ_path = ["Bignums"; "BigZ"; "BigZ"; "BigZ"]
 let coq_bigZ_ind = lazy (init_constant' bigZ_path "t")
@@ -226,7 +224,7 @@ let mkBigZ n =
 let ofBigZ c = match Constr.decompose_app c with
   | c, [n] when eq_cst c coq_bigZ_Pos -> ofBigN n
   | c, [n] (*when eq_cst c coq_bigZ_Neg*) -> Z.neg (ofBigN n)
-  | _ -> raise Parse_error
+  | _ -> raise err_parse_error
 
 let bigQ_path = ["Bignums"; "BigQ"; "BigQ"; "BigQ"]
 let coq_bigQ_ind = lazy (init_constant' bigQ_path "t_")
@@ -242,7 +240,7 @@ let mkBigQ q =
 let ofBigQ c = match snd (Constr.decompose_app c) with
   | [n] (*Qz*) -> Q.of_bigint (ofBigZ n)
   | [n; d] (*Qq*) -> Q.make (ofBigZ n) (ofBigN d)
-  | _ -> raise Parse_error
+  | _ -> raise err_parse_error
 
 let float_path = ["Interval"; "Float"; "Specific_ops"]
 let coq_float_ind = lazy (init_constant' float_path "s_float")
@@ -282,19 +280,7 @@ let ofParameters p = match Constr.decompose_app p with
   | c, [] when eq_cst c coq_parameters_s_csdp -> S_csdp
   | c, [] when eq_cst c coq_parameters_s_mosek -> S_mosek
   | c, [n] when eq_cst c coq_parameters_s_verbose -> S_verbose (ofNat n)
-  | _ -> raise Parse_error
-
-(*
-let error msg = CErrors.errorlabstrm "" msg
-let errorpp msg = CErrors.error msg
- *)
-exception SosFail of int * Pp.t
-let fail level msg = raise (SosFail(level, msg))
-let failpp level msg = raise (SosFail(level, Pp.str msg))
-let maxlevel = 999
-let error msg = fail maxlevel msg (* could be set a smaller level *)
-let errorpp msg = failpp maxlevel msg
-let failtac level msg = Tacticals.New.tclFAIL level msg
+  | _ -> raise err_parse_error
 
 (* The actual tactic. *)
 
@@ -313,7 +299,7 @@ let psatz intro options q =
     if intro then Sos.solve ~options (Sos.Maximize lb) [Sos.(!!q - lb)]
     else Sos.solve ~options Sos.Purefeas [Sos.(!!q)] in
   match (ret = Osdp.SdpRet.Success), wl with
-  | (false, _ | _, []) -> errorpp "soswitness: OSDP found no witnesses"
+  | (false, _ | _, []) -> raise err_no_witness
   | _, (zQ :: _) ->
      let array_to_list (z, q) =
        Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
@@ -374,7 +360,7 @@ let psatz_hyps intro options q pl =
     | (Some _) as w -> w
     | None -> get_wits true in
   match w with
-  | None -> errorpp "soswitness: OSDP found no witnesses"
+  | None -> raise err_no_witness
   | Some (nb_vars, lb, coeff, sigmas, vals, zQ, zQl) ->
      let sigmas = List.rev_map (fun e -> Sos.value_poly e vals) sigmas in
      if intro then
@@ -385,7 +371,7 @@ let psatz_hyps intro options q pl =
      else
        let coeff = Sos.value coeff vals in
        if SosP.Coeff.equal coeff SosP.Coeff.zero then
-         errorpp "soswitness: OSDP found no witnesses";
+         raise err_no_witness;
        let coeff = SosP.Coeff.inv coeff in
        let sigmas = List.map (SosP.mult_scalar coeff) sigmas in
        let coeff = SosP.Coeff.to_float coeff in
@@ -405,18 +391,20 @@ let soswitness intro options c =
     let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofN c) in
     let ofPoly c =
       Osdp.Sos.Q.Poly.of_list (ofList (ofPair ofSeqmultinom ofBigQ) c) in
-    try
+    (* try *)
       ofPair ofPoly (ofList ofPoly) c
-    with Parse_error ->
+    (* with Parse_error ->
+     *   Proofview.tclZERO err_parse_error *)
+      (* TODO : remettre le type dans le message d'erreur *)
+      (*
       let ty_input = tyPair ty_poly (tyList ty_poly) in
       fail maxlevel
         Pp.(str "soswitness: wrong input type (expected "
             ++ Printer.pr_constr_env Environ.empty_env Evd.empty ty_input
-            ++ str ").") in
+            ++ str ").") *) in
   let () =  (* TODO: try to fix that *)
     if Osdp.Sos.Q.Poly.is_const q <> None then
-      errorpp "soswitness: expects a closed term representing \
-               a non constant polynomial" in
+      raise err_constant_input in
   (* Call OSDP to retrieve witnesses *)
   let nb_vars, lb, zq, szql =
     match pl with
@@ -465,13 +453,10 @@ let soswitness intro options c =
   if options.Sos.verbose > 0 then
     Format.printf "soswitness took: %.2fs@." ti;
   let v = EConstr.of_constr v in
-  (* let t = EConstr.of_constr t in *)
-  (* Tactics.letin_tac None (Names.Name id) v (Some t) Locusops.nowhere *)
   v
-  
+
 let soswitness_opts ?(intro=false) c opts =
-  let opts = List.map (* ofList *) ofParameters opts in
-  Format.printf "len: %d@." (List.length opts);
+  let opts = List.map ofParameters opts in
   let options =
     List.fold_left
       (fun options opt -> match opt with
@@ -495,62 +480,18 @@ let soswitness_opts ?(intro=false) c opts =
       Sos.default opts in
   try
     let c = soswitness intro options c in
-    let () = Format.printf "  *** success@." in
-    let res = Proofview.tclUNIT (Value.of_constr c) in
-    let () = Format.printf "  *** apres of_constr@." in
-    res
-  with e ->
-    let () = Format.printf "  *** exception@." in
-    Proofview.tclZERO e (* SosFail (level, msg) -> failtac level msg
-      * | Failure msg -> failtac maxlevel (Pp.str msg)
-      * | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
-      *        failtac maxlevel Pp.(str msg) *)
-
-(* (\** constr -> ident -> unit *\)
- * let () = define2 "soswitness2" constr ident begin fun c id ->
- *   Proofview.Goal.enter (fun gl ->
- *     let c = EConstr.Unsafe.to_constr c in
- *     let opts =
- *       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
- *     soswitness_opts gl c id opts) >>= fun () -> return v_unit
- *   end *)
+    Proofview.tclUNIT (Value.of_constr c)
+  with
+  | (Tac2interp.LtacError _) as e -> Proofview.tclZERO e
+  | e ->
+     let msg = "Anomaly: " ^ (Printexc.to_string e) in
+     Tacticals.New.tclFAIL 999 Pp.(str msg)
 
 (** constr -> constr list -> constr *)
-let () = define2 "soswitness2" constr (list constr) begin fun c opts ->
+let () = define2 "soswitness" constr (list constr) begin fun c opts ->
   let c = EConstr.Unsafe.to_constr c in
   let opts = List.map EConstr.Unsafe.to_constr opts in
-  soswitness_opts c opts (* >>= fun c -> Proofview.tclUNIT (Value.of_constr c) *)
+  soswitness_opts c opts
 end
-
-(* open Stdarg
- * open Ltac_plugin
- * 
- * TACTIC EXTEND soswitness_of_as
- * ["soswitness" "of" constr(c) "as" ident(id) ] ->
- * [ Proofview.Goal.enter (fun gl ->
- *     let c = EConstr.Unsafe.to_constr c in
- *     let opts =
- *       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
- *     soswitness_opts gl c id opts) ]
- * |
- * ["soswitness" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
- * [ Proofview.Goal.enter (fun gl ->
- *     let c = EConstr.Unsafe.to_constr c in
- *     let opts = EConstr.Unsafe.to_constr opts in
- *     soswitness_opts gl c id opts) ]
- * |
- * ["soswitness_intro" "of" constr(c) "as" ident(id) ] ->
- * [ Proofview.Goal.enter (fun gl ->
- *     let c = EConstr.Unsafe.to_constr c in
- *     let opts =
- *       mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
- *     soswitness_opts ~intro:true gl c id opts) ]
- * |
- * ["soswitness_intro" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
- * [ Proofview.Goal.enter (fun gl ->
- *     let c = EConstr.Unsafe.to_constr c in
- *     let opts = EConstr.Unsafe.to_constr opts in
- *     soswitness_opts ~intro:true gl c id opts) ]
- * END *)
 
 }

@@ -1,6 +1,6 @@
 Require Export Bignums.BigQ.BigQ mathcomp.ssreflect.seq Interval.Float.Specific_ops.
 
-Inductive validsdp_tac_parameters :=
+Variant validsdp_tac_parameters :=
 | s_sdpa
 | s_csdp
 | s_mosek
@@ -14,6 +14,8 @@ Register s_verbose as validsdp.soswitness.tac_parameters.s_verbose.
 
 From Ltac2 Require Import Ltac2.
 
+Ltac2 Type exn ::= [Parse_error | No_witness | Constant_input].
+
 Declare ML Module "soswitness".
 
-Ltac2 @ external soswitness2 : constr -> constr list -> constr := "soswitness" "soswitness2".
+Ltac2 @ external soswitness : constr -> constr list -> constr := "soswitness" "soswitness".
