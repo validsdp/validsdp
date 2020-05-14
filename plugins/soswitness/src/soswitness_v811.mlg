@@ -24,14 +24,17 @@ let core_prefix path n = Names.(KerName.make path (Label.of_id (Id.of_string_sof
 let coq_prefix =
   Names.(MPfile (DirPath.make (List.map Id.of_string ["soswitness"; "ValidSDP"])))
 
-let err_parse_error =
-  Tac2interp.LtacError (core_prefix coq_prefix "Parse_error", [||])
+let err_parse_error expected_type =
+  let v = Value.of_constr (EConstr.of_constr expected_type) in
+  Tac2interp.LtacError (core_prefix coq_prefix "Parse_error", [|v|])
 
 let err_no_witness =
   Tac2interp.LtacError (core_prefix coq_prefix "No_witness", [||])
 
 let err_constant_input =
   Tac2interp.LtacError (core_prefix coq_prefix "Constant_input", [||])
+
+exception Parse_error
 
 (* Various constructors and destructors needed. *)
 
@@ -79,7 +82,7 @@ let mkList tye mke l =
 let rec ofList ofe c = match snd (Constr.decompose_app c) with
   | [] | [_] (*nil*) -> []
   | [_; h; t] (*cons*) -> ofe h :: ofList ofe t
-  | _ -> raise err_parse_error
+  | _ -> raise Parse_error
 
 let coq_prod = lazy (init_constant "core.prod.type")
 let coq_pair = lazy (init_constant "core.prod.intro")
@@ -91,7 +94,7 @@ let mkPair tya tyb mka mkb (a, b) =
 
 let ofPair ofa ofb c = match snd (Constr.decompose_app c) with
   | [_; _; a; b] -> ofa a, ofb b
-  | _ -> raise err_parse_error
+  | _ -> raise Parse_error
 
 let coq_positive_ind = lazy (init_constant "num.pos.type")
 let coq_positive_I = lazy (init_constant "num.pos.xI")
@@ -109,7 +112,7 @@ let rec ofPositive c = match Constr.decompose_app c with
   | c, [] -> 1
   | c, [n] when eq_cst c coq_positive_O -> 2 * ofPositive n
   | c, [n] (*when eq_cst c coq_positive_I*) -> 2 * ofPositive n + 1
-  | _ -> raise err_parse_error
+  | _ -> raise Parse_error
 
 let coq_N_ind = lazy (init_constant "num.N.type")
 let coq_N_0 = lazy (init_constant "num.N.N0")
@@ -143,7 +146,7 @@ let ofInt63 c = match Constr.kind c with
      let h = Uint63.(to_string (l_sr i uint63_32)) in
      let l = Uint63.(to_string (l_and i uint63_mask32)) in
      Z.(((of_string h) lsl 32) lor (of_string l))
-  | _ -> raise err_parse_error
+  | _ -> raise Parse_error
 
 let zn2z_path = ["Coq"; "Numbers"; "Cyclic"; "Abstract"; "DoubleType"]
 let coq_zn2z_ind = lazy (init_constant' zn2z_path "zn2z")
@@ -173,7 +176,7 @@ let ofZn2z hght c =
          let hght' = hght - 1 in
          let h, l = aux hght' h, aux hght' l in
          Z.add (Z.shift_left h (63 * (1 lsl hght'))) l
-      | _ -> raise err_parse_error in
+      | _ -> raise Parse_error in
   aux hght c
 
 let bigN_path = ["Bignums"; "BigN"; "BigN"; "BigN"]
@@ -210,7 +213,7 @@ let ofBigN c = match Constr.decompose_app c with
   | c, [d] when eq_cst c coq_bigN_N5 -> ofZn2z 5 d
   | c, [d] when eq_cst c coq_bigN_N6 -> ofZn2z 6 d
   | c, [n; d] when eq_cst c coq_bigN_Nn -> ofZn2z (ofNat n + 7) d
-  | _ -> raise err_parse_error
+  | _ -> raise Parse_error
 
 let bigZ_path = ["Bignums"; "BigZ"; "BigZ"; "BigZ"]
 let coq_bigZ_ind = lazy (init_constant' bigZ_path "t")
@@ -224,7 +227,7 @@ let mkBigZ n =
 let ofBigZ c = match Constr.decompose_app c with
   | c, [n] when eq_cst c coq_bigZ_Pos -> ofBigN n
   | c, [n] (*when eq_cst c coq_bigZ_Neg*) -> Z.neg (ofBigN n)
-  | _ -> raise err_parse_error
+  | _ -> raise Parse_error
 
 let bigQ_path = ["Bignums"; "BigQ"; "BigQ"; "BigQ"]
 let coq_bigQ_ind = lazy (init_constant' bigQ_path "t_")
@@ -240,7 +243,7 @@ let mkBigQ q =
 let ofBigQ c = match snd (Constr.decompose_app c) with
   | [n] (*Qz*) -> Q.of_bigint (ofBigZ n)
   | [n; d] (*Qq*) -> Q.make (ofBigZ n) (ofBigN d)
-  | _ -> raise err_parse_error
+  | _ -> raise Parse_error
 
 let float_path = ["Interval"; "Float"; "Specific_ops"]
 let coq_float_ind = lazy (init_constant' float_path "s_float")
@@ -280,7 +283,7 @@ let ofParameters p = match Constr.decompose_app p with
   | c, [] when eq_cst c coq_parameters_s_csdp -> S_csdp
   | c, [] when eq_cst c coq_parameters_s_mosek -> S_mosek
   | c, [n] when eq_cst c coq_parameters_s_verbose -> S_verbose (ofNat n)
-  | _ -> raise err_parse_error
+  | _ -> raise Parse_error
 
 (* The actual tactic. *)
 
@@ -391,17 +394,11 @@ let soswitness intro options c =
     let ofSeqmultinom c = Osdp.Monomial.of_list (ofList ofN c) in
     let ofPoly c =
       Osdp.Sos.Q.Poly.of_list (ofList (ofPair ofSeqmultinom ofBigQ) c) in
-    (* try *)
+    try
       ofPair ofPoly (ofList ofPoly) c
-    (* with Parse_error ->
-     *   Proofview.tclZERO err_parse_error *)
-      (* TODO : remettre le type dans le message d'erreur *)
-      (*
+    with Parse_error ->
       let ty_input = tyPair ty_poly (tyList ty_poly) in
-      fail maxlevel
-        Pp.(str "soswitness: wrong input type (expected "
-            ++ Printer.pr_constr_env Environ.empty_env Evd.empty ty_input
-            ++ str ").") *) in
+      raise (err_parse_error ty_input) in
   let () =  (* TODO: try to fix that *)
     if Osdp.Sos.Q.Poly.is_const q <> None then
       raise err_constant_input in

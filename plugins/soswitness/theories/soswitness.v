@@ -14,7 +14,7 @@ Register s_verbose as validsdp.soswitness.tac_parameters.s_verbose.
 
 From Ltac2 Require Import Ltac2.
 
-Ltac2 Type exn ::= [Parse_error | No_witness | Constant_input].
+Ltac2 Type exn ::= [Parse_error (constr) | No_witness | Constant_input].
 
 Declare ML Module "soswitness".
 

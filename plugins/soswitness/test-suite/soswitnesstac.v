@@ -3,14 +3,17 @@ Require Import NArith ValidSDP.soswitness.
 Open Scope N_scope.
 
 Ltac2 print_exn e :=
-  let s :=
+  let m :=
       match e with
-      | Parse_error => "+++ Parse_error"
-      | No_witness => "+++ No_witness"
-      | Constant_input => "+++ Constant_input"
-      | _ => "+++ unknown exception"
+      | Parse_error e =>
+        Message.concat
+          (Message.of_string "+++ Parse_error, expected *value* of type: ")
+          (Message.of_constr e)
+      | No_witness => Message.of_string "+++ No_witness"
+      | Constant_input => Message.of_string "+++ Constant_input"
+      | _ => Message.of_string "+++ unknown exception"
       end in
-  let _ := Message.print (Message.of_string s) in
+  let _ := Message.print m in
   constr:(tt).
 
 Goal True.
