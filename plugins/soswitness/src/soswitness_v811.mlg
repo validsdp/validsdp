@@ -38,14 +38,11 @@ exception Parse_error
 
 (* Various constructors and destructors needed. *)
 
-(* FIXME: still needed while Int63, Bignums and Interval don't
+(* FIXME: still needed while Bignums and Interval don't
    implement the appropriate Register commands. *)
-let init_constant' dir s =
-  let find_constant contrib dir s =
-    Globnames.printable_constr_of_global
-      (Coqlib.find_reference contrib dir s) in
-  let contrib_name = "soswitness" in
-  find_constant contrib_name dir s
+let init_constant' s =
+  Globnames.printable_constr_of_global
+    (Nametab.locate (Libnames.qualid_of_string s))
 
 let init_constant s =
   Globnames.printable_constr_of_global (Coqlib.lib_ref s)
@@ -126,8 +123,7 @@ let ofN c = match snd (Constr.decompose_app c) with
   | [] -> 0
   | p :: _ -> ofPositive p
 
-let int63_path = ["Coq"; "Numbers"; "Cyclic"; "Int63"; "Int63"]
-let coq_int63 = lazy (init_constant' int63_path "int")
+let coq_int63 = lazy (init_constant "num.int63.type")
 
 let z_mask32 = Z.((one lsl 32) - one)
 let uint63_32 = Uint63.of_int 32
@@ -148,10 +144,9 @@ let ofInt63 c = match Constr.kind c with
      Z.(((of_string h) lsl 32) lor (of_string l))
   | _ -> raise Parse_error
 
-let zn2z_path = ["Coq"; "Numbers"; "Cyclic"; "Abstract"; "DoubleType"]
-let coq_zn2z_ind = lazy (init_constant' zn2z_path "zn2z")
-let coq_zn2z_W0 = lazy (init_constant' zn2z_path "W0")
-let coq_zn2z_WW = lazy (init_constant' zn2z_path "WW")
+let coq_zn2z_ind = lazy (init_constant' "DoubleType.zn2z")
+let coq_zn2z_W0 = lazy (init_constant' "DoubleType.W0")
+let coq_zn2z_WW = lazy (init_constant' "DoubleType.WW")
 
 let rec tyZn2z hght =
   if hght <= 0 then Lazy.force coq_int63
@@ -179,15 +174,14 @@ let ofZn2z hght c =
       | _ -> raise Parse_error in
   aux hght c
 
-let bigN_path = ["Bignums"; "BigN"; "BigN"; "BigN"]
-let coq_bigN_N0 = lazy (init_constant' bigN_path "N0")
-let coq_bigN_N1 = lazy (init_constant' bigN_path "N1")
-let coq_bigN_N2 = lazy (init_constant' bigN_path "N2")
-let coq_bigN_N3 = lazy (init_constant' bigN_path "N3")
-let coq_bigN_N4 = lazy (init_constant' bigN_path "N4")
-let coq_bigN_N5 = lazy (init_constant' bigN_path "N5")
-let coq_bigN_N6 = lazy (init_constant' bigN_path "N6")
-let coq_bigN_Nn = lazy (init_constant' bigN_path "Nn")
+let coq_bigN_N0 = lazy (init_constant' "BigN.N0")
+let coq_bigN_N1 = lazy (init_constant' "BigN.N1")
+let coq_bigN_N2 = lazy (init_constant' "BigN.N2")
+let coq_bigN_N3 = lazy (init_constant' "BigN.N3")
+let coq_bigN_N4 = lazy (init_constant' "BigN.N4")
+let coq_bigN_N5 = lazy (init_constant' "BigN.N5")
+let coq_bigN_N6 = lazy (init_constant' "BigN.N6")
+let coq_bigN_Nn = lazy (init_constant' "BigN.Nn")
 
 let mkBigN n =
   let rec height pow2 acc =
@@ -215,10 +209,9 @@ let ofBigN c = match Constr.decompose_app c with
   | c, [n; d] when eq_cst c coq_bigN_Nn -> ofZn2z (ofNat n + 7) d
   | _ -> raise Parse_error
 
-let bigZ_path = ["Bignums"; "BigZ"; "BigZ"; "BigZ"]
-let coq_bigZ_ind = lazy (init_constant' bigZ_path "t")
-let coq_bigZ_Pos = lazy (init_constant' bigZ_path "Pos")
-let coq_bigZ_Neg = lazy (init_constant' bigZ_path "Neg")
+let coq_bigZ_ind = lazy (init_constant' "BigZ.t")
+let coq_bigZ_Pos = lazy (init_constant' "BigZ.Pos")
+let coq_bigZ_Neg = lazy (init_constant' "BigZ.Neg")
 
 let mkBigZ n =
   if Z.sign n >= 0 then Constr.mkApp (Lazy.force coq_bigZ_Pos, [|mkBigN n|])
@@ -229,10 +222,9 @@ let ofBigZ c = match Constr.decompose_app c with
   | c, [n] (*when eq_cst c coq_bigZ_Neg*) -> Z.neg (ofBigN n)
   | _ -> raise Parse_error
 
-let bigQ_path = ["Bignums"; "BigQ"; "BigQ"; "BigQ"]
-let coq_bigQ_ind = lazy (init_constant' bigQ_path "t_")
-let coq_bigQ_Qz = lazy (init_constant' bigQ_path "Qz")
-let coq_bigQ_Qq = lazy (init_constant' bigQ_path "Qq")
+let coq_bigQ_ind = lazy (init_constant' "BigQ.t_")
+let coq_bigQ_Qz = lazy (init_constant' "BigQ.Qz")
+let coq_bigQ_Qq = lazy (init_constant' "BigQ.Qq")
 
 let mkBigQ q =
   if Z.(Q.den q = one) then
@@ -245,10 +237,9 @@ let ofBigQ c = match snd (Constr.decompose_app c) with
   | [n; d] (*Qq*) -> Q.make (ofBigZ n) (ofBigN d)
   | _ -> raise Parse_error
 
-let float_path = ["Interval"; "Float"; "Specific_ops"]
-let coq_float_ind = lazy (init_constant' float_path "s_float")
-let coq_float_nan = lazy (init_constant' float_path "Fnan")
-let coq_float_float = lazy (init_constant' float_path "Float")
+let coq_float_ind = lazy (init_constant' "Interval.Float.Specific_ops.s_float")
+let coq_float_nan = lazy (init_constant' "Interval.Float.Specific_ops.Fnan")
+let coq_float_float = lazy (init_constant' "Interval.Float.Specific_ops.Float")
 
 let mkFloat f =
   let bigZ = Lazy.force coq_bigZ_ind in
