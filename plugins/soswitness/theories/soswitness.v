@@ -19,3 +19,5 @@ Ltac2 Type exn ::= [Parse_error (constr) | No_witness | Constant_input].
 Declare ML Module "soswitness".
 
 Ltac2 @ external soswitness : constr -> constr list -> constr := "soswitness" "soswitness".
+
+Ltac2 @ external soswitness_intro : constr -> constr list -> constr := "soswitness" "soswitness_intro".

@@ -491,4 +491,11 @@ let () = define2 "soswitness" constr (list constr) begin fun c opts ->
   soswitness_opts c opts
 end
 
+(** constr -> constr list -> constr *)
+let () = define2 "soswitness_intro" constr (list constr) begin fun c opts ->
+  let c = EConstr.Unsafe.to_constr c in
+  let opts = List.map EConstr.Unsafe.to_constr opts in
+  soswitness_opts ~intro:true c opts
+end
+
 }
