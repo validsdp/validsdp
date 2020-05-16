@@ -379,16 +379,16 @@ Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=
   end.
 
 Require Import Flocq.IEEE754.Binary Flocq.Core.Digits.
-From libValidSDP Require Import FlocqSpecLayer FlocqNativeLayer.
+Require Import Flocq.Primitive.Floats.
 
 (* TODO: move *)
 Lemma FF2R_SF2FF_B2SF prec emax nan (f : binary_float prec emax) :
-  FF2R radix2 (SF2FF nan (B2SF f)) = B2R prec emax f.
+  FF2R radix2 (SpecFloat.SF2FF nan (SpecFloat.B2SF f)) = B2R prec emax f.
 Proof. now revert nan f; intros (nan_s, nan_pl) [s|s|s pl Hpl|s m e Hme]. Qed.
 
 (* TODO: move *)
 Lemma is_finite_FF_SF2FF_B2SF prec emax nan (f : binary_float prec emax) :
-  is_finite_FF (SF2FF nan (B2SF f)) = is_finite prec emax f.
+  is_finite_FF (SpecFloat.SF2FF nan (SpecFloat.B2SF f)) = is_finite prec emax f.
 Proof. now revert nan f; intros (nan_s, nan_pl) [s|s|s pl Hpl|s m e Hme]. Qed.
 
 Lemma B2R_Prim2B_B2Prim nan x :
@@ -396,20 +396,20 @@ Lemma B2R_Prim2B_B2Prim nan x :
 Proof.
 case_eq (is_nan prec emax x); [ |now intro H; rewrite Prim2B_B2Prim_notnan].
 revert x; intros [s|s|s pl Hpl|s m e Hme]; try discriminate; intros _.
-unfold Prim2B, B2Prim, Prim2SF, SF2FF; simpl.
+unfold Prim2B, B2Prim, Prim2SF, SpecFloat.SF2FF; simpl.
 now rewrite B2R_FF2B; case (sval nan).
 Qed.
 
 Lemma of_int63_exact m :
   Z.le (Zdigits radix2 [| m |]%int63) prec ->
-  B2R prec emax (Prim2B primitive_floats_infnan.nan_pl (of_int63 m))
+  B2R prec emax (Prim2B nan_pl (of_int63 m))
   = IZR [| m |]%int63.
 Proof.
   intros Hm.
 assert (Hprec0 : Z.lt 0 prec); [now simpl| ].
 assert (Hprec : Z.lt prec emax); [now simpl| ].
-rewrite -(FF2R_SF2FF_B2SF (sval primitive_floats_infnan.nan_pl)) B2SF_Prim2B.
-rewrite of_int63_spec binary_normalize_equiv FF2R_SF2FF_B2SF.
+rewrite -(FF2R_SF2FF_B2SF (sval nan_pl)) B2SF_Prim2B.
+rewrite of_int63_spec SpecFloat.binary_normalize_equiv FF2R_SF2FF_B2SF.
 pose (bm := binary_normalize prec emax (zpos_gt_0 53) Hprec mode_NE (to_Z m)
                              0 false).
 assert (Hb := binary_normalize_correct _ _ _ Hprec mode_NE (to_Z m) 0 false).
@@ -459,14 +459,14 @@ assert (He' : [e]%bigZ = if se then Z.opp (to_Z e') else to_Z e').
 rewrite He'; clear He' He e.
 set (e := if se then _ else _).
 simpl; intro Hb; specialize (Hb (refl_equal _)).
-rewrite <-(B2Prim_Prim2B primitive_floats_infnan.nan_pl (ldshiftexp _ _)) at 1.
-rewrite is_finite_spec; simpl.
+rewrite <-(B2Prim_Prim2B nan_pl (ldshiftexp _ _)) at 1.
+rewrite is_finite_equiv; simpl.
 unfold Prim2B; rewrite B2R_FF2B is_finite_FF2B.
 rewrite ldshiftexp_spec.
-rewrite <-(B2SF_Prim2B primitive_floats_infnan.nan_pl m'').
+rewrite <-(B2SF_Prim2B nan_pl m'').
 assert (Hprec : Z.lt prec emax); [now simpl| ].
-rewrite SFldexp_Bldexp.
-set (f := _ primitive_floats_infnan.nan_pl m'').
+rewrite SpecFloat.SFldexp_equiv.
+set (f := _ nan_pl m'').
 set (e''' := Z.sub (to_Z e'') _).
 assert (H := Bldexp_correct _ _ _ Hprec Binary.mode_NE f e''').
 revert H.
@@ -485,8 +485,8 @@ assert (Hm''' : B2R prec emax f = IZR m''').
     move/andP => [Heq _]; apply Zeq_bool_eq in Heq; revert Heq.
     unfold FLT_exp; rewrite Zpos_digits2_pos; lia. }
   case sm.
-  { rewrite <-(B2Prim_Prim2B primitive_floats_infnan.nan_pl (of_int63 m')).
-    rewrite (FPopp_Bopp (fun _ => ex_nan)).
+  { rewrite <-(B2Prim_Prim2B nan_pl (of_int63 m')).
+    rewrite (opp_equiv (fun _ => ex_nan)).
     now rewrite B2R_Prim2B_B2Prim B2R_Bopp of_int63_exact Hm'p. }
   now rewrite of_int63_exact Hm'p. }
 rewrite Hm'''; unfold m''', e''', Bir.MtoP, BigN.to_Z.
