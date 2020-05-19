@@ -17,8 +17,7 @@ Require Import Flocq.Core.Generic_fmt.
 Require Import Flocq.Core.FLT.
 Require Import Flocq.Core.Float_prop.
 
-Require Import Flocq.IEEE754.Binary.
-Require Import Flocq.IEEE754.Bits.
+Require Import Flocq.IEEE754.BinarySingleNaN.
 
 Open Scope R_scope.
 
@@ -30,12 +29,28 @@ Let emax := 1024%Z.
 Let emin := (3 - emax - prec)%Z.
 Let fexp := FLT_exp emin prec.
 
+Let Hprec : (0 < prec)%Z.
+Proof.
+apply refl_equal.
+Qed.
+
+Let Hprec_emax : (prec < emax)%Z.
+Proof.
+apply refl_equal.
+Qed.
+
+Let Hemax : (3 <= emax)%Z.
+Proof.
+intros H.
+discriminate H.
+Qed.
+
 (** Binary64 defined in [Fappli_IEEE_bits]. *)
-Definition FI := binary64.
+Definition FI := BinarySingleNaN.binary_float prec emax.
 
 Definition FI0 := B754_zero prec emax false.
 
-Lemma FI1_proof : bounded prec emax 4503599627370496 (-52) = true.
+Lemma FI1_proof : SpecFloat.bounded prec emax 4503599627370496 (-52) = true.
 Proof. now simpl. Qed.
 
 Definition FI1 := B754_finite prec emax false 4503599627370496 (-52) FI1_proof.
@@ -93,7 +108,7 @@ revert H; case (Rlt_bool (Rabs _) _).
   now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N]. }
 unfold binary_overflow, overflow_to_inf.
 change (binary_normalize _ _ _ _ _ _ _ _) with (firnd x).
-revert Frx; unfold finite, is_finite, B2FF; case (firnd x); try discriminate.
+revert Frx; unfold finite, is_finite, B2SF; case (firnd x); try discriminate.
 Qed.
 
 Lemma firnd_spec_f x : Rabs (frnd fis x) < m -> finite (firnd x).
@@ -111,7 +126,7 @@ rewrite round_generic; [now unfold round|].
 now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N].
 Qed.
 
-Definition fiopp := b64_opp.
+Definition fiopp := Bopp prec emax.
 
 Lemma fiopp_spec x : finite (fiopp x) -> FI2FS (fiopp x) = fopp (FI2FS x) :> R.
 Proof. now intro Hox; rewrite /= B2R_Bopp. Qed.
@@ -122,7 +137,8 @@ Proof. case x; unfold finite; auto. Qed.
 Lemma fiopp_spec_f x : finite x -> finite (fiopp x).
 Proof. case x; unfold finite; auto. Qed.
 
-Definition fiplus (x y : FI) : FI := b64_plus mode_NE x y.
+Definition fiplus (x y : FI) : FI :=
+  Bplus prec emax Hprec Hprec_emax mode_NE x y.
 
 Lemma fiplus_spec_fl x y : finite (fiplus x y) -> finite x.
 Proof.
@@ -141,16 +157,12 @@ Lemma fiplus_spec x y : finite (fiplus x y) ->
 Proof.
 intro Fxy.
 assert (Fx := fiplus_spec_fl _ _ Fxy); assert (Fy := fiplus_spec_fr _ _ Fxy).
-unfold FI2FS, fiplus, b64_plus, prec, emax.
+unfold FI2FS, fiplus, prec, emax.
 change ((53 ?= 1024)%Z) with Lt; simpl.
-assert (H := Bplus_correct
-               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
-               binop_nan_pl64 mode_NE _ _ Fx Fy).
+assert (H := Bplus_correct _ _ Hprec Hprec_emax mode_NE _ _ Fx Fy).
 revert H; case (Rlt_bool _ _); intro H; destruct H as (H, _); [now rewrite H|].
 casetype False; revert Fxy H.
-change Lt with ((0 ?= 53)%Z) at 1.
-change Lt with ((53 ?= 1024)%Z).
-fold b64_plus; fold (fiplus x y).
+fold (fiplus x y).
 now case (fiplus x y).
 Qed.
 
@@ -158,15 +170,14 @@ Lemma fiplus_spec_f x y : finite x -> finite y ->
   Rabs (fplus (FI2FS x) (FI2FS y)) < m -> finite (fiplus x y).
 Proof.
 intros Fx Fy Hm.
-assert (H := Bplus_correct
-               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
-               binop_nan_pl64 mode_NE _ _ Fx Fy).
+assert (H := Bplus_correct _ _ Hprec Hprec_emax mode_NE _ _ Fx Fy).
 revert H.
 replace (round _ _ _ _) with (fplus (FI2FS x) (FI2FS y) : R); [|now simpl].
 now fold emax m; rewrite (Rlt_bool_true _ _ Hm); intro.
 Qed.
 
-Definition fimult (x y : FI) : FI := b64_mult mode_NE x y.
+Definition fimult (x y : FI) : FI :=
+  Bmult prec emax Hprec Hprec_emax mode_NE x y.
 
 Lemma fimult_spec_fl x y : finite (fimult x y) -> finite x.
 Proof.
@@ -182,16 +193,12 @@ Lemma fimult_spec x y : finite (fimult x y) ->
   FI2FS (fimult x y) = fmult (FI2FS x) (FI2FS y) :> R.
 Proof.
 intro Fxy.
-unfold FI2FS, fimult, b64_mult, prec, emax.
+unfold FI2FS, fimult, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
-assert (H := Bmult_correct
-               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
-               binop_nan_pl64 mode_NE x y).
+assert (H := Bmult_correct _ _ Hprec Hprec_emax mode_NE x y).
 revert H; case (Rlt_bool _ _); intro H; [now rewrite (proj1 H)|].
 casetype False; revert Fxy H.
-change Lt with ((0 ?= 53)%Z) at 1.
-change Lt with ((53 ?= 1024)%Z).
-fold b64_mult; fold (fimult x y).
+fold (fimult x y).
 now case (fimult x y).
 Qed.
 
@@ -199,16 +206,15 @@ Lemma fimult_spec_f x y : finite x -> finite y ->
   Rabs (fmult (FI2FS x) (FI2FS y)) < m -> finite (fimult x y).
 Proof.
 intros Fx Fy Hm.
-assert (H := Bmult_correct
-               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
-               binop_nan_pl64 mode_NE x y).
+assert (H := Bmult_correct _ _ Hprec Hprec_emax mode_NE x y).
 revert H.
 replace (round _ _ _ _) with (fmult (FI2FS x) (FI2FS y) : R); [|now simpl].
 fold emax m; rewrite (Rlt_bool_true _ _ Hm).
 now fold prec; rewrite Fx Fy; intro H.
 Qed.
 
-Definition fidiv (x y : FI) : FI := b64_div mode_NE x y.
+Definition fidiv (x y : FI) : FI :=
+  Bdiv prec emax Hprec Hprec_emax mode_NE x y.
 
 Lemma fidiv_spec_fl x y : finite (fidiv x y) -> finite y -> finite x.
 Proof.
@@ -226,22 +232,17 @@ Qed.
 Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
   FI2FS (fidiv x y) = fdiv (FI2FS x) (FI2FS y) :> R.
 Proof.
-unfold FI2FS, fidiv, b64_div, prec, emax.
+unfold FI2FS, fidiv, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
 intros Fxy Fy => /=.
 assert (Nzy : B2R prec emax y <> 0).
 { revert Fxy Fy; case x; case y; unfold finite, Bdiv, B2R; auto;
   intros; apply F2R_cond_pos_not_0. }
-assert (H := Bdiv_correct
-               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
-               binop_nan_pl64 mode_NE x _ Nzy).
+assert (H := Bdiv_correct _ _ Hprec Hprec_emax mode_NE x _ Nzy).
 revert H; case (Rlt_bool _ _); intro H.
 { now rewrite (proj1 H). }
 casetype False; revert Fxy H.
-change Lt with ((0 ?= 53)%Z) at 1.
-change Lt with ((0 ?= 53)%Z) at 2.
-change Lt with ((53 ?= 1024)%Z).
-fold b64_div; fold (fidiv x y).
+fold prec; fold emax; fold (fidiv x y).
 now case (fidiv x y).
 Qed.
 
@@ -249,16 +250,14 @@ Lemma fidiv_spec_f x y : finite x -> (FI2FS y <> 0 :> R) ->
   Rabs (fdiv (FI2FS x) (FI2FS y)) < m -> finite (fidiv x y).
 Proof.
 intros Fx Nzy Hm.
-assert (H := Bdiv_correct
-               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
-               binop_nan_pl64 mode_NE x _ Nzy).
+assert (H := Bdiv_correct _ _ Hprec Hprec_emax mode_NE x _ Nzy).
 revert H.
 replace (round _ _ _ _) with (fdiv (FI2FS x) (FI2FS y) : R); [|now simpl].
 fold emax m; rewrite (Rlt_bool_true _ _ Hm).
 now fold prec; rewrite Fx; intro H.
 Qed.
 
-Definition fisqrt (x : FI) : FI := b64_sqrt mode_NE x.
+Definition fisqrt (x : FI) : FI := Bsqrt prec emax Hprec Hprec_emax mode_NE x.
 
 Lemma fisqrt_spec_f1 x : finite (fisqrt x) -> finite x.
 Proof.
@@ -268,22 +267,18 @@ Qed.
 
 Lemma fisqrt_spec x : finite (fisqrt x) -> FI2FS (fisqrt x) = fsqrt (FI2FS x) :> R.
 Proof.
-unfold FI2FS, fisqrt, b64_sqrt, prec, emax.
+unfold FI2FS, fisqrt, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
 intros Fx => /=.
-assert (H := Bsqrt_correct
-               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
-               unop_nan_pl64 mode_NE x).
+assert (H := Bsqrt_correct _ _ Hprec Hprec_emax mode_NE x).
 now rewrite (proj1 H).
 Qed.
 
 Lemma fisqrt_spec_f x : finite x -> FI2FS x >= 0 -> finite (fisqrt x).
 Proof.
-assert (H := Bsqrt_correct
-               53 1024 (@refl_equal comparison Lt) (@refl_equal comparison Lt)
-               unop_nan_pl64 mode_NE x).
+assert (H := Bsqrt_correct _ _ Hprec Hprec_emax mode_NE x).
 destruct H as (_, (H, _)); revert H; fold prec emax.
-replace (Bsqrt _ _ _ _ _ _ _ : binary_float prec emax) with (fisqrt x).
+replace (Bsqrt _ _ _ _ _ _ : binary_float prec emax) with (fisqrt x).
 { intro H; unfold finite; rewrite H; unfold is_finite, FI2FS, B2R; simpl.
   case x; try auto; intros b m e _ _; case b; [|now auto].
   unfold F2R, IZR; simpl; intro H'; casetype False; revert H'.

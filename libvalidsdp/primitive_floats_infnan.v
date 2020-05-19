@@ -14,353 +14,233 @@ Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
 
 Require Import Floats.
-Require Import Flocq.Primitive.Floats.
+Require Import Flocq.IEEE754.PrimFloat.
 
 Section Primitive_float_infnan.
 
   Definition finite (x : float) := is_finite x = true.
 
   Lemma finite_equiv x : finite (B2Prim x) <-> binary64_infnan.finite x.
-    split; unfold finite, binary64_infnan.finite; intro.
-    now rewrite <- is_finite_equiv.
-    now rewrite is_finite_equiv.
+  Proof.
+    by split; unfold finite, binary64_infnan.finite;
+      rewrite is_finite_equiv Prim2B_B2Prim.
   Qed.
 
   Lemma finite_notnan x : finite x -> is_nan x = false.
-    intro H.
+  Proof.
+    move=> H.
     unfold finite, is_finite in H.
     rewrite Bool.negb_orb in H.
     apply andb_true_iff in H.
     destruct H as (H,_).
-    now rewrite -negb_true_iff.
+    by rewrite -negb_true_iff.
   Qed.
 
   Lemma finite0 : finite zero.
-    now compute.
-  Qed.
+  Proof. by compute. Qed.
 
   Lemma finite1 : finite one.
-    now compute.
-  Qed.
+  Proof. by compute. Qed.
 
   Definition FI2FS (x : float) : FS fis :=
-    binary64_infnan.FI2FS (Prim2B nan_pl x).
+    binary64_infnan.FI2FS (Prim2B x).
 
   Definition FI2FS_spec x : (FI2FS x <> 0 :> R) -> finite x.
     unfold FI2FS.
-    intro.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
+    move=> H.
+    rewrite <- (B2Prim_Prim2B x).
     rewrite finite_equiv.
-    now apply binary64_infnan.FI2FS_spec.
+    by apply binary64_infnan.FI2FS_spec.
   Qed.
 
   Lemma FI2FS0 : FI2FS (zero) = F0 fis :> R.
-    now compute.
-  Qed.
+  Proof. by compute. Qed.
 
   Lemma FI2FS1 : FI2FS (one) = F1 fis :> R.
-    apply Rinv_r.
-    now apply IZR_neq.
-  Qed.
+  Proof. by apply Rinv_r, IZR_neq. Qed.
 
   Definition firnd (x : R) :=
     B2Prim (binary64_infnan.firnd x).
 
   Lemma firnd_spec x : finite (firnd x) -> FI2FS (firnd x) = frnd fis x :> R.
+  Proof.
     unfold firnd.
-    intro.
+    move=> H.
     unfold FI2FS.
-    rewrite Prim2B_B2Prim_notnan.
-    - apply binary64_infnan.firnd_spec.
-      now rewrite <- finite_equiv.
-    - apply finite_notnan in H.
-      now rewrite <- is_nan_equiv.
+    rewrite Prim2B_B2Prim.
+    apply binary64_infnan.firnd_spec.
+    by rewrite <- finite_equiv.
   Qed.
 
   Lemma firnd_spec_f x : Rabs (frnd fis x) < m -> finite (firnd x).
-    intro.
+  Proof.
+    move=> H.
     unfold firnd.
     rewrite finite_equiv.
-    now apply binary64_infnan.firnd_spec_f.
+    by apply binary64_infnan.firnd_spec_f.
   Qed.
 
   Lemma fiopp_spec_f1 x : finite (-x) -> finite x.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite (opp_equiv unop_nan_pl64).
-    rewrite !finite_equiv.
+  Proof.
+    rewrite -(B2Prim_Prim2B (- x)) -(B2Prim_Prim2B x).
+    rewrite opp_equiv Prim2B_B2Prim !finite_equiv.
     apply binary64_infnan.fiopp_spec_f1.
   Qed.
 
   Lemma fiopp_spec_f x : finite x -> finite (-x).
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite (opp_equiv unop_nan_pl64).
-    rewrite !finite_equiv.
+  Proof.
+    rewrite -(B2Prim_Prim2B (- x)) -(B2Prim_Prim2B x).
+    rewrite opp_equiv Prim2B_B2Prim !finite_equiv.
     apply binary64_infnan.fiopp_spec_f.
   Qed.
 
   Lemma fiopp_spec x : finite (-x) -> FI2FS (-x)%float = fopp (FI2FS x) :> R.
-    intro Hf.
+  Proof.
+    move=> Hf.
     unfold FI2FS.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite (opp_equiv unop_nan_pl64).
-    rewrite !Prim2B_B2Prim_notnan.
-    - apply binary64_infnan.fiopp_spec.
-      rewrite <- finite_equiv.
-      unfold binary64_infnan.fiopp, b64_opp.
-      rewrite <- opp_equiv.
-      now rewrite B2Prim_Prim2B.
-    - rewrite <- is_nan_equiv.
-      rewrite B2Prim_Prim2B.
-      apply fiopp_spec_f1 in Hf.
-      now apply finite_notnan in Hf.
-    - rewrite <- is_nan_equiv.
-      rewrite <- opp_equiv.
-      rewrite B2Prim_Prim2B.
-      now apply finite_notnan in Hf.
+    rewrite <- (B2Prim_Prim2B x).
+    rewrite opp_equiv.
+    rewrite !Prim2B_B2Prim.
+    apply binary64_infnan.fiopp_spec.
+    rewrite -finite_equiv.
+    unfold binary64_infnan.fiopp.
+    rewrite -opp_equiv.
+    by rewrite B2Prim_Prim2B.
   Qed.
 
   Lemma fiplus_spec_fl x y : finite (x + y) -> finite x.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (add_equiv binop_nan_pl64).
-    rewrite !finite_equiv.
+  Proof.
+    rewrite -(B2Prim_Prim2B (x + y)) -(B2Prim_Prim2B x).
+    rewrite add_equiv !finite_equiv Prim2B_B2Prim.
     apply binary64_infnan.fiplus_spec_fl.
   Qed.
 
   Lemma fiplus_spec_fr x y : finite (x + y) -> finite y.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (add_equiv binop_nan_pl64).
-    rewrite !finite_equiv.
+  Proof.
+    rewrite -(B2Prim_Prim2B (x + y)) -(B2Prim_Prim2B y).
+    rewrite add_equiv !finite_equiv Prim2B_B2Prim.
     apply binary64_infnan.fiplus_spec_fr.
   Qed.
 
-  Lemma fiplus_spec_f x y : finite x -> finite y -> Rabs (fplus (FI2FS x) (FI2FS y)) < m -> finite (x + y).
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (add_equiv binop_nan_pl64).
-    rewrite !finite_equiv.
-    unfold FI2FS.
-    intros Hx Hy.
-    rewrite !Prim2B_B2Prim_notnan.
-    - now apply binary64_infnan.fiplus_spec_f.
-    - rewrite <- finite_equiv in Hy.
-      apply finite_notnan in Hy.
-      now rewrite is_nan_equiv in Hy.
-    - rewrite <- finite_equiv in Hx.
-      apply finite_notnan in Hx.
-      now rewrite is_nan_equiv in Hx.
+  Lemma fiplus_spec_f x y :
+    finite x -> finite y -> Rabs (fplus (FI2FS x) (FI2FS y)) < m -> finite (x + y).
+  Proof.
+    rewrite -(B2Prim_Prim2B (x + y)) -(B2Prim_Prim2B x) -(B2Prim_Prim2B y).
+    rewrite add_equiv !finite_equiv !B2Prim_Prim2B.
+    apply binary64_infnan.fiplus_spec_f.
   Qed.
 
   Lemma fiplus_spec x y :
     finite (x + y) -> FI2FS (x + y)%float = fplus (FI2FS x) (FI2FS y) :> R.
-    intro.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (add_equiv binop_nan_pl64).
-    unfold FI2FS.
-    rewrite !Prim2B_B2Prim_notnan.
-    - rewrite <- binary64_infnan.fiplus_spec.
-      + now unfold fiplus, prec, emax.
-      + rewrite <- finite_equiv. unfold fiplus, b64_plus.
-        rewrite <- add_equiv.
-        now rewrite !B2Prim_Prim2B.
-    - apply fiplus_spec_fr in H.
-      apply finite_notnan in H.
-      rewrite <- is_nan_equiv.
-      now rewrite B2Prim_Prim2B.
-    - apply fiplus_spec_fl in H.
-      apply finite_notnan in H.
-      rewrite <- is_nan_equiv.
-      now rewrite B2Prim_Prim2B.
-    - apply finite_notnan in H.
-      rewrite <- (B2Prim_Prim2B nan_pl x) in H.
-      rewrite <- (B2Prim_Prim2B nan_pl y) in H.
-      rewrite (add_equiv binop_nan_pl64) in H.
-      now rewrite is_nan_equiv in H.
+  Proof.
+    move=> H.
+    rewrite -binary64_infnan.fiplus_spec.
+    + by rewrite /FI2FS /fiplus /= add_equiv.
+    + move: H.
+      by rewrite -(B2Prim_Prim2B (x + y)) finite_equiv add_equiv.
   Qed.
 
   Lemma fimult_spec_fl x y : finite (x * y) -> finite x.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (mul_equiv binop_nan_pl64).
-    rewrite !finite_equiv.
+  Proof.
+    rewrite -(B2Prim_Prim2B (x * y)) -(B2Prim_Prim2B x).
+    rewrite mul_equiv !finite_equiv Prim2B_B2Prim.
     apply binary64_infnan.fimult_spec_fl.
   Qed.
 
   Lemma fimult_spec_fr x y : finite (x * y) -> finite y.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (mul_equiv binop_nan_pl64).
-    rewrite !finite_equiv.
+  Proof.
+    rewrite -(B2Prim_Prim2B (x * y)) -(B2Prim_Prim2B y).
+    rewrite mul_equiv !finite_equiv Prim2B_B2Prim.
     apply binary64_infnan.fimult_spec_fr.
   Qed.
 
-  Lemma fimult_spec_f x y : finite x -> finite y -> Rabs (fmult (FI2FS x) (FI2FS y)) < m -> finite (x * y).
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (mul_equiv binop_nan_pl64).
-    rewrite !finite_equiv.
-    unfold FI2FS.
-    intros Hx Hy.
-    rewrite !Prim2B_B2Prim_notnan.
-    - now apply binary64_infnan.fimult_spec_f.
-    - rewrite <- finite_equiv in Hy.
-      apply finite_notnan in Hy.
-      now rewrite is_nan_equiv in Hy.
-    - rewrite <- finite_equiv in Hx.
-      apply finite_notnan in Hx.
-      now rewrite is_nan_equiv in Hx.
+  Lemma fimult_spec_f x y :
+    finite x -> finite y -> Rabs (fmult (FI2FS x) (FI2FS y)) < m -> finite (x * y).
+  Proof.
+    rewrite -(B2Prim_Prim2B (x * y)) -(B2Prim_Prim2B x) -(B2Prim_Prim2B y).
+    rewrite mul_equiv !finite_equiv !B2Prim_Prim2B.
+    apply binary64_infnan.fimult_spec_f.
   Qed.
 
   Lemma fimult_spec x y :
     finite (x * y) -> FI2FS (x * y)%float = fmult (FI2FS x) (FI2FS y) :> R.
-    intro.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (mul_equiv binop_nan_pl64).
-    unfold FI2FS.
-    rewrite !Prim2B_B2Prim_notnan.
-    - rewrite <- binary64_infnan.fimult_spec.
-      + now unfold fimult, prec, emax.
-      + rewrite <- finite_equiv. unfold fimult, b64_mult.
-        rewrite <- mul_equiv.
-        now rewrite !B2Prim_Prim2B.
-    - apply fimult_spec_fr in H.
-      apply finite_notnan in H.
-      rewrite <- is_nan_equiv.
-      now rewrite B2Prim_Prim2B.
-    - apply fimult_spec_fl in H.
-      apply finite_notnan in H.
-      rewrite <- is_nan_equiv.
-      now rewrite B2Prim_Prim2B.
-    - apply finite_notnan in H.
-      rewrite <- (B2Prim_Prim2B nan_pl x) in H.
-      rewrite <- (B2Prim_Prim2B nan_pl y) in H.
-      rewrite (mul_equiv binop_nan_pl64) in H.
-      now rewrite is_nan_equiv in H.
+  Proof.
+    move=> H.
+    rewrite -binary64_infnan.fimult_spec.
+    + by rewrite /FI2FS /fimult /= mul_equiv.
+    + move: H.
+      by rewrite -(B2Prim_Prim2B (x * y)) finite_equiv mul_equiv.
   Qed.
 
   Lemma fidiv_spec_fl x y : finite (x / y) -> finite y -> finite x.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (div_equiv binop_nan_pl64).
-    rewrite !finite_equiv.
+  Proof.
+    rewrite -(B2Prim_Prim2B (x / y)) -(B2Prim_Prim2B x) -(B2Prim_Prim2B y).
+    rewrite div_equiv !finite_equiv !Prim2B_B2Prim.
     apply binary64_infnan.fidiv_spec_fl.
   Qed.
 
-  Lemma fidiv_spec_f x y : finite x -> (FI2FS y <> 0 :> R) -> Rabs (fdiv (FI2FS x) (FI2FS y)) < m -> finite (x / y).
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (div_equiv binop_nan_pl64).
-    rewrite !finite_equiv.
-    unfold FI2FS.
-    intros Hx Hy.
-    rewrite B2Prim_Prim2B in Hy.
-    rewrite !Prim2B_B2Prim_notnan.
-    - now apply binary64_infnan.fidiv_spec_f.
-    - destruct (Prim2B _ y) ; auto.
-      exfalso.
-      now apply Hy.
-    - rewrite <- finite_equiv in Hx.
-      apply finite_notnan in Hx.
-      now rewrite is_nan_equiv in Hx.
+  Lemma fidiv_spec_f x y :
+    finite x -> (FI2FS y <> 0 :> R) -> Rabs (fdiv (FI2FS x) (FI2FS y)) < m -> finite (x / y).
+  Proof.
+    rewrite -(B2Prim_Prim2B (x / y)) -(B2Prim_Prim2B x) -(B2Prim_Prim2B y).
+    rewrite div_equiv !finite_equiv !B2Prim_Prim2B.
+    apply binary64_infnan.fidiv_spec_f.
   Qed.
 
-  Lemma fidiv_spec x y : finite (x / y) -> finite y -> FI2FS (x / y)%float = fdiv (FI2FS x) (FI2FS y) :> R.
-    intros H Hy.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite (div_equiv binop_nan_pl64).
-    unfold FI2FS.
-    rewrite !Prim2B_B2Prim_notnan.
-    - rewrite <- binary64_infnan.fidiv_spec.
-      + now unfold fidiv, prec, emax.
-      + rewrite <- finite_equiv.
-        unfold fidiv, b64_div.
-        rewrite <- div_equiv.
-        now rewrite !B2Prim_Prim2B.
-      + rewrite <- finite_equiv.
-        now rewrite B2Prim_Prim2B.
-    - apply finite_notnan in Hy.
-      rewrite <- is_nan_equiv.
-      now rewrite B2Prim_Prim2B.
-    - apply (fidiv_spec_fl x y) in H.
-      + apply finite_notnan in H.
-        rewrite <- is_nan_equiv.
-        now rewrite B2Prim_Prim2B.
-      + assumption.
-    - apply finite_notnan in H.
-      rewrite <- (B2Prim_Prim2B nan_pl x) in H.
-      rewrite <- (B2Prim_Prim2B nan_pl y) in H.
-      rewrite (div_equiv binop_nan_pl64) in H.
-      now rewrite is_nan_equiv in H.
+  Lemma fidiv_spec x y :
+    finite (x / y) -> finite y -> FI2FS (x / y)%float = fdiv (FI2FS x) (FI2FS y) :> R.
+  Proof.
+    move=> H Hy.
+    rewrite -binary64_infnan.fidiv_spec.
+    + by rewrite /FI2FS /fidiv /= div_equiv.
+    + move: H.
+      by rewrite -(B2Prim_Prim2B (x / y)) finite_equiv div_equiv.
+    + by rewrite -finite_equiv B2Prim_Prim2B.
   Qed.
 
   Lemma fisqrt_spec_f1 x : finite (sqrt x) -> finite x.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite (sqrt_equiv unop_nan_pl64).
-    rewrite !finite_equiv.
+  Proof.
+    rewrite -(B2Prim_Prim2B (sqrt x)) -(B2Prim_Prim2B x).
+    rewrite sqrt_equiv !finite_equiv !Prim2B_B2Prim.
     apply binary64_infnan.fisqrt_spec_f1.
   Qed.
 
   Lemma fisqrt_spec_f x : finite x -> FI2FS x >= 0 -> finite (sqrt x).
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite (sqrt_equiv unop_nan_pl64).
-    rewrite !finite_equiv.
-    unfold FI2FS.
-    rewrite B2Prim_Prim2B.
+  Proof.
+    rewrite -(B2Prim_Prim2B (sqrt x)) -(B2Prim_Prim2B x).
+    rewrite sqrt_equiv !finite_equiv !B2Prim_Prim2B.
     apply binary64_infnan.fisqrt_spec_f.
   Qed.
 
-  Lemma fisqrt_spec x : finite (sqrt x) -> FI2FS (sqrt x) = fsqrt (FI2FS x) :> R.
-    intro Hf.
-    unfold FI2FS.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite (sqrt_equiv unop_nan_pl64).
-    rewrite !Prim2B_B2Prim_notnan.
-    - apply binary64_infnan.fisqrt_spec.
-      rewrite <- finite_equiv.
-      unfold binary64_infnan.fisqrt, b64_sqrt.
-      rewrite <- sqrt_equiv.
-      now rewrite B2Prim_Prim2B.
-    - rewrite <- is_nan_equiv.
-      rewrite B2Prim_Prim2B.
-      apply fisqrt_spec_f1 in Hf.
-      now apply finite_notnan in Hf.
-    - rewrite <- is_nan_equiv.
-      rewrite <- sqrt_equiv.
-      rewrite B2Prim_Prim2B.
-      now apply finite_notnan in Hf.
+  Lemma fisqrt_spec x :
+    finite (sqrt x) -> FI2FS (sqrt x) = fsqrt (FI2FS x) :> R.
+  Proof.
+    move=> H.
+    rewrite -binary64_infnan.fisqrt_spec.
+    + by rewrite /FI2FS /fidiv /= sqrt_equiv.
+    + move: H.
+      by rewrite -(B2Prim_Prim2B (sqrt x)) finite_equiv sqrt_equiv.
   Qed.
 
-  Lemma ficompare_spec x y : finite x -> finite y -> (x ?= y)%float = flatten_cmp_opt (Some (Rcompare (FI2FS x) (FI2FS y))).
-    intros Hx Hy.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite compare_equiv.
-    unfold FI2FS.
-    rewrite !B2Prim_Prim2B.
-    apply binary64_infnan.ficompare_spec; rewrite <- finite_equiv;
-      now rewrite B2Prim_Prim2B.
+  Lemma ficompare_spec x y :
+    finite x -> finite y ->
+    (x ?= y)%float = flatten_cmp_opt (Some (Rcompare (FI2FS x) (FI2FS y))).
+  Proof.
+    rewrite -(B2Prim_Prim2B x) -(B2Prim_Prim2B y) !finite_equiv => Hx Hy.
+    rewrite compare_equiv !Prim2B_B2Prim.
+    by rewrite -binary64_infnan.ficompare_spec !Prim2B_B2Prim.
   Qed.
 
   Lemma ficompare_spec_eq x y : (x ?= y)%float = FEq -> FI2FS x = FI2FS y :> R.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
+  Proof.
     rewrite compare_equiv.
-    unfold FI2FS.
-    rewrite !B2Prim_Prim2B.
-    now apply binary64_infnan.ficompare_spec_eq.
+    apply binary64_infnan.ficompare_spec_eq.
   Qed.
 
   Lemma ficompare_spec_eq_f x y : (x ?= y)%float = FEq -> finite x <-> finite y.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    rewrite <- (B2Prim_Prim2B nan_pl y).
-    rewrite compare_equiv.
-    unfold FI2FS.
-    rewrite !finite_equiv.
-    now apply binary64_infnan.ficompare_spec_eq_f.
+  Proof.
+    rewrite compare_equiv => /binary64_infnan.ficompare_spec_eq_f H.
+    by rewrite -(B2Prim_Prim2B x) -(B2Prim_Prim2B y) !finite_equiv.
   Qed.
 
   Definition primitive_float_infnan : Float_infnan_spec :=
@@ -451,27 +331,28 @@ Section Primitive_float_round_up_infnan.
 
   Lemma next_up_finite_spec_f1 x : finite (next_up_finite x) -> finite x.
   Proof.
-    unfold next_up_finite.
-    rewrite <- (SF2Prim_Prim2SF (next_up x)).
-    rewrite next_up_spec.
-    rewrite <- (B2Prim_Prim2B nan_pl x).
-    change neg_infinity with (B2Prim (Binary.B754_infinity true)).
-    rewrite compare_equiv.
-    case (Prim2B nan_pl x);
-      [now intro s; case s|now intro s; case s|now easy|].
-    now intros s m e Hme _; unfold finite; rewrite is_finite_equiv.
+    unfold next_up_finite => H.
+    rewrite -(B2Prim_Prim2B x) finite_equiv.
+    move: H; rewrite compare_equiv.
+    rewrite -(B2Prim_Prim2B (next_up x)) next_up_equiv.
+    rewrite -(B2Prim_Prim2B (match flatten_cmp_opt _ with FEq => x | _ => _ end)).
+    rewrite finite_equiv.
+    change neg_infinity with (B2Prim (BinarySingleNaN.B754_infinity prec emax true)).
+    rewrite -(B2Prim_Prim2B x) !Prim2B_B2Prim.
+    case (Prim2B x) => [sx|sx| |sx mx ex Bx] //.
+    by case sx; simpl; rewrite Prim2B_B2Prim.
   Qed.
 
   Definition fiplus_up x y := next_up_finite (x + y)%float.
 
   Lemma fiplus_up_spec_fl x y : finite (fiplus_up x y) -> finite x.
   Proof.
-    now intro Fuxy; apply (fiplus_spec_fl x y); apply next_up_finite_spec_f1.
+    by intro Fuxy; apply (fiplus_spec_fl x y); apply next_up_finite_spec_f1.
   Qed.
 
   Lemma fiplus_up_spec_fr x y : finite (fiplus_up x y) -> finite y.
   Proof.
-    now intro Fuxy; apply (fiplus_spec_fr x y); apply next_up_finite_spec_f1.
+    by intro Fuxy; apply (fiplus_spec_fr x y); apply next_up_finite_spec_f1.
   Qed.
 
   Lemma next_up_finite_spec x :
@@ -479,81 +360,74 @@ Section Primitive_float_round_up_infnan.
     finite (next_up_finite x) ->
     FI2FS (next_up_finite x) = succ radix2 (fexp prec emax) (FI2FS x) :> R.
   Proof.
-    intros Fx.
-    assert (H : next_up_finite x = next_up x); [|rewrite H; clear H].
-    { revert Fx.
-      rewrite <-(B2Prim_Prim2B nan_pl x).
-      case (Prim2B nan_pl x);
-        [now intro s; case s|now intro s; case s|now intro s; case s|].
-      intros s m e Hme.
+    rewrite -(B2Prim_Prim2B x) finite_equiv => Fx.
+    rewrite B2Prim_Prim2B.
+    have -> : next_up_finite x = next_up x.
+    { rewrite -(B2Prim_Prim2B x).
+      move: Fx.
+      case (Prim2B x); [by move=> []..|move=> s m e Hme].
       unfold next_up_finite.
-      change neg_infinity with (B2Prim (Binary.B754_infinity true)).
-      now rewrite compare_equiv. }
-    revert Fx.
-    rewrite <-(B2Prim_Prim2B nan_pl x).
-    pose (succ_nan := fun _ : Binary.binary_float prec emax => ex_nan).
-    rewrite (next_up_equiv succ_nan).
-    unfold finite; rewrite !is_finite_equiv.
-    unfold FI2FS, binary64_infnan.FI2FS; simpl.
-    intro Fx.
-    generalize (Bsucc_correct prec emax Hprec Hmax Hemax
-                succ_nan (Prim2B nan_pl x) Fx).
+      change neg_infinity with (B2Prim (BinarySingleNaN.B754_infinity prec emax true)).
+      by rewrite compare_equiv !Prim2B_B2Prim /=. }
+    rewrite -(B2Prim_Prim2B (next_up x)) finite_equiv next_up_equiv.
+    move: (Fx) => /(BinarySingleNaN.Bsucc_correct _ _ Hprec Hmax Hemax).
     case (Rlt_bool _).
-    { intros (Hsucc, (Hsuccf, _)) _.
-      rewrite Prim2B_B2Prim_notnan;
-        [|now revert Hsuccf; case (Bsucc _ _ _ _ _ _ _)].
-      fold prec; fold emax; rewrite Hsucc.
-      now rewrite Prim2B_B2Prim_notnan; [|revert Hsuccf; case (Prim2B _ _)]. }
-    intros Hsucc_inf Hsucc_fin; exfalso; revert Hsucc_fin.
-    rewrite <-(Binary.FF2B_B2FF_valid prec emax _).
-    now rewrite Binary.is_finite_FF2B Hsucc_inf.
+    { move=> [Hsucc [Hsuccf _]] _.
+      by rewrite /FI2FS -Hsucc Prim2B_B2Prim. }
+    move=> Hsucc_inf Hsucc_fin; exfalso; move: Hsucc_fin.
+    by rewrite /binary64_infnan.finite -BinarySingleNaN.is_finite_SF_B2SF Hsucc_inf.
   Qed.
 
-  Lemma fiplus_up_spec x y : finite (fiplus_up x y) -> FI2FS x + FI2FS y <= FI2FS (fiplus_up x y).
+  Lemma fiplus_up_spec x y :
+    finite (fiplus_up x y) -> FI2FS x + FI2FS y <= FI2FS (fiplus_up x y).
   Proof.
-    intro Fuxy.
-    assert (Fxy := next_up_finite_spec_f1 _ Fuxy).
-    unfold fiplus_up.
+    move=> Fuxy.
+    have Fxy := next_up_finite_spec_f1 _ Fuxy.
+    rewrite /fiplus_up.
     rewrite (next_up_finite_spec _ Fxy Fuxy).
-    rewrite (fiplus_spec _ _ Fxy); unfold fplus, frnd; simpl.
-    now apply succ_round_ge_id; [apply FLT_exp_valid|apply valid_rnd_N].
+    rewrite (fiplus_spec _ _ Fxy) /fplus /frnd /=.
+    by apply succ_round_ge_id; [apply FLT_exp_valid|apply valid_rnd_N].
   Qed.
 
   Definition fimult_up x y := next_up_finite (x * y)%float.
 
-  Lemma fimult_up_spec x y : finite (fimult_up x y) -> FI2FS x * FI2FS y <= FI2FS (fimult_up x y).
-    intro Fuxy.
-    assert (Fxy := next_up_finite_spec_f1 _ Fuxy).
-    unfold fimult_up.
+  Lemma fimult_up_spec x y :
+    finite (fimult_up x y) -> FI2FS x * FI2FS y <= FI2FS (fimult_up x y).
+  Proof.
+    move=> Fuxy.
+    have Fxy := next_up_finite_spec_f1 _ Fuxy.
+    rewrite /fimult_up.
     rewrite (next_up_finite_spec _ Fxy Fuxy).
-    rewrite (fimult_spec _ _ Fxy); unfold fmult, frnd; simpl.
-    now apply succ_round_ge_id; [apply FLT_exp_valid|apply valid_rnd_N].
+    rewrite (fimult_spec _ _ Fxy) /fmult /frnd /=.
+    by apply succ_round_ge_id; [apply FLT_exp_valid|apply valid_rnd_N].
   Qed.
 
   Lemma fimult_up_spec_fl x y : finite (fimult_up x y) -> finite x.
   Proof.
-    now intro Fuxy; apply (fimult_spec_fl x y); apply next_up_finite_spec_f1.
+    by move=> Fuxy; apply (fimult_spec_fl x y); apply next_up_finite_spec_f1.
   Qed.
 
   Lemma fimult_up_spec_fr x y : finite (fimult_up x y) -> finite y.
   Proof.
-    now intro Fuxy; apply (fimult_spec_fr x y); apply next_up_finite_spec_f1.
+    by move=> Fuxy; apply (fimult_spec_fr x y); apply next_up_finite_spec_f1.
   Qed.
 
   Definition fidiv_up x y := next_up_finite (x / y)%float.
 
-  Lemma fidiv_up_spec x y : finite (fidiv_up x y) -> finite y -> FI2FS x / FI2FS y <= FI2FS (fidiv_up x y).
-    intros Fuxy Fy.
-    assert (Fxy := next_up_finite_spec_f1 _ Fuxy).
-    unfold fidiv_up.
+  Lemma fidiv_up_spec x y :
+    finite (fidiv_up x y) -> finite y -> FI2FS x / FI2FS y <= FI2FS (fidiv_up x y).
+  Proof.
+    move=> Fuxy Fy.
+    have Fxy := next_up_finite_spec_f1 _ Fuxy.
+    rewrite /fidiv_up.
     rewrite (next_up_finite_spec _ Fxy Fuxy).
-    rewrite (fidiv_spec _ _ Fxy Fy); unfold fdiv, frnd; simpl.
-    now apply succ_round_ge_id; [apply FLT_exp_valid|apply valid_rnd_N].
+    rewrite (fidiv_spec _ _ Fxy Fy) /fdiv /frnd /=.
+    by apply succ_round_ge_id; [apply FLT_exp_valid|apply valid_rnd_N].
   Qed.
 
   Lemma fidiv_up_spec_fl x y : finite (fidiv_up x y) -> finite y -> finite x.
   Proof.
-    now intro Fuxy; apply (fidiv_spec_fl x y); apply next_up_finite_spec_f1.
+    by intro Fuxy; apply (fidiv_spec_fl x y); apply next_up_finite_spec_f1.
   Qed.
 
   Definition primitive_float_round_up_infnan : Float_round_up_infnan_spec :=
