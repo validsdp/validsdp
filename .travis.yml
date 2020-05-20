@@ -37,10 +37,10 @@ install: |
     # : Install SDPA
     # ./install_sdpa_on_debian_10.sh  # implies 'sudo apt-get update -y -q'
     # sdpa --version
-    # : Install APT dependencies from opam
-    # # sudo apt-get update -y -q  # already done above
-    # travis_retry opam depext -i -y conf-gmp.1 conf-csdp.1 conf-sdpa.1
-    # sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
+    : Install APT dependencies from opam
+    sudo apt-get update -y -q
+    travis_retry opam depext -i -y conf-gmp.1 conf-csdp.1
+    sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
     : Update opam cache
     opam update -y
     : Build opam dependencies
