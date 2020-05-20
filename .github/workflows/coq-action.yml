@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    # the OS must be GNU/Linux to be able to use the docker-coq-action
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image:
+          - mathcomp/mathcomp:1.8.0-coq-8.7
+          - mathcomp/mathcomp:1.8.0-coq-8.8
+          - mathcomp/mathcomp:1.8.0-coq-8.9
+          - mathcomp/mathcomp:1.9.0-coq-8.7
+          - mathcomp/mathcomp:1.9.0-coq-8.8
+          - mathcomp/mathcomp:1.9.0-coq-8.9
+          - mathcomp/mathcomp:1.9.0-coq-8.10
+          - mathcomp/mathcomp:1.9.0-coq-8.11
+          - mathcomp/mathcomp:1.10.0-coq-8.7
+          - mathcomp/mathcomp:1.10.0-coq-8.8
+          - mathcomp/mathcomp:1.10.0-coq-8.9
+          - mathcomp/mathcomp:1.10.0-coq-8.10
+          - mathcomp/mathcomp:1.10.0-coq-8.11
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v2
+    - uses: coq-community/docker-coq-action@v1
+      with:
+        opam_file: 'coq-validsdp.opam'
+        custom_image: ${{ matrix.image }}
+        custom_script: |
+          startGroup Print opam config
+            opam config list; opam repo list; opam list
+            echo NJOBS=${NJOBS}
+          endGroup
+          startGroup Install APT dependencies
+            sudo apt-get update -y -q
+            travis_retry opam depext -i -y conf-gmp.1 conf-csdp.1 # no conf-sdpa.1
+            sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
+          endGroup
+          startGroup Update opam cache
+            opam update -y
+          endGroup
+          startGroup Build opam dependencies
+            opam pin add -n -y -k path coq-libvalidsdp .
+            opam pin add -n -y -k path coq-validsdp .
+            opam remove -y coq-mathcomp-character # coq-mathcomp-field is enough
+            opam install -y -j ${NJOBS} coq-libvalidsdp --deps-only
+            opam list
+          endGroup
+          startGroup Build coq-libvalidsdp
+            opam install -y -v -j ${NJOBS} coq-libvalidsdp
+            opam list
+          endGroup
+          startGroup Build coq-validsdp dependencies
+            opam install -y -j ${NJOBS} coq-validsdp --deps-only
+            opam list
+          endGroup
+          startGroup Build coq-libvalidsdp
+            opam install -y -v -j ${NJOBS} coq-validsdp
+            opam list
+          endGroup
+          startGroup Uninstallation test
+            opam remove -y coq-validsdp
+            opam remove -y coq-libvalidsdp
+          endGroup
+
+# See also:
+# https://github.com/coq-community/docker-coq-action#readme
+# https://github.com/erikmd/docker-coq-github-action-demo
