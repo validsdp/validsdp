@@ -48,7 +48,7 @@ jobs:
           startGroup Update opam cache
             opam update -y
           endGroup
-          startGroup Build opam dependencies
+          startGroup Build coq-libvalidsdp dependencies
             opam pin add -n -y -k path coq-libvalidsdp .
             opam pin add -n -y -k path coq-validsdp .
             opam remove -y coq-mathcomp-character # coq-mathcomp-field is enough
@@ -63,7 +63,7 @@ jobs:
             opam install -y -j ${NJOBS} coq-validsdp --deps-only
             opam list
           endGroup
-          startGroup Build coq-libvalidsdp
+          startGroup Build coq-validsdp
             opam install -y -v -j ${NJOBS} coq-validsdp
             opam list
           endGroup
