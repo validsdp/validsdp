@@ -32,10 +32,18 @@ install: |
   # travis_wait, to get a 20 mn timeout instead of 10 mn
   docker exec COQ /bin/bash --login -c "
     export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '; set -ex
-    : Updating OPAM cache
-    opam update -y
-    : Installing OPAM deps
     sudo chown -R coq:coq /home/coq/${CONTRIB_NAME}
+    cd /home/coq/${CONTRIB_NAME}
+    : Install SDPA
+    ./install_sdpa_on_debian_10.sh  # implies 'sudo apt-get update -y -q'
+    sdpa --version
+    : Install APT dependencies from opam
+    # sudo apt-get update -y -q  # already done above
+    travis_retry opam depext -i -y conf-gmp.1 conf-csdp.1 conf-sdpa.1
+    sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
+    : Update opam cache
+    opam update -y
+    : Build opam dependencies
     opam pin add -n -y -k path coq-libvalidsdp .
     opam pin add -n -y -k path coq-validsdp .
     opam remove -y coq-mathcomp-character  # Check coq-mathcomp-field is enough
@@ -57,14 +65,6 @@ script:
 - |
   docker exec COQ /bin/bash --login -c "
     export PS4='+ \e[33;1m(\$0 @ line \$LINENO) \$\e[0m '; set -ex
-    cd /home/coq/${CONTRIB_NAME}
-    : Installing SDPA
-    ./install_sdpa_on_debian_10.sh  # implies 'sudo apt-get update -y -q'
-    sdpa --version
-    : Installing APT deps from OPAM
-    # sudo apt-get update -y -q  # already done above
-    travis_retry opam depext -i -y conf-gmp.1 conf-csdp.1 conf-sdpa.1
-    sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
     opam install -y -v -j ${NJOBS} coq-validsdp --deps-only
     opam config list; opam repo list; opam list
     : done" deps-coq-validsdp
