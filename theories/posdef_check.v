@@ -383,18 +383,17 @@ Require Import Flocq.IEEE754.PrimFloat.
 
 (* TODO: move *)
 Lemma FF2R_SF2FF_B2SF prec emax (f : binary_float prec emax) :
-  SF2R radix2 (B2SF prec emax f) = B2R prec emax f.
+  SF2R radix2 (B2SF f) = B2R f.
 Proof. now revert f; intros [s|s| |s m e Hme]. Qed.
 
 (* TODO: move *)
 Lemma is_finite_FF_SF2FF_B2SF prec emax (f : binary_float prec emax) :
-  is_finite_SF (B2SF prec emax f) = is_finite prec emax f.
+  is_finite_SF (B2SF f) = is_finite f.
 Proof. now revert f; intros [s|s| |s m e Hme]. Qed.
 
-Lemma B2R_Prim2B_B2Prim x :
-  B2R prec emax (Prim2B (B2Prim x)) = B2R prec emax x.
+Lemma B2R_Prim2B_B2Prim x : B2R (Prim2B (B2Prim x)) = B2R x.
 Proof.
-case_eq (is_nan prec emax x); [ |now intro H; rewrite Prim2B_B2Prim].
+case_eq (is_nan x); [ |now intro H; rewrite Prim2B_B2Prim].
 revert x; intros [s|s| |s m e Hme]; try discriminate; intros _.
 unfold Prim2B, B2Prim, Prim2SF; simpl.
 now rewrite B2R_SF2B.
@@ -402,7 +401,7 @@ Qed.
 
 Lemma of_int63_exact m :
   Z.le (Zdigits radix2 [| m |]%int63) prec ->
-  B2R prec emax (Prim2B (of_int63 m))
+  B2R (Prim2B (of_int63 m))
   = IZR [| m |]%int63.
 Proof.
 intros Hm.
@@ -476,13 +475,13 @@ set (e''' := Z.sub (to_Z e'') _).
 assert (H := Bldexp_correct _ _ PrimFloat.Hprec Hmax BinarySingleNaN.mode_NE f e''').
 revert H.
 case Rlt_bool_spec; intro Hlt; [ |now case Bldexp].
-set (bf := Bldexp _ _ _ _ _ _ _).
+set (bf := Bldexp _ _ _).
 intros (Ht, (Hfe''', Hs)).
 rewrite Ht Hfe'''.
 intro Hf.
 unfold FtoR.
 set (m''' := if sm then _ else _).
-assert (Hm''' : B2R prec emax f = IZR m''').
+assert (Hm''' : B2R f = IZR m''').
 { unfold f, m'', m''', Bir.MtoP, BigN.to_Z.
   unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Int63Cyclic.ops, Cyclic63.int_ops.
   assert (Hdig_m'p : Z.le (Zdigits radix2 (Z.pos m'p)) prec).

@@ -29,15 +29,9 @@ Let emax := 1024%Z.
 Let emin := (3 - emax - prec)%Z.
 Let fexp := FLT_exp emin prec.
 
-Let Hprec : (0 < prec)%Z.
-Proof.
-apply refl_equal.
-Qed.
+Local Instance Hprec : FLX.Prec_gt_0 prec := refl_equal _.
 
-Let Hprec_emax : (prec < emax)%Z.
-Proof.
-apply refl_equal.
-Qed.
+Local Instance Hprec_emax : Prec_lt_emax prec emax := refl_equal _.
 
 Let Hemax : (3 <= emax)%Z.
 Proof.
@@ -48,14 +42,14 @@ Qed.
 (** Binary64 defined in [Fappli_IEEE_bits]. *)
 Definition FI := BinarySingleNaN.binary_float prec emax.
 
-Definition FI0 := B754_zero prec emax false.
+Definition FI0 : FI := B754_zero false.
 
 Lemma FI1_proof : SpecFloat.bounded prec emax 4503599627370496 (-52) = true.
 Proof. now simpl. Qed.
 
-Definition FI1 := B754_finite prec emax false 4503599627370496 (-52) FI1_proof.
+Definition FI1 := B754_finite false 4503599627370496 (-52) FI1_proof.
 
-Definition finite (x : FI) := is_finite prec emax x = true.
+Definition finite (x : FI) := is_finite x = true.
 
 Lemma finite0 : finite FI0.
 Proof. now simpl. Qed.
@@ -70,7 +64,7 @@ Definition m := bpow radix2 emax.
 Lemma m_ge_2 : 2 <= m.
 Proof. now change 2 with (bpow radix2 1); apply bpow_le. Qed.
 
-Program Definition FI2FS (x : FI) : FS fis := @Build_FS_of _ (B2R prec emax x) _.
+Program Definition FI2FS (x : FI) : FS fis := @Build_FS_of _ (B2R x) _.
 Next Obligation. apply /eqP; apply (generic_format_B2R prec emax x). Qed.
 
 Lemma FI2FS_spec x : (FI2FS x <> 0 :> R) -> finite x.
@@ -126,7 +120,7 @@ rewrite round_generic; [now unfold round|].
 now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N].
 Qed.
 
-Definition fiopp := Bopp prec emax.
+Definition fiopp : FI -> FI := Bopp.
 
 Lemma fiopp_spec x : finite (fiopp x) -> FI2FS (fiopp x) = fopp (FI2FS x) :> R.
 Proof. now intro Hox; rewrite /= B2R_Bopp. Qed.
@@ -137,8 +131,7 @@ Proof. case x; unfold finite; auto. Qed.
 Lemma fiopp_spec_f x : finite x -> finite (fiopp x).
 Proof. case x; unfold finite; auto. Qed.
 
-Definition fiplus (x y : FI) : FI :=
-  Bplus prec emax Hprec Hprec_emax mode_NE x y.
+Definition fiplus (x y : FI) : FI := Bplus mode_NE x y.
 
 Lemma fiplus_spec_fl x y : finite (fiplus x y) -> finite x.
 Proof.
@@ -176,8 +169,7 @@ replace (round _ _ _ _) with (fplus (FI2FS x) (FI2FS y) : R); [|now simpl].
 now fold emax m; rewrite (Rlt_bool_true _ _ Hm); intro.
 Qed.
 
-Definition fimult (x y : FI) : FI :=
-  Bmult prec emax Hprec Hprec_emax mode_NE x y.
+Definition fimult (x y : FI) : FI := Bmult mode_NE x y.
 
 Lemma fimult_spec_fl x y : finite (fimult x y) -> finite x.
 Proof.
@@ -213,8 +205,7 @@ fold emax m; rewrite (Rlt_bool_true _ _ Hm).
 now fold prec; rewrite Fx Fy; intro H.
 Qed.
 
-Definition fidiv (x y : FI) : FI :=
-  Bdiv prec emax Hprec Hprec_emax mode_NE x y.
+Definition fidiv (x y : FI) : FI := Bdiv mode_NE x y.
 
 Lemma fidiv_spec_fl x y : finite (fidiv x y) -> finite y -> finite x.
 Proof.
@@ -235,7 +226,7 @@ Proof.
 unfold FI2FS, fidiv, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
 intros Fxy Fy => /=.
-assert (Nzy : B2R prec emax y <> 0).
+assert (Nzy : B2R y <> 0).
 { revert Fxy Fy; case x; case y; unfold finite, Bdiv, B2R; auto;
   intros; apply F2R_cond_pos_not_0. }
 assert (H := Bdiv_correct _ _ Hprec Hprec_emax mode_NE x _ Nzy).
@@ -257,7 +248,7 @@ fold emax m; rewrite (Rlt_bool_true _ _ Hm).
 now fold prec; rewrite Fx; intro H.
 Qed.
 
-Definition fisqrt (x : FI) : FI := Bsqrt prec emax Hprec Hprec_emax mode_NE x.
+Definition fisqrt (x : FI) : FI := Bsqrt mode_NE x.
 
 Lemma fisqrt_spec_f1 x : finite (fisqrt x) -> finite x.
 Proof.
@@ -278,7 +269,7 @@ Lemma fisqrt_spec_f x : finite x -> FI2FS x >= 0 -> finite (fisqrt x).
 Proof.
 assert (H := Bsqrt_correct _ _ Hprec Hprec_emax mode_NE x).
 destruct H as (_, (H, _)); revert H; fold prec emax.
-replace (Bsqrt _ _ _ _ _ _ : binary_float prec emax) with (fisqrt x).
+replace (Bsqrt _ _ : binary_float prec emax) with (fisqrt x).
 { intro H; unfold finite; rewrite H; unfold is_finite, FI2FS, B2R; simpl.
   case x; try auto; intros b m e _ _; case b; [|now auto].
   unfold F2R, IZR; simpl; intro H'; casetype False; revert H'.
@@ -290,7 +281,7 @@ now simpl.
 Qed.
 
 Definition ficompare (x y : FI) : float_comparison :=
-  flatten_cmp_opt (Bcompare 53 1024 x y).
+  flatten_cmp_opt (Bcompare x y).
 
 Lemma ficompare_spec x y : finite x -> finite y ->
   ficompare x y = flatten_cmp_opt (Some (Rcompare (FI2FS x) (FI2FS y))).
@@ -328,7 +319,7 @@ Definition binary64_infnan : Float_infnan_spec :=
     FI
     FI0
     FI1
-    (is_finite prec emax)
+    is_finite
     finite0
     finite1
     fis

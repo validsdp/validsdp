@@ -337,7 +337,7 @@ Section Primitive_float_round_up_infnan.
     rewrite -(B2Prim_Prim2B (next_up x)) next_up_equiv.
     rewrite -(B2Prim_Prim2B (match flatten_cmp_opt _ with FEq => x | _ => _ end)).
     rewrite finite_equiv.
-    change neg_infinity with (B2Prim (BinarySingleNaN.B754_infinity prec emax true)).
+    change neg_infinity with (B2Prim (BinarySingleNaN.B754_infinity true)).
     rewrite -(B2Prim_Prim2B x) !Prim2B_B2Prim.
     case (Prim2B x) => [sx|sx| |sx mx ex Bx] //.
     by case sx; simpl; rewrite Prim2B_B2Prim.
@@ -367,7 +367,7 @@ Section Primitive_float_round_up_infnan.
       move: Fx.
       case (Prim2B x); [by move=> []..|move=> s m e Hme].
       unfold next_up_finite.
-      change neg_infinity with (B2Prim (BinarySingleNaN.B754_infinity prec emax true)).
+      change neg_infinity with (B2Prim (BinarySingleNaN.B754_infinity true)).
       by rewrite compare_equiv !Prim2B_B2Prim /=. }
     rewrite -(B2Prim_Prim2B (next_up x)) finite_equiv next_up_equiv.
     move: (Fx) => /(BinarySingleNaN.Bsucc_correct _ _ Hprec Hmax Hemax).
