@@ -355,6 +355,9 @@ Section Primitive_float_round_up_infnan.
     by intro Fuxy; apply (fiplus_spec_fr x y); apply next_up_finite_spec_f1.
   Qed.
 
+  Lemma Hemax : (2 < emax)%Z.
+  Proof. now compute. Qed.
+
   Lemma next_up_finite_spec x :
     finite x ->
     finite (next_up_finite x) ->
