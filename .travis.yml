@@ -24,8 +24,8 @@ install: |
     : Installing OPAM deps
     sudo chown -R coq:coq /home/coq/${CONTRIB_NAME}
     : Installing SDPA
-    ./install_sdpa_on_debian_10.sh  # implies 'sudo apt-get update -y -q'
-    sdpa --version
+    : ./install_sdpa_on_debian_10.sh  # implies 'sudo apt-get update -y -q'
+    : sdpa --version
     : Installing APT deps from OPAM
     # sudo apt-get update -y -q  # already done above
     travis_retry opam depext -i -y conf-gmp.1 conf-csdp.1 conf-sdpa.1
