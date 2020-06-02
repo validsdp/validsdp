@@ -373,7 +373,7 @@ Section Primitive_float_round_up_infnan.
       change neg_infinity with (B2Prim (BinarySingleNaN.B754_infinity true)).
       by rewrite compare_equiv !Prim2B_B2Prim /=. }
     rewrite -(B2Prim_Prim2B (next_up x)) finite_equiv next_up_equiv.
-    move: (Fx) => /(BinarySingleNaN.Bsucc_correct _ _ Hprec Hmax Hemax).
+    move: (Fx) => /(BinarySingleNaN.Bsucc_correct _ _ Hprec Hmax).
     case (Rlt_bool _).
     { move=> [Hsucc [Hsuccf _]] _.
       by rewrite /FI2FS -Hsucc Prim2B_B2Prim. }

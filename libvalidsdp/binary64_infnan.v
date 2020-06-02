@@ -96,7 +96,7 @@ set (ex := cexp binary64.radix2 fexp x).
 assert (H := binary_normalize_correct
                prec emax (@refl_equal comparison Lt) (@refl_equal comparison Lt)
                mode_NE mx ex false).
-revert H; case (Rlt_bool (Rabs _) _).
+revert H; simpl; case (Rlt_bool (Rabs _) _).
 { unfold mx, round_mode; intro H; destruct H as (H, _); rewrite H.
   rewrite round_generic; [now unfold round|].
   now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N]. }
@@ -113,7 +113,7 @@ set (ex := cexp binary64.radix2 fexp x).
 assert (H := binary_normalize_correct
                prec emax (@refl_equal comparison Lt) (@refl_equal comparison Lt)
                mode_NE mx ex false).
-revert H.
+revert H; simpl.
 replace (round _ _ _ _) with (frnd fis x : R).
 { now fold emax m; rewrite (Rlt_bool_true _ _ Hm); intro. }
 rewrite round_generic; [now unfold round|].

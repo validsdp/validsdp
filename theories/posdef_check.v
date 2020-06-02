@@ -420,7 +420,7 @@ assert (Hr : Generic_fmt.round radix2 (fexp prec emax) ZnearestE r = r).
   apply generic_format_F2R; intros _; unfold F2R; simpl; rewrite Rmult_1_r.
   unfold cexp, fexp, FLT_exp; apply Z.max_lub; [ |unfold emin, emax; lia].
   rewrite -Zdigits_mag; lia. }
-revert Hb; rewrite Hr ifT.
+revert Hb; simpl; rewrite Hr ifT.
 { now intros (Hr', _); rewrite Hr'; unfold r, F2R; simpl; rewrite Rmult_1_r. }
 apply Rlt_bool_true; unfold r, F2R; simpl; rewrite Rmult_1_r.
 change (IZR (Z.pow_pos 2 _)) with (bpow radix2 1024).
