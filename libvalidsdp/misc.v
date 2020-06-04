@@ -3,7 +3,6 @@
 Require Import Reals QArith.
 From Bignums Require Import BigQ.
 Require Import Flocq.Core.Raux.
-Require Import Interval.Interval_missing.
 Require Import Psatz.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.

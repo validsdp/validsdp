@@ -1,21 +1,48 @@
-(*i camlp4deps: "grammar/grammar.cma" i*)
-
-DECLARE PLUGIN "soswitness"
-
 {
+
+module Tac2ffi = Ltac2_plugin.Tac2ffi
+module Tac2env = Ltac2_plugin.Tac2env
+module Tac2interp = Ltac2_plugin.Tac2interp
+
+module Value = Tac2ffi
+open Value
+
+(* Helper functions *)
+
+let pname s = { Tac2expr.mltac_plugin = "soswitness"; mltac_tactic = s }
+
+let define_primitive name arity f =
+  Tac2env.define_primitive (pname name) (mk_closure arity f)
+
+let define2 name r0 r1 f = define_primitive name (arity_suc arity_one) begin fun x y ->
+  f (Value.repr_to r0 x) (Value.repr_to r1 y)
+end
+
+let core_prefix path n = Names.(KerName.make path (Label.of_id (Id.of_string_soft n)))
+
+(* Beware: this list is in "reverse" order *)
+let coq_prefix =
+  Names.(MPfile (DirPath.make (List.map Id.of_string ["soswitness"; "ValidSDP"])))
+
+let err_parse_error expected_type =
+  let v = Value.of_constr (EConstr.of_constr expected_type) in
+  Tac2interp.LtacError (core_prefix coq_prefix "Parse_error", [|v|])
+
+let err_no_witness =
+  Tac2interp.LtacError (core_prefix coq_prefix "No_witness", [||])
+
+let err_constant_input =
+  Tac2interp.LtacError (core_prefix coq_prefix "Constant_input", [||])
 
 exception Parse_error
 
 (* Various constructors and destructors needed. *)
 
-(* FIXME: still needed while Int63, Bignums and Interval don't
+(* FIXME: still needed while Bignums and Interval don't
    implement the appropriate Register commands. *)
-let init_constant' dir s =
-  let find_constant contrib dir s =
-    Globnames.printable_constr_of_global
-      (Coqlib.find_reference contrib dir s) in
-  let contrib_name = "soswitness" in
-  find_constant contrib_name dir s
+let init_constant' s =
+  Globnames.printable_constr_of_global
+    (Nametab.locate (Libnames.qualid_of_string s))
 
 let init_constant s =
   Globnames.printable_constr_of_global (Coqlib.lib_ref s)
@@ -40,7 +67,7 @@ let coq_list_nil = lazy (init_constant "core.list.nil")
 let coq_list_cons = lazy (init_constant "core.list.cons")
 
 let tyList tye = Constr.mkApp (Lazy.force coq_list_ind, [|tye|])
-                         
+
 let mkList tye mke l =
   let nil = Lazy.force coq_list_nil in
   let cons = Lazy.force coq_list_cons in
@@ -48,7 +75,7 @@ let mkList tye mke l =
     | [] -> Constr.mkApp (nil, [|tye|])
     | h :: t -> Constr.mkApp (cons, [|tye; mke h; aux t|]) in
   aux l
-                
+
 let rec ofList ofe c = match snd (Constr.decompose_app c) with
   | [] | [_] (*nil*) -> []
   | [_; h; t] (*cons*) -> ofe h :: ofList ofe t
@@ -58,10 +85,10 @@ let coq_prod = lazy (init_constant "core.prod.type")
 let coq_pair = lazy (init_constant "core.prod.intro")
 
 let tyPair tya tyb = Constr.mkApp (Lazy.force coq_prod, [|tya; tyb|])
-                        
+
 let mkPair tya tyb mka mkb (a, b) =
   Constr.mkApp (Lazy.force coq_pair, [|tya; tyb; mka a; mkb b|])
-                
+
 let ofPair ofa ofb c = match snd (Constr.decompose_app c) with
   | [_; _; a; b] -> ofa a, ofb b
   | _ -> raise Parse_error
@@ -96,8 +123,7 @@ let ofN c = match snd (Constr.decompose_app c) with
   | [] -> 0
   | p :: _ -> ofPositive p
 
-let int63_path = ["Coq"; "Numbers"; "Cyclic"; "Int63"; "Int63"]
-let coq_int63 = lazy (init_constant' int63_path "int")
+let coq_int63 = lazy (init_constant "num.int63.type")
 
 let z_mask32 = Z.((one lsl 32) - one)
 let uint63_32 = Uint63.of_int 32
@@ -118,15 +144,14 @@ let ofInt63 c = match Constr.kind c with
      Z.(((of_string h) lsl 32) lor (of_string l))
   | _ -> raise Parse_error
 
-let zn2z_path = ["Coq"; "Numbers"; "Cyclic"; "Abstract"; "DoubleType"]
-let coq_zn2z_ind = lazy (init_constant' zn2z_path "zn2z")
-let coq_zn2z_W0 = lazy (init_constant' zn2z_path "W0")
-let coq_zn2z_WW = lazy (init_constant' zn2z_path "WW")
+let coq_zn2z_ind = lazy (init_constant' "DoubleType.zn2z")
+let coq_zn2z_W0 = lazy (init_constant' "DoubleType.W0")
+let coq_zn2z_WW = lazy (init_constant' "DoubleType.WW")
 
 let rec tyZn2z hght =
   if hght <= 0 then Lazy.force coq_int63
   else Constr.mkApp (Lazy.force coq_zn2z_ind, [|tyZn2z (hght - 1)|])
-                       
+
 let mkZn2z hght n =
   let w0 = Lazy.force coq_zn2z_W0 in
   let wW = Lazy.force coq_zn2z_WW in
@@ -136,7 +161,7 @@ let mkZn2z hght n =
       let h, l = Z.div_rem n (Z.shift_left Z.one (63 * (1 lsl hght'))) in
       Constr.mkApp (wW, [|tyZn2z hght'; aux hght' h; aux hght' l|]) in
   aux hght n
-  
+
 let ofZn2z hght c =
   let rec aux hght c =
     if hght <= 0 then ofInt63 c else
@@ -149,15 +174,14 @@ let ofZn2z hght c =
       | _ -> raise Parse_error in
   aux hght c
 
-let bigN_path = ["Bignums"; "BigN"; "BigN"; "BigN"]
-let coq_bigN_N0 = lazy (init_constant' bigN_path "N0")
-let coq_bigN_N1 = lazy (init_constant' bigN_path "N1")
-let coq_bigN_N2 = lazy (init_constant' bigN_path "N2")
-let coq_bigN_N3 = lazy (init_constant' bigN_path "N3")
-let coq_bigN_N4 = lazy (init_constant' bigN_path "N4")
-let coq_bigN_N5 = lazy (init_constant' bigN_path "N5")
-let coq_bigN_N6 = lazy (init_constant' bigN_path "N6")
-let coq_bigN_Nn = lazy (init_constant' bigN_path "Nn")
+let coq_bigN_N0 = lazy (init_constant' "BigN.N0")
+let coq_bigN_N1 = lazy (init_constant' "BigN.N1")
+let coq_bigN_N2 = lazy (init_constant' "BigN.N2")
+let coq_bigN_N3 = lazy (init_constant' "BigN.N3")
+let coq_bigN_N4 = lazy (init_constant' "BigN.N4")
+let coq_bigN_N5 = lazy (init_constant' "BigN.N5")
+let coq_bigN_N6 = lazy (init_constant' "BigN.N6")
+let coq_bigN_Nn = lazy (init_constant' "BigN.Nn")
 
 let mkBigN n =
   let rec height pow2 acc =
@@ -173,7 +197,7 @@ let mkBigN n =
   | 5 -> Constr.mkApp (Lazy.force coq_bigN_N5, [|word|])
   | 6 -> Constr.mkApp (Lazy.force coq_bigN_N6, [|word|])
   | _ -> Constr.mkApp (Lazy.force coq_bigN_Nn, [|mkNat (hght - 7); word|])
-  
+
 let ofBigN c = match Constr.decompose_app c with
   | c, [i] when eq_cst c coq_bigN_N0 -> ofInt63 i
   | c, [d] when eq_cst c coq_bigN_N1 -> ofZn2z 1 d
@@ -185,10 +209,9 @@ let ofBigN c = match Constr.decompose_app c with
   | c, [n; d] when eq_cst c coq_bigN_Nn -> ofZn2z (ofNat n + 7) d
   | _ -> raise Parse_error
 
-let bigZ_path = ["Bignums"; "BigZ"; "BigZ"; "BigZ"]
-let coq_bigZ_ind = lazy (init_constant' bigZ_path "t")
-let coq_bigZ_Pos = lazy (init_constant' bigZ_path "Pos")
-let coq_bigZ_Neg = lazy (init_constant' bigZ_path "Neg")
+let coq_bigZ_ind = lazy (init_constant' "BigZ.t")
+let coq_bigZ_Pos = lazy (init_constant' "BigZ.Pos")
+let coq_bigZ_Neg = lazy (init_constant' "BigZ.Neg")
 
 let mkBigZ n =
   if Z.sign n >= 0 then Constr.mkApp (Lazy.force coq_bigZ_Pos, [|mkBigN n|])
@@ -199,26 +222,24 @@ let ofBigZ c = match Constr.decompose_app c with
   | c, [n] (*when eq_cst c coq_bigZ_Neg*) -> Z.neg (ofBigN n)
   | _ -> raise Parse_error
 
-let bigQ_path = ["Bignums"; "BigQ"; "BigQ"; "BigQ"]
-let coq_bigQ_ind = lazy (init_constant' bigQ_path "t_")
-let coq_bigQ_Qz = lazy (init_constant' bigQ_path "Qz")
-let coq_bigQ_Qq = lazy (init_constant' bigQ_path "Qq")
+let coq_bigQ_ind = lazy (init_constant' "BigQ.t_")
+let coq_bigQ_Qz = lazy (init_constant' "BigQ.Qz")
+let coq_bigQ_Qq = lazy (init_constant' "BigQ.Qq")
 
 let mkBigQ q =
   if Z.(Q.den q = one) then
     Constr.mkApp (Lazy.force coq_bigQ_Qz, [|mkBigZ (Q.num q)|])
   else
     Constr.mkApp (Lazy.force coq_bigQ_Qq, [|mkBigZ (Q.num q); mkBigN (Q.den q)|])
-                
+
 let ofBigQ c = match snd (Constr.decompose_app c) with
   | [n] (*Qz*) -> Q.of_bigint (ofBigZ n)
   | [n; d] (*Qq*) -> Q.make (ofBigZ n) (ofBigN d)
   | _ -> raise Parse_error
 
-let float_path = ["Interval"; "Interval_specific_ops"]
-let coq_float_ind = lazy (init_constant' float_path "s_float")
-let coq_float_nan = lazy (init_constant' float_path "Fnan")
-let coq_float_float = lazy (init_constant' float_path "Float")
+let coq_float_ind = lazy (init_constant' "Interval.Float.Specific_ops.s_float")
+let coq_float_nan = lazy (init_constant' "Interval.Float.Specific_ops.Fnan")
+let coq_float_float = lazy (init_constant' "Interval.Float.Specific_ops.Float")
 
 let mkFloat f =
   let bigZ = Lazy.force coq_bigZ_ind in
@@ -255,20 +276,8 @@ let ofParameters p = match Constr.decompose_app p with
   | c, [n] when eq_cst c coq_parameters_s_verbose -> S_verbose (ofNat n)
   | _ -> raise Parse_error
 
-(*
-let error msg = CErrors.errorlabstrm "" msg
-let errorpp msg = CErrors.error msg
- *)
-exception SosFail of int * Pp.t
-let fail level msg = raise (SosFail(level, msg))
-let failpp level msg = raise (SosFail(level, Pp.str msg))
-let maxlevel = 999
-let error msg = fail maxlevel msg (* could be set a smaller level *)
-let errorpp msg = failpp maxlevel msg
-let failtac level msg = Tacticals.New.tclFAIL level msg
-
 (* The actual tactic. *)
-       
+
 module Sos = Osdp.Sos.Q
 module SosP = Sos.Poly
 
@@ -284,7 +293,7 @@ let psatz intro options q =
     if intro then Sos.solve ~options (Sos.Maximize lb) [Sos.(!!q - lb)]
     else Sos.solve ~options Sos.Purefeas [Sos.(!!q)] in
   match (ret = Osdp.SdpRet.Success), wl with
-  | (false, _ | _, []) -> errorpp "soswitness: OSDP found no witnesses"
+  | (false, _ | _, []) -> raise err_no_witness
   | _, (zQ :: _) ->
      let array_to_list (z, q) =
        Array.(to_list (map Osdp.Monomial.to_list z), to_list (map to_list q)) in
@@ -345,7 +354,7 @@ let psatz_hyps intro options q pl =
     | (Some _) as w -> w
     | None -> get_wits true in
   match w with
-  | None -> errorpp "soswitness: OSDP found no witnesses"
+  | None -> raise err_no_witness
   | Some (nb_vars, lb, coeff, sigmas, vals, zQ, zQl) ->
      let sigmas = List.rev_map (fun e -> Sos.value_poly e vals) sigmas in
      if intro then
@@ -356,7 +365,7 @@ let psatz_hyps intro options q pl =
      else
        let coeff = Sos.value coeff vals in
        if SosP.Coeff.equal coeff SosP.Coeff.zero then
-         errorpp "soswitness: OSDP found no witnesses";
+         raise err_no_witness;
        let coeff = SosP.Coeff.inv coeff in
        let sigmas = List.map (SosP.mult_scalar coeff) sigmas in
        let coeff = SosP.Coeff.to_float coeff in
@@ -380,14 +389,10 @@ let soswitness intro options c =
       ofPair ofPoly (ofList ofPoly) c
     with Parse_error ->
       let ty_input = tyPair ty_poly (tyList ty_poly) in
-      fail maxlevel
-        Pp.(str "soswitness: wrong input type (expected "
-            ++ Printer.pr_constr_env Environ.empty_env Evd.empty ty_input
-            ++ str ").") in
+      raise (err_parse_error ty_input) in
   let () =  (* TODO: try to fix that *)
     if Osdp.Sos.Q.Poly.is_const q <> None then
-      errorpp "soswitness: expects a closed term representing \
-               a non constant polynomial" in
+      raise err_constant_input in
   (* Call OSDP to retrieve witnesses *)
   let nb_vars, lb, zq, szql =
     match pl with
@@ -431,16 +436,15 @@ let soswitness intro options c =
   if not intro then (wits, t)
   else (mkPair ty_bigQ t mkBigQ (fun t -> t) (lb, wits), tyPair ty_bigQ t)
 
-let soswitness intro options gl c id =
+let soswitness intro options c =
   let (v, t), ti = Osdp.Utils.profile (fun () -> soswitness intro options c) in
   if options.Sos.verbose > 0 then
     Format.printf "soswitness took: %.2fs@." ti;
   let v = EConstr.of_constr v in
-  let t = EConstr.of_constr t in
-  Tactics.letin_tac None (Names.Name id) v (Some t) Locusops.nowhere
+  v
 
-let soswitness_opts ?(intro=false) gl c id opts =
-  let opts = ofList ofParameters opts in
+let soswitness_opts ?(intro=false) c opts =
+  let opts = List.map ofParameters opts in
   let options =
     List.fold_left
       (fun options opt -> match opt with
@@ -462,38 +466,27 @@ let soswitness_opts ?(intro=false) gl c id opts =
              Sos.sdp =
                { options.Sos.sdp with Osdp.Sdp.verbose = n } } )
       Sos.default opts in
-  try soswitness intro options gl c id
-  with SosFail (level, msg) -> failtac level msg
-     | Failure msg -> failtac maxlevel (Pp.str msg)
-     | e -> let msg = "Anomaly: " ^ (Printexc.to_string e) in
-            failtac maxlevel Pp.(str msg)
+  try
+    let c = soswitness intro options c in
+    Proofview.tclUNIT (Value.of_constr c)
+  with
+  | (Tac2interp.LtacError _) as e -> Proofview.tclZERO e
+  | e ->
+     let msg = "Anomaly: " ^ (Printexc.to_string e) in
+     Tacticals.New.tclFAIL 999 Pp.(str msg)
 
-open Stdarg
-open Ltac_plugin
+(** constr -> constr list -> constr *)
+let () = define2 "soswitness" constr (list constr) begin fun c opts ->
+  let c = EConstr.Unsafe.to_constr c in
+  let opts = List.map EConstr.Unsafe.to_constr opts in
+  soswitness_opts c opts
+end
+
+(** constr -> constr list -> constr *)
+let () = define2 "soswitness_intro" constr (list constr) begin fun c opts ->
+  let c = EConstr.Unsafe.to_constr c in
+  let opts = List.map EConstr.Unsafe.to_constr opts in
+  soswitness_opts ~intro:true c opts
+end
 
 }
-
-TACTIC EXTEND soswitness_of_as
-| ["soswitness" "of" constr(c) "as" ident(id) ] ->
-{ Proofview.Goal.enter (fun gl ->
-    let c = EConstr.Unsafe.to_constr c in
-    let opts =
-      mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
-    soswitness_opts gl c id opts) }
-| ["soswitness" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
-{ Proofview.Goal.enter (fun gl ->
-    let c = EConstr.Unsafe.to_constr c in
-    let opts = EConstr.Unsafe.to_constr opts in
-    soswitness_opts gl c id opts) }
-| ["soswitness_intro" "of" constr(c) "as" ident(id) ] ->
-{ Proofview.Goal.enter (fun gl ->
-    let c = EConstr.Unsafe.to_constr c in
-    let opts =
-      mkList (Lazy.force coq_parameters_ind) (fun () -> assert false) [] in
-    soswitness_opts ~intro:true gl c id opts) }
-| ["soswitness_intro" "of" constr(c) "as" ident(id) "with" constr(opts) ] ->
-{ Proofview.Goal.enter (fun gl ->
-    let c = EConstr.Unsafe.to_constr c in
-    let opts = EConstr.Unsafe.to_constr opts in
-    soswitness_opts ~intro:true gl c id opts) }
-END

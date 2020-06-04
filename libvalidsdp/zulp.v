@@ -3,7 +3,7 @@ Require Import ZArith.
 From Bignums Require Import BigQ.
 From Flocq Require Import Core.Defs.
 From Flocq Require Import Core.Digits.
-From Interval Require Import Interval_definitions.
+From Interval Require Import Float.Basic.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 Require Import misc.
 
@@ -58,24 +58,24 @@ Qed.
 
 Lemma Pos_ldiff_neq0 q : Pos.ldiff (Pos.succ q) q <> 0%num.
 Proof.
-elim: q => [q IHq|q IHq|] //=; first by case: Pos.ldiff IHq.
+elim: q => [q IHq|q IHq| ] //=; first by case: Pos.ldiff IHq.
 by rewrite /Pos.Nsucc_double Pos_ldiff_eq0.
 Qed.
 
 Lemma Pos_ldiff_mod q :
   (N.pos (Pos.succ q) mod Pos.ldiff (Pos.succ q) q)%num = N0.
 Proof.
-elim: q => [q IHp|q IHp|] =>//=.
+elim: q => [q IHp|q IHp| ] =>//=.
 now_show (N.double (N.pos (Pos.succ q)) mod N.double (Pos.ldiff (Pos.succ q) q)
   = 0)%num.
-rewrite !N.double_spec !N.mul_mod_distr_l; [|exact: Pos_ldiff_neq0|done].
+rewrite !N.double_spec !N.mul_mod_distr_l; [ |exact: Pos_ldiff_neq0|done].
 by rewrite IHp.
 by rewrite Pos_ldiff_eq0 /= N.mod_1_r.
 Qed.
 
 Lemma Zdivide_div_l a b : (a | b)%Z -> (b / a | b)%Z.
 Proof.
-case: a => [|p|p]; first by rewrite Zdiv_0_r.
+case: a => [ |p|p]; first by rewrite Zdiv_0_r.
 by case => z ->; rewrite Z_div_mult_full //; apply Z.divide_mul_l, Z.divide_refl.
 by case => z ->; rewrite Z_div_mult_full //; apply Z.divide_mul_l, Z.divide_refl.
 Qed.
@@ -120,7 +120,7 @@ case: m NZm => [//|p|p] NZm /=.
     by rewrite -E N.pos_pred_spec N2Z.inj_pred // -/(Z.succ _) -Zsucc_pred. }
   clear E NZm.
   rewrite {}Hp in K'.
-  elim: q K' => [q IHq|q IHq|] K'.
+  elim: q K' => [q IHq|q IHq| ] K'.
   - apply: IHq => n.
     move/(_ (N.succ n)) in K'.
     by rewrite N.double_bits_succ -Pos.add_1_r in K'.
@@ -142,7 +142,7 @@ case: m NZm => [//|p|p] NZm /=.
     by rewrite -E N.pos_pred_spec N2Z.inj_pred // -/(Z.succ _) -Zsucc_pred. }
   clear E NZm.
   rewrite {}Hp in K'.
-  elim: q K' => [q IHq|q IHq|] K'.
+  elim: q K' => [q IHq|q IHq| ] K'.
   - apply: IHq => n.
     move/(_ (N.succ n)) in K'.
     by rewrite N.double_bits_succ -Pos.add_1_r in K'.
@@ -161,11 +161,11 @@ Lemma Zulp_ge0 m : (0 <= Zulp m)%Z.
 Proof. case: m => [//|p|p]; apply Z.lt_le_incl; exact: Zulp_gt0. Qed.
 
 Lemma Zulp_mul m : (m / Zulp m * Zulp m)%Z = m.
-case: m => [|p|p] //.
-{ elim: p => [p IHp|p IHp|] //.
+case: m => [ |p|p] //.
+{ elim: p => [p IHp|p IHp| ] //.
   { by rewrite /= Pos_ldiff_eq0 /= Zdiv_1_r Zmult_1_r. }
   rewrite /=.
-  case E : (Pos.pred_double p) => [q|q|] /=.
+  case E : (Pos.pred_double p) => [q|q| ] /=.
   have->: p = Pos.succ q.
   { rewrite Pos.pred_double_spec in E.
     move/(congr1 Pos.succ) in E.
@@ -184,7 +184,7 @@ case: m => [|p|p] //.
     rewrite -N2Z.inj_mod; last first.
     rewrite N.double_spec.
     apply/N.neq_mul_0; split =>//; exact: Pos_ldiff_neq0.
-    rewrite !N.double_spec !N.mul_mod_distr_l; [|exact: Pos_ldiff_neq0|done].
+    rewrite !N.double_spec !N.mul_mod_distr_l; [ |exact: Pos_ldiff_neq0|done].
     by rewrite Pos_ldiff_mod. }
   { exfalso; clear IHp.
     move: E; by case: p. }
@@ -192,10 +192,10 @@ case: m => [|p|p] //.
   symmetry; rewrite Zmult_comm; apply Znumtheory.Zdivide_Zdiv_eq =>//.
   exact: Z.divide_refl. }
 (* almost same proof *)
-elim: p => [p IHp|p IHp|] //.
+elim: p => [p IHp|p IHp| ] //.
 { by rewrite /= Pos_ldiff_eq0 /= Zdiv_1_r Zmult_1_r. }
 rewrite /=.
-case E : (Pos.pred_double p) => [q|q|] /=.
+case E : (Pos.pred_double p) => [q|q| ] /=.
 have->: p = Pos.succ q.
 { rewrite Pos.pred_double_spec in E.
   move/(congr1 Pos.succ) in E.
@@ -215,7 +215,7 @@ have->: p = Pos.succ q.
   rewrite -N2Z.inj_mod; last first.
   rewrite N.double_spec.
   apply/N.neq_mul_0; split =>//; exact: Pos_ldiff_neq0.
-  rewrite !N.double_spec !N.mul_mod_distr_l; [|exact: Pos_ldiff_neq0|done].
+  rewrite !N.double_spec !N.mul_mod_distr_l; [ |exact: Pos_ldiff_neq0|done].
   by rewrite Pos_ldiff_mod. }
 { exfalso; clear IHp.
   move: E; by case: p. }
@@ -325,7 +325,7 @@ apply/Z.testbit_true.
   apply: Zdigits_gt_0.
   exact: Zulp_neq0. }
 case: m NZm => [//|p|p] _.
-{ elim: p => [p IHp|p IHp|] //; first by rewrite /= Pos_ldiff_eq0.
+{ elim: p => [p IHp|p IHp| ] //; first by rewrite /= Pos_ldiff_eq0.
   rewrite -[Z.pos p~0]/(Z.double (Z.pos p)).
   rewrite Zulp_double //.
   have->: Z.double (Zulp (Z.pos p)) = (Zulp (Z.pos p) * 2 ^ 1)%Z
@@ -337,7 +337,7 @@ case: m NZm => [//|p|p] _.
     apply: Zdigits_gt_0.
     exact: Zulp_neq0. } }
 (* almost same proof *)
-{ elim: p => [p IHp|p IHp|] //; first by rewrite /= Pos_ldiff_eq0.
+{ elim: p => [p IHp|p IHp| ] //; first by rewrite /= Pos_ldiff_eq0.
   rewrite -[Z.neg p~0]/(Z.double (Z.neg p)).
   rewrite Zulp_double //.
   have->: Z.double (Zulp (Z.pos p)) = (Zulp (Z.pos p) * 2 ^ 1)%Z

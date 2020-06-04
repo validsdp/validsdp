@@ -9,7 +9,7 @@
     binary64 with unbounded exponents and binary64 without overflow
     and with gradual underflow. *)
 
-Require Import Reals Rstruct Psatz Flocq.Core.Raux.
+Require Import Reals Rstruct Psatz Flocq.Core.Raux Interval.Missing.Stdlib.
 From mathcomp Require Import ssreflect ssrbool eqtype choice.
 
 Require Export bounded.
@@ -193,7 +193,7 @@ exists x; split; [now simpl|split].
 { now exists eta_0; rewrite Rplus_0_r. }
 exists d; rewrite Hde; destruct (Rmult_integral _ _ Hde0) as [Zd|Ze].
 { assert (Ze : e = 0 :> R); [|now rewrite Ze Rplus_0_r].
-  apply Rcomplements.Rabs_eq_0, Rle_antisym; [|now apply Rabs_pos].
+  apply Rabs_eq_R0, Rle_antisym; [|now apply Rabs_pos].
   now revert HeLedx; rewrite Zd Rmult_0_l Rabs_R0. }
 now rewrite Ze Rplus_0_r.
 Qed.
@@ -206,7 +206,7 @@ destruct (Rmult_integral _ _ Zde) as [Zd|Ze].
 { exists (bounded_0 (eps_pos fs)), (bounded_opp e).
   rewrite Rmult_0_l; split; [|reflexivity].
   rewrite Hde Zd !Rplus_0_r !Rmult_1_l; simpl; ring. }
-assert (H := Interval_missing.Rabs_def2_le _ _ (bounded_prop d)).
+assert (H := Rabs_def2_le _ _ (bounded_prop d)).
 assert (H' := epsd1peps_le_eps (eps_pos fs)); assert (H'' := eps_lt_1 fs).
 destruct (Req_dec (frnd x) 0) as [Zfx|Nzfx].
 { assert (Zx : x = 0).
@@ -250,7 +250,7 @@ Lemma fplus_spec_round (x y : F) :
   exists d : b_eps, x + y = (1 + d) * fplus x y :> R.
 Proof.
 destruct (fplus_spec x y) as (d, Hd).
-assert (H := Interval_missing.Rabs_def2_le _ _ (bounded_prop d)).
+assert (H := Rabs_def2_le _ _ (bounded_prop d)).
 assert (H' := epsd1peps_le_eps (eps_pos fs)); assert (H'' := eps_lt_1 fs).
 destruct (Req_dec (fplus x y) 0) as [Zfxy|Nzfxy].
 { exists (bounded_0 (eps_pos fs)).
@@ -308,7 +308,7 @@ Lemma fsqrt_spec_round (x : F) :
   exists d : bounded (sqrt (1 + 2 * eps) - 1), sqrt x = (1 + d) * fsqrt x.
 Proof.
 destruct (fsqrt_spec x) as (d, Hd).
-assert (H := Interval_missing.Rabs_def2_le _ _ (bounded_prop d)).
+assert (H := Rabs_def2_le _ _ (bounded_prop d)).
 assert (H' := om1ds1p2eps_le_epsd1peps (eps_pos fs)).
 assert (H'' := epsd1peps_le_eps (eps_pos fs)); assert (H''' := eps_lt_1 fs).
 assert (Hpos := s1p2epsm1_pos (eps_pos fs)).

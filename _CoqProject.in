@@ -5,7 +5,7 @@
 -R test-suite @PACKAGE_NAME@
 -R theories @PACKAGE_NAME@
 
-plugins/soswitness/src/soswitness.@COQPP_EXT@
+plugins/soswitness/src/soswitness.mlg
 plugins/soswitness/src/soswitness.mllib
 plugins/soswitness/theories/soswitness.v
 plugins/soswitness/test-suite/soswitnesstac.v
@@ -14,7 +14,6 @@ plugins/soswitness/test-suite/soswitnesstac.v
 theories/misc.v
 theories/cholesky_prog.v
 theories/iteri_ord.v
-theories/bigop_tactics.v
 theories/posdef_check.v
 theories/validsdp.v
 

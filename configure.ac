@@ -2,8 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([ValidSDP], [0.7.1-git])
+AC_INIT([ValidSDP], [1.0.0-git])
 AC_CONFIG_SRCDIR([theories/validsdp.v])
+
+AC_DEFUN([AX_VERSION_GE], [AS_VERSION_COMPARE([$1],[$2],[$4],[$3],[$3])])
 
 # Check for programs
 AC_CHECK_TOOL([OCAMLC], [ocamlc], [no])
@@ -14,35 +16,33 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
-majmin=`echo "$coq_version" | cut -d . -f "1 2"`
-if test "v$majmin" != "v8.7" -a "v$majmin" != "v8.8" -a "v$majmin" != "v8.9" -a "v$majmin" != "v8.10" -a "v$majmin" != "v8.11"; then
-  AC_MSG_ERROR([Coq version must be 8.7.x or 8.8.x or 8.9.x or 8.10.x or 8.11.x (you have version $coq_version).])
-fi
 AC_MSG_RESULT($coq_version)
-
-minor=`echo "$coq_version" | cut -d . -f 2`
-if test "$minor" -le 7; then
-  COQ_VERSION="v87"
-  COQPP_EXT="ml4"
-else if test "$minor" -le 8; then
-  COQ_VERSION="v88"
-  COQPP_EXT="ml4"
-else if test "$minor" -le 9; then
-  COQ_VERSION="v89"
-  COQPP_EXT="ml4"
-else
-  COQ_VERSION="v810"
-  COQPP_EXT="mlg"
-fi ; fi ; fi
-sh -c "cd plugins/soswitness/theories && ln -sf soswitness_${COQ_VERSION}.v soswitness.v"
-
+AX_VERSION_GE([$coq_version], 8.11, [],
+  [ AC_MSG_ERROR([must be at least 8.11.]) ])
+COQ_VERSION="v811"
 AC_SUBST(COQ_VERSION)
-AC_SUBST(COQPP_EXT)
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
 
 # Check for libraries
+AC_MSG_CHECKING([for Ltac2])
+# Ltac2 is installed wit Coq 8.11 but in different places
+# whether it is compiled with Make or dune
+COQTOP_WHERE=`coqtop -where`
+LTAC2_MAKE="${COQTOP_WHERE}/user-contrib/Ltac2"
+LTAC2_DUNE="${COQTOP_WHERE}/plugins/ltac2"
+LTAC2_CAML_FILES=""
+AS_IF([test -d ${LTAC2_MAKE}],
+      [LTAC2_CAML_FILES="${LTAC2_CAML_FILES} -I ${LTAC2_MAKE}"], [])
+AS_IF([test -d ${LTAC2_DUNE}],
+      [LTAC2_CAML_FILES="${LTAC2_CAML_FILES} -I ${LTAC2_DUNE}"], [])
+AS_IF([test -n "${LTAC2_CAML_FILES}"],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq >= 8.11])])
+AC_SUBST(LTAC2_CAML_FILES)
+
 AC_MSG_CHECKING([for Mathcomp])
 AS_IF(
   [ echo "From mathcomp Require Import rat matrix countalg." > conftest.v
@@ -64,16 +64,16 @@ rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Coq-interval])
 AS_IF(
-  [ echo "From Interval Require Import Interval_xreal. " \
-         "From Interval Require Import Interval_definitions. " \
-         "From Interval Require Import Interval_float_sig. " \
+  [ echo "From Interval Require Import Real.Xreal. " \
+         "From Interval Require Import Float.Basic. " \
+         "From Interval Require Import Float.Sig. " \
          "Declare Module F : FloatOps. " \
          "Check F.add_correct : forall mode p x y, " \
          "F.toX (F.add mode p x y) = Xround F.radix mode (F.prec p) (Xadd (F.toX x) (F.toX y))." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library Coq-interval >= 3.2 (http://coq-interval.gforge.inria.fr/)])])
+    AC_MSG_ERROR([ *** Unable to find library Coq-interval master (http://coq-interval.gforge.inria.fr/)])])
 rm -f conftest.v conftest.vo conftest.err
 
 if test "$libdir" = '${exec_prefix}/lib'; then
@@ -100,20 +100,11 @@ AS_IF(
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for OSDP])
-AS_IF(
-  [ req_maj="0"
-    req_min="5"
-    req_pat="2"
-    osdp_version=`ocamlfind query -format %v osdp 2>/dev/null`
-    major=`echo $osdp_version | cut -d . -f 1`
-    minor=`echo $osdp_version | cut -d . -f 2`
-    patch=`echo $osdp_version | cut -d . -f 3 | cut -d - -f 1`
-    test "0$major" -gt "0$req_maj" || { test "0$major" -eq "0$req_maj" && \
-      test "0$minor" -gt "0$req_min" || { test "0$minor" -eq "0$req_min" && \
-        test "0$patch" -ge "0$req_pat"; }; } ],
-  [ AC_MSG_RESULT($osdp_version) ],
+osdp_version=`ocamlfind query -format %v osdp 2>/dev/null`
+AX_VERSION_GE([$osdp_version], 1.0,
+  [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library OSDP >= $req_maj.$req_min.$req_pat (https://cavale.enseeiht.fr/osdp/)])])
+    AC_MSG_ERROR([ *** Unable to find library OSDP >= 1.0 (https://cavale.enseeiht.fr/osdp/).])])
 
 AC_MSG_CHECKING([for coq-bignums])
 AS_IF(

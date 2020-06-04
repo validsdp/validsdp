@@ -9,10 +9,10 @@ Coq tactics to prove multivariate inequalities using SDP solvers.
 Dependencies
 ------------
 
-- [Coq](https://coq.inria.fr) version 8.11.x or 8.10.x or 8.9.x or 8.8.x or 8.7.x
+- [Coq](https://coq.inria.fr) version 8.11.x
 - [Bignums](https://github.com/coq/bignums) (Coq version specific)
-- [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.8.0, 1.9.0, 1.10.0)
-- [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.2.0)
+- [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.9.0, 1.10.0)
+- [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.3.0)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.1.0)
 - [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.4.2)
 - [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 1.0.0)
@@ -147,14 +147,14 @@ the resulting inequalities as a new hypothesis in the goal.
 
 The syntax is as follows:
 
-- `validsdp_intro e` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] `as` (`?` | `H` | `(Hl, Hu)`)
-- `validsdp_intro e lower` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] `as` (`?` | `Hl`)
-- `validsdp_intro e upper` [`using (hyp1, ...)` | `using *`] [`with (param1, ...)`] `as` (`?` | `Hu`)
+- `validsdp_intro e` [`using hyp1 ...` | `using *`] [`with (param1, ...)`] `as` (`?` | `H` | `(Hl, Hu)`)
+- `validsdp_intro e lower` [`using hyp1 ...` | `using *`] [`with (param1, ...)`] `as` (`?` | `Hl`)
+- `validsdp_intro e upper` [`using hyp1 ...` | `using *`] [`with (param1, ...)`] `as` (`?` | `Hu`)
 
 where `e` is a term of type `R` representing a multivariate polynomial
 expression with rational constants and real-valued variables.
 
-The syntax `using (hyp1, ...)` allows one to select the hypotheses
+The syntax `using hyp1 ...` allows one to select the hypotheses
 from the context to be considered by the solver. These hypotheses
 should be multivariate polynomial inequalities with rational constants
 and real-valued variables. They determine the input domain of the

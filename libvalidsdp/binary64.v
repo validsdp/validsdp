@@ -6,7 +6,7 @@
     model of binary64 with gradual underflow but without NaNs nor
     overflows (which could be easily handled afterward). *)
 
-Require Import Reals Rstruct.
+Require Import Reals Rstruct Psatz.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 
 Require Import Flocq.Core.Zaux.
@@ -19,7 +19,9 @@ Require Import Flocq.Prop.Relative.
 Require Import Flocq.Prop.Plus_error.
 Require Import Flocq.Prop.Div_sqrt_error.
 
-Require Import Psatz.
+Require Import bounded.
+Require Import float_spec.
+Require flx64.
 
 Require Import float_spec.
 Require flx64.

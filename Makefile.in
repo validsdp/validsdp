@@ -24,16 +24,16 @@ endif
 all plugin test install html gallinahtml doc deps.dot deps.png: $(COQ_MAKEFILE) Makefile
 	$(COQ_MAKE) $@
 
+%.vo: %.v
+	$(COQ_MAKE) $@
+
 # This rule could be moved to Makefile.coq.local
-$(PLUGDIR)/src/soswitness.@COQPP_EXT@: $(PLUGDIR)/src/soswitness_@COQ_VERSION@.@COQPP_EXT@
+$(PLUGDIR)/src/soswitness.mlg: $(PLUGDIR)/src/soswitness_@COQ_VERSION@.mlg
 	$(RM) $@
 	cp -f -- $< $@
 	chmod a-w $@
 
-%.vo: %.v
-	$(COQ_MAKE) $@
-
-$(COQ_MAKEFILE): $(COQ_PROJ) $(MODULES) $(PLUGDIR)/src/soswitness.@COQPP_EXT@
+$(COQ_MAKEFILE): $(COQ_PROJ) $(MODULES) $(PLUGDIR)/src/soswitness.mlg
 	@ocamlfind query zarith >/dev/null
 	@ocamlfind query ocplib-simplex >/dev/null
 	@ocamlfind query osdp >/dev/null
@@ -41,6 +41,7 @@ $(COQ_MAKEFILE): $(COQ_PROJ) $(MODULES) $(PLUGDIR)/src/soswitness.@COQPP_EXT@
 		-I "$(shell ocamlfind query zarith)" \
 		-I "$(shell ocamlfind query ocplib-simplex)" \
 		-I "$(shell ocamlfind query osdp)" \
+		@LTAC2_CAML_FILES@ \
 		-f $< $(MODULES) -o $@
 	# FIXME: This sed hack is fragile (if we do "make -B" for example)
 	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ zarith.cmxa ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
@@ -48,7 +49,7 @@ $(COQ_MAKEFILE): $(COQ_PROJ) $(MODULES) $(PLUGDIR)/src/soswitness.@COQPP_EXT@
 clean:
 	-$(COQ_MAKE) clean
 	$(RM) depend depend.dot depend.png depend.map
-	$(RM) $(PLUGDIR)/src/soswitness.@COQPP_EXT@
+	$(RM) $(PLUGDIR)/src/soswitness.mlg
 	$(RM) test-suite/*.vo test-suite/*.glob
 
 distclean: clean

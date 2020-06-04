@@ -1,6 +1,6 @@
 (** * Specification of floating-point operations with overflow. *)
 
-Require Import Reals Flocq.Core.Core.
+Require Import Reals Floats Flocq.Core.Core.
 
 Require Import mathcomp.ssreflect.ssreflect.
 From mathcomp Require Import ssrfun ssrbool eqtype.
@@ -42,19 +42,19 @@ Record Float_infnan_spec := {
   FIS2FS : FIS -> FS fis;
 
   FIS2FS_spec x : (FIS2FS x <> 0 :> R) -> finite x;
-  FIS2FS0 : FIS2FS (FIS0) = F0 fis;
-  FIS2FS1 : FIS2FS (FIS1) = F1 fis;
+  FIS2FS0 : FIS2FS (FIS0) = F0 fis :> R;
+  FIS2FS1 : FIS2FS (FIS1) = F1 fis :> R;
 
   (** Some rounding. *)
   firnd : R -> FIS;
 
-  firnd_spec x : finite (firnd x) -> FIS2FS (firnd x) = frnd fis x;
+  firnd_spec x : finite (firnd x) -> FIS2FS (firnd x) = frnd fis x :> R;
   firnd_spec_f x : Rabs (frnd fis x) < m -> finite (firnd x);
 
   (** Opposite. *)
   fiopp : FIS -> FIS;
 
-  fiopp_spec x : finite (fiopp x) -> FIS2FS (fiopp x) = fopp (FIS2FS x);
+  fiopp_spec x : finite (fiopp x) -> FIS2FS (fiopp x) = fopp (FIS2FS x) :> R;
   fiopp_spec_f1 x : finite (fiopp x) -> finite x;
   fiopp_spec_f x : finite x -> finite (fiopp x);
 
@@ -62,7 +62,7 @@ Record Float_infnan_spec := {
   fiplus : FIS -> FIS -> FIS;
 
   fiplus_spec x y : finite (fiplus x y) ->
-    FIS2FS (fiplus x y) = fplus (FIS2FS x) (FIS2FS y);
+    FIS2FS (fiplus x y) = fplus (FIS2FS x) (FIS2FS y) :> R;
   fiplus_spec_fl x y : finite (fiplus x y) -> finite x;
   fiplus_spec_fr x y : finite (fiplus x y) -> finite y;
   fiplus_spec_f x y : finite x -> finite y ->
@@ -72,7 +72,7 @@ Record Float_infnan_spec := {
   fimult : FIS -> FIS -> FIS;
 
   fimult_spec x y : finite (fimult x y) ->
-    FIS2FS (fimult x y) = fmult (FIS2FS x) (FIS2FS y);
+    FIS2FS (fimult x y) = fmult (FIS2FS x) (FIS2FS y) :> R;
   fimult_spec_fl x y : finite (fimult x y) -> finite x;
   fimult_spec_fr x y : finite (fimult x y) -> finite y;
   fimult_spec_f x y : finite x -> finite y ->
@@ -82,7 +82,7 @@ Record Float_infnan_spec := {
   fidiv : FIS -> FIS -> FIS;
 
   fidiv_spec x y : finite (fidiv x y) -> finite y ->
-    FIS2FS (fidiv x y) = fdiv (FIS2FS x) (FIS2FS y);
+    FIS2FS (fidiv x y) = fdiv (FIS2FS x) (FIS2FS y) :> R;
   fidiv_spec_fl x y : finite (fidiv x y) -> finite y -> finite x;
   fidiv_spec_f x y : finite x -> (FIS2FS y <> 0 :> R) ->
     Rabs (fdiv (FIS2FS x) (FIS2FS y)) < m -> finite (fidiv x y);
@@ -90,17 +90,17 @@ Record Float_infnan_spec := {
   (** Square root. *)
   fisqrt : FIS -> FIS;
 
-  fisqrt_spec x : finite (fisqrt x) -> FIS2FS (fisqrt x) = fsqrt (FIS2FS x);
+  fisqrt_spec x : finite (fisqrt x) -> FIS2FS (fisqrt x) = fsqrt (FIS2FS x) :> R;
   fisqrt_spec_f1 x : finite (fisqrt x) -> finite x;
   fisqrt_spec_f x : finite x -> FIS2FS x >= 0 -> finite (fisqrt x);
 
   (** Comparison. *)
-  ficompare : FIS -> FIS -> option comparison;
+  ficompare : FIS -> FIS -> float_comparison;
 
   ficompare_spec x y : finite x -> finite y ->
-    ficompare x y = Some (Rcompare (FIS2FS x) (FIS2FS y));
-  ficompare_spec_eq x y : ficompare x y = Some Eq -> FIS2FS x = FIS2FS y;
-  ficompare_spec_eq_f x y : ficompare x y = Some Eq -> (finite x <-> finite y)
+    ficompare x y = flatten_cmp_opt (Some (Rcompare (FIS2FS x) (FIS2FS y)));
+  ficompare_spec_eq x y : ficompare x y = FEq -> FIS2FS x = FIS2FS y :> R;
+  ficompare_spec_eq_f x y : ficompare x y = FEq -> (finite x <-> finite y)
 }.
 
 Section Derived_spec.
@@ -121,7 +121,7 @@ Lemma fiminus_spec x y : finite (fiminus x y) ->
 Proof.
 unfold fiminus, fminus; intro H.
 assert (Hy : finite (fiopp y)) by apply (fiplus_spec_fr H).
-now unfold fplus; rewrite <- (fiopp_spec Hy); apply fiplus_spec.
+now unfold fplus; rewrite <- (fiopp_spec Hy); apply val_inj, fiplus_spec.
 Qed.
 
 Lemma fiminus_spec_fl x y : finite (fiminus x y) -> finite x.
@@ -140,27 +140,26 @@ Qed.
 (** Equality *)
 Definition fieq (x y : FIS fs) : bool :=
   match ficompare x y with
-    | Some Eq => true
+    | FEq => true
     | _ => false
   end.
 
 Lemma fieq_spec x y : fieq x y = true -> FIS2FS x = FIS2FS y.
 Proof.
-intro H; apply ficompare_spec_eq; revert H; unfold fieq.
-now case (ficompare _ _); [intro c; case c|].
+intro H; apply val_inj, ficompare_spec_eq; revert H; unfold fieq.
+now case (ficompare _ _).
 Qed.
 
 Lemma fieq_spec_f x y : fieq x y = true -> (finite x <-> finite y).
 Proof.
-unfold fieq; set (c := ficompare _ _); case_eq c; [|now simpl].
-intros c' Hc; case_eq c'; [|now simpl|now simpl]; intros Hc' _.
-now apply ficompare_spec_eq_f; rewrite <-Hc', <-Hc.
+unfold fieq; set (c := ficompare _ _); case_eq c; try discriminate.
+now intros Hc _; apply ficompare_spec_eq_f.
 Qed.
 
 (** Comparison *)
 Definition filt (x y : FIS fs) : bool :=
   match ficompare x y with
-    | Some Lt => true
+    | FLt => true
     | _ => false
   end.
 
@@ -174,8 +173,8 @@ Qed.
 (** [filt x y] can differ from [not (file y x)] because of NaNs. *)
 Definition file (x y : FIS fs) : bool :=
   match ficompare x y with
-    | Some Lt => true
-    | Some Eq => true
+    | FLt => true
+    | FEq => true
     | _ => false
   end.
 
@@ -190,7 +189,7 @@ Qed.
 
 Definition fimax (x y : FIS fs) :=
   match ficompare y x with
-  | Some (Lt | Eq) => x
+  | FLt | FEq => x
   | _ => y
   end.
 
@@ -213,7 +212,7 @@ Qed.
 Lemma fimax_spec_eq x y : fimax x y = x \/ fimax x y = y.
 Proof.
 unfold fimax.
-now case (ficompare y x); [intro c; case c; [left|left|right]|right].
+now case (ficompare y x); [left|left|right|right].
 Qed.
 
 Lemma fimax_spec_f x y : finite x -> finite y -> finite (fimax x y).

@@ -1,23 +1,87 @@
-Require Import NArith.
-Require Import ValidSDP.soswitness.
+Require Import NArith ValidSDP.soswitness.
 
 Open Scope N_scope.
 
+Ltac2 print_exn e :=
+  let m :=
+      match e with
+      | Parse_error e =>
+        Message.concat
+          (Message.of_string "+++ Parse_error, expected *value* of type: ")
+          (Message.of_constr e)
+      | No_witness => Message.of_string "+++ No_witness"
+      | Constant_input => Message.of_string "+++ Constant_input"
+      | _ => Message.of_string "+++ unknown exception"
+      end in
+  let _ := Message.print m in
+  constr:(tt).
+
 Goal True.
 Proof.
-Fail soswitness of (([::], [::]) : seq (seq N * BigQ.t_) * seq (seq (seq N * BigQ.t_))) as y. (*?*)
+Fail ltac2:(soswitness constr:(([::], [::]) : seq (seq N * BigQ.t_) * seq (seq (seq N * BigQ.t_))) []).
 set (p := [:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]).
+Fail ltac2:(soswitness constr:((p, ([::] : seq (seq (seq N * BigQ.t_))))) []).
+Fail ltac2:(soswitness constr:(([:: ([:: 0; 0; 0; 0], 3%bigZ)], ([::] : seq (seq (seq N * BigQ.t_))))) []).
+Fail ltac2:(soswitness constr:(([:: ([:: 0; 0; 0; 0], 3%bigQ)], ([::] : seq (seq (seq N * BigQ.t_))))) []).
+Fail ltac2:(soswitness constr:((p, ([::] : seq (seq (seq N * BigQ.t_))))) [constr:(s_sdpa)]).
+Fail ltac2:(soswitness constr:(([:: ([:: 0; 0; 0; 0], 3%bigZ)], ([::] : seq (seq (seq N * BigQ.t_))))) [constr:(s_sdpa)]).
+Fail ltac2:(soswitness constr:(([:: ([:: 0; 0; 0; 0], 3%bigQ)], ([::] : seq (seq (seq N * BigQ.t_))))) [constr:(s_sdpa)]).
+Fail ltac2:(soswitness constr:(([:: ([:: 0; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ); ([:: 2; 1], (-12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_))))) []).
 
-Fail soswitness of (p, ([::] : seq (seq (seq N * BigQ.t_)))) as y.
-Fail soswitness of ([:: ([:: 0; 0; 0; 0], 3%bigZ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y.
-Fail soswitness of ([:: ([:: 0; 0; 0; 0], 3%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y.
+ltac2:(Control.plus
+         (fun () => soswitness constr:(([:: ([:: 2; 0], O); ([:: 0; 2], O)], ([::] : seq (seq (seq N * BigQ.t_))))) [])
+         print_exn).
+ltac2:(Control.plus
+         (fun () => soswitness constr:(([:: ([:: 2; 0], (-3)%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_))))) [])
+         print_exn).
+ltac2:(Control.plus
+         (fun () => soswitness constr:(([:: ([:: 0; 0], (-3)%bigQ); ([:: 0; 0], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_))))) [])
+         print_exn).
 
-Fail soswitness of ([:: ([:: 0; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ); ([:: 2; 1], (-12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y'.
-
-soswitness of ([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y.
-soswitness of ([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)], ([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]])) as y'.
-soswitness of ([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)], ([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]])) as y''.
-
-soswitness_intro of ([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) as y'''.
-soswitness_intro of ([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)], ([:: [:: ([:: 1], 1%bigQ); ([:: 0], (-2)%bigQ)]])) as y''''.
+ltac2:(let r := soswitness constr:(([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_))))) [] in
+       Message.print
+         (Message.concat
+            (Message.of_string "result: ")
+            (Message.of_constr r))).
+ltac2:(let r := soswitness constr:(([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_))))) [constr:(s_csdp); constr:(s_verbose 1)] in
+       Message.print
+         (Message.concat
+            (Message.of_string "result: ")
+            (Message.of_constr r))).
+ltac2:(let r := soswitness constr:(([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_))))) [] in
+       Message.print
+         (Message.concat
+            (Message.of_string "result: ")
+            (Message.of_constr r))).
+ltac2:(let r := soswitness constr:(([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)], ([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]]))) [] in
+       Message.print
+         (Message.concat
+            (Message.of_string "result: ")
+            (Message.of_constr r))).
+ltac2:(let r := soswitness constr:(([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)], ([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]]))) [] in
+       Message.print
+         (Message.concat
+            (Message.of_string "result: ")
+            (Message.of_constr r))).
+(* ltac2:(let r := soswitness constr:(([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_))))) [constr:(s_sdpa); constr:(s_verbose 1)] in
+       Message.print
+         (Message.concat
+            (Message.of_string "result: ")
+            (Message.of_constr r))). *)
+(* ltac2:(let r := soswitness constr:(([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)], ([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]]))) [constr:(s_sdpa)] in
+       Message.print
+         (Message.concat
+            (Message.of_string "result: ")
+            (Message.of_constr r))). *)
+(* ltac2:(let r := soswitness constr:(([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)], ([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]]))) [constr:(s_sdpa)] in
+       Message.print
+         (Message.concat
+            (Message.of_string "result: ")
+            (Message.of_constr r))). *)
+Fail ltac2:(soswitness constr:(([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_))))) []).
+ltac2:(let r := soswitness constr:(([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)], ([:: [:: ([:: 1], 1%bigQ); ([:: 0], (-2)%bigQ)]]))) [] in
+       Message.print
+         (Message.concat
+            (Message.of_string "result: ")
+            (Message.of_constr r))).
 Abort.

@@ -29,7 +29,6 @@ distclean: clean
 	$(RM) config.log config.status configure
 	$(RM) _CoqProject Makefile
 	$(RM) $(COQ_MAKEFILE) $(COQ_MAKEFILE).conf
-	$(RM) coqinterval_infnan.v
 	$(RM) *~ .*.aux .lia.cache
 
 
@@ -48,11 +47,9 @@ _CoqProject: _CoqProject.in configure | Makefile
 
 -include $(COQ_MAKEFILE).conf
 
-EXTRA_VFILES := coqinterval_infnan_31.v coqinterval_infnan_63.v
-
 # Create a tarball dist.YYYY-MM-DD.XXX/libvalidsdp-a.b.c.tar.gz
 # containing libvalidsdp-a.b.c/ with $(FILES), configure, and the *.v
-dist: configure $(filter-out coqinterval_infnan.v, $(COQMF_VFILES)) $(EXTRA_VFILES)
+dist: configure $(COQMF_VFILES)
 	export T=$$(readlink -f $$(mktemp -d dist.$$(date -I).XXX)) && export S=@PACKAGE_TARNAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDv $(FILES) $^ $$T/$$S && (cd $$T && sed -i -e 's,cd libvalidsdp && ./autogen.sh && ,,g;s,"-C" "libvalidsdp",,g' $$S/coq-libvalidsdp.opam && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
 
 .PHONY: all plugin install html gallinahtml doc clean distclean dist

@@ -1,0 +1,148 @@
+#!/bin/bash
+
+switch="prim-float"
+compiler="ocaml-base-compiler.4.05.0"
+# => see https://github.com/coq/coq/pull/7522
+NJOBS="7"
+COQ_DIR=""
+VALIDSDP_DIR=""
+# Should point to a directory with coquelicot git repo on branch master
+# % git clone https://gitlab.inria.fr/coquelicot/coquelicot
+COQUELICOT_DIR=""
+# Should point to a directory with CoqEAL git repo on branch master
+COQEAL_DIR=""
+
+usage() {
+    cat >&2 <<EOF
+Usage:
+  $0 [--switch prim-float] [--compiler 4.05.0] [--njobs 7] --coq …/validsdp_primitive-floats --coquelicot …/coquelicot --coqeal …/CoqEAL --validsdp …/validsdp
+EOF
+}
+
+die_hard() {
+    printf "%b\n" "$*" >&2
+    exit 1
+}
+
+warn() {
+    printf "%b\n" "$*" >&2
+}
+
+parse_args() {
+    # Parsing arguments
+    for ((i=1; i<=$#; i++)); do
+        case "${!i}" in
+            "--switch")
+                (( i++ ))
+                switch="${!i}"
+                ;;
+            "--compiler")
+                (( i++ ))
+                compiler="${!i}"
+                ;;
+            "--njobs")
+                (( i++ ))
+                NJOBS="${!i}"
+                ;;
+            "--coq")
+                (( i++ ))
+                COQ_DIR="${!i}"
+                ;;
+            "--validsdp")
+                (( i++ ))
+                VALIDSDP_DIR="${!i}"
+                ;;
+            "--coquelicot")
+                (( i++ ))
+                COQUELICOT_DIR="${!i}"
+                ;;
+            "--coqeal")
+                (( i++ ))
+                COQEAL_DIR="${!i}"
+                ;;
+            "--help")
+                usage
+                exit 0
+                ;;
+            *)
+                warn "Erreur: argument invalide '${!i}'."
+                exit 1
+                ;;
+        esac
+    done
+
+    [ -n "${COQ_DIR}" ] || { warn "Erreur: option --coq manquante."; usage; exit 1; }
+    [ -n "${COQUELICOT_DIR}" ] || { warn "Erreur: option --coquelicot manquante."; usage; exit 1; }
+    [ -n "${COQEAL_DIR}" ] || { warn "Erreur: option --coqeal manquante."; usage; exit 1; }
+    [ -n "${VALIDSDP_DIR}" ] || { warn "Erreur: option --validsdp manquante."; usage; exit 1; }
+}
+
+main() {
+    set -ex
+
+    opam switch create -y ${switch} ${compiler} || true
+    eval $(opam env --switch=${switch} --set-switch)
+
+    opam install -y camlp5 ocamlfind merlin zarith ocplib-simplex camlp4 osdp
+
+    opam repo add coq-released https://coq.inria.fr/opam/released
+    opam repo add coq-core-dev https://coq.inria.fr/opam/core-dev
+    opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
+
+    opam update
+
+    pushd "${COQ_DIR}"
+    git checkout primitive-floats
+    make clean
+    git clean -dxf .  # a bit aggressive but required
+    ./configure -annot -bin-annot -prefix $HOME/.opam/${switch}
+    make -j ${NJOBS}
+    make install
+    opam install -y num
+    opam pin add -n -k version coq dev
+    opam install -y --fake coq.dev
+    popd
+
+    COQFLAGS="-native-compiler yes" opam reinstall -y -v -j ${NJOBS} coq-mathcomp-ssreflect.1.9.0 coq-mathcomp-field.1.9.0 coq-bignums.dev coq-paramcoq.dev
+    COQC="$(which coqc) -native-compiler yes" opam reinstall -y -v -j ${NJOBS} coq-flocq.dev
+    COQEXTRAFLAGS="-native-compiler yes" opam reinstall -y -v -j ${NJOBS} --ignore-constraints-on coq coq-mathcomp-multinomials.1.3
+
+    pushd "${COQUELICOT_DIR}"
+    ./autogen.sh
+    COQC="$(which coqc) -native-compiler yes" ./configure
+    ./remake --jobs=${NJOBS} -B
+    ./remake install -d
+    # moche, il faudrait demander à Sylvie et Guillaume de corriger ça
+    cp -r theories/.coq-native ~/.opam/${switch}/lib/coq/user-contrib/Coquelicot
+    popd
+
+    pushd "${VALIDSDP_DIR}/external/interval-3.4.0_v88alpha"
+    ./autogen.sh
+    COQC="$(which coqc) -native-compiler yes" ./configure
+    ./remake --jobs=${NJOBS} -B
+    ./remake install -d
+    popd
+
+    pushd "${COQEAL_DIR}"
+    COQEXTRAFLAGS="-native-compiler yes" make --jobs=${NJOBS} -B
+    make install
+    popd
+
+    pushd "${VALIDSDP_DIR}"
+    ./autogen.sh
+    ./configure
+    # pushd ./plugins/soswitness
+    # make clean
+    # COQFLAGS="-native-compiler yes" make
+    # make install
+    # popd
+    pushd ./theories
+    make clean
+    COQFLAGS="-native-compiler yes" make -j ${NJOBS}
+    make install
+    popd && popd
+}
+
+parse_args "$@"
+
+main
