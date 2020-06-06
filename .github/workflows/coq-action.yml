@@ -15,18 +15,7 @@ jobs:
     strategy:
       matrix:
         image:
-          - mathcomp/mathcomp:1.8.0-coq-8.7
-          - mathcomp/mathcomp:1.8.0-coq-8.8
-          - mathcomp/mathcomp:1.8.0-coq-8.9
-          - mathcomp/mathcomp:1.9.0-coq-8.7
-          - mathcomp/mathcomp:1.9.0-coq-8.8
-          - mathcomp/mathcomp:1.9.0-coq-8.9
-          - mathcomp/mathcomp:1.9.0-coq-8.10
           - mathcomp/mathcomp:1.9.0-coq-8.11
-          - mathcomp/mathcomp:1.10.0-coq-8.7
-          - mathcomp/mathcomp:1.10.0-coq-8.8
-          - mathcomp/mathcomp:1.10.0-coq-8.9
-          - mathcomp/mathcomp:1.10.0-coq-8.10
           - mathcomp/mathcomp:1.10.0-coq-8.11
       fail-fast: false
     steps:
