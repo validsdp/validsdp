@@ -2501,9 +2501,10 @@ Ltac2 do_validsdp params :=
             let p := constr:((@M.elements bigQ \o
                                           interp_poly_eff $n \o
                                           abstr_poly_of_p_abstr_poly) $p) in
-            let ppi := Std.eval_vm None constr:(($p, $pi)) in
+            let p := Std.eval_vm None p in
+            let pi := Std.eval_vm None pi in
             deb_sc "(g, vm):" constr:(($g, $vm));
-            match! soswitness ppi params with
+            match! soswitness p pi params with
             | cannot_conclude => failwith_c "soswitness failed on" constr:(($g, $vm))
             | ?zQ_szQi =>
               deb_sc "zQ_szQi:" zQ_szQi;
