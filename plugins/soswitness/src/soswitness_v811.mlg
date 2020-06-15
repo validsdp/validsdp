@@ -429,22 +429,18 @@ let soswitness intro options c c' =
         (mkPair ty_seqmultinom ty_bigQ mkSeqmultinom mkBigQ)
         (Osdp.Sos.Q.Poly.to_list p) in
     mkPair ty_poly ty_witness mkPoly mk_witness in
-  let t = tyPair ty_witness (tyList (tyPair ty_poly ty_witness)) in
-  let wits =
-    mkPair
-      ty_witness (tyList (tyPair ty_poly ty_witness))
-      mk_witness
-      (mkList (tyPair ty_poly ty_witness) mk_s_witness)
-      (zq, szql) in
-  if not intro then (wits, t)
-  else (mkPair ty_bigQ t mkBigQ (fun t -> t) (lb, wits), tyPair ty_bigQ t)
+  let wit = mk_witness zq in
+  let wits = mkList (tyPair ty_poly ty_witness) mk_s_witness szql in
+  mkBigQ lb, wit, wits
 
 let soswitness intro options c c' =
-  let (v, t), ti = Osdp.Utils.profile (fun () -> soswitness intro options c c') in
+  let (v, v', v''), ti = Osdp.Utils.profile (fun () -> soswitness intro options c c') in
   if options.Sos.verbose > 0 then
     Format.printf "soswitness took: %.2fs@." ti;
   let v = EConstr.of_constr v in
-  v
+  let v' = EConstr.of_constr v' in
+  let v'' = EConstr.of_constr v'' in
+  v, v', v''
 
 let soswitness_opts ?(intro=false) c c' opts =
   let opts = List.map ofParameters opts in
@@ -470,15 +466,18 @@ let soswitness_opts ?(intro=false) c c' opts =
                { options.Sos.sdp with Osdp.Sdp.verbose = n } } )
       Sos.default opts in
   try
-    let c = soswitness intro options c c' in
-    Proofview.tclUNIT (Value.of_constr c)
+    let c, c', c'' = soswitness intro options c c' in
+    let t =
+      if intro then Value.([|of_constr c; of_constr c'; of_constr c''|])
+      else Value.([|of_constr c'; of_constr c''|]) in
+    Proofview.tclUNIT (Value.of_tuple t)
   with
   | (Tac2interp.LtacError _) as e -> Proofview.tclZERO e
   | e ->
      let msg = "Anomaly: " ^ (Printexc.to_string e) in
      Tacticals.New.tclFAIL 999 Pp.(str msg)
 
-(** constr -> constr -> constr list -> constr *)
+(** constr -> constr -> constr list -> constr * constr *)
 let () = define3 "soswitness" constr constr (list constr) begin fun c c' opts ->
   let c = EConstr.Unsafe.to_constr c in
   let c' = EConstr.Unsafe.to_constr c' in
@@ -486,7 +485,7 @@ let () = define3 "soswitness" constr constr (list constr) begin fun c c' opts ->
   soswitness_opts c c' opts
 end
 
-(** constr -> constr -> constr list -> constr *)
+(** constr -> constr -> constr list -> constr * constr * constr *)
 let () = define3 "soswitness_intro" constr constr (list constr) begin fun c c' opts ->
   let c = EConstr.Unsafe.to_constr c in
   let c' = EConstr.Unsafe.to_constr c' in

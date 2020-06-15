@@ -2504,13 +2504,10 @@ Ltac2 do_validsdp params :=
             let p := Std.eval_vm None p in
             let pi := Std.eval_vm None pi in
             deb_sc "(g, vm):" constr:(($g, $vm));
-            match! soswitness p pi params with
-            | cannot_conclude => failwith_c "soswitness failed on" constr:(($g, $vm))
-            | ?zQ_szQi =>
-              deb_sc "zQ_szQi:" zQ_szQi;
-              apply (@soscheck_hyps_eff_wrapup_correct $vm $g $zQ_szQi.2 $zQ_szQi.1);
-              ltac1:(vm_cast_no_check (erefl true))
-            end
+            let (zQ, szQi) := soswitness p pi params in
+            deb_sc "(zQ, szQi):" constr:(($zQ, $szQi));
+            apply (@soscheck_hyps_eff_wrapup_correct $vm $g $szQi $zQ);
+            ltac1:(vm_cast_no_check (erefl true))
           end) (*(fun e => failwith "validsdp failed to certify the witness")*)
     | not_supported => failwith "unsupported goal"
     end

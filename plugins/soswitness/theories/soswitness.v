@@ -20,6 +20,6 @@ Ltac2 Type exn ::= [ Parse_error_arg1 (* expecting type *) (constr)
 
 Declare ML Module "soswitness".
 
-Ltac2 @ external soswitness : constr -> constr -> constr list -> constr := "soswitness" "soswitness".
+Ltac2 @ external soswitness : constr -> constr -> constr list -> constr * constr := "soswitness" "soswitness".
 
-Ltac2 @ external soswitness_intro : constr -> constr -> constr list -> constr := "soswitness" "soswitness_intro".
+Ltac2 @ external soswitness_intro : constr -> constr -> constr list -> constr * constr * constr := "soswitness" "soswitness_intro".

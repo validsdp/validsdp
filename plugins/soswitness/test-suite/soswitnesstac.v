@@ -18,7 +18,7 @@ Ltac2 print_exn e :=
       | _ => Message.of_string "+++ unknown exception"
       end in
   let _ := Message.print m in
-  constr:(tt).
+  constr:(tt), constr:(tt).
 
 Goal True.
 Proof.
@@ -42,50 +42,86 @@ ltac2:(Control.plus
          (fun () => soswitness constr:([:: ([:: 0; 0], (-3)%bigQ); ([:: 0; 0], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [])
          print_exn).
 
-ltac2:(let r := soswitness constr:([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [] in
+ltac2:(let (r, rl) := soswitness constr:([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [] in
        Message.print
          (Message.concat
-            (Message.of_string "result: ")
-            (Message.of_constr r))).
-ltac2:(let r := soswitness constr:([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [constr:(s_csdp); constr:(s_verbose 1)] in
+            (Message.concat
+               (Message.of_string "result: ")
+               (Message.of_constr r))
+            (Message.concat
+               (Message.of_string ", ")
+               (Message.of_constr rl)))).
+ltac2:(let (r, rl) := soswitness constr:([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [constr:(s_csdp); constr:(s_verbose 1)] in
        Message.print
          (Message.concat
-            (Message.of_string "result: ")
-            (Message.of_constr r))).
-ltac2:(let r := soswitness constr:([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [] in
+            (Message.concat
+               (Message.of_string "result: ")
+               (Message.of_constr r))
+            (Message.concat
+               (Message.of_string ", ")
+               (Message.of_constr rl)))).
+ltac2:(let (r, rl) := soswitness constr:([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [] in
        Message.print
          (Message.concat
-            (Message.of_string "result: ")
-            (Message.of_constr r))).
-ltac2:(let r := soswitness constr:([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)]) constr:([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]]) [] in
+            (Message.concat
+               (Message.of_string "result: ")
+               (Message.of_constr r))
+            (Message.concat
+               (Message.of_string ", ")
+               (Message.of_constr rl)))).
+ltac2:(let (r, rl) := soswitness constr:([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)]) constr:([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]]) [] in
        Message.print
          (Message.concat
-            (Message.of_string "result: ")
-            (Message.of_constr r))).
-ltac2:(let r := soswitness constr:([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)]) constr:([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]]) [] in
+            (Message.concat
+               (Message.of_string "result: ")
+               (Message.of_constr r))
+            (Message.concat
+               (Message.of_string ", ")
+               (Message.of_constr rl)))).
+ltac2:(let (r, rl) := soswitness constr:([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)]) constr:([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]]) [] in
        Message.print
          (Message.concat
-            (Message.of_string "result: ")
-            (Message.of_constr r))).
-(* ltac2:(let r := soswitness constr:([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [constr:(s_sdpa); constr:(s_verbose 1)] in
+            (Message.concat
+               (Message.of_string "result: ")
+               (Message.of_constr r))
+            (Message.concat
+               (Message.of_string ", ")
+               (Message.of_constr rl)))).
+(* ltac2:(let (r, rl) := soswitness constr:([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [constr:(s_sdpa); constr:(s_verbose 1)] in
        Message.print
          (Message.concat
-            (Message.of_string "result: ")
-            (Message.of_constr r))). *)
-(* ltac2:(let r := soswitness constr:([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)]) constr:([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]]) [constr:(s_sdpa)] in
+            (Message.concat
+               (Message.of_string "result: ")
+               (Message.of_constr r))
+            (Message.concat
+               (Message.of_string ", ")
+               (Message.of_constr rl)))). *)
+(* ltac2:(let (r, rl) := soswitness constr:([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)]) constr:([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]]) [constr:(s_sdpa)] in
        Message.print
          (Message.concat
-            (Message.of_string "result: ")
-            (Message.of_constr r))). *)
-(* ltac2:(let r := soswitness constr:([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)]) constr:([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]]) [constr:(s_sdpa)] in
+            (Message.concat
+               (Message.of_string "result: ")
+               (Message.of_constr r))
+            (Message.concat
+               (Message.of_string ", ")
+               (Message.of_constr rl)))). *)
+(* ltac2:(let (r, rl) := soswitness constr:([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)]) constr:([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]]) [constr:(s_sdpa)] in
        Message.print
          (Message.concat
-            (Message.of_string "result: ")
-            (Message.of_constr r))). *)
+            (Message.concat
+               (Message.of_string "result: ")
+               (Message.of_constr r))
+            (Message.concat
+               (Message.of_string ", ")
+               (Message.of_constr rl)))). *)
 Fail ltac2:(soswitness constr:([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) []).
-ltac2:(let r := soswitness constr:([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)]) constr:([:: [:: ([:: 1], 1%bigQ); ([:: 0], (-2)%bigQ)]]) [] in
+ltac2:(let (r, rl) := soswitness constr:([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)]) constr:([:: [:: ([:: 1], 1%bigQ); ([:: 0], (-2)%bigQ)]]) [] in
        Message.print
          (Message.concat
-            (Message.of_string "result: ")
-            (Message.of_constr r))).
+            (Message.concat
+               (Message.of_string "result: ")
+               (Message.of_constr r))
+            (Message.concat
+               (Message.of_string ", ")
+               (Message.of_constr rl)))).
 Abort.
