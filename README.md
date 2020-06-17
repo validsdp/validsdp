@@ -14,7 +14,7 @@ Dependencies
 - [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.9.0, 1.10.0)
 - [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.3.0)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.1.0)
-- [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.4.2)
+- [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 4.0.0)
 - [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 1.0.0)
 - [multinomials](https://github.com/math-comp/multinomials) (tested with version 1.5)
 - [paramcoq](https://github.com/coq-community/paramcoq) (tested with version 1.1.2)

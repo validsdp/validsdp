@@ -2295,9 +2295,9 @@ Unshelve.
   by move=> x' y z' Hxy Hyz; red; rewrite Hxy. }
 { by rewrite refinesE. }
 { by rewrite refinesE. }
-{ by op1 F.neg_correct. }
+{ by op1 F'.neg_correct. }
 { by op1 F.sqrt_correct. }
-{ by op2 F.add_correct. }
+{ by op2 F.add_slow_correct. }
 { by op2 F.mul_correct. }
 { by op2 F.div_correct. }
 { op1 F.real_correct; exact: bool_Rxx. }
@@ -2305,8 +2305,8 @@ Unshelve.
   F'.cmp_correct F.real_correct. }
 { by op202 ltac:(rewrite /lt_instFIS /filt /= /ficompare /=; suff_eq bool_Rxx)
   F'.cmp_correct F.real_correct. }
-{ by op2 F.add_correct. }
-{ by op22 F.neg_correct F.add_correct. }
+{ by op2 F.add_slow_correct. }
+{ by op22 F'.neg_correct F.add_slow_correct. }
 { by op2 F.mul_correct. }
 { by op2 F.div_correct. }
 by rewrite refinesE => ?? H; rewrite (nat_R_eq H).

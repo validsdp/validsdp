@@ -49,8 +49,7 @@ AS_IF(
          "From Interval Require Import Float.Basic. " \
          "From Interval Require Import Float.Sig. " \
          "Declare Module F : FloatOps. " \
-         "Check F.add_correct : forall mode p x y, " \
-         "F.toX (F.add mode p x y) = Xround F.radix mode (F.prec p) (Xadd (F.toX x) (F.toX y))." > conftest.v
+         "Check F.add_UP_correct." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])

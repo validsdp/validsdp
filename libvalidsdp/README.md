@@ -14,7 +14,7 @@ Dependencies
 - [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.9.0, 1.10.0)
 - [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.3.1)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.1.0)
-- [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 3.4.2)
+- [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 4.0.0)
 
 See also the [coq-libvalidsdp.opam](../coq-libvalidsdp.opam) file for the
 detail of libValidSDP dependencies' version contraints.
