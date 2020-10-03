@@ -198,21 +198,41 @@ Lemma F2FI_correct' (f : F.type) :
   FI2FS (F2FI f) = toR f :> R.
 Proof. by apply F2FI_correct. Qed.
 
+Lemma eta_float_round_up_infnan_neq_0 :
+  eta coqinterval_infnan.coqinterval_round_up_infnan <> 0.
+Proof. compute; lra. Qed.
+
 (* We use the typical Coq design pattern "abstract + vm_cast_no_check"
    to avoid performing the conversion check twice. *)
 Ltac posdef_check :=
   match goal with
   | [ |- posdef_seqF ?Q ] =>
-    abstract (apply (posdefcheck_eff_wrapup_correct F2FI_correct');
+    abstract (apply (@posdefcheck_eff_wrapup_correct _ eta_float_round_up_infnan_neq_0 _ F2FI_correct');
       vm_cast_no_check (erefl true))
   end.
 
 Ltac posdef_check_native :=
   match goal with
   | [ |- posdef_seqF ?Q ] =>
-    abstract (apply (posdefcheck_eff_wrapup_correct F2FI_correct');
+    abstract (apply (@posdefcheck_eff_wrapup_correct _ eta_float_round_up_infnan_neq_0 _ F2FI_correct');
       native_cast_no_check (erefl true))
   end.
+
+Goal posdef_seqF
+  [:: [:: Float (4844268357668941) (-51); Float (-6010289013563096) (-55); Float (-8527459789388090) (-59); Float (-4778266098206664) (-50); Float (5667663619731675) (-55);
+          Float (4683274154211911) (-51)];
+      [:: Float (-6010289013563096) (-55); Float (7396430339592472) (-51); Float (-7289940589024767) (-57); Float (-6805625889340557) (-58); Float (-6772467775663301) (-51);
+          Float (5856798786847734) (-55)];
+      [:: Float (-8527459789388090) (-59); Float (-7289940589024767) (-57); Float (4853298392673210) (-52); Float (-6022680283661423) (-56); Float (-6234500978567578) (-55);
+          Float (7135901130999799) (-56)];
+      [:: Float (-4778266098206664) (-50); Float (-6805625889340557) (-58); Float (-6022680283661423) (-56); Float (4783306079007354) (-49); Float (5238162149477632) (-57);
+          Float (-4748548273910727) (-50)];
+      [:: Float (5667663619731675) (-55); Float (-6772467775663301) (-51); Float (-6234500978567578) (-55); Float (5238162149477632) (-57); Float (6311840486445046) (-51);
+          Float (-6079338910151020) (-55)];
+      [:: Float (4683274154211911) (-51); Float (5856798786847734) (-55); Float (7135901130999799) (-56); Float (-4748548273910727) (-50); Float (-6079338910151020) (-55);
+          Float (4765808075135984) (-51)]]%bigZ.
+Time posdef_check.
+Qed.
 
 From Bignums Require Import BigZ BigN.
 Require Import Int63.
