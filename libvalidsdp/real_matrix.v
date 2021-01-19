@@ -12,7 +12,7 @@ Require Import Psatz.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
 Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.algebra.ssralg mathcomp.algebra.matrix mathcomp.ssreflect.bigop.
 
-Require Import Rstruct.
+Require Import mathcomp.analysis.Rstruct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

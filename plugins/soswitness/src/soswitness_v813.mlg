@@ -129,22 +129,12 @@ let ofN c = match snd (Constr.decompose_app c) with
 
 let coq_int63 = lazy (init_constant "num.int63.type")
 
-let z_mask32 = Z.((one lsl 32) - one)
-let uint63_32 = Uint63.of_int 32
-let uint63_mask32 = Uint63.(sub (l_sl (of_int 1) uint63_32) (of_int 1))
-
 let mkInt63 n =
-  let h = Z.(to_string (n asr 32)) in
-  let l = Z.(to_string (n land z_mask32)) in
-  let ui = Uint63.(l_or (l_sl (of_string h) uint63_32) (of_string l)) in
+  let ui = Uint63.of_int64 (Z.to_int64 n) in
   Constr.(of_kind (Int ui))
 
-(* TODO: replace to/of_string with to/of_float after 8.11 *)
 let ofInt63 c = match Constr.kind c with
-  | Constr.Int i ->
-     let h = Uint63.(to_string (l_sr i uint63_32)) in
-     let l = Uint63.(to_string (l_and i uint63_mask32)) in
-     Z.(((of_string h) lsl 32) lor (of_string l))
+  | Constr.Int i -> Z.of_int64 (Uint63.to_int64 i)
   | _ -> raise Parse_error
 
 let coq_zn2z_ind = lazy (init_constant' "DoubleType.zn2z")

@@ -33,6 +33,15 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find theories rat, matrix, countalg from mathcomp >= 1.8.0 (http://coq.io/opam/coq-mathcomp-field.1.8.0.html)])])
 rm -f conftest.v conftest.vo conftest.err
 
+AC_MSG_CHECKING([for Mathcomp Analysis])
+AS_IF(
+  [ echo "Require Import mathcomp.analysis.Rstruct." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find theory Rstruct from mathcomp anaysis (http://coq.io/opam/coq-mathcomp-analysis.0.3.5.html)])])
+rm -f conftest.v conftest.vo conftest.err
+
 AC_MSG_CHECKING([for Flocq])
 AS_IF(
   [ echo "Require Import Flocq.Version BinNat." \

@@ -11,7 +11,8 @@ Dependencies
 
 - [Coq](https://coq.inria.fr) version 8.11.x
 - [Bignums](https://github.com/coq/bignums) (Coq version specific)
-- [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.9.0, 1.10.0)
+- [mathcomp](https://math-comp.github.io/math-comp/) (version 1.11.0 or later)
+- [mathcomp analysis](https://github.com/math-comp/analysis/) (version 0.3.4 or later)
 - [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.3.0)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.1.0)
 - [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 4.0.0)

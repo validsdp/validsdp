@@ -9,7 +9,7 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import fintype finfun ssralg matrix bigop.
 From mathcomp Require Import ssrnum ssrint rat.
 
-Require Import Rstruct.
+Require Import mathcomp.analysis.Rstruct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -24,6 +24,12 @@ Delimit Scope Q_scope with Qrat.
 
 Import GRing.Theory.
 Import Num.Theory.
+
+Lemma INR_natmul n : INR n = (n%:R)%R.
+Proof.
+elim: n => [//|n IHn].
+by rewrite -addn1 plus_INR IHn mulrnDr.
+Qed.
 
 (** As in the latest version of CoqEAL, all relations are in [Type],
 we need to add some material, such as [ifft], which is similar to [iff] *)

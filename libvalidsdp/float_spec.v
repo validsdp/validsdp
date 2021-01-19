@@ -9,7 +9,9 @@
     binary64 with unbounded exponents and binary64 without overflow
     and with gradual underflow. *)
 
-Require Import Reals Rstruct Psatz Flocq.Core.Raux Interval.Missing.Stdlib.
+Require Import Reals.
+Require Import mathcomp.analysis.Rstruct.
+Require Import Psatz Flocq.Core.Raux Interval.Missing.Stdlib.
 From mathcomp Require Import ssreflect ssrbool eqtype choice.
 
 Require Export bounded.

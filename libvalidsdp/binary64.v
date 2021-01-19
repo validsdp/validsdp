@@ -6,7 +6,7 @@
     model of binary64 with gradual underflow but without NaNs nor
     overflows (which could be easily handled afterward). *)
 
-Require Import Reals Rstruct Psatz.
+Require Import Reals mathcomp.analysis.Rstruct Psatz.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 
 Require Import Flocq.Core.Zaux.

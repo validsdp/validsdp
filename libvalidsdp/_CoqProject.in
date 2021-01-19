@@ -1,5 +1,4 @@
 -R . @PACKAGE_NAME@
-Rstruct.v
 misc.v
 real_matrix.v
 bounded.v

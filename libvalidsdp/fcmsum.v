@@ -15,7 +15,7 @@ Require Import Psatz.
 From mathcomp Require Import ssreflect ssrfun ssrnat.
 From mathcomp Require Import fintype finfun ssralg bigop.
 
-Require Import Rstruct.
+Require Import mathcomp.analysis.Rstruct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

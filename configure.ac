@@ -19,7 +19,7 @@ coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$
 AC_MSG_RESULT($coq_version)
 AX_VERSION_GE([$coq_version], 8.11, [],
   [ AC_MSG_ERROR([must be at least 8.11.]) ])
-COQ_VERSION="v811"
+AX_VERSION_GE([$coq_version], 8.13, [COQ_VERSION="v813"], [COQ_VERSION="v811"])
 AC_SUBST(COQ_VERSION)
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
@@ -50,6 +50,15 @@ AS_IF(
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find theories rat, matrix, countalg from mathcomp >= 1.8.0 (http://coq.io/opam/coq-mathcomp-field.1.8.0.html)])])
+rm -f conftest.v conftest.vo conftest.err
+
+AC_MSG_CHECKING([for Mathcomp Analysis])
+AS_IF(
+  [ echo "Require Import mathcomp.analysis.Rstruct." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find theory Rstruct from mathcomp anaysis (http://coq.io/opam/coq-mathcomp-analysis.0.3.5.html)])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Flocq])

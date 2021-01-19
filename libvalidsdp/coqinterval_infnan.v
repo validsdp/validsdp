@@ -1,6 +1,6 @@
 (** * CoqInterval floats satisfy hypothesis in [Float_infnan_spec] *)
 
-Require Import Reals Rstruct.
+Require Import Reals mathcomp.analysis.Rstruct.
 Require Import Floats.
 From Bignums Require Import BigZ.
 

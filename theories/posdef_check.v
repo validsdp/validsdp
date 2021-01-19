@@ -13,7 +13,7 @@ From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
-Require Import libValidSDP.Rstruct.
+Require Import mathcomp.analysis.Rstruct.
 Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog libValidSDP.coqinterval_infnan.
@@ -319,10 +319,10 @@ Definition canonical_mantissaPrim (m : int) (se : bool) (e : int) :=
       || (4503599627370496 (*2^52*) <= m)%int63).
 
 Lemma canonical_mantissaPrim_correct m se e :
-  match [| m |]%int63 with
+  match Int63.to_Z m with
   | Z0 => True
   | Z.pos mp =>
-    let ez := if se then Z.opp [| e |]%int63 else [| e |]%int63 in
+    let ez := if se then Z.opp (Int63.to_Z e) else Int63.to_Z e in
     canonical_mantissaPrim m se e -> Binary.canonical_mantissa prec emax mp ez
   | Z.neg _ => False
   end.
@@ -363,10 +363,10 @@ Definition boundedPrim (m : int) (se : bool) (e : int) :=
   (se || (e <= 1024 - 53)%int63) && (canonical_mantissaPrim m se e).
 
 Lemma boundedPrim_correct m se e :
-  match [| m |]%int63 with
+  match Int63.to_Z m with
   | Z0 => True
   | Z.pos mp =>
-    let ez := if se then Z.opp [| e |]%int63 else [| e |]%int63 in
+    let ez := if se then Z.opp (Int63.to_Z e) else Int63.to_Z e in
     boundedPrim m se e -> Binary.bounded prec emax mp ez
   | Z.neg _ => False
   end.
@@ -420,9 +420,9 @@ now rewrite B2R_SF2B.
 Qed.
 
 Lemma of_int63_exact m :
-  Z.le (Zdigits radix2 [| m |]%int63) prec ->
+  Z.le (Zdigits radix2 (Int63.to_Z m)) prec ->
   B2R (Prim2B (of_int63 m))
-  = IZR [| m |]%int63.
+  = IZR (Int63.to_Z m).
 Proof.
 intros Hm.
 assert (Hprec0 : Z.lt 0 prec); [now simpl| ].
@@ -434,7 +434,7 @@ pose (bm := binary_normalize _ _ Hprec0 Hprec mode_NE (to_Z m)
 assert (Hb := binary_normalize_correct _ _ PrimFloat.Hprec Hmax mode_NE (to_Z m) 0 false).
 pose (r := F2R ({| Fnum := to_Z m; Fexp := 0 |} : Defs.float radix2)).
 assert (Hr : Generic_fmt.round radix2 (fexp prec emax) ZnearestE r = r).
-{ case (Z.eq_dec [| m |]%int63 0); intro Hmz.
+{ case (Z.eq_dec (Int63.to_Z m) 0); intro Hmz.
   { now unfold r, F2R; rewrite Hmz; simpl; rewrite Rmult_0_l round_0. }
   apply round_generic; [now apply valid_rnd_N| ].
   apply generic_format_F2R; intros _; unfold F2R; simpl; rewrite Rmult_1_r.
@@ -444,7 +444,7 @@ revert Hb; simpl; rewrite Hr ifT.
 { now intros (Hr', _); rewrite Hr'; unfold r, F2R; simpl; rewrite Rmult_1_r. }
 apply Rlt_bool_true; unfold r, F2R; simpl; rewrite Rmult_1_r.
 change (IZR (Z.pow_pos 2 _)) with (bpow radix2 1024).
-case (Z.eq_dec [| m |]%int63 0); intro Hmz.
+case (Z.eq_dec (Int63.to_Z m) 0); intro Hmz.
 { rewrite Hmz Rabs_R0; apply bpow_gt_0. }
 apply (Rlt_le_trans _ _ _ (bpow_mag_gt radix2 _)), bpow_le.
 rewrite -Zdigits_mag; unfold prec in Hm; lia.
