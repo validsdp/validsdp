@@ -2019,7 +2019,7 @@ Inductive p_abstr_goal :=
   | Ghyp (_ : p_abstr_hyp) (_ : p_abstr_goal)
   .
 
-Fixpoint interp_p_abstr_ineq (vm : seq R) (i : p_abstr_ineq) {struct i} : Prop :=
+Definition interp_p_abstr_ineq (vm : seq R) (i : p_abstr_ineq) : Prop :=
   match i with
   | ILe p q => Rle (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
   | IGe p q => Rge (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
