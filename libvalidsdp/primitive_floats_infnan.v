@@ -1,4 +1,4 @@
-Require Import ZArith Bool Reals Rstruct Psatz.
+Require Import ZArith Bool Reals mathcomp.analysis.Rstruct Psatz.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 
 Require Import float_spec binary64 float_infnan_spec binary64_infnan.

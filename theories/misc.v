@@ -4,10 +4,11 @@ Require Import Reals QArith.
 From Bignums Require Import BigQ.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-From mathcomp Require Import ssralg ssrnum ssrint rat.
+From mathcomp Require Import order ssralg ssrnum ssrint rat.
 
 From CoqEAL.refinements Require Import binrat.
-Require Import libValidSDP.Rstruct.
+Require Import mathcomp.analysis.Rstruct.
+Require libValidSDP.misc.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -170,14 +171,14 @@ Qed.
 
 Lemma int2Z_le m n : int2Z m <=? int2Z n = (m <= n)%Ri.
 Proof.
-rewrite -(ler_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
+rewrite -(ler_int [numDomainType of R]) -!Z2R_int2Z; apply/idP/idP.
 { by move/Z.leb_le/IZR_le/RleP. }
 by move/RleP/le_IZR/Z.leb_le.
 Qed.
 
 Lemma int2Z_lt m n : int2Z m <? int2Z n = (m < n)%Ri.
 Proof.
-rewrite -(ltr_int real_numDomainType) -!Z2R_int2Z; apply/idP/idP.
+rewrite -(ltr_int [numDomainType of R]) -!Z2R_int2Z; apply/idP/idP.
 { by move/Z.ltb_lt/IZR_lt/RltP. }
 by move/RltP/lt_IZR/Z.ltb_lt.
 Qed.
@@ -188,25 +189,23 @@ case: c => [//|n d].
 by rewrite /bigQ2R; apply: Q2R_Qeq; apply: BigQ.spec_red.
 Qed.
 
-Notation rat2R := (@ratr real_unitRingType) (only parsing).
+Notation rat2R := (@ratr [unitRingType of R]) (only parsing).
 
 Lemma bigQ2R_rat (c : bigQ) : bigQ2R c = rat2R (bigQ2rat c).
 Proof.
 rewrite -[LHS]bigQ2R_redE /bigQ2R BigQ.strong_spec_red.
 rewrite /bigQ2rat /ratr; set r := Rat _.
-rewrite /GRing.inv /= /invr ifF /GRing.mul /= /Rdiv.
-{ rewrite /numq /denq /=; congr Rmult.
+rewrite /GRing.inv /= /Rinvx ifT /GRing.mul /= /Rdiv.
+{ rewrite /numq /denq /= /Q2R; congr Rmult.
   { rewrite /IZR /Z2int; case: Qnum =>[//|p|p].
-      by rewrite -INR_IPR binnat.to_natE INR_natmul.
-    rewrite -INR_IPR binnat.to_natE INR_natmul /=.
+      by rewrite -INR_IPR binnat.to_natE misc.INR_natmul.
+    rewrite -INR_IPR binnat.to_natE misc.INR_natmul /=.
     now rewrite -> mulrNz. }
-  by rewrite /IZR /= -INR_IPR binnat.to_natE INR_natmul. }
-rewrite -(denq_eq0 (r)).
-have->: 0%Re = O%:~R by [].
-exact/inj_eq/intr_inj.
+  by rewrite /IZR /= -INR_IPR binnat.to_natE misc.INR_natmul. }
+by rewrite intr_eq0 denq_neq0.
 Qed.
 
-Import Num.Theory.
+Import Order.Theory.
 
 Lemma ratr_inj (R : numFieldType) : injective (@ratr R).
-Proof. by move=> x y H; apply ler_asym; rewrite -!(ler_rat R) H lerr. Qed.
+Proof. by move=> x y H; apply: le_anti; rewrite -!(ler_rat R) H lexx. Qed.

@@ -11,7 +11,8 @@ Dependencies
 
 - [Coq](https://coq.inria.fr) version 8.11.x
 - [Bignums](https://github.com/coq/bignums) (Coq version specific)
-- [mathcomp](https://math-comp.github.io/math-comp/) (tested with version 1.9.0, 1.10.0)
+- [mathcomp](https://math-comp.github.io/math-comp/) (version 1.11.0 or later)
+- [mathcomp analysis](https://github.com/math-comp/analysis/) (version 0.3.4 or later)
 - [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.3.1)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.1.0)
 - [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 4.0.0)
@@ -89,7 +90,6 @@ Overview of the libValidSDP files
 
 ### Prerequisites
 
-* [Rstruct.v](./Rstruct.v): Instance of [mathcomp's `realFieldType`](https://math-comp.github.io/htmldoc/mathcomp.algebra.ssrnum.html) for [`Reals`](https://coq.github.io/doc/master/stdlib/Coq.Reals.Reals.html)
 * [misc.v](./misc.v): Miscellaneous lemmas
 * [bounded.v](./bounded.v): Real numbers with bounded absolute value
 * [real_matrix.v](./real_matrix.v): Basic results about matrices over the reals

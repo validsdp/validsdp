@@ -16,7 +16,7 @@ From Coquelicot Require Import Rcomplements.
 From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat.
 From mathcomp Require Import fintype finfun ssralg bigop eqtype seq path.
 
-Require Import Rstruct.
+Require Import mathcomp.analysis.Rstruct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -198,7 +198,7 @@ apply (Rle_trans _ (Rabs (delta + (delta1 + delta2)))).
 { right; f_equal.
   rewrite /s /delta /delta1 /delta2 /s1hat /s2hat /s1 /s2.
   apply (Rplus_eq_reg_r (fplus (fsum l x) (fsum r x))); ring_simplify.
-  by rewrite -big_cat; apply: eq_big_perm; rewrite perm_merge. }
+  by rewrite -big_cat; apply: perm_big; rewrite perm_merge. }
 apply (Rle_trans _ _ _ (Rabs_triang _ _)).
 apply (Rle_trans _ _ _ (Rplus_le_compat_l _ _ _ (Rabs_triang _ _))).
 set s1t := \sum_(i <- sl) Rabs (x (inord i)).
@@ -226,7 +226,7 @@ have n1n2_pos : (0 < size sl + size sr)%N by rewrite addn_gt0 n1_pos.
 suff B1: Rabs delta <= eps / (1 + eps) * (INR n1 * s2t + INR n2 * s1t).
 { apply (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ B1)).
   have->: \sum_(i <- merge leq sl sr) Rabs (x (inord i)) = s1t + s2t.
-    by rewrite -big_cat; apply: eq_big_perm; rewrite perm_merge.
+    by rewrite -big_cat; apply: perm_big; rewrite perm_merge.
   fold_eps1; rewrite -!subn1 !minus_INR ?plus_INR; first 1 [idtac] || exact/ltP.
   apply: Req_le; ring. }
 

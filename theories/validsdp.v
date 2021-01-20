@@ -13,10 +13,10 @@ From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_comple
 Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
 From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
+From mathcomp Require Import choice finfun fintype tuple matrix order ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
 From SsrMultinomials Require Import mpoly.
-Require Import libValidSDP.Rstruct.
+Require Import mathcomp.analysis.Rstruct.
 Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog libValidSDP.coqinterval_infnan.
@@ -25,6 +25,7 @@ Require Import libValidSDP.zulp.
 Require Import libValidSDP.misc ValidSDP.misc.
 Require Export soswitness.
 
+Import Order.Theory.
 Import GRing.Theory.
 Import Num.Theory.
 
@@ -1137,7 +1138,7 @@ set Q' := matrix.map_mx _ _.
 set p' := _ (_ *m _) _ _.
 set pmp' := poly_sub_op _ _.
 set r := max_coeff _.
-pose zpr := matrix.map_mx [eta mpolyX real_ringType] z.
+pose zpr := matrix.map_mx [eta mpolyX [ringType of R]] z.
 pose Q'r := matrix.map_mx (map_mpoly T2R) Q'.
 pose mpolyC_R := fun c : R => mpolyC n c.
 pose map_mpolyC_R := fun m : 'M_s.+1 => matrix.map_mx mpolyC_R m.
@@ -1188,16 +1189,16 @@ have : exists E : 'M_s.+1,
   pose nbm := size [seq ij <- index_enum I_sp1_2 | zij ij.2 ij.1 == m].
   under eq_bigr => ? /eqP Hi do
     rewrite mxE /nbij Hi -/nbm mcoeffB GRing.raddfB /=.
-  rewrite misc.big_sum_pred_const -/nbm /Rdiv !unfoldR.
+  rewrite misc.big_sum_pred_const -/nbm /Rdiv !RmultE.
   rewrite mulrDl mulrDr -addrA.
   rewrite -{1}(GRing.addr0 (T2R _)); f_equal.
   { rewrite GRing.mulrC -GRing.mulrA; case_eq (m \in msupp p).
     { move=> Hm; move: (check_base_correct Hbase Hm).
       move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
       apply Rgt_not_eq, Rlt_gt.
-      rewrite -unfoldR; change 0%Re with (INR 0); apply lt_INR.
+      change 0%Re with (INR 0); apply lt_INR.
       rewrite /nbm filter_index_enum; rewrite <-cardE.
-      by apply/ltP/card_gt0P; exists (j, i); rewrite /in_mem /=. }
+      by apply/ssrnat.ltP/card_gt0P; exists (j, i); rewrite /in_mem /=. }
     by rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 GRing.mul0r. }
   rewrite /p' mxE.
   under eq_bigr do rewrite mxE big_distrl /=.
@@ -1215,7 +1216,8 @@ have : exists E : 'M_s.+1,
   { by rewrite Rmult_1_r GRing.addNr. }
   case size; [exact R1_neq_R0|].
   move=> n'; apply Rgt_not_eq, Rlt_gt.
-  by apply/RltP; rewrite unfoldR ltr0Sn. }
+  apply/RltP; rewrite INR_natmul RplusE (_ : IZR 1 = 1%:R) //.
+  by rewrite -natrD addn1 ltr0Sn. }
 move=> [E [HE ->]] x.
 set M := _ *m _.
 replace (meval _ _)
@@ -1378,9 +1380,9 @@ case E: nr.
   rewrite /x -!Z2R_int2Z real_FtoX_toR // toR_Float /= Rmult_1_r.
   apply (Rmult_le_reg_r (IZR (int2Z d))).
   { by rewrite -[0%Re]/(IZR 0); apply IZR_lt. }
-  rewrite -mult_IZR Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc.
-  rewrite Rstruct.mulVr ?Rmult_1_r; [by right|].
-  rewrite -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
+  rewrite -mult_IZR Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc !RmultE.
+  rewrite mulVr ?mulr1; [by right|].
+  rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
   by move: Hd; rewrite H. }
 rewrite /= ifF /=; last first.
 { move: E; rewrite /nr; set nrnr := (_ # _)%bigQ; move: (BigQ_red_den_neq0 nrnr).
@@ -1402,11 +1404,11 @@ rewrite /x -!Z2R_int2Z; do 2 rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
 apply (Rmult_le_reg_r (IZR (int2Z d))).
 { by rewrite -[0%Re]/(IZR 0); apply IZR_lt. }
 set lhs := _ * _; rewrite Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc -mult_IZR.
-rewrite Hnd {}/lhs /GRing.mul /= Rmult_assoc.
-rewrite Rstruct.mulVr ?Rmult_1_r; [right|]; last first.
-{ rewrite -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
+rewrite Hnd {}/lhs /GRing.mul /= Rmult_assoc !RmultE.
+rewrite mulVr ?mulr1; [right|]; last first.
+{ rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
   by move: Hd; rewrite H. }
-rewrite mult_IZR Rmult_assoc Rinv_r ?Rmult_1_r //.
+rewrite -RmultE mult_IZR Rmult_assoc Rinv_r ?Rmult_1_r //.
 move: (erefl nr); rewrite /nr; set nrnr := (_ # _)%bigQ=>_.
 move: (BigQ_red_den_neq0_aux nrnr); rewrite /nrnr -/nr E=>H.
 by apply IZR_neq.
@@ -1594,12 +1596,12 @@ given that we cannot use [Num.max] here (see the note before [max_l] above) *)
 Global Instance leq_rat : leq_of rat := Num.Def.ler.
 
 Lemma rat2R_le (x y : rat) : (x <= y)%Ri -> rat2R x <= rat2R y.
-Proof. by move=> Hxy; apply/RleP; rewrite unfoldR; rewrite ler_rat. Qed.
+Proof. by move=> Hxy; apply/RleP; rewrite ler_rat. Qed.
 
 Lemma max_l (x0 y0 : rat) : rat2R x0 <= rat2R (max x0 y0).
 Proof.
 rewrite /max; case: ifP; rewrite /leq_op /leq_rat => H; apply: rat2R_le =>//=.
-by rewrite lerNgt ltr_def negb_and H orbT.
+by rewrite leNgt lt_def negb_and H orbT.
 Qed.
 
 Lemma max_r (x0 y0 : rat) : rat2R y0 <= rat2R (max x0 y0).
@@ -2019,7 +2021,7 @@ Inductive p_abstr_goal :=
   | Ghyp (_ : p_abstr_hyp) (_ : p_abstr_goal)
   .
 
-Fixpoint interp_p_abstr_ineq (vm : seq R) (i : p_abstr_ineq) {struct i} : Prop :=
+Definition interp_p_abstr_ineq (vm : seq R) (i : p_abstr_ineq) : Prop :=
   match i with
   | ILe p q => Rle (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)
   | IGe p q => Rge (interp_p_abstr_poly vm p) (interp_p_abstr_poly vm q)

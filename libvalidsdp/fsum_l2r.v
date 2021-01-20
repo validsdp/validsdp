@@ -11,7 +11,7 @@ Require Import Psatz.
 From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat.
 From mathcomp Require Import fintype finfun ssralg bigop eqtype seq path.
 
-Require Import Rstruct fsum.
+Require Import mathcomp.analysis.Rstruct fsum.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

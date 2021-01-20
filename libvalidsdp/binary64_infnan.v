@@ -4,7 +4,7 @@
     record [Float_infnan_spec] corresponding to IEEE754 binary64 format with
     a rounding to nearest with overflows and NaN. *)
 
-Require Import Reals Rstruct Psatz.
+Require Import Reals mathcomp.analysis.Rstruct Psatz.
 Require Import Floats.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 

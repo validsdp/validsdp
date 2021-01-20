@@ -8,7 +8,7 @@ From CoqEAL Require Import param refinements seqmx seqmx_complements.
 From Interval Require Import Real.Xreal.
 From Interval Require Import Float.Basic.
 From Interval Require Import Float.Specific_ops.
-Require Import libValidSDP.Rstruct libValidSDP.misc.
+Require Import mathcomp.analysis.Rstruct libValidSDP.misc.
 Require Import libValidSDP.coqinterval_infnan libValidSDP.zulp.
 Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Require Import libValidSDP.cholesky libValidSDP.cholesky_infnan.
