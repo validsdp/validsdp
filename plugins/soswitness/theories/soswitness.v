@@ -43,3 +43,20 @@ Ltac2 @ external soswitness : constr -> constr -> constr list -> constr * constr
 
    [lb] is of type BigQ.t *)
 Ltac2 @ external soswitness_intro : constr -> constr -> constr list -> constr * constr * constr := "soswitness" "soswitness_intro".
+
+Ltac2 soswitness_print_exn e :=
+  let m :=
+      match e with
+      | Parse_error_arg1 e =>
+        Message.concat
+          (Message.of_string "+++ Parse_error_arg1, expected *value* of type: ")
+          (Message.of_constr e)
+      | Parse_error_arg2 e =>
+        Message.concat
+          (Message.of_string "+++ Parse_error_arg2, expected *value* of type: ")
+          (Message.of_constr e)
+      | No_witness => Message.of_string "+++ No_witness"
+      | Constant_input => Message.of_string "+++ Constant_input"
+      | _ => Message.of_string "+++ unknown exception"
+      end in
+  Message.print m.

@@ -2,24 +2,6 @@ Require Import NArith ValidSDP.soswitness.
 
 Open Scope N_scope.
 
-Ltac2 print_exn e :=
-  let m :=
-      match e with
-      | Parse_error_arg1 e =>
-        Message.concat
-          (Message.of_string "+++ Parse_error_arg1, expected *value* of type: ")
-          (Message.of_constr e)
-      | Parse_error_arg2 e =>
-        Message.concat
-          (Message.of_string "+++ Parse_error_arg2, expected *value* of type: ")
-          (Message.of_constr e)
-      | No_witness => Message.of_string "+++ No_witness"
-      | Constant_input => Message.of_string "+++ Constant_input"
-      | _ => Message.of_string "+++ unknown exception"
-      end in
-  let _ := Message.print m in
-  constr:(tt), constr:(tt).
-
 Goal True.
 Proof.
 Fail ltac2:(soswitness constr:([::] : seq (seq N * BigQ.t_)) constr:([::] * seq (seq (seq N * BigQ.t_))) []).
@@ -34,13 +16,13 @@ Fail ltac2:(soswitness constr:([:: ([:: 0; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bi
 
 ltac2:(Control.plus
          (fun () => soswitness constr:([:: ([:: 2; 0], O); ([:: 0; 2], O)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [])
-         print_exn).
+         (fun e => soswitness_print_exn e; ('tt, 'tt))).
 ltac2:(Control.plus
          (fun () => soswitness constr:([:: ([:: 2; 0], (-3)%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [])
-         print_exn).
+         (fun e => soswitness_print_exn e; ('tt, 'tt))).
 ltac2:(Control.plus
          (fun () => soswitness constr:([:: ([:: 0; 0], (-3)%bigQ); ([:: 0; 0], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [])
-         print_exn).
+         (fun e => soswitness_print_exn e; ('tt, 'tt))).
 
 ltac2:(let (r, rl) := soswitness constr:([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) constr:([::] : seq (seq (seq N * BigQ.t_))) [] in
        Message.print

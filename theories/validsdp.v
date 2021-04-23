@@ -2442,46 +2442,57 @@ Ltac2 pop_state_ltac2 () :=
   let val := Std.eval_unfold [Std.VarRef top, Std.AllOccurrences] (hyp top) in
   clear $top; val.
 
-Ltac2 soswitness_wrapper ppi params :=
+Ltac2 soswitness_wrapper p pi params :=
   Control.plus
-    (fun () => soswitness ppi params)
-    (fun e => Control.throw e (*constr:(cannot_conclude)*)).
+    (fun () => soswitness p pi params)
+    (*(fun e => Control.throw e (*constr:(cannot_conclude)*)).*)
+    (fun e => soswitness_print_exn e; Control.throw(*zero*) e).
 
-(* Ltac2 soswitness_intro_wrapper ppi params := *)
-(*   Control.plus (fun () => *)
-(*   set_state_ltac2 ppi; *)
-(*   set_state_ltac2 params; *)
-(*   ltac1:(pop_state_ltac1 ltac:(fun params => *)
-(*            pop_state_ltac1 ltac:(fun ppi => let lb_zQ_szQi := fresh "lb_zQ_szQi" in *)
-(*              soswitness_intro of ppi as lb_zQ_szQi with params; *)
-(*              revert lb_zQ_szQi))); *)
-(*   pop_state_ltac2 ()) (fun e => Control.throw e (*constr:(cannot_conclude)*)). *)
+Ltac2 soswitness_intro_wrapper p pi params :=
+  Control.plus (fun () =>
+    let lb_zQ_szQi := soswitness_intro p pi params in
+    lb_zQ_szQi)
+  (* (fun e => Control.throw e (*constr:(cannot_conclude)*)). *)
+  (fun e => soswitness_print_exn e; Control.throw(*zero*) e).
+
+Ltac2 rec list2_of_list l :=
+  match! l with
+  | nil => []
+  | ?x :: ?l => x :: list2_of_list l
+  end.
+(* Print Ltac2 list2_of_list. *)
 
 (****************)
 (** BEGIN TESTS *)
 (*
 Set Default Proof Mode "Ltac2".
 
-Ltac2 soswitness_wrapper_test l params :=
-  let a := soswitness_wrapper l params in
-  let b := fresh_hyp () in
-  pose ($b := $a).
-Ltac2 soswitness_intro_wrapper_test l params :=
-  let a := soswitness_intro_wrapper l params in
-  let b := fresh_hyp () in
-  pose ($b := $a).
+Ltac2 soswitness_wrapper_test p pi params :=
+  let (a1, a2) := soswitness_wrapper p pi (list2_of_list params) in
+  let b1 := fresh_hyp None in
+  pose ($b1 := $a1);
+  let b2 := fresh_hyp None in
+  pose ($b2 := $a2).
+Ltac2 soswitness_intro_wrapper_test p pi params :=
+  let (a1, a2, a3) := soswitness_intro_wrapper p pi (list2_of_list params) in
+  let b1 := fresh_hyp None in
+  pose ($b1 := $a1);
+  let b2 := fresh_hyp None in
+  pose ($b2 := $a2);
+  let b3 := fresh_hyp None in
+  pose ($b3 := $a3).
 
 Open Scope N_scope.
 Goal True.
-soswitness_wrapper_test '([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) '(s_sdpa :: nil).
-soswitness_wrapper_test '([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)], ([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]])) 'nil.
-soswitness_wrapper_test '([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)], ([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]])) 'nil.
+soswitness_wrapper_test '([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) '([::] : seq (seq (seq N * BigQ.t_))) 'nil (*'(s_sdpa :: nil)*).
+soswitness_wrapper_test '([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)]) '([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]]) 'nil.
+soswitness_wrapper_test '([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)]) '([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]]) 'nil.
 
-soswitness_wrapper_test '([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) '(s_sdpa :: s_verbose 1 :: nil).
-soswitness_wrapper_test '([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)], ([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]])) '(s_sdpa :: nil).
-soswitness_wrapper_test '([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)], ([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]])) '(s_sdpa :: nil).
-soswitness_intro_wrapper_test '([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)], ([::] : seq (seq (seq N * BigQ.t_)))) 'nil.
-soswitness_intro_wrapper_test '([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)], ([:: [:: ([:: 1], 1%bigQ); ([:: 0], (-2)%bigQ)]])) 'nil.
+soswitness_wrapper_test '([:: ([:: 2; 0], 3%bigQ); ([:: 0; 2], (10 # 12)%bigQ)]) '([::] : seq (seq (seq N * BigQ.t_))) '((*s_sdpa :: *) s_verbose 1 :: nil).
+soswitness_wrapper_test '([:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 4%bigQ)]) '([:: [:: ([:: 2; 0], (-1)%bigQ); ([:: 0; 2], (-1)%bigQ); ([:: 0; 0], 2%bigQ)]]) '((*s_sdpa ::*) nil).
+soswitness_wrapper_test '([:: ([:: 1; 0], 1%bigQ); ([:: 0; 1], 1%bigQ); ([:: 0; 0], 1%bigQ)]) '([:: [:: ([:: 1; 0], 1%bigQ)]; [:: ([:: 0; 1], 1%bigQ)]]) '((*s_sdpa ::*) nil).
+soswitness_intro_wrapper_test '([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)]) '([::] : seq (seq (seq N * BigQ.t_))) 'nil.
+soswitness_intro_wrapper_test '([:: ([:: 2], 1%bigQ); ([:: 1], (-1)%bigQ)]) '([:: [:: ([:: 1], 1%bigQ); ([:: 0], (-2)%bigQ)]]) 'nil.
 Abort.
 *)
 (** END TESTS ***)
@@ -2490,7 +2501,7 @@ Abort.
 Ltac2 do_validsdp params :=
   lazy_match! Control.goal () with
   | ?g =>
-    match! get_goal g constr:(@Datatypes.nil R) with
+    lazy_match! get_goal g constr:(@Datatypes.nil R) with
     | (?g, ?vm) =>
         abstract None (fun () =>
           let n := Std.eval_vm None constr:(size $vm) in
@@ -2515,43 +2526,69 @@ Ltac2 do_validsdp params :=
     end
   end.
 
-(* Ltac2 do_validsdp_intro_lb expr hyps params hl := *)
-(*   let conc := constr:(R0 <= $expr) in *)
-(*   let g0 := mk_goal_using hyps conc in *)
-(*   match! get_goal g0 constr:(@Datatypes.nil R) with *)
-(*   | (?g, ?vm) => *)
-(*     let n := Std.eval_vm None constr:(size $vm) in *)
-(*     let lgb := Std.eval_vm None constr:(abstr_goal_of_p_abstr_goal $g) in *)
-(*     match! lgb with *)
-(*     | (?l, ?p, _) => (* EMD: do we really need this 3rd argument? *) *)
-(*       let pi := constr:(map (@M.elements bigQ \o *)
-(*                              interp_poly_eff $n \o *)
-(*                              abstr_poly_of_p_abstr_poly) $l) in *)
-(*       let p := constr:((@M.elements bigQ \o *)
-(*                         interp_poly_eff $n \o *)
-(*                         abstr_poly_of_p_abstr_poly) $p) in *)
-(*       let ppi := Std.eval_vm None constr:(($p, $pi)) in *)
-(*       deb_sc "(g, vm):" constr:(($g, $vm)); *)
-(*       match! soswitness_intro_wrapper ppi params with *)
-(*       | cannot_conclude => failwith_c "soswitness_intro failed on" constr:(($g, $vm)) *)
-(*       | ?lb_zQ_szQi => deb_sc "lb_zQ_szQi:" lb_zQ_szQi; *)
-(*         let lb := Std.eval_vm None constr:($lb_zQ_szQi.1) in *)
-(*         (* deb_sc "lb:" lb; *) *)
-(*         let lb' := get_real_cst constr:(bigQ2R $lb) in *)
-(*         (* deb_sc "lb':" lb'; *) *)
-(*         (* /\ hyps -> lb <= expr *) *)
-(*         let glb := ch_goal_lhs g constr:(PConst $lb') in *)
-(*         deb_sc "glb:" glb; *)
-(*         (* TODO/FIXME: Add abstract & Check size of proof term *) *)
-(*         let typ := constr:(bigQ2R $lb <= $expr) in *)
-(*         deb_sc "typ" typ; *)
-(*         Std.assert (Std.AssertType (Some (Std.IntroNaming (Std.IntroIdentifier hl))) typ *)
-(*           (Some (fun () => *)
-(*             apply (@soscheck_hyps_eff_wrapup_correct $vm $glb $lb_zQ_szQi.2.2 $lb_zQ_szQi.2.1) > *)
-(*             [ltac1:(vm_cast_no_check (erefl true))|..]))) *)
-(*       end *)
-(*     end *)
-(*   end. *)
+(* match => valeurs Ltac2 (liste Ltac2)
+   match! => termes Gallina / backtracking
+   lazy_match! => termes Gallina / en cas d'exception, propagé *)
+
+(* TODO1
+Ltac2 foo :=
+  () ().
+ *)
+
+(* TODO2
+numéro de version à la Flocq
+- citer Flocq, (*ton hack ltac1 dans CoqEAL, *)le hack de 0 mod 0
+- pour multi-compatibilité de version
+ *)
+
+(* TODO3
+- extend Ltac2 support in Coq (API low-level, functions) 
+*)
+Ltac2 do_validsdp_intro_lb expr hyps params hl :=
+  let conc := constr:(R0 <= $expr) in
+  let g0 := mk_goal_using hyps conc in
+  lazy_match! get_goal g0 constr:(@Datatypes.nil R) with
+  | (?g, ?vm) =>
+    let n := Std.eval_vm None constr:(size $vm) in
+    let lgb := Std.eval_vm None constr:(abstr_goal_of_p_abstr_goal $g) in
+    lazy_match! lgb with
+    | (?l, ?p, _) => (* TODO/EMD: do we really need this 3rd argument? *)
+      let pi := constr:(map (@M.elements bigQ \o
+                             interp_poly_eff $n \o
+                             abstr_poly_of_p_abstr_poly) $l) in
+      let p := constr:((@M.elements bigQ \o
+                        interp_poly_eff $n \o
+                        abstr_poly_of_p_abstr_poly) $p) in
+      let p := Std.eval_vm None constr:($p) in
+      let pi := Std.eval_vm None constr:($pi) in
+      deb_sc "(* g := " constr:($g);
+      deb_s "*)";
+      deb_s "let hdebug := fresh_hyp (Some (ident:(Hdebug)))";
+      deb_sc "in let vm := '" constr:($vm);
+      let (lb, zQ, szQi) := soswitness_intro_wrapper p pi params in
+      (* | cannot_conclude => failwith_c "soswitness_intro failed on" constr:(($g, $vm)) *)
+      (* | (lb, zQ, szQi) => *)
+        (* let lb := Std.eval_vm None constr:($lb_zQ_szQi.1) in *)
+        (* deb_sc "lb:" lb; *)
+        let lb' := get_real_cst constr:(bigQ2R $lb) in
+        (* deb_sc "lb':" lb'; *)
+        (* /\ hyps -> lb <= expr *)
+        let glb := ch_goal_lhs g constr:(PConst $lb') in
+        deb_sc "in let glb := '" glb;
+        deb_sc "in let szQi := '" szQi;
+        deb_sc "in let zQ := '" zQ;
+        (* TODO/FIXME: Add abstract & Check size of proof term *)
+        let typ := constr:(bigQ2R $lb <= $expr) in
+        let lem := '(@soscheck_hyps_eff_wrapup_correct $vm $glb $szQi $zQ) in
+        deb_sc "in let typ := '" typ;
+        deb_s "in let lem := '(@soscheck_hyps_eff_wrapup_correct $vm $glb $szQi $zQ)";
+        deb_s "in Std.assert (Std.AssertType (Some (Std.IntroNaming (Std.IntroIdentifier hdebug))) typ (Some (fun () => apply $lem; admit))).";
+        Std.assert (Std.AssertType (Some (Std.IntroNaming (Std.IntroIdentifier hl))) typ
+          (Some (fun () =>
+            apply $lem >
+            [ltac1:(vm_cast_no_check (erefl true)) | assumption ..])))
+    end
+  end.
 
 Lemma Ropp_le_r (r1 r2 : R) : r1 <= - r2 -> r2 <= - r1.
 Proof. by move=> Hle; apply Ropp_le_cancel; rewrite Ropp_involutive. Qed.
@@ -2571,24 +2608,24 @@ rewrite Q2R_opp in Hle.
 by auto with real.
 Qed.
 
-(* Ltac2 do_validsdp_intro_ub expr hyps params hu := *)
-(*   let hl := fresh_hyp (Some (ident:(H))) in *)
-(*   do_validsdp_intro_lb constr:(Ropp $expr) hyps params hl; *)
-(*   let hl0 := hyp hl in *)
-(*   match! Constr.type hl0 with *)
-(*   | (Ropp _ <= _) => assert ($hu := @Ropp_le_cancel _ _ $hl0) *)
-(*   | (bigQ2R ((BigZ.Neg _) # _)%bigQ <= _) => assert ($hu := @bigQopp_le_r _ _ _ $hl0) *)
-(*   | _ => assert ($hu := @Ropp_le_r _ _ $hl0) *)
-(*   end; clear $hl. *)
+Ltac2 do_validsdp_intro_ub expr hyps params hu :=
+  let hl := fresh_hyp (Some (ident:(H))) in
+  do_validsdp_intro_lb constr:(Ropp $expr) hyps params hl;
+  let hl0 := hyp hl in
+  match! Constr.type hl0 with
+  | (Ropp _ <= _) => assert ($hu := @Ropp_le_cancel _ _ $hl0)
+  | (bigQ2R ((BigZ.Neg _) # _)%bigQ <= _) => assert ($hu := @bigQopp_le_r _ _ _ $hl0)
+  | _ => assert ($hu := @Ropp_le_r _ _ $hl0)
+  end; clear $hl.
 
-(* Ltac2 do_validsdp_intro expr hyps params h := *)
-(*   let hl := fresh_hyp (Some (ident:(Hl))) in *)
-(*   let hu := fresh_hyp (Some (ident:(Hu))) in *)
-(*   do_validsdp_intro_lb expr hyps params hl; *)
-(*   do_validsdp_intro_ub expr hyps params hu; *)
-(*   let hl0 := hyp hl in *)
-(*   let hu0 := hyp hu in *)
-(*   assert ($h := conj $hl0 $hu0); clear $hl $hu. *)
+Ltac2 do_validsdp_intro expr hyps params h :=
+  let hl := fresh_hyp (Some (ident:(Hl))) in
+  let hu := fresh_hyp (Some (ident:(Hu))) in
+  do_validsdp_intro_lb expr hyps params hl;
+  do_validsdp_intro_ub expr hyps params hu;
+  let hl0 := hyp hl in
+  let hu0 := hyp hu in
+  assert ($h := conj $hl0 $hu0); clear $hl $hu.
 
 (* [tuple_to_list] was taken from CoqInterval *)
 Ltac2 rec tuple_to_list params l :=
@@ -2656,17 +2693,11 @@ Abort.
 (** END TESTS ***)
 (****************)
 
-Ltac2 rec ltac2_of_list c :=
-  match! c with
-  | nil => []
-  | ?x :: ?l => x :: ltac2_of_list l
-  end.
-
 Ltac2 get_vars_ltac2 expr :=
-  ltac2_of_list (get_vars expr).
+  list2_of_list (get_vars expr).
 
 Ltac2 get_vars_hyp_ltac2 typ :=
-  ltac2_of_list (get_vars_hyp typ).
+  list2_of_list (get_vars_hyp typ).
 
 Ltac2 rec exists_ltac2 p l :=
   match l with
@@ -2754,11 +2785,10 @@ Ltac2 get_related_hyps expr :=
 
 (** Backward reasoning *)
 
-(*
+
 Fail Ltac2 Notation "validsdp" :=
   do_validsdp constr:(@Datatypes.nil validsdp_tac_parameters).
 (* Error: Cannot globalize generic arguments of type constr *)
- *)
 
 Ltac2 params0 () := [].
 
@@ -2772,74 +2802,82 @@ Ltac2 Notation "validsdp" "with" params(constr) :=
 
 (** Forward reasoning *)
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "as" "?" := *)
-(*   do_validsdp_intro expr [] (params0 ()) (hyp0 ()). *)
+Ltac2 Notation "validsdp_intro" expr(constr) "as" h(ident) :=
+  do_validsdp_intro expr [] (params0 ()) h.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "as" h(ident) := *)
-(*   do_validsdp_intro expr [] (params0 ()) h. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "as" "?" :=
+  do_validsdp_intro expr [] (params0 ()) (hyp0 ()).
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "as" h(ident) := *)
-(*   do_validsdp_intro expr hyps (params0 ()) h. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "as" h(ident) :=
+  do_validsdp_intro expr hyps (params0 ()) h.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "as" h(ident) := *)
-(*   let hyps := get_related_hyps expr in *)
-(*   do_validsdp_intro expr hyps (params0 ()) h. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "as" h(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro expr hyps (params0 ()) h.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "with" params(constr) "as" h(ident) := *)
-(*   do_validsdp_intro expr [] params h. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "with" params(constr) "as" h(ident) :=
+  do_validsdp_intro expr [] params h.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "with" params(constr) "as" h(ident) := *)
-(*   do_validsdp_intro expr hyps params h. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "with" params(constr) "as" h(ident) :=
+  do_validsdp_intro expr hyps params h.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "with" params(constr) "as" h(ident) := *)
-(*   let hyps := get_related_hyps expr in *)
-(*   do_validsdp_intro expr hyps params h. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "with" params(constr) "as" h(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro expr hyps params h.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "lower" "as" hl(ident) := *)
-(*   do_validsdp_intro_lb expr [] (params0 ()) hl. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "as" hl(ident) :=
+  do_validsdp_intro_lb expr [] (params0 ()) hl.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "as" hl(ident) := *)
-(*   do_validsdp_intro_lb expr hyps (params0 ()) hl. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "as" hl(ident) :=
+  do_validsdp_intro_lb expr hyps (params0 ()) hl.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" "*" "as" hl(ident) := *)
-(*   let hyps := get_related_hyps expr in *)
-(*   do_validsdp_intro_lb expr hyps (params0 ()) hl. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" "*" "as" hl(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_lb expr hyps (params0 ()) hl.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "lower" "with" params(constr) "as" hl(ident) := *)
-(*   do_validsdp_intro_lb expr [] params hl. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "with" params(constr) "as" hl(ident) :=
+  do_validsdp_intro_lb expr [] params hl.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "with" params(constr) "as" hl(ident) := *)
-(*   do_validsdp_intro_lb expr hyps params hl. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "with" params(constr) "as" hl(ident) :=
+  do_validsdp_intro_lb expr hyps params hl.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" "*" "with" params(constr) "as" hl(ident) := *)
-(*   let hyps := get_related_hyps expr in *)
-(*   do_validsdp_intro_lb expr hyps params hl. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" "*" "with" params(constr) "as" hl(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_lb expr hyps params hl.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "upper" "as" hu(ident) := *)
-(*   do_validsdp_intro_ub expr [] (params0 ()) hu. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "as" hu(ident) :=
+  do_validsdp_intro_ub expr [] (params0 ()) hu.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "as" hu(ident) := *)
-(*   do_validsdp_intro_ub expr hyps (params0 ()) hu. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "as" "?" :=
+  do_validsdp_intro_ub expr [] (params0 ()) (hyp0 ()).
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "as" hu(ident) := *)
-(*   let hyps := get_related_hyps expr in *)
-(*   do_validsdp_intro_ub expr hyps (params0 ()) hu. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "as" hu(ident) :=
+  do_validsdp_intro_ub expr hyps (params0 ()) hu.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "upper" "with" params(constr) "as" hu(ident) := *)
-(*   do_validsdp_intro_ub expr [] params hu. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "as" hu(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_ub expr hyps (params0 ()) hu.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "with" params(constr) "as" hu(ident) := *)
-(*   do_validsdp_intro_ub expr hyps params hu. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "with" params(constr) "as" hu(ident) :=
+  do_validsdp_intro_ub expr [] params hu.
 
-(* Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "with" params(constr) "as" hu(ident) := *)
-(*   let hyps := get_related_hyps expr in *)
-(*   do_validsdp_intro_ub expr hyps params hu. *)
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "with" params(constr) "as" hu(ident) :=
+  do_validsdp_intro_ub expr hyps params hu.
+
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "with" params(constr) "as" hu(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_ub expr hyps params hu.
 
 (** Some quick tests. *)
 
-(* Ltac2 Set deb := fun str => Message.print str. *)
+Ltac2 Set deb := fun str => Message.print str.
 
 Set Default Proof Mode "Ltac2".
+
+Ltac2 show () :=
+  match! Control.goal () with
+  | ?g => Message.print (Message.of_constr g)
+  end.
 
 (*
 Lemma test_using_star (x : R) (H : - 10 <= x) (H0 : x <= 10) : True.
@@ -2847,14 +2885,14 @@ intros.
 validsdp_intro (1 + x ^ 2) upper using * as HH.
 now split.
 Qed.
- *)
+*)
 
-(* Lemma test0 (x : R) : True. *)
-(* intros. *)
-(* validsdp_intro (1 + x ^ 2) lower as H. *)
-(* now split. *)
-(* Qed. *)
-(* Print test0. *)
+Lemma test0 (x : R) : True.
+intros.
+validsdp_intro (1 + x ^ 2) lower as H.
+now split.
+Qed.
+Print test0.
 
 Let test1 x y : 0 < x -> 1 <= y -> x + y >= 0.
 Time validsdp.
@@ -2878,11 +2916,11 @@ End test.
 
 Lemma test5 x : 10 <= x -> x <= 12 -> True.
 intros H1 H2.
-(* Fail validsdp_intro (11 - x) using * as H. *)
-(* validsdp_intro (11 - x) using H1 H2 as H'. *)
-(* Fail validsdp_intro (2 + x ^ 2) lower using H1 H2 as HA. *)
+validsdp_intro (11 - x) using * as H.
+validsdp_intro (11 - x) using H1 H2 as H'.
+validsdp_intro (2 + x ^ 2) lower using H1 H2 as HA.
 now split.
-Show Proof.
+(* Show Proof. *)
 Qed.
 
 Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
