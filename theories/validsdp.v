@@ -2870,7 +2870,7 @@ Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "with" params(c
 
 (** Some quick tests. *)
 
-Ltac2 Set deb := fun str => Message.print str.
+(* Ltac2 Set deb := fun str => Message.print str. *)
 
 Set Default Proof Mode "Ltac2".
 

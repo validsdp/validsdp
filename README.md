@@ -192,6 +192,15 @@ Examples of usage of the tactic can be found at the end of the file
 [theories/validsdp.v](./theories/validsdp.v) as well as in the file
 [test-suite/testsuite.v](./test-suite/testsuite.v)
 
+Debug mode
+----------
+
+The `validsdp_intro` tactic has a debugging mode, enabled by writing:
+
+```coq
+Ltac2 Set deb := fun str => Message.print str.
+```
+
 License
 -------
 
