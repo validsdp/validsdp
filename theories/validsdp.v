@@ -2609,7 +2609,7 @@ by auto with real.
 Qed.
 
 Ltac2 do_validsdp_intro_ub expr hyps params hu :=
-  let hl := fresh_hyp (Some (ident:(H))) in
+  let hl := fresh_hyp (Some (ident:(_tmp_H))) in
   do_validsdp_intro_lb constr:(Ropp $expr) hyps params hl;
   let hl0 := hyp hl in
   match! Constr.type hl0 with
@@ -2618,14 +2618,20 @@ Ltac2 do_validsdp_intro_ub expr hyps params hu :=
   | _ => assert ($hu := @Ropp_le_r _ _ $hl0)
   end; clear $hl.
 
-Ltac2 do_validsdp_intro expr hyps params h :=
-  let hl := fresh_hyp (Some (ident:(Hl))) in
-  let hu := fresh_hyp (Some (ident:(Hu))) in
+Ltac2 do_validsdp_intro_conj expr hyps params h :=
+  let hl := fresh_hyp (Some (ident:(_tmp_Hl))) in
+  let hu := fresh_hyp (Some (ident:(_tmp_Hu))) in
   do_validsdp_intro_lb expr hyps params hl;
   do_validsdp_intro_ub expr hyps params hu;
   let hl0 := hyp hl in
   let hu0 := hyp hu in
   assert ($h := conj $hl0 $hu0); clear $hl $hu.
+
+Ltac2 do_validsdp_intro_both expr hyps params (h1, h2) :=
+  let hl := fresh_hyp (Some h1) in
+  let hu := fresh_hyp (Some h2) in
+  do_validsdp_intro_lb expr hyps params hl;
+  do_validsdp_intro_ub expr hyps params hu.
 
 (* [tuple_to_list] was taken from CoqInterval *)
 Ltac2 rec tuple_to_list params l :=
@@ -2783,8 +2789,7 @@ Ltac2 get_related_hyps expr :=
   Message.print (string_of_ident_list (Message.of_string "Selected hypotheses:") ss);
   ss.
 
-(** Backward reasoning *)
-
+(** *** Backward reasoning *)
 
 Fail Ltac2 Notation "validsdp" :=
   do_validsdp constr:(@Datatypes.nil validsdp_tac_parameters).
@@ -2800,73 +2805,126 @@ Ltac2 Notation "validsdp" :=
 Ltac2 Notation "validsdp" "with" params(constr) :=
  do_validsdp (tuple_to_list params (params0 ())).
 
-(** Forward reasoning *)
+(** *** Forward reasoning *)
 
-Ltac2 Notation "validsdp_intro" expr(constr) "as" h(ident) :=
-  do_validsdp_intro expr [] (params0 ()) h.
-
+(** Introduce both inequalities *)
 Ltac2 Notation "validsdp_intro" expr(constr) "as" "?" :=
-  do_validsdp_intro expr [] (params0 ()) (hyp0 ()).
+  do_validsdp_intro_conj expr [] (params0 ()) (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "as" h(ident) :=
+  do_validsdp_intro_conj expr [] (params0 ()) h.
+Ltac2 Notation "validsdp_intro" expr(constr) "as" "(" h(seq(ident, ",", ident)) ")" :=
+  do_validsdp_intro_both expr [] (params0 ()) h.
 
-Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "as" h(ident) :=
-  do_validsdp_intro expr hyps (params0 ()) h.
+Ltac2 Notation "validsdp_intro" expr(constr) "with" params(constr) "as" "?" :=
+  do_validsdp_intro_conj expr [] params (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "with" params(constr) "as" h(ident) :=
+  do_validsdp_intro_conj expr [] params h.
+Ltac2 Notation "validsdp_intro" expr(constr) "with" params(constr) "as" "(" h(seq(ident, ",", ident)) ")" :=
+  do_validsdp_intro_both expr [] params h.
 
+Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "as" "?" :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_conj expr hyps (params0 ()) (hyp0 ()).
 Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "as" h(ident) :=
   let hyps := get_related_hyps expr in
-  do_validsdp_intro expr hyps (params0 ()) h.
+  do_validsdp_intro_conj expr hyps (params0 ()) h.
+Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "as" "(" h(seq(ident, ",", ident)) ")" :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_both expr hyps (params0 ()) h.
 
-Ltac2 Notation "validsdp_intro" expr(constr) "with" params(constr) "as" h(ident) :=
-  do_validsdp_intro expr [] params h.
-
-Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "with" params(constr) "as" h(ident) :=
-  do_validsdp_intro expr hyps params h.
-
+Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "with" params(constr) "as" "?" :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_conj expr hyps params (hyp0 ()).
 Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "with" params(constr) "as" h(ident) :=
   let hyps := get_related_hyps expr in
-  do_validsdp_intro expr hyps params h.
+  do_validsdp_intro_conj expr hyps params h.
+Ltac2 Notation "validsdp_intro" expr(constr) "using" "*" "with" params(constr) "as" "(" h(seq(ident, ",", ident)) ")" :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_both expr hyps params h.
 
+Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "as" "?" :=
+  do_validsdp_intro_conj expr hyps (params0 ()) (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "as" h(ident) :=
+  do_validsdp_intro_conj expr hyps (params0 ()) h.
+Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "as" "(" h(seq(ident, ",", ident)) ")" :=
+  do_validsdp_intro_both expr hyps (params0 ()) h.
+
+Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "with" params(constr) "as" "?" :=
+  do_validsdp_intro_conj expr hyps params (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "with" params(constr) "as" h(ident) :=
+  do_validsdp_intro_conj expr hyps params h.
+Ltac2 Notation "validsdp_intro" expr(constr) "using" hyps(list0(ident)) "with" params(constr) "as" "(" h(seq(ident, ",", ident)) ")" :=
+  do_validsdp_intro_both expr hyps params h.
+
+(** Introduce lower inequality *)
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "as" "?" :=
+  do_validsdp_intro_lb expr [] (params0 ()) (hyp0 ()).
 Ltac2 Notation "validsdp_intro" expr(constr) "lower" "as" hl(ident) :=
   do_validsdp_intro_lb expr [] (params0 ()) hl.
 
-Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "as" hl(ident) :=
-  do_validsdp_intro_lb expr hyps (params0 ()) hl.
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "with" params(constr) "as" "?" :=
+  do_validsdp_intro_lb expr [] params (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "with" params(constr) "as" hl(ident) :=
+  do_validsdp_intro_lb expr [] params hl.
 
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" "*" "as" "?" :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_lb expr hyps (params0 ()) (hyp0 ()).
 Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" "*" "as" hl(ident) :=
   let hyps := get_related_hyps expr in
   do_validsdp_intro_lb expr hyps (params0 ()) hl.
 
-Ltac2 Notation "validsdp_intro" expr(constr) "lower" "with" params(constr) "as" hl(ident) :=
-  do_validsdp_intro_lb expr [] params hl.
-
-Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "with" params(constr) "as" hl(ident) :=
-  do_validsdp_intro_lb expr hyps params hl.
-
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" "*" "with" params(constr) "as" "?" :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_lb expr hyps params (hyp0 ()).
 Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" "*" "with" params(constr) "as" hl(ident) :=
   let hyps := get_related_hyps expr in
   do_validsdp_intro_lb expr hyps params hl.
 
-Ltac2 Notation "validsdp_intro" expr(constr) "upper" "as" hu(ident) :=
-  do_validsdp_intro_ub expr [] (params0 ()) hu.
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "as" "?" :=
+  do_validsdp_intro_lb expr hyps (params0 ()) (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "as" hl(ident) :=
+  do_validsdp_intro_lb expr hyps (params0 ()) hl.
 
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "with" params(constr) "as" "?" :=
+  do_validsdp_intro_lb expr hyps params (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "lower" "using" hyps(list0(ident)) "with" params(constr) "as" hl(ident) :=
+  do_validsdp_intro_lb expr hyps params hl.
+
+(** Introduce upper inequality *)
 Ltac2 Notation "validsdp_intro" expr(constr) "upper" "as" "?" :=
   do_validsdp_intro_ub expr [] (params0 ()) (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "as" hl(ident) :=
+  do_validsdp_intro_ub expr [] (params0 ()) hl.
 
-Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "as" hu(ident) :=
-  do_validsdp_intro_ub expr hyps (params0 ()) hu.
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "with" params(constr) "as" "?" :=
+  do_validsdp_intro_ub expr [] params (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "with" params(constr) "as" hl(ident) :=
+  do_validsdp_intro_ub expr [] params hl.
 
-Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "as" hu(ident) :=
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "as" "?" :=
   let hyps := get_related_hyps expr in
-  do_validsdp_intro_ub expr hyps (params0 ()) hu.
-
-Ltac2 Notation "validsdp_intro" expr(constr) "upper" "with" params(constr) "as" hu(ident) :=
-  do_validsdp_intro_ub expr [] params hu.
-
-Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "with" params(constr) "as" hu(ident) :=
-  do_validsdp_intro_ub expr hyps params hu.
-
-Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "with" params(constr) "as" hu(ident) :=
+  do_validsdp_intro_ub expr hyps (params0 ()) (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "as" hl(ident) :=
   let hyps := get_related_hyps expr in
-  do_validsdp_intro_ub expr hyps params hu.
+  do_validsdp_intro_ub expr hyps (params0 ()) hl.
+
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "with" params(constr) "as" "?" :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_ub expr hyps params (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" "*" "with" params(constr) "as" hl(ident) :=
+  let hyps := get_related_hyps expr in
+  do_validsdp_intro_ub expr hyps params hl.
+
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "as" "?" :=
+  do_validsdp_intro_ub expr hyps (params0 ()) (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "as" hl(ident) :=
+  do_validsdp_intro_ub expr hyps (params0 ()) hl.
+
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "with" params(constr) "as" "?" :=
+  do_validsdp_intro_ub expr hyps params (hyp0 ()).
+Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "with" params(constr) "as" hl(ident) :=
+  do_validsdp_intro_ub expr hyps params hl.
 
 (** Some quick tests. *)
 
@@ -2879,13 +2937,11 @@ Ltac2 show () :=
   | ?g => Message.print (Message.of_constr g)
   end.
 
-(*
 Lemma test_using_star (x : R) (H : - 10 <= x) (H0 : x <= 10) : True.
 intros.
-validsdp_intro (1 + x ^ 2) upper using * as HH.
+validsdp_intro (1 + x ^ 2) using * as ?.
 now split.
 Qed.
-*)
 
 Lemma test0 (x : R) : True.
 intros.
@@ -2926,15 +2982,8 @@ Qed.
 Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
 validsdp.
 Qed.
-(* WIP https://github.com/ppedrot/ltac2/issues/110
-   proof terms: Avoid proof-stack wrapper and directly call OCaml code
-   This should simplify the proof term obtained in the end *)
 (* TODO Reportbug Ltac2 Check *)
 (* TODO Reportbug [&& broken *)
 
-(* TODO support "as ? | as (Hl, Hu)" *)
-(* TODO error if hypothesis already exists *)
-
 (* TODO Add support for "<= /\ <=" in "using *" *)
-(* TODO Fix test5
-   Uncaught Ltac2 exception: Match_failure *)
+(* TODO Enhance exception support / Match_failure *)
