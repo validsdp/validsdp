@@ -3,6 +3,9 @@ From ValidSDP Require Import validsdp posdef_check.
 Require matrices.
 Local Open Scope R_scope.
 
+Test Default Proof Mode.
+Require Import Ltac2.Ltac2. (* TODO: this will later be unnecessary *)
+
 Goal forall x y : R, 0 <= y -> 2 / 3 * x ^ 2 + y + 1 / 4 > 0.
 intros x y.
 Time validsdp.
@@ -199,14 +202,17 @@ Lemma p_ind' (x0 x1 x2 : R) :
      (1/4 * (1/2 * x2 + 2/5 * x0^2)))
   - (sigma x0 x1 x2) * (p x0 x1 x2)
   - (sigma1 x0 x1 x2) * (x0^2 + x1^2 + x2^2 - 1) >= 0.
+Proof.
 Time validsdp.
 Time Qed.
 
+(*
 (* Eval vm_compute in posdef_check matrices.m4. Bug. *)
 Time Eval vm_compute in posdefcheck_eff_wrapup matrices.m4.
+ *)
 
 Goal posdef_seqF matrices.m4.
-Time posdef_check.
+Time ltac1:(posdef_check).
 Qed.
 
 End testsuite.

@@ -224,7 +224,7 @@ Variant Poly_exc := not_polynomial.
 Variant Goal_exc := not_supported.
 Variant Cant_concl := cannot_conclude.
 
-(** [list_idx a l = (idx, l)], [idx] being the index of [a] in [l].
+(** [list_idx a l = idx], [idx] being the index of [a] in [l].
     Otherwise return [not_found] *)
 Ltac2 list_idx a l :=
   let rec aux a l n :=
@@ -232,12 +232,8 @@ Ltac2 list_idx a l :=
     | Datatypes.nil => constr:(not_found)
     | Datatypes.cons ?x ?l =>
       match Constr.equal a x with
-      | true => constr:(($n, $l))
-      | false =>
-        match! aux a l constr:(S $n) with
-        | (?n, ?l) => constr:(($n, Datatypes.cons $x $l))
-        | not_found => constr:(not_found)
-        end
+      | true => n
+      | false => aux a l constr:(S $n)
       end
     end in
   aux a l constr:(O).
@@ -483,7 +479,7 @@ Ltac2 rec get_poly_pure t vm :=
           | not_found =>
             deb_csc t "doesn't_belong_to" vm;
             constr:(not_polynomial)
-          | (?n, ?vm) =>
+          | ?n =>
             deb_cscsc t "belongs_to" vm "with_idx" n;
             constr:((PVar $n, $vm))
           end in
@@ -2691,9 +2687,14 @@ Ltac2 get_vars_hyp typ :=
 (****************)
 (** BEGIN TESTS *)
 (*
-Lemma test (x y : R):  True.
+Ltac2 show () :=
+  match! Control.goal () with
+  | ?g => Message.print (Message.of_constr g)
+  end.
 Ltac2 Set deb := fun str => Message.print str.
-ltac2:(let vm := get_vars constr:((1 + x - (sin (x * y)))%Re) in deb_sc "vm" vm).
+
+Lemma test (x y : R) : True.
+  ltac2:(let vm := get_vars constr:((1 + x - (sin (x * y)))%Re) in deb_sc "vm =" vm).
 Abort.
  *)
 (** END TESTS ***)
@@ -2925,65 +2926,3 @@ Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) 
   do_validsdp_intro_ub expr hyps params (hyp0 ()).
 Ltac2 Notation "validsdp_intro" expr(constr) "upper" "using" hyps(list0(ident)) "with" params(constr) "as" hl(ident) :=
   do_validsdp_intro_ub expr hyps params hl.
-
-(** Some quick tests. *)
-
-(* Ltac2 Set deb := fun str => Message.print str. *)
-
-Set Default Proof Mode "Ltac2".
-
-Ltac2 show () :=
-  match! Control.goal () with
-  | ?g => Message.print (Message.of_constr g)
-  end.
-
-Lemma test_using_star (x : R) (H : - 10 <= x) (H0 : x <= 10) : True.
-intros.
-validsdp_intro (1 + x ^ 2) using * as ?.
-now split.
-Qed.
-
-Lemma test0 (x : R) : True.
-intros.
-validsdp_intro (1 + x ^ 2) lower as H.
-now split.
-Qed.
-Print test0.
-
-Let test1 x y : 0 < x -> 1 <= y -> x + y >= 0.
-Time validsdp.
-Qed.
-
-Let test2 x y : 2 / 3 * x ^ 2 + y ^ 2 >= 0.
-Time validsdp.
-Qed.
-
-Let test3 x y : 2 / 3 * x ^ 2 + y ^ 2 + 1 > 0.
-Time validsdp.
-Qed.
-
-Section test.
-Let p x y := 2 / 3 * x ^ 2 + y ^ 2.
-
-Let test4 x y : p x y + 1 > 0.
-Time validsdp.
-Qed.
-End test.
-
-Lemma test5 x : 10 <= x -> x <= 12 -> True.
-intros H1 H2.
-validsdp_intro (11 - x) using * as H.
-validsdp_intro (11 - x) using H1 H2 as H'.
-validsdp_intro (2 + x ^ 2) lower using H1 H2 as HA.
-now split.
-(* Show Proof. *)
-Qed.
-
-Lemma test6 x : x >= 10 -> x <= 12 -> 0 <= 2 + x ^ 2.
-validsdp.
-Qed.
-(* TODO Reportbug Ltac2 Check *)
-(* TODO Reportbug [&& broken *)
-
-(* TODO Add support for "<= /\ <=" in "using *" *)
-(* TODO Enhance exception support / Match_failure *)
