@@ -14,6 +14,7 @@ build: [
   ["sh" "-c" "./autogen.sh && ./configure"]
   [make "-j%{jobs}%"]
 ]
+run-test: [make "-j%{jobs}%" "test"]
 install: [make "install"]
 
 depends: [

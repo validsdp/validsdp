@@ -28,7 +28,7 @@ doc:: html depend.png depend.map theories/validsdp.vo
 	  -e '/<img src='\''depend.png'\''/r depend.map'; \
 	fi
 
-test:: test-suite/matrices.v test-suite/testsuite.v
+test:: test-suite/matrices.v test-suite/testsuite.v test-suite/test_validsdp.v ./test-suite/test_validsdp_intro.v
 	for f in $^ ; do \
 	  $(COQC) $(COQDEBUG) $(COQFLAGS) $(COQMF_COQLIBS) $$f ; \
 	done

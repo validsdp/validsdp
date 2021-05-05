@@ -56,7 +56,7 @@ jobs:
             opam list
           endGroup
           startGroup Build coq-validsdp
-            opam install -y -v -j ${NJOBS} coq-validsdp
+            opam install -y -v -j ${NJOBS} -t coq-validsdp
             opam list
           endGroup
           startGroup Uninstallation test
