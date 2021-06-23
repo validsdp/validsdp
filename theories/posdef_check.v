@@ -323,7 +323,7 @@ Lemma canonical_mantissaPrim_correct m se e :
   | Z0 => True
   | Z.pos mp =>
     let ez := if se then Z.opp (Int63.to_Z e) else Int63.to_Z e in
-    canonical_mantissaPrim m se e -> Binary.canonical_mantissa prec emax mp ez
+    canonical_mantissaPrim m se e -> canonical_mantissa prec emax mp ez
   | Z.neg _ => False
   end.
 Proof.
@@ -348,7 +348,7 @@ case_eq (to_Z m) => [ |mp|mp] Hm; [exact I| | ].
       by move: He'; rewrite /is_true Int63.leb_spec. }
     move: Hlbm; rewrite /is_true Int63.leb_spec Hm => Hlbm.
     by rewrite /prec /=; apply IZR_le. }
-  rewrite /Binary.canonical_mantissa /fexp /FLT_exp -/emin; apply Zeq_bool_true.
+  rewrite /canonical_mantissa /fexp /FLT_exp -/emin; apply Zeq_bool_true.
   rewrite Digits.Zpos_digits2_pos Zdigits_mag //.
   case Hlbmp.
   { move=> ->; rewrite Z.max_r //; lia. }
@@ -367,14 +367,14 @@ Lemma boundedPrim_correct m se e :
   | Z0 => True
   | Z.pos mp =>
     let ez := if se then Z.opp (Int63.to_Z e) else Int63.to_Z e in
-    boundedPrim m se e -> Binary.bounded prec emax mp ez
+    boundedPrim m se e -> bounded prec emax mp ez
   | Z.neg _ => False
   end.
 Proof.
 move: (canonical_mantissaPrim_correct m se e).
 case_eq (to_Z m) => [//|mp Hmp /=|//].
 set ez := if se then _ else _.
-rewrite /boundedPrim /Binary.bounded => cmc /andP [] /orP He cm.
+rewrite /boundedPrim /bounded => cmc /andP [] /orP He cm.
 rewrite (cmc cm) /= /ez.
 rewrite /is_true Z.leb_le; move: He; case se => He.
 { move: (to_Z_bounded e); lia. }
@@ -415,8 +415,7 @@ Lemma B2R_Prim2B_B2Prim x : B2R (Prim2B (B2Prim x)) = B2R x.
 Proof.
 case_eq (is_nan x); [ |now intro H; rewrite Prim2B_B2Prim].
 revert x; intros [s|s| |s m e Hme]; try discriminate; intros _.
-unfold Prim2B, B2Prim, Prim2SF; simpl.
-now rewrite B2R_SF2B.
+now unfold Prim2B, B2Prim, Prim2SF; simpl.
 Qed.
 
 Lemma of_int63_exact m :
@@ -462,8 +461,7 @@ revert Hm He.
 destruct (BigZ2int63 m) as [(sm, m')|p]; [ |discriminate];
   destruct (BigZ2int63 e) as [(se, e')|p']; [ |discriminate].
 case eqbP; intro Hm'.
-{ intros Hm _ _; rewrite Hm; simpl.
-  now unfold Prim2B; rewrite B2R_SF2B; cbv. }
+{ now intros Hm _ _; rewrite Hm; simpl. }
 intros Hm He; rewrite Hm; unfold Bir.EtoZ.
 set (m'' := if sm then _ else _).
 set (e'' := if se then (_ - _)%int63 else _).
@@ -507,7 +505,7 @@ assert (Hm''' : B2R f = IZR m''').
   assert (Hdig_m'p : Z.le (Zdigits radix2 (Z.pos m'p)) prec).
   { revert Hb; unfold bounded, canonical_mantissa.
     move/andP => [Heq _]; apply Zeq_bool_eq in Heq; revert Heq.
-    unfold FLT_exp; rewrite Zpos_digits2_pos; lia. }
+    unfold fexp; rewrite Zpos_digits2_pos; lia. }
   case sm.
   { rewrite <-(B2Prim_Prim2B (of_int63 m')).
     rewrite opp_equiv.
@@ -522,7 +520,7 @@ assert (He''shift : Z.sub (to_Z e'') shift = e).
   { revert Hb; unfold e; case se.
     { rewrite -{2}(Z.opp_involutive (to_Z e')) -Z.opp_le_mono.
       unfold bounded, canonical_mantissa.
-      move=> /andP [] /Zeq_bool_eq; unfold FLT_exp, emin, emax, prec; lia. }
+      move=> /andP [] /Zeq_bool_eq; unfold fexp, emin, emax, prec; lia. }
     rewrite /SpecFloat.bounded => /andP [] _ /Zle_bool_imp_le.
     unfold emin, emax, prec; lia. }
   unfold e'', e; case se.
@@ -549,7 +547,7 @@ revert Hb; unfold SpecFloat.bounded, SpecFloat.canonical_mantissa.
 move=> /andP [] /Zeq_bool_eq; rewrite -/emin /FLT_exp Zpos_digits2_pos => Hb _.
 unfold m'', m'''.
 unfold SpecFloat.fexp.
-now case sm; rewrite Hb.
+now case sm; unfold fexp in Hb; rewrite Hb.
 Qed.
 
 Lemma eta_primitive_float_round_up_infnan_neq_0 :

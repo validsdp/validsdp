@@ -37,7 +37,7 @@ Let emin := (3 - emax - prec)%Z.
 Let fexp := FLT_exp emin prec.
 
 Lemma Pprec : (0 < prec)%Z.
-Proof. unfold prec; omega. Qed.
+Proof. now compute. Qed.
 
 Instance valid_exp : Valid_exp fexp.
 Proof. now apply FLT_exp_valid. Qed.
@@ -76,7 +76,7 @@ rewrite Rinv_l; [rewrite Rmult_1_l|now apply Rgt_not_eq, Rlt_gt;
                                     fold (bpow radix2 53); apply bpow_gt_0].
 change 1 with (IZR 1); apply IZR_lt.
 unfold Z.pow_pos; simpl.
-omega.
+now compute.
 Qed.
 
 Let b_eps := bounded eps.

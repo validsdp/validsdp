@@ -182,8 +182,8 @@ case: m => [ |p|p] //.
     now_show (Z.of_N (N.double (N.pos (Pos.succ q)))
       mod Z.of_N (N.double (Pos.ldiff (Pos.succ q) q)) = Z0)%Z.
     rewrite -N2Z.inj_mod; last first.
-    rewrite N.double_spec.
-    apply/N.neq_mul_0; split =>//; exact: Pos_ldiff_neq0.
+    try (rewrite N.double_spec; apply/N.neq_mul_0;
+         split =>//; exact: Pos_ldiff_neq0).
     rewrite !N.double_spec !N.mul_mod_distr_l; [ |exact: Pos_ldiff_neq0|done].
     by rewrite Pos_ldiff_mod. }
   { exfalso; clear IHp.
@@ -214,7 +214,7 @@ have->: p = Pos.succ q.
   (*:*) apply Z_mod_zero_opp_full.
   rewrite -N2Z.inj_mod; last first.
   rewrite N.double_spec.
-  apply/N.neq_mul_0; split =>//; exact: Pos_ldiff_neq0.
+  try (apply/N.neq_mul_0; split =>//; exact: Pos_ldiff_neq0).
   rewrite !N.double_spec !N.mul_mod_distr_l; [ |exact: Pos_ldiff_neq0|done].
   by rewrite Pos_ldiff_mod. }
 { exfalso; clear IHp.

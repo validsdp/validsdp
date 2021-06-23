@@ -20,7 +20,6 @@ AC_MSG_RESULT($coq_version)
 AX_VERSION_GE([$coq_version], 8.11, [],
   [ AC_MSG_ERROR([must be at least 8.11.]) ])
 AX_VERSION_GE([$coq_version], 8.13, [COQ_VERSION="v813"], [COQ_VERSION="v811"])
-AC_SUBST(COQ_VERSION)
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
@@ -31,17 +30,21 @@ AC_MSG_CHECKING([for Ltac2])
 # whether it is compiled with Make or dune
 COQTOP_WHERE=`coqtop -where`
 LTAC2_MAKE="${COQTOP_WHERE}/user-contrib/Ltac2"
+LTAC2_DUNE_814="${COQTOP_WHERE}-core/plugins/ltac2"
 LTAC2_DUNE="${COQTOP_WHERE}/plugins/ltac2"
 LTAC2_CAML_FILES=""
 AS_IF([test -d ${LTAC2_MAKE}],
       [LTAC2_CAML_FILES="${LTAC2_CAML_FILES} -I ${LTAC2_MAKE}"], [])
-AS_IF([test -d ${LTAC2_DUNE}],
-      [LTAC2_CAML_FILES="${LTAC2_CAML_FILES} -I ${LTAC2_DUNE}"], [])
+AS_IF([test -d ${LTAC2_DUNE_814}],
+      [LTAC2_CAML_FILES="${LTAC2_CAML_FILES} -I ${LTAC2_DUNE_814}"; COQ_VERSION="v814"],
+      AS_IF([test -d ${LTAC2_DUNE}],
+            [LTAC2_CAML_FILES="${LTAC2_CAML_FILES} -I ${LTAC2_DUNE}"], []))
 AS_IF([test -n "${LTAC2_CAML_FILES}"],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq >= 8.11])])
 AC_SUBST(LTAC2_CAML_FILES)
+AC_SUBST(COQ_VERSION)
 
 AC_MSG_CHECKING([for Mathcomp])
 AS_IF(

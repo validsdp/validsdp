@@ -98,7 +98,7 @@ Program Definition order_l2r n : order (iota_finset 0 n.+1) :=
   @Build_order _ (binary_tree_l2r n) _.
 Next Obligation.
 elim: n => //= n /eqP  ->.
-apply /eqP /(eq_sorted_irr ltn_trans ltnn).
+apply /eqP /(irr_sorted_eq ltn_trans ltnn).
 { rewrite -[_ :: _]/(iota 0%N n.+1).
   rewrite ltn_sorted_uniq_leq merge_uniq cat_uniq; apply/andP=> []; split.
   { rewrite iota_uniq Bool.andb_true_r /= Bool.orb_false_r.
