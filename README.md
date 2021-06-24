@@ -9,17 +9,17 @@ Coq tactics to prove multivariate inequalities using SDP solvers.
 Dependencies
 ------------
 
-- [Coq](https://coq.inria.fr) version 8.11.x
+- [Coq](https://coq.inria.fr) version 8.11.x or later
 - [Bignums](https://github.com/coq/bignums) (Coq version specific)
-- [mathcomp](https://math-comp.github.io/math-comp/) (version 1.11.0 or later)
+- [mathcomp](https://math-comp.github.io/math-comp/) (version 1.12.0 or later)
 - [mathcomp analysis](https://github.com/math-comp/analysis/) (version 0.3.4 or later)
-- [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.3.0)
-- [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.1.0)
-- [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 4.0.0)
+- [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.4.1)
+- [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.2.0)
+- [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 4.3.0)
 - [OSDP](https://cavale.enseeiht.fr/osdp) (tested with version 1.0.0)
 - [multinomials](https://github.com/math-comp/multinomials) (tested with version 1.5)
 - [paramcoq](https://github.com/coq-community/paramcoq) (tested with version 1.1.2)
-- [CoqEAL](https://github.com/CoqEAL/CoqEAL) (tested with version 1.0.3)
+- [CoqEAL](https://github.com/CoqEAL/CoqEAL) (tested with version 1.0.5)
 
 See also the [coq-validsdp.opam](./coq-validsdp.opam) file for the
 detail of ValidSDP dependencies' version constraints.
