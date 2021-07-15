@@ -55,10 +55,6 @@ Proof. by case. Qed.
 (** ** Lemmas mostly about real numbers. *)
 Section Misc.
 
-(** [ord0] is the only value in ['I_1]. *)
-Lemma ord_1_0 (i : 'I_1) : i = ord0.
-Proof. by case: i => [[]] // HH; apply /eqP. Qed.
-
 Lemma inord0E n : inord 0 = ord0 :> 'I_n.+1.
 Proof. by apply: ord_inj; rewrite inordK. Qed.
 
@@ -250,7 +246,7 @@ Qed.
 
 Lemma max_tuple_i n (a : R ^ n.+1) (i : 'I_n.+1) : a i <= max_tuple a.
 Proof.
-elim: n a i => [|n IHn] a i /=; [by rewrite (ord_1_0 i); right|].
+elim: n a i => [|n IHn] a i /=; [by rewrite (ord1 i); right|].
 case (unliftP ord_max i) => [j ->|->]; [|by apply Rmax_r].
 replace (a _) with ([ffun i : 'I_n.+1 => a (inord i)] j).
 { apply (Rle_trans _ _ _ (IHn _ _)), Rmax_l. }

@@ -33,21 +33,21 @@ Lemma eq_scalar (R : Type) (A B : 'M[R]_1) :
   A = B <-> A ord0 ord0 = B ord0 ord0.
 Proof.
 split; move=> HAB; [by rewrite HAB|].
-by rewrite -matrixP => i j; rewrite (ord_1_0 i) (ord_1_0 j).
+by rewrite -matrixP => i j; rewrite (ord1 i) (ord1 j).
 Qed.
 
 Lemma Mmul_scalar (R : ringType) (A B : 'M[R]_1) :
   A *m B = (A ord0 ord0 * B ord0 ord0)%:M.
 Proof.
 rewrite -matrixP => i j.
-rewrite (ord_1_0 i) (ord_1_0 j) !mxE eqE /= /GRing.natmul /=.
+rewrite (ord1 i) (ord1 j) !mxE eqE /= /GRing.natmul /=.
 by rewrite big_ord_recl big_ord0 GRing.addr0.
 Qed.
 
 Lemma trmx_scalar (R : Type) (x : 'M[R]_1) : x^T = x.
 Proof.
 rewrite -matrixP /eqrel => i j.
-by rewrite /trmx mxE (ord_1_0 i) (ord_1_0 j).
+by rewrite /trmx mxE (ord1 i) (ord1 j).
 Qed.
 
 Lemma scale_trmx (R : ringType) (s : R) (n m : nat) (A : 'M[R]_(n, m)) :
@@ -99,14 +99,14 @@ Lemma Mle_scalar (A B : 'M_1) :
   (A <=m: B)%Re <-> (A ord0 ord0 <= B ord0 ord0)%Re.
 Proof.
 split; rewrite /Mle => H // => i j.
-by rewrite (ord_1_0 i) (ord_1_0 j).
+by rewrite (ord1 i) (ord1 j).
 Qed.
 
 Lemma Mlt_scalar (A B : 'M_1) :
   (A <m: B)%Re <-> (A ord0 ord0 < B ord0 ord0)%Re.
 Proof.
 split; rewrite /Mle => H // => i j.
-by rewrite (ord_1_0 i) (ord_1_0 j).
+by rewrite (ord1 i) (ord1 j).
 Qed.
 
 Variable n m : nat.
@@ -768,7 +768,7 @@ Section Mabs_order_mul_lt_prop.
 Lemma dotprod_pos_eq_0_r n (x y : 'cV_n) :
   0 <m: x -> 0 <=m: y -> (dotprod x y = 0)%Re -> y = 0.
 Proof.
-move=> Hx Hy Hdp; rewrite -matrixP => i j; rewrite mxE (ord_1_0 j).
+move=> Hx Hy Hdp; rewrite -matrixP => i j; rewrite mxE (ord1 j).
 apply (Rmult_eq_reg_l (x i ord0)); [rewrite Rmult_0_r|].
 { move: Hdp i; rewrite dotprod_sum; apply big_sum_pos_eq_0 => i.
   apply Rmult_le_pos.
@@ -798,7 +798,7 @@ destruct H; [by []|].
 casetype False; apply HA2.
 have H' : (((C - B) *m A) i j = 0)%Re.
 { by rewrite mulmxBl mxE -H !mxE; apply Rminus_diag_eq. }
-move: H'; rewrite (ord_1_0 j) mulmxv_dotprod; apply dotprod_pos_eq_0_r.
+move: H'; rewrite (ord1 j) mulmxv_dotprod; apply dotprod_pos_eq_0_r.
 { move: HBC; rewrite /Mlt => HBC i' j'; rewrite !mxE.
   apply Rlt_Rminus, HBC. }
 exact HA1.
