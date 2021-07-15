@@ -841,7 +841,8 @@ have Peta_eps : (0 <= eta_eps)%Re.
   move: (pos_INR n.+2) (Pmaxdiag Pdiag Hmaxdiag); lra. }
 have H : forall y : 'cV_n.+1, (y^T *m Mabs x)^T *m (y^T *m Mabs x)
                               <=m: (`||y||_2^2)%:M => [y|].
-{ rewrite Mmul_scalar trmx_scalar Mle_scalar_mx /GRing.mul /= Rmult_1_r.
+{ rewrite [X in X *m _]mx11_scalar [X in _ *m X]mx11_scalar -scalar_mxM.
+  rewrite mx11_tr Mle_scalar_mx /GRing.mul /= Rmult_1_r.
   apply Rsqr_le_abs_1; rewrite (Rabs_pos_eq (norm2 _)); [|by apply norm2_pos].
   rewrite -(Rmult_1_r (norm2 _)) -Hx -(norm2_mabs x).
   apply cauchy_schwarz_Rabs. }
@@ -934,7 +935,8 @@ have Hcr : @const_mx _ n.+1 n.+1 r = (\col__ sqrt r) *m (\col__ sqrt r)^T.
   by rewrite !mxE /GRing.mul /= sqrt_def. }
 rewrite Hcr mulmxA -mulmxA -{1}(trmxK (\col__ _)) -trmx_mul.
 apply Mle_trans with (`||\col_(_ < n.+1) sqrt r||_2^2)%:M.
-{ rewrite Mmul_scalar trmx_scalar Mle_scalar_mx /GRing.mul /= Rmult_1_r.
+{ rewrite [X in X *m _]mx11_scalar [X in _ *m X]mx11_scalar -scalar_mxM.
+  rewrite mx11_tr Mle_scalar_mx /GRing.mul /= Rmult_1_r.
   apply Rsqr_le_abs_1; rewrite (Rabs_pos_eq (norm2 _)); [|by apply norm2_pos].
   rewrite -(Rmult_1_r (norm2 _)) -Hx -(norm2_mabs x).
   apply cauchy_schwarz_Rabs. }

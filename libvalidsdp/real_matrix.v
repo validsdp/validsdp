@@ -29,22 +29,7 @@ Import GRing.Theory.
 (** ** Miscellaneous lemmas about 1x1 matrices and transposition. *)
 Section Misc.
 
-Lemma eq_scalar (R : Type) (A B : 'M[R]_1) :
-  A = B <-> A ord0 ord0 = B ord0 ord0.
-Proof.
-split; move=> HAB; [by rewrite HAB|].
-by rewrite -matrixP => i j; rewrite (ord1 i) (ord1 j).
-Qed.
-
-Lemma Mmul_scalar (R : ringType) (A B : 'M[R]_1) :
-  A *m B = (A ord0 ord0 * B ord0 ord0)%:M.
-Proof.
-rewrite -matrixP => i j.
-rewrite (ord1 i) (ord1 j) !mxE eqE /= /GRing.natmul /=.
-by rewrite big_ord_recl big_ord0 GRing.addr0.
-Qed.
-
-Lemma trmx_scalar (R : Type) (x : 'M[R]_1) : x^T = x.
+Lemma mx11_tr (R : Type) (x : 'M[R]_1) : x^T = x.
 Proof.
 rewrite -matrixP /eqrel => i j.
 by rewrite /trmx mxE (ord1 i) (ord1 j).
@@ -67,7 +52,7 @@ rewrite GRing.addrA -(GRing.addrA (x^T *m P *m x) (x^T *m P *m y)).
 rewrite (GRing.addrC (x^T *m P *m y)) !GRing.addrA.
 apply f_equal2; [by []|].
 rewrite -{1}(trmxK P) -trmx_mul -{1}(trmxK x) -trmx_mul.
-by rewrite trmx_scalar SymP mulmxA.
+by rewrite mx11_tr SymP mulmxA.
 Qed.
 
 End Misc.
@@ -367,7 +352,7 @@ Qed.
 Lemma dotprodP_sym (x y : 'cV_n) : dotprodP x y = dotprodP y x.
 Proof.
 rewrite /dotprodP.
-by rewrite -{1}SymP -trmx_mul -{1}(trmxK y) -trmx_mul mulmxA trmx_scalar.
+by rewrite -[in LHS]SymP -[y in LHS]trmxK -2!trmx_mul mulmxA mx11_tr.
 Qed.
 
 Lemma dotprodP_0_r (x : 'cV_n) : (dotprodP x 0 = 0)%Re.
