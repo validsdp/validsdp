@@ -115,7 +115,7 @@ osdp_version=`ocamlfind query -format %v osdp 2>/dev/null`
 AX_VERSION_GE([$osdp_version], 1.0,
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library OSDP >= 1.0 (https://cavale.enseeiht.fr/osdp/).])])
+    AC_MSG_ERROR([ *** Unable to find library OSDP >= 1.0 (https://github.com/Embedded-SW-VnV/osdp).])])
 
 AC_MSG_CHECKING([for coq-bignums])
 AS_IF(
