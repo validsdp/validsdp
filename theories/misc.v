@@ -211,8 +211,3 @@ rewrite /bigQ2rat unlock /bigQ2rat_def.
 rewrite GRing.rmorph_div /= ?ratr_int //.
 by rewrite /in_mem /= intr_eq0 Posz_nat_of_pos_neq0.
 Qed.
-
-Import Order.Theory.
-
-Lemma ratr_inj (R : numFieldType) : injective (@ratr R).
-Proof. by move=> x y H; apply: le_anti; rewrite -!(ler_rat R) H lexx. Qed.
