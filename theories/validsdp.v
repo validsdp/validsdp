@@ -1444,8 +1444,7 @@ by symmetry in ref_b; rewrite real_FtoX_toR in ref_b.
 by rewrite real_FtoX_toR in ref_b.
 move/(congr1 proj_val) in ref_b.
 rewrite !toR_Float in ref_b.
-rewrite /fun_hrel /bigQ2rat.
-apply: val_inj =>/=.
+rewrite /fun_hrel /bigQ2rat unlock /bigQ2rat_def.
 suff->: Qred [bigZZ2Q m' e']%bigQ = Qred [bigZZ2Q m e]%bigQ by [].
 apply: Qred_complete; apply: Qeq_Q2R.
 by rewrite !bigZZ2Q_correct.
@@ -1457,21 +1456,27 @@ Definition r_QbigQ := fun_hrel BigQ.to_Q.
 
 Instance bigQ2ratK : refines (eq ==>  BigQ.eq) (rat2bigQ \o bigQ2rat) id.
 Proof.
-rewrite refinesE => x x' ref_x.
+rewrite refinesE => x _ <- /=.
 apply/BigQ.eqb_eq.
 rewrite BigQ.spec_eq_bool.
 apply/Qeq_bool_iff.
-set p := Qden (Qred [x]%bigQ).
-have Pp := nat_of_pos_gt0 p.
-rewrite /= -(prednK Pp) (prednK Pp) -!binnat.to_natE Pos2Nat.id ifF; last first.
-{ by rewrite BigN.spec_eqb BigN.spec_0 BigN.spec_N_of_Z. }
-rewrite BigZ.spec_of_Z BigN.BigN.spec_N_of_Z //= /p.
-rewrite /numq /= Z2intK.
-set qx := _ # _.
-suff->: qx = [BigQ.red x']%bigQ by apply: BigQ.spec_red.
-rewrite /qx -ref_x BigQ.strong_spec_red.
-set x0 := Qred [x]%bigQ.
-by case: x0.
+have int2Z_den_ge0 : forall x, (0 <= int2Z (denq x))%coq_Z.
+{ by move=> r; rewrite -[Z0]/(int2Z 0) -Z2int_le !int2ZK denq_ge0. }
+rewrite /rat2bigQ /= ifF; last first.
+{ rewrite BigN.spec_eqb BigN.spec_0 BigN.spec_N_of_Z; [|exact: int2Z_den_ge0].
+  by rewrite -[Z0]/(int2Z 0) int2Z_eq denq_eq0. }
+rewrite BigZ.spec_of_Z BigN.BigN.spec_N_of_Z; [|exact: int2Z_den_ge0].
+rewrite /bigQ2rat unlock /bigQ2rat_def /=.
+case: [x]%bigQ => n d.
+rewrite Z2int_Qred.
+rewrite /Qeq /=.
+apply: Z2int_inj.
+rewrite !Z2int_mul Z2Pos.id ?int2ZK; last first.
+{ by rewrite -[Z0]/(int2Z 0) -Z2int_lt !int2ZK denq_gt0. }
+apply: (@intr_inj [numDomainType of rat]).
+rewrite [LHS](intrM [ringType of rat]) numqE.
+rewrite mulrAC GRing.mulfVK ?rmorphM //.
+by rewrite intr_eq0 -lt0n nat_of_pos_gt0.
 Qed.
 
 Lemma FI_val_inj : injective FI_val.

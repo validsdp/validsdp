@@ -183,6 +183,13 @@ rewrite -(ltr_int [numDomainType of R]) -!Z2R_int2Z; apply/idP/idP.
 by move/RltP/lt_IZR/Z.ltb_lt.
 Qed.
 
+Lemma int2Z_eq m n : int2Z m =? int2Z n = (m == n).
+Proof.
+rewrite -(eqr_int [numDomainType of R]) -!Z2R_int2Z; apply/idP/idP.
+{ by move/Z.eqb_eq/IZR_eq => ->. }
+by move/eqP/eq_IZR/Z.eqb_eq.
+Qed.
+
 Lemma bigQ2R_redE (c : bigQ) : bigQ2R (BigQ.red c) = bigQ2R c.
 Proof.
 case: c => [//|n d].
@@ -193,16 +200,16 @@ Notation rat2R := (@ratr [unitRingType of R]) (only parsing).
 
 Lemma bigQ2R_rat (c : bigQ) : bigQ2R c = rat2R (bigQ2rat c).
 Proof.
-rewrite -[LHS]bigQ2R_redE /bigQ2R BigQ.strong_spec_red.
-rewrite /bigQ2rat /ratr; set r := Rat _.
-rewrite /GRing.inv /= /Rinvx ifT /GRing.mul /= /Rdiv.
-{ rewrite /numq /denq /= /Q2R; congr Rmult.
-  { rewrite /IZR /Z2int; case: Qnum =>[//|p|p].
-      by rewrite -INR_IPR binnat.to_natE misc.INR_natmul.
-    rewrite -INR_IPR binnat.to_natE misc.INR_natmul /=.
-    now rewrite -> mulrNz. }
-  by rewrite /IZR /= -INR_IPR binnat.to_natE misc.INR_natmul. }
-by rewrite intr_eq0 denq_neq0.
+rewrite -[LHS]bigQ2R_redE /bigQ2R BigQ.strong_spec_red /Q2R.
+rewrite -[Zpos _]Z2intK -[Qnum _]Z2intK !Z2R_int2Z.
+rewrite /Rdiv RinvE ?RmultE; last first.
+{ rewrite -BigQ.strong_spec_red.
+  case: (BigQ.red c) (BigQ_red_den_nonzero c) (BigQ_red_den_neq0 c) => [n|n d].
+  { by rewrite /= (_ : _%:~R = 1%Ri) // GRing.oner_neq0. }
+  by rewrite /= => + /negbTE ->; rewrite intr_eq0 Posz_nat_of_pos_neq0. }
+rewrite /bigQ2rat unlock /bigQ2rat_def.
+rewrite GRing.rmorph_div /= ?ratr_int //.
+by rewrite /in_mem /= intr_eq0 Posz_nat_of_pos_neq0.
 Qed.
 
 Import Order.Theory.

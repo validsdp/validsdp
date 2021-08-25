@@ -19,7 +19,7 @@ Dependencies
 - [OSDP](https://github.com/Embedded-SW-VnV/osdp) (tested with version 1.0.0)
 - [multinomials](https://github.com/math-comp/multinomials) (tested with version 1.5)
 - [paramcoq](https://github.com/coq-community/paramcoq) (tested with version 1.1.2)
-- [CoqEAL](https://github.com/CoqEAL/CoqEAL) (tested with version 1.0.5)
+- [CoqEAL](https://github.com/CoqEAL/CoqEAL) (tested with version 1.0.6)
 
 See also the [coq-validsdp.opam](./coq-validsdp.opam) file for the
 detail of ValidSDP dependencies' version constraints.
