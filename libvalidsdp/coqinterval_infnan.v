@@ -185,7 +185,7 @@ split => H.
   move/Z.leb_le in H.
   move/(_ H) in H2.
   rewrite !BigZ.spec_div !bigZulp_spec in H1 *.
-  apply (Z.lt_le_trans _ _ _ H1); exact: Zpower_le. }
+  apply: (Z.lt_le_trans _ _ _ H1); exact: Zaux.Zpower_le. }
 have {H} [|[r H1 [f [Hf1 Hf2]]]] := H; first by rewrite real_FtoX_toR.
 rewrite /signif_digits.
 set f1 := Fnum f in Hf2.
@@ -877,7 +877,7 @@ caseFI y Hy Hy1 Hy2.
 set (z := Xadd _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
 rewrite Hx1 Hy1 /=.
 rewrite !round_generic.
-2: exact: generic_format_round.
+2: exact/generic_format_round/FLX_exp_valid.
 2: exact: generic_format_FLX.
 2: exact: generic_format_FLX.
 apply: (Rle_trans _ r).
@@ -911,7 +911,7 @@ caseFI y Hy Hy1 Hy2.
 set (z := Xmul _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
 rewrite Hx1 Hy1 /=.
 rewrite !round_generic.
-2: exact: generic_format_round.
+2: exact/generic_format_round/FLX_exp_valid.
 2: exact: generic_format_FLX.
 2: exact: generic_format_FLX.
 apply: (Rle_trans _ r).
@@ -940,7 +940,7 @@ caseFI y Hy Hy1 Hy2.
 set (z := Xdiv _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
 rewrite Hx1 Hy1 /=.
 rewrite !round_generic.
-2: exact: generic_format_round.
+2: exact/generic_format_round/FLX_exp_valid.
 2: exact: generic_format_FLX.
 2: exact: generic_format_FLX.
 apply: (Rle_trans _ r).

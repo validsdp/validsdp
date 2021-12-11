@@ -284,19 +284,14 @@ Section Primitive_float_round_up_infnan.
     unfold Defs.F2R.
     simpl.
     apply (Rmult_le_reg_r (IZR (Z.pow_pos 2 105))).
-    {
-      apply IZR_lt.
-      apply Zpower_pos_gt_0.
-      lia.
-    }
+    { exact/IZR_lt/Zaux.Zpower_pos_gt_0. }
     rewrite Rmult_assoc Rinv_l.
     unfold Z.pow_pos.
     simpl.
     lra.
     apply IZR_neq.
     apply BigNumPrelude.Zlt0_not_eq.
-    apply Zpower_pos_gt_0.
-    lia.
+    exact: Zaux.Zpower_pos_gt_0.
   Qed.
 
   Definition fieta := ldexp one (-1074)%Z.
@@ -306,19 +301,14 @@ Section Primitive_float_round_up_infnan.
     unfold Defs.F2R.
     simpl.
     apply (Rmult_le_reg_r (IZR (Z.pow_pos 2 1074))).
-    {
-      apply IZR_lt.
-      apply Zpower_pos_gt_0.
-      lia.
-    }
+    { exact/IZR_lt/Zaux.Zpower_pos_gt_0. }
     rewrite Rmult_assoc Rinv_l.
     unfold Z.pow_pos.
     simpl.
     lra.
     apply IZR_neq.
     apply BigNumPrelude.Zlt0_not_eq.
-    apply Zpower_pos_gt_0.
-    lia.
+    exact: Zaux.Zpower_pos_gt_0.
   Qed.
 
   (* TODO: to build a Float_round_up_infnan_spec, we need (next_up x) finite
@@ -368,7 +358,7 @@ Section Primitive_float_round_up_infnan.
     have -> : next_up_finite x = next_up x.
     { rewrite -(B2Prim_Prim2B x).
       move: Fx.
-      case (Prim2B x); [by move=> []..|move=> s m e Hme].
+      case: (Prim2B x) => [[] | [] | |] // s m e Hme.
       unfold next_up_finite.
       change neg_infinity with (B2Prim (BinarySingleNaN.B754_infinity true)).
       by rewrite compare_equiv !Prim2B_B2Prim /=. }
