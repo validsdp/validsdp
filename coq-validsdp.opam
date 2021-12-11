@@ -27,7 +27,7 @@ depends: [
   "coq-mathcomp-analysis" {>= "0.3.4" & < "0.4~"}
   "coq-libvalidsdp" {= "dev"}
   "coq-mathcomp-multinomials" {>= "1.2"}
-  "coq-coqeal" {= "dev"}
+  "coq-coqeal" {>= "1.1.0"}
   "coq-paramcoq" {>= "1.1.0"}
   "osdp" {>= "1.0"}
   "ocamlfind" {build}
