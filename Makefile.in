@@ -44,7 +44,7 @@ $(COQ_MAKEFILE): $(COQ_PROJ) $(MODULES) $(PLUGDIR)/src/soswitness.mlg
 		@LTAC2_CAML_FILES@ \
 		-f $< $(MODULES) -o $@
 	# FIXME: This sed hack is fragile (if we do "make -B" for example)
-	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@ ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
+	sed -e 's/-linkall -shared -o $$@ $$</-linkall -shared -o $$@@LINK_ZARITH@ ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
 
 clean:
 	-$(COQ_MAKE) clean

@@ -19,7 +19,7 @@ coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$
 AC_MSG_RESULT($coq_version)
 AX_VERSION_GE([$coq_version], 8.11, [],
   [ AC_MSG_ERROR([must be at least 8.11.]) ])
-AX_VERSION_GE([$coq_version], 8.13, [COQ_VERSION="v813"], [COQ_VERSION="v811"])
+AX_VERSION_GE([$coq_version], 8.13, [COQ_VERSION="v813"; LINK_ZARITH=""], [COQ_VERSION="v811"; LINK_ZARITH=" zarith.cmxa"])
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
@@ -45,6 +45,7 @@ AS_IF([test -n "${LTAC2_CAML_FILES}"],
     AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq >= 8.11])])
 AC_SUBST(LTAC2_CAML_FILES)
 AC_SUBST(COQ_VERSION)
+AC_SUBST(LINK_ZARITH)
 
 AC_MSG_CHECKING([for Mathcomp])
 AS_IF(
