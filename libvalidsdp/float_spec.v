@@ -19,6 +19,10 @@ Require Export bounded.
 Set Implicit Arguments.
 Unset Strict Implicit.
 
+Show Obligation Tactic.
+
+Obligation Tactic := idtac.  (* no automatic intro *)
+
 Open Scope R_scope.
 
 Delimit Scope R_scope with Re.
@@ -175,7 +179,7 @@ Definition eta_0 : b_eta := bounded_0 (eta_pos fs).
 
 (** Opposite. *)
 Program Definition fopp (x : F) : F := @Build_FS_of _ (- (FS_val x)) _.
-Next Obligation. by apply format_opp; case x. Qed.
+Next Obligation. by intros; apply format_opp; case x. Qed.
 
 (** Rounding. *)
 Lemma frnd_spec_separate (x : R) :

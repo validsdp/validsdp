@@ -44,6 +44,7 @@ AS_IF([test -n "${LTAC2_CAML_FILES}"],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq >= 8.11])])
 AC_SUBST(LTAC2_CAML_FILES)
+AX_VERSION_GE([$coq_version], 8.15, [COQ_VERSION="v815"], [])
 AC_SUBST(COQ_VERSION)
 AC_SUBST(LINK_ZARITH)
 
@@ -53,7 +54,7 @@ AS_IF(
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find theories rat, matrix, countalg from mathcomp >= 1.8.0 (http://coq.io/opam/coq-mathcomp-field.1.8.0.html)])])
+    AC_MSG_ERROR([ *** Unable to find theories rat, matrix, countalg from mathcomp >= 1.12.0 (http://coq.io/opam/coq-mathcomp-field.1.12.0.html)])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Mathcomp Analysis])

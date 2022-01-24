@@ -25,6 +25,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Obligation Tactic := idtac.  (* no automatic intro *)
+
 Module Bir := BigIntRadix2.
 
 Module F := SpecificFloat Bir.
@@ -366,7 +368,7 @@ Qed.
 Program Definition FI2FS (x : FI) : FS fis :=
   @Build_FS_of (@format fis) (toR (FI_val x)) _.
 Next Obligation.
-apply /eqP.
+move=> x; apply/eqP.
 case: x => [f Hf] => /=.
 move/mantissa_boundedP in Hf.
 case: Hf => [->|].

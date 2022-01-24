@@ -26,6 +26,8 @@ Require flx64.
 Require Import float_spec.
 Require flx64.
 
+Obligation Tactic := idtac.  (* no automatic intro *)
+
 Open Scope R_scope.
 
 Section Binary64.
@@ -96,7 +98,7 @@ Variable choice : Z -> bool.
 Program Definition frnd (x : R) : F :=
   @Build_FS_of _ (round radix2 fexp (Znearest choice) x) _.
 Next Obligation.
-apply /eqP.
+move=> x; apply/eqP.
 now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N].
 Qed.
 

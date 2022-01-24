@@ -22,6 +22,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+Obligation Tactic := idtac.  (* no automatic intro *)
+
 Open Scope R_scope.
 Open Scope ring_scope.
 
@@ -48,7 +50,7 @@ Definition disjoint (s1 s2 : nat_finset) := uniq (s1 ++ s2).
 Program Definition nat_finset_disjoint_merge s1 s2 (H : disjoint s1 s2) :=
   @Build_nat_finset (merge leq s1 s2) _.
 Next Obligation.
-move: H; rewrite ltn_sorted_uniq_leq merge_uniq /disjoint => -> /=.
+move=> s1 s2; rewrite ltn_sorted_uniq_leq merge_uniq /disjoint => -> /=.
 apply (merge_sorted leq_total).
 { by move: s1 => [] s1 /=; rewrite ltn_sorted_uniq_leq=> /andP []. }
 by move: s2 => [] s2 /=; rewrite ltn_sorted_uniq_leq=> /andP [].
@@ -92,11 +94,13 @@ End OrderRecord.
 
 Program Definition order_leaf n : order (@Build_nat_finset [:: n] _) :=
   @Build_order _ (Leaf n) _.
+Next Obligation. auto. Qed.
+Next Obligation. auto. Qed.
 
 Program Definition order_node sl sr (H : disjoint sl sr)
         (l : order sl) (r : order sr) : order (nat_finset_disjoint_merge H) :=
   @Build_order _ (Node l r) _.
-Next Obligation. by move: l r => [] l /= /eqP -> [] r /= /eqP ->. Qed.
+Next Obligation. by move=> sl sr H [] l /= /eqP -> [] r /= /eqP ->. Qed.
 
 Theorem order_ind (P : forall s, order s -> Prop) :
   (forall i, P _ (order_leaf i)) ->

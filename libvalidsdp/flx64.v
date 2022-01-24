@@ -23,6 +23,8 @@ Require Import float_spec.
 
 Require Import float_spec.
 
+Obligation Tactic := idtac.  (* no automatic intro *)
+
 Open Scope R_scope.
 
 Section Flx64.
@@ -91,7 +93,7 @@ Variable choice : Z -> bool.
 Program Definition frnd (x : R) : F :=
   @Build_FS_of _ (round radix2 fexp (Znearest choice) x) _.
 Next Obligation.
-apply /eqP.
+move=> x; apply/eqP.
 now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 

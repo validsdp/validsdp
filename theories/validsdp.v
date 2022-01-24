@@ -2233,14 +2233,22 @@ suff: 0 <= papx /\ (has_const_ssr zb -> 0 < papx).
     by apply /allP => x' /mapP [] x'' _ ->. }
   by apply listR_seqmultinom_map. }
 move: Hall_prop'.
-apply soscheck_hyps_correct with
+try (apply soscheck_hyps_correct with
   (2 := GRing.RMorphism.base (ratr_is_rmorphism _))
   (3 := rat2FIS_correct)
   (4 := rat2R_FIS2rat)
   (5 := max_l)
   (6 := max_r)
   (7 := GRing.RMorphism.mixin (ratr_is_rmorphism _))
-  (Q0 := Qb).
+  (Q0 := Qb))
+  || apply soscheck_hyps_correct with
+  (2 := GRing.RMorphism.base (ratr_is_rmorphism _))
+  (3 := rat2FIS_correct)
+  (4 := rat2R_FIS2rat)
+  (5 := max_l)
+  (6 := max_r)
+  (7 := GRing.RMorphism.mixin (ratr_is_rmorphism _))
+  (Q := Qb).
 { apply Rgt_not_eq => /=; apply bpow_gt_0. }
 move: Hsos_hyps; apply etrans.
 apply refines_eq, refines_bool_eq.

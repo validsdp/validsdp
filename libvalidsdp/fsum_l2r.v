@@ -17,6 +17,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+Obligation Tactic := idtac.  (* no automatic intro *)
+
 Open Scope R_scope.
 Open Scope ring_scope.
 
@@ -97,7 +99,7 @@ Fixpoint binary_tree_l2r n :=
 Program Definition order_l2r n : order (iota_finset 0 n.+1) :=
   @Build_order _ (binary_tree_l2r n) _.
 Next Obligation.
-elim: n => //= n /eqP  ->.
+elim=> //= n /eqP  ->.
 apply /eqP /(irr_sorted_eq ltn_trans ltnn).
 { rewrite -[_ :: _]/(iota 0%N n.+1).
   rewrite ltn_sorted_uniq_leq merge_uniq cat_uniq; apply/andP=> []; split.

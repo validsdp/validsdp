@@ -497,7 +497,8 @@ Proof.
 move=> i; rewrite /map_diag_ssr /map_diag.
 set f' := fun _ _ => _.
 set P := fun i s => s i i = f (A i i); rewrite -/(P i _).
-apply iteri_ord_ind_strong_cases with (i0 := i) => //.
+try (apply iteri_ord_ind_strong_cases with (i0 := i) => //)
+ || apply iteri_ord_ind_strong_cases with (i := i) => //.
 { move=> j s Hj Hind j' Hj'.
   rewrite /P /f' store_ssr_lt1 //; apply Hind => //; apply ltn_ord. }
 { move=> j s Hj Hind; rewrite /P /f' store_ssr_eq //. }
@@ -672,7 +673,8 @@ have Hf : f =2 @fimax fs.
 { move=> x y; rewrite /f/fimax/leq_op/leq_instFIS/file.
   by case ficompare. }
 set P := fun (j : nat) s => @finite fs s /\ 0 <= FIS2FS s.
-apply foldl_diag_correct with (P0 := P); rewrite /P.
+try (apply foldl_diag_correct with (P0 := P); rewrite /P)
+  || apply foldl_diag_correct with (P := P); rewrite /P.
 { move=> i z Hind; destruct Hind as (Hind, Hind'); split.
   { by rewrite Hf; case (fimax_spec_eq z (A i i)) => ->. }
   by rewrite Hf; apply (Rle_trans _ _ _ Hind'), fimax_spec_lel. }
@@ -871,8 +873,10 @@ have HpRt : forall i, 0 < (MFI2F Rt) i i.
   eapply (Rle_lt_trans _ (FIS2FS zero_instFIS)); [by right; rewrite FIS2FS0| ].
   rewrite mxE; apply filt_spec => //; [apply finite0|apply HtpRt']. }
 move {Htpdiag HtfRt HtpRt Htpdiag' HtpRt'}.
-apply corollary_2_4_with_c_upper_bound with
- (maxdiag := FIS2FS (max_diag_ssr A)) (c := FIS2FS c') (At0 := At) => //.
+try (apply corollary_2_4_with_c_upper_bound with
+ (maxdiag := FIS2FS (max_diag_ssr A)) (c := FIS2FS c') (At0 := At) => //)
+  || apply corollary_2_4_with_c_upper_bound with
+ (maxdiag := FIS2FS (max_diag_ssr A)) (c := FIS2FS c') (At := At) => //.
 { by move=> i; rewrite mxE. }
 { by apply max_diag_correct. }
 { by apply compute_c_correct. }
@@ -1958,7 +1962,7 @@ apply refinesP; refines_apply1; first refines_apply1; first refines_apply1.
 by rewrite -(nat_R_eq rn) refinesE.
 rewrite refinesE=> i i' ri b b' rb.
 exact: refinesP.
-Grab Existential Variables.
+Unshelve.
 exact: rn.
 Qed.
 

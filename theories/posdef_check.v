@@ -130,7 +130,8 @@ have Hpos : posdefcheck_ssr Qb.
   { by rewrite (eqP HQ'1) Hs'. }
   { by rewrite Hs'. } }
 have HQb : posdef (cholesky.MF2R (cholesky_infnan.MFI2F Qb)).
-{ by apply posdefcheck_correct with (Q0 := Qb). }
+{ by (try (apply posdefcheck_correct with (Q0 := Qb))
+      || apply posdefcheck_correct with (Q := Qb)). }
 have Hfin := posdef_check_f1 Hpos.
 have := HQb.
 have HszQ : s'.+1 = size Q by rewrite Hs'.
@@ -262,13 +263,13 @@ Lemma Bir_mantissa_sign_correct n :
   match BigZ2int63 n with
   | None => True
   | Some (sn, n') =>
-    if (n' == 0)%int63 then Bir.mantissa_sign n = Specific_sig.Mzero
+    if Int63.eqb n' 0%int63 then Bir.mantissa_sign n = Specific_sig.Mzero
     else Bir.mantissa_sign n = Specific_sig.Mnumber sn (BigN.N0 n')
   end.
 Proof.
   unfold BigZ2int63.
   destruct n, t; auto;
-    case_eq (t == 0)%int63;
+    case_eq (Int63.eqb t 0%int63);
     intro Ht.
   - apply eqb_correct in Ht.
     now rewrite Ht.
@@ -313,10 +314,10 @@ Proof.
 Qed.
 
 Definition canonical_mantissaPrim (m : int) (se : bool) (e : int) :=
-  (~~se || (e <= 1074)%int63)  (* emin <= e *)
-  && (m < 9007199254740992 (*2^53*))%int63
-  && (se && (1074 (*-emin*) <= e)%int63
-      || (4503599627370496 (*2^52*) <= m)%int63).
+  (~~se || Int63.leb e 1074)%int63  (* emin <= e *)
+  && (Int63.ltb m 9007199254740992 (*2^53*))%int63
+  && (se && (Int63.leb 1074 (*-emin*) e)%int63
+      || (Int63.leb 4503599627370496 (*2^52*) m)%int63).
 
 Lemma canonical_mantissaPrim_correct m se e :
   match Int63.to_Z m with
@@ -360,7 +361,7 @@ move: (to_Z_bounded m); lia.
 Qed.
 
 Definition boundedPrim (m : int) (se : bool) (e : int) :=
-  (se || (e <= 1024 - 53)%int63) && (canonical_mantissaPrim m se e).
+  (se || (Int63.leb e (1024 - 53))%int63) && (canonical_mantissaPrim m se e).
 
 Lemma boundedPrim_correct m se e :
   match Int63.to_Z m with
@@ -387,7 +388,7 @@ Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=
   | Float m e =>
     match (BigZ2int63 m, BigZ2int63 e) with
     | (Some (sm', m'), Some (se', e')) =>
-      if (m' == 0)%int63 then zero else
+      if (Int63.eqb m' 0)%int63 then zero else
         if boundedPrim m' se' e' then
           let f := of_int63 m' in
           let f := if sm' then (-f)%float else f in

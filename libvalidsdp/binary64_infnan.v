@@ -21,6 +21,8 @@ Require Import Flocq.IEEE754.BinarySingleNaN.
 
 Require Import float_spec binary64 float_infnan_spec.
 
+Obligation Tactic := idtac.  (* no automatic intro *)
+
 Open Scope R_scope.
 
 Section Binary64_infnan.
@@ -67,7 +69,9 @@ Lemma m_ge_2 : 2 <= m.
 Proof. now change 2 with (bpow radix2 1); apply bpow_le. Qed.
 
 Program Definition FI2FS (x : FI) : FS fis := @Build_FS_of _ (B2R x) _.
-Next Obligation. apply /eqP; apply (generic_format_B2R prec emax x). Qed.
+Next Obligation.
+move=> x; apply/eqP; apply (generic_format_B2R prec emax x).
+Qed.
 
 Lemma FI2FS_spec x : (FI2FS x <> 0 :> R) -> finite x.
 Proof. case x; unfold finite; auto. Qed.
