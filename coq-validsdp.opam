@@ -11,7 +11,8 @@ bug-reports: "https://github.com/validsdp/validsdp/issues"
 license: "LGPL-2.1-or-later"
 
 build: [
-  ["sh" "-c" "./autogen.sh && ./configure"]
+  ["sh" "-c" "./autogen.sh"] {dev}
+  ["sh" "-c" "./configure"]
   [make "-j%{jobs}%"]
 ]
 run-test: [make "-j%{jobs}%" "test"]
@@ -31,7 +32,7 @@ depends: [
   "coq-paramcoq" {>= "1.1.0"}
   "osdp" {>= "1.0"}
   "ocamlfind" {build}
-  "conf-autoconf" {build}
+  "conf-autoconf" {build & dev}
 ]
 synopsis: "ValidSDP"
 description: """
