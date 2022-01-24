@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([libValidSDP], [1.0.0-git])
+AC_INIT([libValidSDP], [1.0.0])
 AC_CONFIG_SRCDIR([cholesky_infnan.v])
 
 AC_DEFUN([AX_VERSION_GE], [AS_VERSION_COMPARE([$1],[$2],[$4],[$3],[$3])])
@@ -17,8 +17,8 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
 AC_MSG_RESULT($coq_version)
-AX_VERSION_GE([$coq_version], 8.11, [],
-  [ AC_MSG_ERROR([must be at least 8.11.]) ])
+AX_VERSION_GE([$coq_version], 8.12, [],
+  [ AC_MSG_ERROR([must be at least 8.12.]) ])
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])

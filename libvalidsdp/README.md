@@ -9,7 +9,7 @@ multivariate inequalities using SDP solvers.
 Dependencies
 ------------
 
-- [Coq](https://coq.inria.fr) version 8.11.x or later
+- [Coq](https://coq.inria.fr) version 8.12.x or later
 - [Bignums](https://github.com/coq/bignums) (Coq version specific)
 - [mathcomp](https://math-comp.github.io/math-comp/) (version 1.12.0 or later)
 - [mathcomp analysis](https://github.com/math-comp/analysis/) (version 0.3.4 or later)

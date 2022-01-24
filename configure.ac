@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([ValidSDP], [1.0.0-git])
+AC_INIT([ValidSDP], [1.0.0])
 AC_CONFIG_SRCDIR([theories/validsdp.v])
 
 AC_DEFUN([AX_VERSION_GE], [AS_VERSION_COMPARE([$1],[$2],[$4],[$3],[$3])])
@@ -17,16 +17,16 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
 AC_MSG_RESULT($coq_version)
-AX_VERSION_GE([$coq_version], 8.11, [],
-  [ AC_MSG_ERROR([must be at least 8.11.]) ])
-AX_VERSION_GE([$coq_version], 8.13, [COQ_VERSION="v813"; LINK_ZARITH=""], [COQ_VERSION="v811"; LINK_ZARITH=" zarith.cmxa"])
+AX_VERSION_GE([$coq_version], 8.12, [],
+  [ AC_MSG_ERROR([must be at least 8.12.]) ])
+AX_VERSION_GE([$coq_version], 8.13, [COQ_VERSION="v813"; LINK_ZARITH=""], [COQ_VERSION="v812"; LINK_ZARITH=" zarith.cmxa"])
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
 
 # Check for libraries
 AC_MSG_CHECKING([for Ltac2])
-# Ltac2 is installed wit Coq 8.11 but in different places
+# Ltac2 is installed wit Coq 8.12 but in different places
 # whether it is compiled with Make or dune
 COQTOP_WHERE=`coqtop -where`
 LTAC2_MAKE="${COQTOP_WHERE}/user-contrib/Ltac2"
@@ -42,7 +42,7 @@ AS_IF([test -d ${LTAC2_DUNE_814}],
 AS_IF([test -n "${LTAC2_CAML_FILES}"],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq >= 8.11])])
+    AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq >= 8.12])])
 AC_SUBST(LTAC2_CAML_FILES)
 AX_VERSION_GE([$coq_version], 8.15, [COQ_VERSION="v815"], [])
 AC_SUBST(COQ_VERSION)
