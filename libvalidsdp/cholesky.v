@@ -256,7 +256,7 @@ Let delta : 'M[R]_n.+1 := (MF2R A) - (Rte^T *m Rte).
 
 Definition Delta : 'M[R]_n.+1 :=
   \matrix_(i, j) (alpha i j * d i * d j
-                  + 4 * eta * (INR n.+2 + maxdiag)).
+                  + 4%Re * eta * (INR n.+2 + maxdiag)).
 
 (** A bunch of lemmas. *)
 Lemma alpha_pos (i j : 'I_n.+1) : 0 <= alpha i j.
@@ -500,7 +500,7 @@ Lemma th_2_3_aux4 (Hn : (INR n.+2 * eps < 1)%Re) : Mabs delta <m: Delta.
 Proof.
 move=> i j; rewrite mxE.
 apply (Rlt_le_trans _ _ _ (th_2_3_aux3 Hn i j)).
-rewrite mxE; apply Rplus_le_compat_r.
+rewrite mxE -RplusE !RmultE; apply Rplus_le_compat_r.
 rewrite /GRing.mul /= 2!Rmult_assoc.
 apply Rmult_le_compat_l; [by apply alpha_pos|].
   by apply Rmult_le_compat; try apply norm2_pos; apply th_2_3_aux1.
@@ -806,7 +806,7 @@ Let dv : 'cV_n.+1 := \col_i (d A i).
 (* begin hide *)
 Lemma decompose_Delta :
   Delta A maxdiag <=m: INR n.+2 * eps *: (dv *m dv^T)
-                       + (4 * eta * (INR n.+2 + maxdiag))
+                       + (4%Re * eta * (INR n.+2 + maxdiag))
                          *: ((\col__ 1) *m (\col__ 1)^T).
 Proof.
 rewrite /Delta /Mle => i j; rewrite !mxE !big_ord_recl !big_ord0 !mxE.

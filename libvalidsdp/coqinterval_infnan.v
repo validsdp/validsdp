@@ -329,7 +329,7 @@ unfold mantissa_bounded, x_bounded; simpl; right; exists (bpow radix2 [n]%bigZ).
   now unfold Rdiv; rewrite Rmult_1_l. }
 apply FLX_format_generic; [now simpl|]; apply generic_format_bpow.
 unfold FLX_exp;
-  (try change (phi 53) with 53%Z); (try change (Int63.to_Z _) with 53%Z);
+  (try change (phi 53) with 53%Z); (try change (Uint63.to_Z _) with 53%Z);
   lia.
 Qed.
 
@@ -400,12 +400,12 @@ case x; auto.
 intros s m e; case s; auto.
 { unfold Bir.mantissa_sign, Bir.ZtoM; simpl.
   unfold BigZ.BigZ.eqb; rewrite BigZ.BigZ.spec_compare; simpl.
-  rewrite Int63.to_Z_0 BigN.BigN.spec_of_pos; simpl.
+  rewrite Uint63.to_Z_0 BigN.BigN.spec_of_pos; simpl.
   unfold Bir.MtoP; rewrite BigN.BigN.spec_of_pos.
   now rewrite [_ (_ e)]Bir.ZtoE_correct. }
 unfold BigIntRadix2.mantissa_sign, BigIntRadix2.ZtoM; simpl.
 unfold BigZ.BigZ.eqb; rewrite BigZ.BigZ.spec_compare; simpl.
-rewrite Int63.to_Z_0 BigN.BigN.spec_of_pos; simpl.
+rewrite Uint63.to_Z_0 BigN.BigN.spec_of_pos; simpl.
 unfold BigIntRadix2.MtoP; rewrite BigN.BigN.spec_of_pos.
 now rewrite [_ (_ e)]BigIntRadix2.ZtoE_correct.
 Qed.
@@ -846,12 +846,12 @@ Definition fieps := Build_FI (mantissa_bounded_bpow (-53)%bigZ).
 
 Lemma fieps_spec :
   (eps (float_infnan_spec.fis coqinterval_infnan) <= FI2FS fieps)%Re.
-Proof. compute; lra. Qed.
+Proof. rewrite /=; compute; lra. Qed.
 
 Definition fieta := Build_FI (mantissa_bounded_bpow (-1075)%bigZ).
 
 Lemma fieta_spec : (eta fis <= FI2FS fieta)%Re.
-Proof. compute; lra. Qed.
+Proof. rewrite /=; compute; lra. Qed.
 
 Definition fiplus_up (x y : FI) : FI := Build_FI (fiplus_proof rnd_UP x y).
 
