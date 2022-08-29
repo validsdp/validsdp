@@ -1,0 +1,2 @@
+From Ltac2 Require Import Ltac2.
+Declare ML Module "@SOSWIT_PLUGIN@".

@@ -732,7 +732,7 @@ Lemma compute_c_aux_correct (A : 'M[FIS fs]_n.+1) maxdiag :
   (0 <= FIS2FS maxdiag) ->
   finite (compute_c_aux_ssr A maxdiag) ->
   (INR n.+2 * eps fs / (1 - INR n.+2 * eps fs) * (\tr (MF2R (MFI2F A)))
-   + 4 * eta fs * INR n.+1 * (2 * INR n.+2 + FIS2FS maxdiag)
+   + 4%Re * eta fs * INR n.+1 * (2%Re * INR n.+2 + FIS2FS maxdiag)
   <= FIS2FS (compute_c_aux_ssr A maxdiag))%R.
 Proof.
 have Pnp2 := pos_INR (n.+2)%N.
@@ -780,13 +780,13 @@ move: (fimult_up_spec Fr); apply Rle_trans; apply Rmult_le_compat.
   { have Frll := fimult_up_spec_fl Frl.
     move: (fimult_up_spec Frll); apply Rle_trans.
     apply Rmult_le_compat; [lra|by apply eta_pos| |by apply fieta_spec].
-    replace 4 with (INR 4); [|by simpl; lra].
+    replace 4%Re with (INR 4); [|by simpl; lra].
     apply float_of_nat_up_spec, (fimult_up_spec_fl Frll). }
   apply float_of_nat_up_spec, (fimult_up_spec_fr Frl). }
 have Frr := fimult_up_spec_fr Fr.
 move: (fiplus_up_spec Frr); apply Rle_trans, Rplus_le_compat_r.
 have Frrl := fiplus_up_spec_fl Frr.
-by change 2 with (INR 2); rewrite -mult_INR; apply float_of_nat_up_spec.
+by change 2%Re with (INR 2); rewrite -mult_INR; apply float_of_nat_up_spec.
 Qed.
 
 Definition compute_c_ssr : 'M[FIS fs]_n.+1 -> option (FIS fs) :=

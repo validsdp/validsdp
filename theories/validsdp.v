@@ -1149,8 +1149,8 @@ have : exists E : 'M_s.+1,
   pose E := (\matrix_(i, j) (T2R pmp'@_(zij i j) / INR (nbij i j))%Re).
   exists E.
   have Pnbij : forall i j, (0 < nbij i j)%N.
-  { move=> i j; rewrite /nbij filter_index_enum; rewrite <-cardE.
-    by apply/card_gt0P; exists (j, i); rewrite /in_mem /=. }
+  { move=> i j; rewrite /nbij; rewrite -cardE.
+    by apply/card_gt0P; exists (j, i); rewrite unfold_in /= eqseqE. }
   have Pr := max_coeff_pos _ : 0%R <= T2R r.
   split.
   { move=> i j; rewrite !mxE Rabs_mult.
@@ -1193,8 +1193,8 @@ have : exists E : 'M_s.+1,
       move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
       apply Rgt_not_eq, Rlt_gt.
       change 0%Re with (INR 0); apply lt_INR.
-      rewrite /nbm filter_index_enum; rewrite <-cardE.
-      by apply/ssrnat.ltP/card_gt0P; exists (j, i); rewrite /in_mem /=. }
+      rewrite /nbm; rewrite -cardE.
+      by apply/ssrnat.ltP/card_gt0P; exists (j, i); rewrite unfold_in eqseqE. }
     by rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 GRing.mul0r. }
   rewrite /p' mxE.
   under eq_bigr do rewrite mxE big_distrl /=.

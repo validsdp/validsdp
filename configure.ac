@@ -45,8 +45,20 @@ AS_IF([test -n "${LTAC2_CAML_FILES}"],
     AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq >= 8.12])])
 AC_SUBST(LTAC2_CAML_FILES)
 AX_VERSION_GE([$coq_version], 8.15, [COQ_VERSION="v815"], [])
+AX_VERSION_GE([$coq_version], 8.16,
+  [COQ_VERSION="v816"; ADD_INCLUDES="no"; SOSWIT_PLUGIN="soswitness:coq-validsdp.plugin";
+   META_FILE="plugins/soswitness/src/META.coq-validsdp";
+   CAMLPKGS="-package coq-core.plugins.ltac2 \
+    -package zarith \
+    -package ocplib-simplex \
+    -package osdp"],
+  [ADD_INCLUDES="yes"; SOSWIT_PLUGIN="soswitness"; META_FILE=""; CAMLPKGS=""])
 AC_SUBST(COQ_VERSION)
 AC_SUBST(LINK_ZARITH)
+AC_SUBST(ADD_INCLUDES)
+AC_SUBST(SOSWIT_PLUGIN)
+AC_SUBST(META_FILE)
+AC_SUBST(CAMLPKGS)
 
 AC_MSG_CHECKING([for Mathcomp])
 AS_IF(
@@ -148,9 +160,9 @@ fi
 AC_SUBST(SDPA_AVAILABLE)
 
 # Create files
-AC_CONFIG_FILES([Makefile _CoqProject])
+AC_CONFIG_FILES([Makefile Makefile.coq.local _CoqProject plugins/soswitness/theories/soswitness_plugin.v])
 AC_OUTPUT
-chmod a-w Makefile _CoqProject
+chmod a-w Makefile Makefile.coq.local _CoqProject plugins/soswitness/theories/soswitness_plugin.v
 
 echo ""
 echo "  Now run 'make && make install' to build and install $PACKAGE_NAME $PACKAGE_VERSION"
