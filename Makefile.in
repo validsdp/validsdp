@@ -46,7 +46,7 @@ $(COQ_MAKEFILE): $(COQ_PROJ) $(MODULES) $(PLUGDIR)/src/soswitness.mlg
 	    -f $< $(MODULES) -o $@ ; \
 	else $(COQBIN)coq_makefile -f $< $(MODULES) -o $@ ; fi
 	# FIXME: This sed hack is fragile (if we do "make -B" for example)
-	sed -e 's/-shared -o $$@ $$</-shared -o $$@@LINK_ZARITH@ ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
+	sed -e 's/-shared -o $$@ $$</-shared -o $$@ ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
 
 clean:
 	-$(COQ_MAKE) clean
