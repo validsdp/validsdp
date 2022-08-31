@@ -142,7 +142,7 @@ elim: n x => [|n IHn] x.
 { by rewrite big_ord_recl big_cons big_ord0 big_nil inord0E. }
 rewrite big_ord_recl big_cons !inord0E -/iota; apply: congr1.
 have->: 1%N :: iota 2 n = map (fun n => addn 1 n) (iota_finset 0 n.+1).
-{ by rewrite /= -iota_addl. }
+{ by rewrite /= -iotaDl. }
 rewrite big_map.
 have->: \sum_(j <- iota_finset 0 n.+1) h (x (inord (1 + j))) =
         \sum_(i <- iota_finset 0 n.+1) h ([ffun j : 'I_n.+1 => x (inord (1 + j))] (inord i)).

@@ -1,0 +1,9 @@
+package "plugin" (
+  directory = "."
+  requires = "coq-core.plugins.ltac coq-core.plugins.ltac2 zarith ocplib-simplex osdp"
+  archive(byte) = "soswitness.cma"
+  archive(native) = "soswitness.cmxa"
+  plugin(byte) = "soswitness.cma"
+  plugin(native) = "soswitness.cmxs"
+)
+directory = "."

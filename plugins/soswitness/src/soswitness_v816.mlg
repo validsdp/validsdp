@@ -3,13 +3,14 @@
 module Tac2ffi = Ltac2_plugin.Tac2ffi
 module Tac2env = Ltac2_plugin.Tac2env
 module Tac2interp = Ltac2_plugin.Tac2interp
+module Tac2expr = Ltac2_plugin.Tac2expr
 
 module Value = Tac2ffi
 open Value
 
 (* Helper functions *)
 
-let pname s = { Tac2expr.mltac_plugin = "soswitness"; mltac_tactic = s }
+let pname s = { Tac2expr.mltac_plugin = "coq-core.plugins.soswitness"; mltac_tactic = s }
 
 let define_primitive name arity f =
   Tac2env.define_primitive (pname name) (mk_closure arity f)
@@ -464,7 +465,7 @@ let soswitness_opts ?(intro=false) c c' opts =
   | (Tac2interp.LtacError _) as e -> Proofview.tclZERO e
   | e ->
      let msg = "Anomaly: " ^ (Printexc.to_string e) in
-     Tacticals.New.tclFAIL 999 Pp.(str msg)
+     Tacticals.tclFAILn 999 Pp.(str msg)
 
 (** constr -> constr -> constr list -> constr * constr *)
 let () = define3 "soswitness" constr constr (list constr) begin fun c c' opts ->

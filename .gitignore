@@ -48,6 +48,7 @@ tramp
 .lia.cache
 Makefile.coq
 Makefile.coq.conf
+Makefile.coq.local
 .Makefile.coq.d
 
 ### OCaml ###
@@ -98,6 +99,7 @@ setup.log
 /plugins/soswitness/src/soswitness.ml4.d
 /plugins/soswitness/src/soswitness.mlg
 /plugins/soswitness/src/soswitness.mlg.d
+/plugins/soswitness/theories/soswitness_plugin.v
 *.mllib.d
 *.log
 csdp.cache

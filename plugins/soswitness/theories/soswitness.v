@@ -18,7 +18,7 @@ Ltac2 Type exn ::= [ Parse_error_arg1 (* expecting type *) (constr)
                    | Parse_error_arg2 (* expecting type *) (constr)
                    | No_witness | Constant_input].
 
-Declare ML Module "soswitness".
+Require Export soswitness_plugin.
 
 (* [soswitness q [p1;...; pn] options] calls SDP solvers to retrieve
    witnesses for p1 >= 0 -> ... -> pn >= 0 -> q >= 0. It returns [(z, Q)]

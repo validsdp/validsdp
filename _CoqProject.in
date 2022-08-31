@@ -5,8 +5,10 @@
 -R test-suite @PACKAGE_NAME@
 -R theories @PACKAGE_NAME@
 
+@META_FILE@
 plugins/soswitness/src/soswitness.mlg
 plugins/soswitness/src/soswitness.mllib
+plugins/soswitness/theories/soswitness_plugin.v
 plugins/soswitness/theories/soswitness.v
 plugins/soswitness/test-suite/soswitnesstac.v
 # OPTIONAL: plugins/soswitness/test-suite/soswitnesstac_sdpa.v

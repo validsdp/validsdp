@@ -1,3 +1,5 @@
+CAMLPKGS := @CAMLPKGS@
+
 depend.dot:: $(VFILES)
 	(echo "digraph ValidSDP_deps {" ; \
 	echo "node [shape=ellipse, style=filled, URL=\"ValidSDP.\N.html\", color=white];"; \

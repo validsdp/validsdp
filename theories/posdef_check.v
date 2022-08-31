@@ -236,12 +236,12 @@ Time posdef_check.
 Qed.
 
 From Bignums Require Import BigZ BigN.
-Require Import Int63.
+Require Import Uint63.
 Require Import Floats.
 Require Import Bool.
 Require Import libValidSDP.primitive_floats_infnan.
 
-Definition BigZ2int63 (n : BigZ.t_) : option (bool * Int63.int) :=
+Definition BigZ2int63 (n : BigZ.t_) : option (bool * Uint63.int) :=
   match n with
   | BigZ.Pos (BigN.N0 n) => Some (false, n)
   | BigZ.Neg (BigN.N0 n) => Some (true, n)
@@ -263,13 +263,13 @@ Lemma Bir_mantissa_sign_correct n :
   match BigZ2int63 n with
   | None => True
   | Some (sn, n') =>
-    if Int63.eqb n' 0%int63 then Bir.mantissa_sign n = Specific_sig.Mzero
+    if Uint63.eqb n' 0%int63 then Bir.mantissa_sign n = Specific_sig.Mzero
     else Bir.mantissa_sign n = Specific_sig.Mnumber sn (BigN.N0 n')
   end.
 Proof.
   unfold BigZ2int63.
   destruct n, t; auto;
-    case_eq (Int63.eqb t 0%int63);
+    case_eq (Uint63.eqb t 0%int63);
     intro Ht.
   - apply eqb_correct in Ht.
     now rewrite Ht.
@@ -280,10 +280,10 @@ Proof.
     + apply not_true_is_false.
       intro H.
       apply Ht.
-      cbv in H.
+      vm_compute in H.
       revert H.
-      case_eq (t ?= 0)%int63 ; try discriminate.
-      rewrite Int63.compare_spec.
+      case_eq (t ?= 0)%uint63 ; try discriminate.
+      rewrite Uint63.compare_spec.
       rewrite Z.compare_eq_iff.
       intros H _.
       now apply to_Z_inj.
@@ -296,34 +296,34 @@ Proof.
     + apply not_true_is_false.
       intro H.
       apply Ht.
-      cbv in H.
+      vm_compute in H.
       revert H.
-      case_eq (0 ?= t)%int63; try discriminate.
-      * rewrite Int63.compare_spec.
+      case_eq (0 ?= t)%uint63; try discriminate.
+      * rewrite Uint63.compare_spec.
         rewrite Z.compare_eq_iff.
         intros H _.
         now apply to_Z_inj.
-      * rewrite Int63.compare_spec.
+      * rewrite Uint63.compare_spec.
         rewrite Z.compare_gt_iff.
         intro Hl.
         exfalso.
         revert Hl.
         apply Zle_not_lt.
-        change (Int63.to_Z 0) with Z0.
+        change (Uint63.to_Z 0) with Z0.
         apply to_Z_bounded.
 Qed.
 
 Definition canonical_mantissaPrim (m : int) (se : bool) (e : int) :=
-  (~~se || Int63.leb e 1074)%int63  (* emin <= e *)
-  && (Int63.ltb m 9007199254740992 (*2^53*))%int63
-  && (se && (Int63.leb 1074 (*-emin*) e)%int63
-      || (Int63.leb 4503599627370496 (*2^52*) m)%int63).
+  (~~se || Uint63.leb e 1074)%int63  (* emin <= e *)
+  && (Uint63.ltb m 9007199254740992 (*2^53*))%int63
+  && (se && (Uint63.leb 1074 (*-emin*) e)%int63
+      || (Uint63.leb 4503599627370496 (*2^52*) m)%int63).
 
 Lemma canonical_mantissaPrim_correct m se e :
-  match Int63.to_Z m with
+  match Uint63.to_Z m with
   | Z0 => True
   | Z.pos mp =>
-    let ez := if se then Z.opp (Int63.to_Z e) else Int63.to_Z e in
+    let ez := if se then Z.opp (Uint63.to_Z e) else Uint63.to_Z e in
     canonical_mantissaPrim m se e -> canonical_mantissa prec emax mp ez
   | Z.neg _ => False
   end.
@@ -335,10 +335,10 @@ case_eq (to_Z m) => [ |mp|mp] Hm; [exact I| | ].
   { rewrite /ez; move: He; case se => /=.
     { rewrite /emin /emax /prec /= => He.
       rewrite -Pos2Z.opp_pos -Z.opp_le_mono.
-      by move: He; rewrite /is_true Int63.leb_spec. }
+      by move: He; rewrite /is_true Uint63.leb_spec. }
     move=> _; apply (Z.le_trans _ 0) => //; apply to_Z_bounded. }
   have Hubmp : IZR (Z.pos mp) < bpow radix2 prec.
-  { move: Hubm; rewrite /is_true Int63.ltb_spec Hm /prec /= => Hmp.
+  { move: Hubm; rewrite /is_true Uint63.ltb_spec Hm /prec /= => Hmp.
     by apply IZR_lt. }
   have Hubmp' : (Z.le (mag radix2 (IZR (Z.pos mp))) prec).
   { by apply mag_le_bpow => //; rewrite Rabs_pos_eq => //; apply IZR_le. }
@@ -346,8 +346,8 @@ case_eq (to_Z m) => [ |mp|mp] Hm; [exact I| | ].
   { move: Hlbm => [] Hlbm; [left|right].
     { apply Z.le_antisymm => //; rewrite /ez; move: Hlbm; case se => //= He'.
       rewrite /emin /emax /prec /= -Pos2Z.opp_pos -Z.opp_le_mono.
-      by move: He'; rewrite /is_true Int63.leb_spec. }
-    move: Hlbm; rewrite /is_true Int63.leb_spec Hm => Hlbm.
+      by move: He'; rewrite /is_true Uint63.leb_spec. }
+    move: Hlbm; rewrite /is_true Uint63.leb_spec Hm => Hlbm.
     by rewrite /prec /=; apply IZR_le. }
   rewrite /canonical_mantissa /fexp /FLT_exp -/emin; apply Zeq_bool_true.
   rewrite Digits.Zpos_digits2_pos Zdigits_mag //.
@@ -361,13 +361,13 @@ move: (to_Z_bounded m); lia.
 Qed.
 
 Definition boundedPrim (m : int) (se : bool) (e : int) :=
-  (se || (Int63.leb e (1024 - 53))%int63) && (canonical_mantissaPrim m se e).
+  (se || (Uint63.leb e (1024 - 53))%int63) && (canonical_mantissaPrim m se e).
 
 Lemma boundedPrim_correct m se e :
-  match Int63.to_Z m with
+  match Uint63.to_Z m with
   | Z0 => True
   | Z.pos mp =>
-    let ez := if se then Z.opp (Int63.to_Z e) else Int63.to_Z e in
+    let ez := if se then Z.opp (Uint63.to_Z e) else Uint63.to_Z e in
     boundedPrim m se e -> bounded prec emax mp ez
   | Z.neg _ => False
   end.
@@ -379,7 +379,7 @@ rewrite /boundedPrim /bounded => cmc /andP [] /orP He cm.
 rewrite (cmc cm) /= /ez.
 rewrite /is_true Z.leb_le; move: He; case se => He.
 { move: (to_Z_bounded e); lia. }
-by case He => //; rewrite /is_true Int63.leb_spec.
+by case He => //; rewrite /is_true Uint63.leb_spec.
 Qed.
 
 Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=
@@ -388,11 +388,11 @@ Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=
   | Float m e =>
     match (BigZ2int63 m, BigZ2int63 e) with
     | (Some (sm', m'), Some (se', e')) =>
-      if (Int63.eqb m' 0)%int63 then zero else
+      if (Uint63.eqb m' 0)%int63 then zero else
         if boundedPrim m' se' e' then
-          let f := of_int63 m' in
+          let f := of_uint63 m' in
           let f := if sm' then (-f)%float else f in
-          let e'' := if se' then (Int63.of_Z shift - e')%int63 else (Int63.of_Z shift + e')%int63 in
+          let e'' := if se' then (Uint63.of_Z shift - e')%uint63 else (Uint63.of_Z shift + e')%uint63 in
           ldshiftexp f e''
         else nan
     | _ => nan
@@ -420,21 +420,21 @@ now unfold Prim2B, B2Prim, Prim2SF; simpl.
 Qed.
 
 Lemma of_int63_exact m :
-  Z.le (Zdigits radix2 (Int63.to_Z m)) prec ->
-  B2R (Prim2B (of_int63 m))
-  = IZR (Int63.to_Z m).
+  Z.le (Zdigits radix2 (Uint63.to_Z m)) prec ->
+  B2R (Prim2B (of_uint63 m))
+  = IZR (Uint63.to_Z m).
 Proof.
 intros Hm.
 assert (Hprec0 : Z.lt 0 prec); [now simpl| ].
 assert (Hprec : Z.lt prec emax); [now simpl| ].
 rewrite -(FF2R_SF2FF_B2SF) B2SF_Prim2B.
-rewrite of_int63_spec binary_normalize_equiv FF2R_SF2FF_B2SF.
+rewrite of_uint63_spec binary_normalize_equiv FF2R_SF2FF_B2SF.
 pose (bm := binary_normalize _ _ Hprec0 Hprec mode_NE (to_Z m)
                              0 false).
 assert (Hb := binary_normalize_correct _ _ PrimFloat.Hprec Hmax mode_NE (to_Z m) 0 false).
 pose (r := F2R ({| Fnum := to_Z m; Fexp := 0 |} : Defs.float radix2)).
 assert (Hr : Generic_fmt.round radix2 (fexp prec emax) ZnearestE r = r).
-{ case (Z.eq_dec (Int63.to_Z m) 0); intro Hmz.
+{ case (Z.eq_dec (Uint63.to_Z m) 0); intro Hmz.
   { now unfold r, F2R; rewrite Hmz; simpl; rewrite Rmult_0_l round_0. }
   apply round_generic; [now apply valid_rnd_N| ].
   apply generic_format_F2R; intros _; unfold F2R; simpl; rewrite Rmult_1_r.
@@ -444,7 +444,7 @@ revert Hb; simpl; rewrite Hr ifT.
 { now intros (Hr', _); rewrite Hr'; unfold r, F2R; simpl; rewrite Rmult_1_r. }
 apply Rlt_bool_true; unfold r, F2R; simpl; rewrite Rmult_1_r.
 change (IZR (Z.pow_pos 2 _)) with (bpow radix2 1024).
-case (Z.eq_dec (Int63.to_Z m) 0); intro Hmz.
+case (Z.eq_dec (Uint63.to_Z m) 0); intro Hmz.
 { rewrite Hmz Rabs_R0; apply bpow_gt_0. }
 apply (Rlt_le_trans _ _ _ (bpow_mag_gt radix2 _)), bpow_le.
 rewrite -Zdigits_mag; unfold prec in Hm; lia.
@@ -465,7 +465,7 @@ case eqbP; intro Hm'.
 { now intros Hm _ _; rewrite Hm; simpl. }
 intros Hm He; rewrite Hm; unfold Bir.EtoZ.
 set (m'' := if sm then _ else _).
-set (e'' := if se then (_ - _)%int63 else _).
+set (e'' := if se then (_ - _)%uint63 else _).
 move: (boundedPrim_correct m' se e').
 case_eq (to_Z m');
   [now auto |intros m'p Hm'p|
@@ -502,19 +502,19 @@ unfold FtoR.
 set (m''' := if sm then _ else _).
 assert (Hm''' : B2R f = IZR m''').
 { unfold f, m'', m''', Bir.MtoP, BigN.to_Z.
-  unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Int63Cyclic.ops, Cyclic63.int_ops.
+  unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Uint63Cyclic.ops, Cyclic63.int_ops.
   assert (Hdig_m'p : Z.le (Zdigits radix2 (Z.pos m'p)) prec).
   { revert Hb; unfold bounded, canonical_mantissa.
     move/andP => [Heq _]; apply Zeq_bool_eq in Heq; revert Heq.
     unfold fexp; rewrite Zpos_digits2_pos; lia. }
   case sm.
-  { rewrite <-(B2Prim_Prim2B (of_int63 m')).
+  { rewrite <-(B2Prim_Prim2B (of_uint63 m')).
     rewrite opp_equiv.
-    now rewrite B2R_Bopp B2R_Prim2B_B2Prim of_int63_exact Hm'p. }
-  now rewrite of_int63_exact Hm'p. }
+    now rewrite B2R_Bopp B2R_Prim2B_B2Prim of_int63_exact /= Hm'p. }
+  now rewrite of_int63_exact /= Hm'p. }
 rewrite Hm'''; unfold m''', e''', Bir.MtoP, BigN.to_Z.
-unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Int63Cyclic.ops, Cyclic63.int_ops.
-rewrite Hm'p.
+unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Uint63Cyclic.ops, Cyclic63.int_ops.
+rewrite /= Hm'p.
 clear m''' Hm'''; set (m''' := if sm then _ else _).
 assert (He''shift : Z.sub (to_Z e'') shift = e).
 { assert (He' : Z.le (to_Z e') (Z.opp emin)).
@@ -525,14 +525,14 @@ assert (He''shift : Z.sub (to_Z e'') shift = e).
     rewrite /SpecFloat.bounded => /andP [] _ /Zle_bool_imp_le.
     unfold emin, emax, prec; lia. }
   unfold e'', e; case se.
-  { rewrite Int63.sub_spec Zmod_small; [ |split].
+  { rewrite Uint63.sub_spec Zmod_small; [ |split].
     { rewrite of_Z_spec Zmod_small; [ring|now compute]. }
     { rewrite of_Z_spec Zmod_small; [ |now compute].
       revert He'; unfold emin, emax, prec, shift; lia. }
     apply (Z.le_lt_trans _ shift); [ |now simpl].
     rewrite of_Z_spec Zmod_small; [ |now compute].
     assert (H := to_Z_bounded e'); lia. }
-  rewrite Int63.add_spec Zmod_small; [ |split].
+  rewrite Uint63.add_spec Zmod_small; [ |split].
   { rewrite of_Z_spec Zmod_small; [ring|now compute]. }
   { rewrite of_Z_spec Zmod_small; [ |now compute].
     rewrite /shift; assert (H := to_Z_bounded e'); lia. }
