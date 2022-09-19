@@ -35,10 +35,8 @@ jobs:
             opam config list; opam repo list; opam list
             echo NJOBS=${NJOBS}
           endGroup
-          startGroup Install APT dependencies
+          startGroup Update APT cache
             sudo apt-get update -y -q
-            travis_retry opam depext -i -y conf-gmp.1 conf-csdp.1 # no conf-sdpa.1
-            sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
           endGroup
           startGroup Update opam cache
             opam update -y
@@ -55,7 +53,7 @@ jobs:
             opam list
           endGroup
           startGroup Build coq-validsdp dependencies
-            opam install -y -j ${NJOBS} coq-validsdp --deps-only
+            opam install --confirm-level=unsafe-yes -j ${NJOBS} coq-validsdp --deps-only
             opam list
           endGroup
           startGroup Build coq-validsdp
@@ -65,6 +63,7 @@ jobs:
           startGroup Uninstallation test
             opam remove -y coq-validsdp
             opam remove -y coq-libvalidsdp
+            sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* # optional
           endGroup
 
 # See also:
