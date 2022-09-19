@@ -61,7 +61,7 @@ distclean: clean
 	$(RM) $(COQ_MAKEFILE) $(COQ_MAKEFILE).conf
 	$(RM) $(PLUGDIR)/theories/soswitness.v
 
-FILES = AUTHORS LICENSE Makefile.in Makefile.coq.local _CoqProject.in\
+FILES = AUTHORS LICENSE Makefile.in Makefile.coq.local.in _CoqProject.in\
   README.md coq-validsdp.opam install_sdpa_on_debian_10.sh
 
 # This must be disabled to cope with the distributed (stable) tarballs
