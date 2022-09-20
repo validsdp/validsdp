@@ -16,4 +16,7 @@ zulp.v
 coqinterval_infnan.v
 primitive_floats_infnan.v
 
+-arg -w -arg -notation-overridden
+-arg -w -arg -ambiguous-paths
+
 COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R . @PACKAGE_NAME@"

@@ -23,7 +23,7 @@ Require Import float_spec.
 
 Require Import float_spec.
 
-Obligation Tactic := idtac.  (* no automatic intro *)
+#[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
 Open Scope R_scope.
 

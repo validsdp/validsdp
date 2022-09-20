@@ -25,7 +25,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Obligation Tactic := idtac.  (* no automatic intro *)
+#[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
 Module Bir := BigIntRadix2.
 
@@ -188,7 +188,7 @@ split => H.
   move/(_ H) in H2.
   rewrite !BigZ.spec_div !bigZulp_spec in H1 *.
   apply: (Z.lt_le_trans _ _ _ H1); exact: Zaux.Zpower_le. }
-have {H} [|[r H1 [f [Hf1 Hf2]]]] := H; first by rewrite real_FtoX_toR.
+have {H} [|[r H1 [f Hf1 Hf2]]] := H; first by rewrite real_FtoX_toR.
 rewrite /signif_digits.
 set f1 := Fnum f in Hf2.
 rewrite Hf1 in H1.
@@ -249,7 +249,7 @@ have Hlte : (bpow radix2 [e]%bigZ < bpow radix2 (Fexp f))%Re.
   apply.
   by apply/Rabs_pos_lt; exact: IZR_neq. }
 move/lt_bpow in Hlte.
-have {Hmf} Hmf : ([m]%bigZ = f1 * 2 ^ (Fexp f - [e]%bigZ))%Z.
+have {}Hmf : ([m]%bigZ = f1 * 2 ^ (Fexp f - [e]%bigZ))%Z.
 { clear - Hlte Hmf.
   rewrite /F2R - /f1 in Hmf.
   move/(congr1 (Rmult ^~ (bpow radix2 (- [e]%bigZ)))) in Hmf.

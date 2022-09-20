@@ -26,7 +26,7 @@ Require flx64.
 Require Import float_spec.
 Require flx64.
 
-Obligation Tactic := idtac.  (* no automatic intro *)
+#[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
 Open Scope R_scope.
 

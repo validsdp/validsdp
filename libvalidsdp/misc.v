@@ -6,7 +6,7 @@ Require Import Flocq.Core.Raux.
 Require Import Psatz.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-From mathcomp Require Import fintype finfun ssralg matrix bigop.
+From mathcomp Require Import fintype finfun ssralg matrix bigop tuple.
 From mathcomp Require Import ssrnum ssrint rat.
 
 Require Import mathcomp.analysis.Rstruct.
@@ -109,8 +109,6 @@ Proof. move => *; lra. Qed.
 Section Big_misc.
 
 Ltac simpl_re := rewrite /GRing.add /GRing.zero /=.
-
-From mathcomp Require Import tuple.
 
 (** If something exists for each item, we can build an array. *)
 Lemma ffun_exists n d P :
