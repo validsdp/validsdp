@@ -50,6 +50,7 @@ Makefile.coq
 Makefile.coq.conf
 Makefile.coq.local
 .Makefile.coq.d
+libvalidsdp/Makefile
 
 ### OCaml ###
 *.annot
