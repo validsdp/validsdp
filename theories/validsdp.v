@@ -796,7 +796,7 @@ Class poly_sub_of polyT := poly_sub_op : polyT -> polyT -> polyT.
 Class poly_mul_of polyT := poly_mul_op : polyT -> polyT -> polyT.
 
 Notation map_mx2_of B :=
-  (forall {T T'} {m n : nat}, map_mx_of T T' (B T m n) (B T' m n)) (only parsing).
+  (forall T T' (m n : nat), map_mx_of T T' (B T m n) (B T' m n)) (only parsing).
 
 (** ** Part 1: Generic programs *)
 
@@ -1190,7 +1190,7 @@ have : exists E : 'M_s.+1,
   rewrite -{1}(GRing.addr0 (T2R _)); f_equal.
   { rewrite GRing.mulrC -GRing.mulrA; case_eq (m \in msupp p).
     { move=> Hm; move: (check_base_correct Hbase Hm).
-      move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
+      move=> [i [j {}Hm]]; rewrite /GRing.mul /=; field.
       apply Rgt_not_eq, Rlt_gt.
       change 0%Re with (INR 0); apply lt_INR.
       rewrite /nbm; rewrite -cardE.
