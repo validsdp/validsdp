@@ -19,9 +19,7 @@ Require Export bounded.
 Set Implicit Arguments.
 Unset Strict Implicit.
 
-Show Obligation Tactic.
-
-Obligation Tactic := idtac.  (* no automatic intro *)
+#[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
 Open Scope R_scope.
 

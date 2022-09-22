@@ -796,7 +796,7 @@ Class poly_sub_of polyT := poly_sub_op : polyT -> polyT -> polyT.
 Class poly_mul_of polyT := poly_mul_op : polyT -> polyT -> polyT.
 
 Notation map_mx2_of B :=
-  (forall {T T'} {m n : nat}, map_mx_of T T' (B T m n) (B T' m n)) (only parsing).
+  (forall T T' (m n : nat), map_mx_of T T' (B T m n) (B T' m n)) (only parsing).
 
 (** ** Part 1: Generic programs *)
 
@@ -1190,7 +1190,7 @@ have : exists E : 'M_s.+1,
   rewrite -{1}(GRing.addr0 (T2R _)); f_equal.
   { rewrite GRing.mulrC -GRing.mulrA; case_eq (m \in msupp p).
     { move=> Hm; move: (check_base_correct Hbase Hm).
-      move=> [i [j {Hm}Hm]]; rewrite /GRing.mul /=; field.
+      move=> [i [j {}Hm]]; rewrite /GRing.mul /=; field.
       apply Rgt_not_eq, Rlt_gt.
       change 0%Re with (INR 0); apply lt_INR.
       rewrite /nbm; rewrite -cardE.
@@ -1431,6 +1431,7 @@ Definition eqF (a b : F.type) := F.toX a = F.toX b.
 Definition eqFI (a b : FI) := F.toX a = F.toX b.
 Definition eqFIS (a b : FIS coqinterval_round_up_infnan) := F.toX a = F.toX b.
 
+#[global]
 Instance FIS_rat_bigQ : refines (eqFIS ==> r_ratBigQ) FIS2rat FIS2bigQ.
 Proof.
 ref_abstr => a1 a2 ref_a.
@@ -1454,6 +1455,7 @@ Definition id1 {T} (x : T) := x.
 
 Definition r_QbigQ := fun_hrel BigQ.to_Q.
 
+#[global]
 Instance bigQ2ratK : refines (eq ==>  BigQ.eq) (rat2bigQ \o bigQ2rat) id.
 Proof.
 rewrite refinesE => x _ <- /=.
@@ -1521,7 +1523,7 @@ apply/idP/idP.
   by rewrite -{}H1 -{}HeqF. }
 Qed.
 
-Instance : refines (eqF ==> eqFI) F2FI F2FI.
+#[global] Instance : refines (eqF ==> eqFI) F2FI F2FI.
 rewrite refinesE => f f' ref_f.
 rewrite /F2FI /eqFI /=.
 rewrite /eqF in ref_f.
@@ -1532,7 +1534,7 @@ rewrite /= (eqF_signif_digits ref_f).
 by case: ifP.
 Qed.
 
-Instance : refines (BigQ.eq ==> eqF) bigQ2F' bigQ2F'.
+#[global] Instance : refines (BigQ.eq ==> eqF) bigQ2F' bigQ2F'.
 Proof.
 Opaque F.div.
 rewrite refinesE => a b /BigQ.eqb_eq; rewrite BigQ.spec_eq_bool.
@@ -1575,7 +1577,7 @@ case=>->; rewrite Z2Pos.inj_iff; [by move->| |];
 Transparent F.div.
 Qed.
 
-Instance : refines (r_ratBigQ ==> eqFIS) rat2FIS bigQ2FIS.
+#[global] Instance : refines (r_ratBigQ ==> eqFIS) rat2FIS bigQ2FIS.
 Proof.
 rewrite /rat2FIS .
 rewrite refinesE => x x' ref_x /=.

@@ -19,4 +19,7 @@ theories/iteri_ord.v
 theories/posdef_check.v
 theories/validsdp.v
 
+-arg -w -arg -notation-overridden
+-arg -w -arg -ambiguous-paths
+
 COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R theories @PACKAGE_NAME@"

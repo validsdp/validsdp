@@ -22,7 +22,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Obligation Tactic := idtac.  (* no automatic intro *)
+#[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
 Open Scope R_scope.
 Open Scope ring_scope.

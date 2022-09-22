@@ -21,7 +21,7 @@ Require Import Flocq.IEEE754.BinarySingleNaN.
 
 Require Import float_spec binary64 float_infnan_spec.
 
-Obligation Tactic := idtac.  (* no automatic intro *)
+#[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
 Open Scope R_scope.
 

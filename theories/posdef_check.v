@@ -459,8 +459,8 @@ unfold BigZFloat2Prim, F.toX, FtoX, F.toF.
 assert (Hm := Bir_mantissa_sign_correct m).
 assert (He := BigZ2int63_correct e).
 revert Hm He.
-destruct (BigZ2int63 m) as [(sm, m')|p]; [ |discriminate];
-  destruct (BigZ2int63 e) as [(se, e')|p']; [ |discriminate].
+destruct (BigZ2int63 m) as [(sm, m')|]; [ |discriminate];
+  destruct (BigZ2int63 e) as [(se, e')|]; [ |discriminate].
 case eqbP; intro Hm'.
 { now intros Hm _ _; rewrite Hm; simpl. }
 intros Hm He; rewrite Hm; unfold Bir.EtoZ.

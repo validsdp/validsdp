@@ -882,7 +882,7 @@ try (apply corollary_2_4_with_c_upper_bound with
 { by apply compute_c_correct. }
 have Hfat : forall i, finite (At i i).
 { move=> i; move: (cholesky_spec_correct (cholesky_correct At)).
-  elim=> _ Hs; move: (Hs i); rewrite mxE /cholesky_ssr => {Hs} Hs.
+  elim=> _ Hs; move: (Hs i); rewrite mxE /cholesky_ssr => {}Hs.
   move: (HfRt i); rewrite /Rt Hs /ytildes_infnan => H.
   move: (fisqrt_spec_f1 H); apply stilde_infnan_fc. }
 split; move=> i; [move=> j Hij| ].
@@ -1049,7 +1049,7 @@ elim: n1 k {ha3} a {hb3} b c c' {Ea'} a'0 {Eb'} b'0 ref_c => [ |n' IH] k a b c c
 { by rewrite (ord_1_0 k) /=. }
 case Ea'0 : a'0 => [//|a'00 a'01].
 case Eb'0 : b'0 => [//|b'00 b'01] ha1 hb1 ha3 hb3.
-case k => {k} k Hk.
+case k => {}k Hk.
 case: k Hk => [ |k Hk] //=; set cc := (c' + - _)%C.
 rewrite ltnS in Hk.
 rewrite ffunE.
