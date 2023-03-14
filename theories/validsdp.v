@@ -90,7 +90,7 @@ Lemma bigQ_of_p_real_cst_correct c :
   bigQ2R (bigQ_of_p_real_cst c) = interp_p_real_cst c.
 Proof.
 have IQRp : forall p,
-  Q2R [BigQ.Qz (BigZ.Pos (BigN.of_pos p))]%bigQ = IPR p.
+  Q2R (BigQ.to_Q (BigQ.Qz (BigZ.Pos (BigN.of_pos p)))) = IPR p.
 { by move=> p; rewrite /Q2R /= BigN.spec_of_pos /= Rsimpl. }
 elim c.
 { by rewrite /bigQ2R /Q2R /= /Rdiv Rmult_0_l. }
@@ -104,7 +104,7 @@ elim c.
   by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl. }
 { move=> p Hp; rewrite /= -Hp /bigQ2R -Q2R_opp; apply Q2R_Qeq, BigQ.spec_opp. }
 move=> p; rewrite /bigQ2R /interp_p_real_cst -IQRp -Q2R_inv.
-{ apply Q2R_Qeq; rewrite -(Qmult_1_l (Qinv _)) -/([1]%bigQ).
+{ apply Q2R_Qeq; rewrite -(Qmult_1_l (Qinv _)) -/(BigQ.to_Q 1).
   by rewrite -BigQ.spec_inv -BigQ.spec_mul. }
 by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl.
 Qed.
@@ -1283,7 +1283,7 @@ Definition bigZZ2Q (m : bigZ) (e : bigZ) :=
   end.
 
 Lemma bigZZ2Q_correct m e :
-  Q2R [bigZZ2Q m e]%bigQ = IZR [m]%bigZ * bpow radix2 [e]%bigZ.
+  Q2R (BigQ.to_Q (bigZZ2Q m e)) = IZR (BigZ.to_Z m) * bpow radix2 (BigZ.to_Z e).
 Proof.
 case: m => m; case: e => e.
 { rewrite /= BigN.spec_shiftl_pow2 /Q2R mult_IZR Rcomplements.Rdiv_1.
@@ -1292,14 +1292,14 @@ case: m => m; case: e => e.
 { rewrite /= ifF /Q2R /=; last exact/BigN.eqb_neq/BigN.shiftl_eq_0_iff.
   rewrite BigN.spec_shiftl_pow2 /=.
   rewrite bpow_opp -IZR_Zpower; last exact: BigN.spec_pos.
-  move: (Zpower_gt_0 radix2 [e]%bigN (BigN.spec_pos _)); simpl.
+  move: (Zpower_gt_0 radix2 (BigN.to_Z e) (BigN.spec_pos _)); simpl.
   by case: Zpower =>// p Hp. }
 { rewrite /= BigN.spec_shiftl_pow2 /= -IZR_Zpower; last exact: BigN.spec_pos.
   by rewrite /Q2R /= Zopp_mult_distr_l mult_IZR Rcomplements.Rdiv_1. }
 { rewrite /= ifF /Q2R /=; last exact/BigN.eqb_neq/BigN.shiftl_eq_0_iff.
   rewrite BigN.spec_shiftl_pow2 /=.
   rewrite bpow_opp -IZR_Zpower; last exact: BigN.spec_pos.
-  move: (Zpower_gt_0 radix2 [e]%bigN (BigN.spec_pos _)); simpl.
+  move: (Zpower_gt_0 radix2 (BigN.to_Z e) (BigN.spec_pos _)); simpl.
   by case: Zpower =>// p Hp. }
 Qed.
 
@@ -1340,7 +1340,8 @@ case: f => [//|m e].
 by move/signif_digits_correct; rewrite /F2FI_val =>->.
 Qed.
 
-Lemma BigZ_Pos_NofZ n : [BigZ.Pos (BigN.N_of_Z n)]%bigZ = if (0 <=? n)%coq_Z then n else Z0.
+Lemma BigZ_Pos_NofZ n :
+  BigZ.to_Z (BigZ.Pos (BigN.N_of_Z n)) = if (0 <=? n)%coq_Z then n else Z0.
 Proof. by rewrite -[RHS](BigZ.spec_of_Z); case: n. Qed.
 
 Lemma rat2FIS_correct r :
@@ -1361,7 +1362,7 @@ have Hd: (0 < int2Z d)%coq_Z.
 { by move: (denq_gt0 r); rewrite -/d -int2Z_lt /= /is_true Z.ltb_lt. }
 have Hd' := Z.lt_le_incl _ _ Hd.
 set nr := BigQ.red _.
-move: (Qeq_refl [nr]%bigQ).
+move: (Qeq_refl (BigQ.to_Q nr)).
 rewrite {2}BigQ.strong_spec_red Qred_correct /Qeq /=.
 rewrite ifF /=; last first.
 { rewrite BigN.spec_eqb !BigN.spec_N_of_Z //=; apply/negP.
@@ -1446,7 +1447,7 @@ by rewrite real_FtoX_toR in ref_b.
 move/(congr1 proj_val) in ref_b.
 rewrite !toR_Float in ref_b.
 rewrite /fun_hrel /bigQ2rat unlock /bigQ2rat_def.
-suff->: Qred [bigZZ2Q m' e']%bigQ = Qred [bigZZ2Q m e]%bigQ by [].
+suff->: Qred (BigQ.to_Q (bigZZ2Q m' e')) = Qred (BigQ.to_Q (bigZZ2Q m e)) by [].
 apply: Qred_complete; apply: Qeq_Q2R.
 by rewrite !bigZZ2Q_correct.
 Qed.
@@ -1469,7 +1470,7 @@ rewrite /rat2bigQ /= ifF; last first.
   by rewrite -[Z0]/(int2Z 0) int2Z_eq denq_eq0. }
 rewrite BigZ.spec_of_Z BigN.BigN.spec_N_of_Z; [|exact: int2Z_den_ge0].
 rewrite /bigQ2rat unlock /bigQ2rat_def /=.
-case: [x]%bigQ => n d.
+case: (BigQ.to_Q x) => n d.
 rewrite Z2int_Qred.
 rewrite /Qeq /=.
 apply: Z2int_inj.
@@ -1544,16 +1545,16 @@ pose m := fun x => match BigQ.red x with
                     | (m # n)%bigQ => (m, n)
                   end.
 rewrite -/(m a) -/(m b).
-pose f := fun (mn : bigZ * bigN) => let (m, n) := mn in ([m]%bigZ, [n]%bigN).
+pose f := fun (mn : bigZ * bigN) => let (m, n) := mn in (BigZ.to_Z m, BigN.to_Z n).
 suff H : f (m a) = f (m b).
 { move: H; rewrite /f; case (m a), (m b); case=> H1 H2.
   rewrite /eqF !F.div_correct.
   do 4 rewrite real_FtoX_toR ?toR_Float=>//.
   by rewrite H1 /= H2. }
 rewrite /f /m.
-have Hred: Qred [a]%bigQ = Qred [b]%bigQ.
+have Hred: Qred (BigQ.to_Q a) = Qred (BigQ.to_Q b).
 { by apply Qred_complete, Qeq_bool_iff. }
-have H: [BigQ.red a]%bigQ = [BigQ.red b]%bigQ.
+have H: BigQ.to_Q (BigQ.red a) = BigQ.to_Q (BigQ.red b).
 { by rewrite !BigQ.strong_spec_red. }
 case Ea: (BigQ.red a); case Eb: (BigQ.red b).
 { by move: H; rewrite Ea Eb /=; case=>->. }

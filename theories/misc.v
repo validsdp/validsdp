@@ -26,7 +26,7 @@ Definition Q2R (x : Q) : R :=
   (IZR (Qnum x) / IZR (Z.pos (Qden x)))%Re.
 
 Definition bigQ2R (x : BigQ.t_ (* the type of (_ # _)%bigQ *)) : R :=
-  Q2R [x]%bigQ.
+  Q2R (BigQ.to_Q x).
 
 Ltac pos_IPR :=
   by rewrite /= -INR_IPR; apply not_0_INR, not_eq_sym, lt_0_neq, Pos2Nat.is_pos.
@@ -85,7 +85,7 @@ Local Open Scope Z_scope.
 Lemma BigQ_check_int_den_neq0_aux n d :
   match BigQ.check_int n d with
     | BigQ.Qz _ => True
-    | BigQ.Qq _ d => [d]%bigN <> 0
+    | BigQ.Qq _ d => BigN.to_Z d <> 0
   end.
 Proof.
 rewrite /BigQ.check_int.
@@ -109,7 +109,7 @@ Qed.
 Lemma BigQ_norm_den_neq0_aux n d :
   match BigQ.norm n d with
     | BigQ.Qz _ => True
-    | BigQ.Qq _ d => [d]%bigN <> 0
+    | BigQ.Qq _ d => BigN.to_Z d <> 0
   end.
 Proof.
 case E: (BigQ.norm _ _)=>//; move: E; rewrite /BigQ.norm.
@@ -135,7 +135,7 @@ Qed.
 Lemma BigQ_red_den_neq0_aux q :
   match BigQ.red q with
     | BigQ.Qz _ => True
-    | BigQ.Qq _ d => [d]%bigN <> 0
+    | BigQ.Qq _ d => BigN.to_Z d <> 0
   end.
 Proof. by rewrite /BigQ.red; case q=>// n d; apply BigQ_norm_den_neq0_aux. Qed.
 

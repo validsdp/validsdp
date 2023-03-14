@@ -37,7 +37,7 @@ Definition Zulp (m : BinNums.Z) : BinNums.Z := Z.land m (- m).
 
 Definition bigZulp (m : bigZ) : bigZ := BigZ.land m (- m).
 
-Lemma bigZulp_spec m : [bigZulp m]%bigZ = Zulp [m]%bigZ.
+Lemma bigZulp_spec m : BigZ.to_Z (bigZulp m) = Zulp (BigZ.to_Z m).
 Proof. by rewrite BigZ.spec_land BigZ.spec_opp. Qed.
 
 (** ** Preliminary results *)
