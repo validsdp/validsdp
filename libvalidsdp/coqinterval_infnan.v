@@ -61,7 +61,7 @@ Section Signif_digits.
 Let prec := 53%bigZ.
 
 Definition x_bounded (x : ExtendedR) : Set :=
-  ( x = Xnan ) + { r | x = Xreal r & FLX_format radix2 [prec]%bigZ r }.
+  ( x = Xnan ) + { r | x = Xreal r & FLX_format radix2 (BigZ.to_Z prec) r }.
 
 Definition mantissa_bounded (x : F.type) := x_bounded (F.toX x).
 
@@ -73,11 +73,11 @@ Definition digits (m : bigZ) : bigZ :=
   | BigZ.Neg n => Bir.mantissa_digits n
   end.
 
-Lemma digits_spec n : [digits n]%bigZ = Zdigits2 [n]%bigZ.
+Lemma digits_spec n : BigZ.to_Z (digits n) = Zdigits2 (BigZ.to_Z n).
 Proof.
 rewrite /digits; case: n => n.
-have Hn : [n]%bigN = Z0 \/ [n]%bigN <> Z0.
-{ case E: [n]%bigN => [|p|p]; [by left|by right|exfalso].
+have Hn : BigN.to_Z n = Z0 \/ BigN.to_Z n <> Z0.
+{ case E: (BigN.to_Z n) => [|p|p]; [by left|by right|exfalso].
   by have := BigN.spec_pos n; rewrite E; auto. }
 have {Hn} [Zn|NZn] := Hn.
 { rewrite /= Zn /= BigN.spec_sub.
@@ -85,17 +85,17 @@ have {Hn} [Zn|NZn] := Hn.
   rewrite BigN.spec_Ndigits BigN.spec_head00 //.
   lia. }
 { rewrite [LHS]Bir.mantissa_digits_correct; last first.
-  { case E: [BigZ.Pos n]%bigZ NZn => [|p|p] //= NZn.
+  { case E: (BigZ.to_Z (BigZ.Pos n)) NZn => [|p|p] //= NZn.
     exists p; by rewrite -E.
     clear NZn; exfalso; simpl in E.
     by have := BigN.spec_pos n; rewrite E; auto. }
   rewrite -digits_conversion.
   rewrite /Zdigits2; f_equal.
   rewrite /= /Bir.MtoP; simpl in NZn.
-  have := BigN.spec_pos n; case: [n]%bigN NZn => [p|p|] NZn; try done. }
+  have := BigN.spec_pos n; case: (BigN.to_Z n) NZn => [p|p|] NZn; try done. }
 (* almost same proof *)
-have Hn : [n]%bigN = Z0 \/ [n]%bigN <> Z0.
-{ case E: [n]%bigN => [|p|p]; [by left|by right|exfalso].
+have Hn : BigN.to_Z n = Z0 \/ BigN.to_Z n <> Z0.
+{ case E: (BigN.to_Z n) => [|p|p]; [by left|by right|exfalso].
   by have := BigN.spec_pos n; rewrite E; auto. }
 have {Hn} [Zn|NZn] := Hn.
 { rewrite /= Zn /= BigN.spec_sub.
@@ -103,14 +103,14 @@ have {Hn} [Zn|NZn] := Hn.
   rewrite BigN.spec_Ndigits BigN.spec_head00 //.
   lia. }
 { rewrite [LHS]Bir.mantissa_digits_correct; last first.
-  { case E: [BigZ.Pos n]%bigZ NZn => [|p|p] //= NZn.
+  { case E: (BigZ.to_Z (BigZ.Pos n)) NZn => [|p|p] //= NZn.
     exists p; by rewrite -E.
     clear NZn; exfalso; simpl in E.
     by have := BigN.spec_pos n; rewrite E; auto. }
   rewrite -digits_conversion.
   rewrite [RHS]Zdigits_opp /Zdigits2; f_equal.
   rewrite /= /Bir.MtoP; simpl in NZn.
-  have := BigN.spec_pos n; case: [n]%bigN NZn => [p|p|] NZn; try done. }
+  have := BigN.spec_pos n; case: (BigN.to_Z n) NZn => [p|p|] NZn; try done. }
 Qed.
 
 Lemma digits_ge0 n :(0 <= digits n)%bigZ.
@@ -120,7 +120,7 @@ rewrite BigZ.spec_leb digits_spec //.
 exact/Zle_is_le_bool/Zdigits_ge_0.
 Qed.
 
-Lemma digits_gt0 n : [n]%bigZ <> Z0 -> (0 < digits n)%bigZ.
+Lemma digits_gt0 n : BigZ.to_Z n <> Z0 -> (0 < digits n)%bigZ.
 Proof.
 move=> NZn; apply/BigZ.ltb_lt.
 rewrite BigZ.spec_ltb digits_spec //.
@@ -143,8 +143,8 @@ split => H.
   exists (toR (Specific_ops.Float m e)); first by rewrite -real_FtoX_toR.
   rewrite /signif_digits in H.
   exists (Defs.Float radix2
-                      [m / bigZulp m]%bigZ
-                      [digits (bigZulp m) - 1 + e]%bigZ).
+                      (BigZ.to_Z (m / bigZulp m))
+                      (BigZ.to_Z (digits (bigZulp m) - 1 + e))).
   { rewrite /F.toX /F.toF.
     case: Bir.mantissa_sign (Bir.mantissa_sign_correct m) =>[/=|s n].
     { rewrite /F2R /= BigZ.spec_div.
@@ -156,13 +156,13 @@ split => H.
       { rewrite BigZ.spec_sub digits_spec.
         apply(*:*) Z.lt_le_pred.
         apply: Zdigits_gt_0.
-        rewrite /bigZulp BigZ.spec_land BigZ.spec_opp -/(Zulp [m]%bigZ).
+        rewrite /bigZulp BigZ.spec_land BigZ.spec_opp -/(Zulp (BigZ.to_Z m)).
         apply: Zulp_neq0.
         by move: Hm; rewrite /Bir.MtoZ =>->. }
       rewrite BigZ.spec_sub digits_spec.
       rewrite -mult_IZR; congr IZR.
       rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
-      rewrite -/(Zulp [m]%bigZ) /= Zulp_digits;
+      rewrite -/(Zulp (BigZ.to_Z m)) /= Zulp_digits;
         last by move=> K; rewrite /Bir.MtoZ K in Hm.
       by rewrite Zulp_mul. }
     rewrite BigZ.spec_add bpow_plus /= -Rmult_assoc; congr Rmult.
@@ -170,18 +170,18 @@ split => H.
     { rewrite BigZ.spec_sub digits_spec.
       apply(*:*) Z.lt_le_pred.
       apply: Zdigits_gt_0.
-      rewrite /bigZulp BigZ.spec_land BigZ.spec_opp -/(Zulp [m]%bigZ).
+      rewrite /bigZulp BigZ.spec_land BigZ.spec_opp -/(Zulp (BigZ.to_Z m)).
       apply: Zulp_neq0.
       by move: Hm; rewrite /Bir.MtoZ =>->. }
     rewrite BigZ.spec_sub digits_spec.
     rewrite -mult_IZR; congr IZR.
     rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
-    rewrite -/(Zulp [m]%bigZ) /= Zulp_digits;
+    rewrite -/(Zulp (BigZ.to_Z m)) /= Zulp_digits;
       last by move=> K; rewrite /Bir.MtoZ K in Hm.
     by rewrite Zulp_mul. }
   (* could be extracted to some lemma *)
-  have [_ H1] := Zdigits_correct radix2 [m / bigZulp m]%bigZ.
-  have H2 := @Zdigits2_Zulp_le [m]%bigZ [prec]%bigZ.
+  have [_ H1] := Zdigits_correct radix2 (BigZ.to_Z (m / bigZulp m)).
+  have H2 := @Zdigits2_Zulp_le (BigZ.to_Z m) (BigZ.to_Z prec).
   rewrite BigZ.spec_leb BigZ.spec_succ BigZ.spec_sub in H.
   rewrite !digits_spec bigZulp_spec in H.
   move/Z.leb_le in H.
@@ -200,13 +200,13 @@ case E: Bir.mantissa_sign H1 (Bir.mantissa_sign_correct m) => [|s p] H1 Hm.
 rewrite /Bir.MtoZ in Hm.
 rewrite BigZ.spec_leb BigZ.spec_succ BigZ.spec_sub !digits_spec bigZulp_spec.
 case: Hm => Hm Hp.
-have [Hlt|Hle] := Z_lt_le_dec (Z.abs f1) (Z.abs [m]%bigZ); last first.
+have [Hlt|Hle] := Z_lt_le_dec (Z.abs f1) (Z.abs (BigZ.to_Z m)); last first.
 { move/(Zdigits_le radix2 _ _ (Z.abs_nonneg _)) in Hle.
   rewrite Zdigits_abs in Hle.
   move/(Zdigits_le_Zpower radix2) in Hf2.
   apply/Z.leb_le.
-  have NZm : [m]%bigZ <> 0%Z by rewrite Hm; case: (s).
-  have NZum : Zulp [m]%bigZ <> 0%Z by apply: Zulp_neq0.
+  have NZm : (BigZ.to_Z m) <> 0%Z by rewrite Hm; case: (s).
+  have NZum : Zulp (BigZ.to_Z m) <> 0%Z by apply: Zulp_neq0.
   have H0 := Zdigits_gt_0 radix2 _ NZum.
   rewrite Zdigits_abs in Hle.
   clear - Hle Hf2 H0; rewrite /Zdigits2; lia. }
@@ -224,16 +224,16 @@ rewrite /Zdigits2 -Zdigits_abs -(Zdigits_abs _ f1).
 apply Zdigits_le; first exact: Z.abs_nonneg.
 apply Znumtheory.Zdivide_bounds =>//.
 apply Z.divide_abs_l.
-have Hmf : (IZR [m]%bigZ * bpow radix2 [e]%bigZ = F2R f)%Re.
+have Hmf : (IZR (BigZ.to_Z m) * bpow radix2 (BigZ.to_Z e) = F2R f)%Re.
 { rewrite Hm; apply Xreal_inj; rewrite -{}H1; congr Xreal.
   rewrite FtoR_split /F2R /=.
   by case: (s). }
-have Hlte : (bpow radix2 [e]%bigZ < bpow radix2 (Fexp f))%Re.
+have Hlte : (bpow radix2 (BigZ.to_Z e) < bpow radix2 (Fexp f))%Re.
 { rewrite /F2R in Hmf.
   move/IZR_lt in Hlt.
   rewrite !abs_IZR in Hlt.
   rewrite -/f1 in Hmf.
-  move/(congr1 (Rdiv ^~ (bpow radix2 [e]%bigZ))) in Hmf.
+  move/(congr1 (Rdiv ^~ (bpow radix2 (BigZ.to_Z e)))) in Hmf.
   rewrite /Rdiv Rinv_r_simpl_l in Hmf; last exact/Rgt_not_eq/bpow_gt_0.
   rewrite {}Hmf in Hlt.
   rewrite !Rabs_mult in Hlt.
@@ -249,20 +249,20 @@ have Hlte : (bpow radix2 [e]%bigZ < bpow radix2 (Fexp f))%Re.
   apply.
   by apply/Rabs_pos_lt; exact: IZR_neq. }
 move/lt_bpow in Hlte.
-have {}Hmf : ([m]%bigZ = f1 * 2 ^ (Fexp f - [e]%bigZ))%Z.
+have {}Hmf : (BigZ.to_Z m = f1 * 2 ^ (Fexp f - BigZ.to_Z e))%Z.
 { clear - Hlte Hmf.
   rewrite /F2R - /f1 in Hmf.
-  move/(congr1 (Rmult ^~ (bpow radix2 (- [e]%bigZ)))) in Hmf.
+  move/(congr1 (Rmult ^~ (bpow radix2 (- BigZ.to_Z e)))) in Hmf.
   rewrite !Rmult_assoc -!bpow_plus Zegal_left //= Rmult_1_r in Hmf.
   rewrite -IZR_Zpower in Hmf; last lia.
   rewrite -mult_IZR in Hmf.
   exact: eq_IZR. }
-have Hdiv : (Z.abs ([m]%bigZ / Zulp [m]%bigZ) | [m]%bigZ)%Z.
+have Hdiv : (Z.abs (BigZ.to_Z m / Zulp (BigZ.to_Z m)) | BigZ.to_Z m)%Z.
 { apply/Z.divide_abs_l.
   apply Zdivide_div_l.
   by apply Zulp_divides. }
 rewrite {3}Hmf Z.mul_comm in Hdiv.
-apply (Znumtheory.Gauss _ (2 ^ (Fexp f - [e]%bigZ))) =>//.
+apply (Znumtheory.Gauss _ (2 ^ (Fexp f - BigZ.to_Z e))) =>//.
 apply: Zulp_rel_prime; last lia.
 by rewrite Hm; case: (s).
 Qed.
@@ -319,12 +319,12 @@ Lemma mantissa_bounded_bpow n :
   is_mantissa_bounded (Specific_ops.Float 1%bigZ n).
 Proof.
 apply/mantissa_boundedP.
-unfold mantissa_bounded, x_bounded; simpl; right; exists (bpow radix2 [n]%bigZ).
+unfold mantissa_bounded, x_bounded; simpl; right; exists (bpow radix2 (BigZ.to_Z n)).
 { unfold F.toX, F.toF, FtoX.
   change (Bir.mantissa_sign 1) with (Specific_sig.Mnumber false 1%bigN).
   simpl.
   unfold FtoR, Bir.EtoZ; simpl.
-  case ([n]%bigZ); [now simpl| |]; intro p; unfold bpow; simpl.
+  case (BigZ.to_Z n); [now simpl| |]; intro p; unfold bpow; simpl.
   { now case (Z.pow_pos 2 p). }
   now unfold Rdiv; rewrite Rmult_1_l. }
 apply FLX_format_generic; [now simpl|]; apply generic_format_bpow.
@@ -351,14 +351,14 @@ Lemma m_ge_2 : 2 <= m.
 Proof. apply Rle_refl. Qed.
 
 Lemma toR_Float (m e : bigZ) :
-  toR (Specific_ops.Float m e) = (IZR [m]%bigZ * bpow F.radix [e]%bigZ)%Re.
+  toR (Specific_ops.Float m e) = (IZR (BigZ.to_Z m) * bpow F.radix (BigZ.to_Z e))%Re.
 Proof.
 rewrite /F.toX /F.toF /=.
 have := Bir.mantissa_sign_correct m.
 case E_m: (Bir.mantissa_sign m) => [|s m']; last case.
   by rewrite /Bir.MtoZ =>-> /=; rewrite Rmult_0_l.
 rewrite /proj_val /FtoX.
-rewrite (FtoR_split radix2 s (Bir.MtoP m') [e]%bigZ).
+rewrite (FtoR_split radix2 s (Bir.MtoP m') (BigZ.to_Z e)).
 rewrite /F2R /= /cond_Zopp => H1 H2; congr Rmult.
 move: H1; case: (s) => H1.
 by rewrite Pos2Z.opp_pos -H1.

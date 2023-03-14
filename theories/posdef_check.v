@@ -472,7 +472,7 @@ case_eq (to_Z m');
    now replace (PrimFloat.is_finite nan) with false by now cbv].
 case (boundedPrim _ _ _);
   [ |now replace (PrimFloat.is_finite nan) with false by now cbv].
-assert (He' : [e]%bigZ = if se then Z.opp (to_Z e') else to_Z e').
+assert (He' : BigZ.to_Z e = if se then Z.opp (to_Z e') else to_Z e').
 { now revert He; case se. }
 rewrite He'; clear He' He e.
 set (e := if se then _ else _).
