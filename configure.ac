@@ -96,7 +96,7 @@ fi
 AC_MSG_CHECKING([for Multinomials])
 AS_IF(
   [ echo "From mathcomp Require Import ssreflect ssrfun." \
-    	 "From SsrMultinomials Require Import mpoly freeg." > conftest.v
+    	 "From mathcomp.multinomials Require Import mpoly freeg." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
