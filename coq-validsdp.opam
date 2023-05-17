@@ -24,7 +24,7 @@ depends: [
   "coq-bignums"
   "coq-flocq" {>= "3.3.0"}
   "coq-interval" {>= "4.0.0" & < "5~"}
-  "coq-mathcomp-field" {(>= "1.15" & < "1.17~") | (= "dev")}
+  "coq-mathcomp-field" {(>= "1.15" & < "1.18~") | (= "dev")}
   "coq-mathcomp-analysis" {>= "0.3.5"}
   "coq-libvalidsdp" {= "dev"}
   "coq-mathcomp-multinomials" {>= "1.6"}
