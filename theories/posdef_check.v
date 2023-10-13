@@ -486,7 +486,7 @@ rewrite ldshiftexp_spec.
 rewrite <-(B2SF_Prim2B m'').
 assert (Hprec : Z.lt prec emax); [now simpl| ].
 rewrite B2SF_Prim2B.
-rewrite -ldexp_spec.
+rewrite -Z_ldexp_spec.
 rewrite -B2SF_Prim2B ldexp_equiv.
 rewrite is_finite_SF_B2SF.
 rewrite SF2R_B2SF.

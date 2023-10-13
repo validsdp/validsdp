@@ -33,6 +33,7 @@ AS_IF([test -d ${LTAC2_DIR}],
     AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq >= 8.12])])
 AC_SUBST(LTAC2_CAML_FILES)
 COQ_VERSION="v814"
+SOSWIT_PLUGIN_EXT="soswitness"
 AX_VERSION_GE([$coq_version], 8.15, [COQ_VERSION="v815"], [])
 AX_VERSION_GE([$coq_version], 8.16,
   [COQ_VERSION="v816"; ADD_INCLUDES="no"; SOSWIT_PLUGIN="soswitness:coq-validsdp.plugin";
@@ -42,9 +43,12 @@ AX_VERSION_GE([$coq_version], 8.16,
     -package ocplib-simplex \
     -package osdp"],
   [ADD_INCLUDES="yes"; SOSWIT_PLUGIN="soswitness"; META_FILE=""; CAMLPKGS=""])
+AX_VERSION_GE([$coq_version], 8.18,
+  [COQ_VERSION="v818"; SOSWIT_PLUGIN_EXT="coq-validsdp.plugin"], [])
 AC_SUBST(COQ_VERSION)
 AC_SUBST(ADD_INCLUDES)
 AC_SUBST(SOSWIT_PLUGIN)
+AC_SUBST(SOSWIT_PLUGIN_EXT)
 AC_SUBST(META_FILE)
 AC_SUBST(CAMLPKGS)
 
