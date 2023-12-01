@@ -15,6 +15,7 @@ Require Import Flocq.IEEE754.Bits.
 
 Require Import Floats.
 Require Import Flocq.IEEE754.PrimFloat.
+Module Z := FloatOps.Z. (* workaround *)
 
 Section Primitive_float_infnan.
 
