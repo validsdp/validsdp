@@ -401,6 +401,7 @@ Definition BigZFloat2Prim (f : s_float BigZ.t_ BigZ.t_) :=
 
 Require Import Flocq.IEEE754.BinarySingleNaN Flocq.Core.Digits.
 Require Import Flocq.IEEE754.PrimFloat.
+Module Z := FloatOps.Z. (* workaround *)
 
 (* TODO: move *)
 Lemma FF2R_SF2FF_B2SF prec emax (f : binary_float prec emax) :
@@ -485,7 +486,7 @@ rewrite ldshiftexp_spec.
 rewrite <-(B2SF_Prim2B m'').
 assert (Hprec : Z.lt prec emax); [now simpl| ].
 rewrite B2SF_Prim2B.
-rewrite -ldexp_spec.
+rewrite -Z_ldexp_spec.
 rewrite -B2SF_Prim2B ldexp_equiv.
 rewrite is_finite_SF_B2SF.
 rewrite SF2R_B2SF.

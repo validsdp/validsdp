@@ -15,6 +15,7 @@ Require Import Flocq.IEEE754.Bits.
 
 Require Import Floats.
 Require Import Flocq.IEEE754.PrimFloat.
+Module Z := FloatOps.Z. (* workaround *)
 
 Section Primitive_float_infnan.
 
@@ -277,7 +278,7 @@ Section Primitive_float_infnan.
 End Primitive_float_infnan.
 
 Section Primitive_float_round_up_infnan.
-  Definition fieps := ldexp one (-53)%Z.
+  Definition fieps := Z.ldexp one (-53)%Z.
   Lemma fieps_spec : eps primitive_float_infnan <= FI2FS fieps.
     unfold fieps.
     cbn.
@@ -285,16 +286,10 @@ Section Primitive_float_round_up_infnan.
     simpl.
     apply (Rmult_le_reg_r (IZR (Z.pow_pos 2 105))).
     { exact/IZR_lt/Zaux.Zpower_pos_gt_0. }
-    rewrite Rmult_assoc Rinv_l.
-    unfold Z.pow_pos.
-    simpl.
     lra.
-    apply IZR_neq.
-    apply BigNumPrelude.Zlt0_not_eq.
-    exact: Zaux.Zpower_pos_gt_0.
   Qed.
 
-  Definition fieta := ldexp one (-1074)%Z.
+  Definition fieta := Z.ldexp one (-1074)%Z.
   Lemma fieta_spec : eta primitive_float_infnan <= FI2FS fieta.
     unfold fieta.
     cbn.
@@ -302,13 +297,7 @@ Section Primitive_float_round_up_infnan.
     simpl.
     apply (Rmult_le_reg_r (IZR (Z.pow_pos 2 1074))).
     { exact/IZR_lt/Zaux.Zpower_pos_gt_0. }
-    rewrite Rmult_assoc Rinv_l.
-    unfold Z.pow_pos.
-    simpl.
     lra.
-    apply IZR_neq.
-    apply BigNumPrelude.Zlt0_not_eq.
-    exact: Zaux.Zpower_pos_gt_0.
   Qed.
 
   (* TODO: to build a Float_round_up_infnan_spec, we need (next_up x) finite
