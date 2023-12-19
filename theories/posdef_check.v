@@ -7,7 +7,7 @@ From Interval Require Import Float.Basic Real.Xreal.
 From Interval Require Import Missing.Stdlib.
 From Interval Require Import Float.Specific_ops. (* for Float *)
 From CoqEAL.theory Require Import ssrcomplements.
-From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint rational binrat.
+From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint binrat.
 Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
 From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.

@@ -1,6 +1,5 @@
 Require Import Reals.
-From ValidSDP Require Import validsdp posdef_check.
-Require matrices.
+From ValidSDP Require Import validsdp.
 Local Open Scope R_scope.
 
 Test Default Proof Mode.

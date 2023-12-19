@@ -34,17 +34,7 @@ $(PLUGDIR)/src/soswitness.mlg: $(PLUGDIR)/src/soswitness_@COQ_VERSION@.mlg
 	chmod a-w $@
 
 $(COQ_MAKEFILE): $(COQ_PROJ) $(MODULES) $(PLUGDIR)/src/soswitness.mlg
-	if [ "x@ADD_INCLUDES@" = "xyes" ] ; then \
-	  ocamlfind query zarith >/dev/null ; \
-	  ocamlfind query ocplib-simplex >/dev/null ; \
-	  ocamlfind query osdp >/dev/null ; \
-	  $(COQBIN)coq_makefile \
-	    -I "$(shell ocamlfind query zarith)" \
-	    -I "$(shell ocamlfind query ocplib-simplex)" \
-	    -I "$(shell ocamlfind query osdp)" \
-	    @LTAC2_CAML_FILES@ \
-	    -f $< $(MODULES) -o $@ ; \
-	else $(COQBIN)coq_makefile -f $< $(MODULES) -o $@ ; fi
+	$(COQBIN)coq_makefile -f $< $(MODULES) -o $@
 	# FIXME: This sed hack is fragile (if we do "make -B" for example)
 	sed -e 's/-shared -o $$@ $$</-shared -o $$@ ocplibSimplex.cmxa osdp.cmxa $$</' -i $@
 

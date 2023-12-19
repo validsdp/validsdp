@@ -1,5 +1,6 @@
 (** * Main tactic for multivariate polynomial positivity. *)
 
+From HB Require Import structures.
 Require Import Ltac2.Ltac2.
 Import Ltac2.Control.
 Set Default Proof Mode "Classic".
@@ -9,7 +10,7 @@ From Flocq Require Import Core. Require Import Datatypes.
 From Interval Require Import Float.Basic Real.Xreal.
 From Interval Require Import Missing.Stdlib.
 From CoqEAL.theory Require Import ssrcomplements.
-From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint rational binrat.
+From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint binrat.
 Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
 From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
@@ -1063,7 +1064,7 @@ Definition has_const_ssr (s : nat) : 'cV[monom]_s.+1 -> bool := has_const.
 
 Variable (T2R : T -> R).
 Hypothesis T2R_additive : additive T2R.
-Canonical T2R_additive_struct := Additive T2R_additive.
+HB.instance Definition _ := GRing.isAdditive.Build _ _ T2R T2R_additive.
 Hypothesis T2F_correct : forall x, finite (T2F x) -> T2R x <= FIS2FS (T2F x).
 Hypothesis T2R_F2T : forall x, T2R (F2T x) = FIS2FS x.
 (** NOTE: we would like to use [Num.max x y] here, but it is not possible as is
@@ -1111,7 +1112,7 @@ rewrite /smem /smem_ssr /sempty /sempty_ssr; set sm := iteri_ord _ _ _.
 move/allP=> Hmem m Hsupp.
 have : m \in sm.
 { apply (Hmem (m, p@_m)).
-  by rewrite -/((fun m => (m, p@_m)) m); apply map_f; rewrite path.mem_sort. }
+  by rewrite -/((fun m => (m, p@_m)) m); apply: map_f; rewrite path.mem_sort. }
 pose P := fun (_ : nat) (sm : set) =>
             m \in sm -> exists i j, (z i ord0 + z j ord0)%MM == m.
 rewrite {Hmem} -/(P 0%N sm) {}/sm; apply iteri_ord_ind => // i s0.
@@ -1143,7 +1144,7 @@ have : exists E : 'M_s.+1,
   Mabs E <=m: matrix.const_mx (T2R r)
   /\ map_mpoly T2R p = (zpr^T *m (Q'r + map_mpolyC_R E) *m zpr) ord0 ord0.
 { pose zij := fun i j => (z i ord0 + z j ord0)%MM.
-  pose I_sp1_2 := prod_finType (ordinal_finType s.+1) (ordinal_finType s.+1).
+  pose I_sp1_2 : finType := ('I_s.+1 * 'I_s.+1)%type.
   pose nbij := fun i j => size [seq ij <- index_enum I_sp1_2 |
                                 zij ij.2 ij.1 == zij i j].
   pose E := (\matrix_(i, j) (T2R pmp'@_(zij i j) / INR (nbij i j))%Re).
@@ -1206,7 +1207,8 @@ have : exists E : 'M_s.+1,
   under eq_bigr => ? Hi do rewrite Hi GRing.mul1r.
   set b := bigop _ _ _; rewrite big1; last first; [|rewrite {}/b GRing.addr0].
   { by move=> ij; move/negbTE => ->; rewrite GRing.mul0r GRing.raddf0. }
-  rewrite -big_filter /nbm /I_sp1_2; case [seq i <- _ | _].
+  rewrite -big_filter /nbm /I_sp1_2.
+  set ie := index_enum _; set fs' := [seq _ <- _ | _]; case fs'.
   { by rewrite big_nil GRing.addr0 GRing.oppr0 GRing.mul0r. }
   move=> h t; rewrite GRing.mulrC -GRing.mulrA /GRing.mul /= Rinv_l.
   { by rewrite Rmult_1_r GRing.addNr. }
@@ -1240,7 +1242,7 @@ by rewrite z0 mpolyX0 meval1 => /eqP; rewrite GRing.oner_eq0.
 Qed.
 
 Hypothesis T2R_multiplicative : multiplicative T2R.
-Canonical T2R_morphism_struct := AddRMorphism T2R_multiplicative.
+HB.instance Definition _ := GRing.isMultiplicative.Build _ _ T2R T2R_multiplicative.
 
 Lemma soscheck_hyps_correct s p pzQi z Q :
   @soscheck_hyps_ssr s pzQi p z Q ->
@@ -1650,10 +1652,10 @@ suff : forall (m : 'X_{1..n}) m', Rseqmultinom m m' ->
   { rewrite /l /l'; apply refinesP; eapply refines_apply.
     { by apply ReffmpolyC_list_of_mpoly_eff. }
     by rewrite refinesE. }
-  apply all_R=> mc mc' rmc.
+  apply: all_R=> mc mc' rmc.
   move: (H mc.1 mc'.1); rewrite /smem_ssr /smem_eff /smem=>H'.
   rewrite H'; [by apply bool_Rxx|].
-  by apply refinesP; refines_apply1. }
+  by case: rmc. }
 move=> m m' rm.
 rewrite /sm /sm'.
 set f := fun _ => _; set f' := fun _ => iteri_ord _ _.
@@ -1701,18 +1703,14 @@ Instance refine_max_coeff :
   refines (ReffmpolyC (n:=n) rAC ==> rAC) max_coeff_ssr max_coeff_eff.
 Proof.
 rewrite refinesE=> p p' rp.
-rewrite /max_coeff_ssr /max_coeff_eff /max_coeff.
-apply refinesP; refines_apply1.
-refines_apply1.
-refines_apply1.
-apply refines_abstr2 => m m' rm mc mc' rmc.
-do 2! refines_apply1; refines_abstr => *.
-rewrite /max !ifE; eapply refines_if_expr; tc.
-by move=> _ _; eapply refinesP; tc.
-by move=> _ _; eapply refinesP; tc.
-do 2! refines_apply1; refines_abstr => *.
-rewrite /max !ifE; eapply refines_if_expr; tc.
-all: by move=> _ _; eapply refinesP; tc.
+have: list_R (prod_R Rseqmultinom rAC) (list_of_poly_op p) (list_of_poly_op p').
+  by apply: refinesP.
+apply: foldl_R; last exact: refinesP.
+move=> x1 x2 rx _ _ [m1 m2 rm y1 y2 ry] /=.
+have rmax : refines (rAC ==> rAC ==> rAC) max max.
+  rewrite refinesE => a1 a2 ra b1 b2 rb.
+  by apply: refinesP; apply: refines_if_expr.
+apply: refinesP; apply: (@refines_apply _ _ rAC).
 Qed.
 
 Context {fs : Float_round_up_infnan_spec} (eta_neq_0 : eta fs <> 0).
@@ -1764,17 +1762,17 @@ eapply refines_apply.
 eapply (refine_posdef_check_itv' (fs := fs) (eqFIS := eqFIS)).
 exact: eqFIS_P.
 exact: id.
-eapply refines_apply. tc.
-eapply refines_apply. tc.
-eapply refines_apply. tc.
+eapply refines_apply. by tc.
+eapply refines_apply. by tc.
+eapply refines_apply. by tc.
 eapply refines_apply.
 eapply refines_apply.
-eapply refines_apply. tc.
+eapply refines_apply. by tc.
 eapply refines_apply.
-eapply refines_apply. tc.
-eapply refines_apply. tc.
+eapply refines_apply. by tc.
+eapply refines_apply. by tc.
 eapply refines_apply.
-eapply refines_apply. tc.
+eapply refines_apply. by tc.
 refines_abstr; simpl. (* elim comp *)
 eapply refines_apply; tc.
 by rewrite refinesE.
@@ -2236,29 +2234,20 @@ suff: 0 <= papx /\ (has_const_ssr zb -> 0 < papx).
     by apply /allP => x' /mapP [] x'' _ ->. }
   by apply listR_seqmultinom_map. }
 move: Hall_prop'.
-try (apply soscheck_hyps_correct with
-  (2 := GRing.RMorphism.base (ratr_is_rmorphism _))
+apply soscheck_hyps_correct with
   (3 := rat2FIS_correct)
   (4 := rat2R_FIS2rat)
   (5 := max_l)
   (6 := max_r)
-  (7 := GRing.RMorphism.mixin (ratr_is_rmorphism _))
-  (Q0 := Qb))
-  || apply soscheck_hyps_correct with
-  (2 := GRing.RMorphism.base (ratr_is_rmorphism _))
-  (3 := rat2FIS_correct)
-  (4 := rat2R_FIS2rat)
-  (5 := max_l)
-  (6 := max_r)
-  (7 := GRing.RMorphism.mixin (ratr_is_rmorphism _))
   (Q := Qb).
 { apply Rgt_not_eq => /=; apply bpow_gt_0. }
-move: Hsos_hyps; apply etrans.
+{ exact: ratr_is_additive. }
+{ exact: ratr_is_multiplicative. }
+move: Hsos_hyps; apply: etrans.
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1;
   first refines_apply1; first refines_apply1.
-{ eapply (refine_soscheck_hyps (eq_F := eqFIS) (rAC := r_ratBigQ)).
-  exact: eqFIS_P. }
+{ by eapply (refine_soscheck_hyps (eq_F := eqFIS) (rAC := r_ratBigQ) _). }
 { rewrite refinesE; apply zip_R.
   { rewrite /bplb /bpl; move: Hltn'.
     elim apl => [|h t Hind] //= /andP [] Hltnh Hltnt; apply list_R_cons_R.
@@ -2323,7 +2312,8 @@ Unshelve.
 { by op22 F'.neg_correct F.add_slow_correct. }
 { by op2 F.mul_correct. }
 { by op2 F.div_correct. }
-by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
+{ by rewrite refinesE => ?? H; rewrite (nat_R_eq H). }
+by move=> x' y'; apply: eqFIS_P.
 Qed.
 (*-/*)
 
