@@ -9,6 +9,7 @@
     binary64 with unbounded exponents and binary64 without overflow
     and with gradual underflow. *)
 
+From HB Require Import structures.
 Require Import Reals.
 Require Import mathcomp.analysis.Rstruct.
 Require Import Psatz Flocq.Core.Raux Interval.Missing.Stdlib.
@@ -31,15 +32,12 @@ Variable format : R -> bool.
 
 Record FS_of := { FS_val :> R; _ : format FS_val }.
 
-Canonical FS_subType := [subType for FS_val].
+HB.instance Definition _ := [isSub for FS_val].
 (** Now that FS_of has an eqtype structure, one can use val_inj
     as a proof that FS_val is injective *)
 
 (** FS_of inherits the eqType and choiceType structures of R (see Rstruct.v) *)
-Definition FS_eqMixin := [eqMixin of FS_of by <:].
-Canonical FS_eqType := EqType FS_of FS_eqMixin.
-Definition FS_choiceMixin := [choiceMixin of FS_of by <:].
-Canonical FS_choiceType := ChoiceType FS_of FS_choiceMixin.
+HB.instance Definition _ := [Choice of FS_of by <:].
 
 End FS.
 

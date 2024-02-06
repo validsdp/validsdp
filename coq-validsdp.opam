@@ -20,15 +20,15 @@ install: [make "install"]
 
 depends: [
   "ocaml"
-  "coq" {((>= "8.15" & < "8.19~") | (= "dev"))}
+  "coq" {((>= "8.16" & < "8.20~") | (= "dev"))}
   "coq-bignums"
   "coq-flocq" {>= "3.3.0"}
   "coq-interval" {>= "4.0.0" & < "5~"}
-  "coq-mathcomp-field" {(>= "1.15" & < "1.19~") | (= "dev")}
-  "coq-mathcomp-analysis" {>= "0.3.5"}
-  "coq-libvalidsdp" {= "dev"}
-  "coq-mathcomp-multinomials" {>= "1.6"}
-  "coq-coqeal" {>= "1.1.3"}
+  "coq-mathcomp-field" {(>= "2.0" & < "2.3~") | (= "dev")}
+  "coq-mathcomp-analysis" {>= "1.0.0"}
+  "coq-libvalidsdp" {= version}
+  "coq-mathcomp-multinomials" {>= "2.0"}
+  "coq-coqeal" {>= "2.0.2"}
   "coq-paramcoq" {>= "1.1.0"}
   "osdp" {>= "1.0"}
   "ocamlfind" {build}

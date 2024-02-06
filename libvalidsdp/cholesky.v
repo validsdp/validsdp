@@ -25,6 +25,8 @@ Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.alg
 
 Require Import mathcomp.analysis.Rstruct.
 
+Import GRing.Theory.
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
@@ -768,7 +770,8 @@ rewrite !mulmxDr !mulmxDl !mulmxN !mulNmx -scalemxAr scalemxAl mulmx1 -scalemxAl
 apply Mle_scalar; right.
 have H : (x^T *m x) ord0 ord0 = 1.
 { by rewrite -/(dotprod x x) -norm2_sqr_dotprod Hx /= !Rmult_1_r. }
-rewrite 9!mxE H GRing.mulr1 !mxE /GRing.natmul /GRing.add /GRing.opp /=; ring.
+rewrite 9!mxE H mulr1 !mxE !mulr1n !addrA [c + r + _]addrC addrK addrAC subrr.
+by rewrite add0r.
 Qed.
 
 End Corollary_2_7.

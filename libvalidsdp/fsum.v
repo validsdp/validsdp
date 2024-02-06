@@ -5,6 +5,8 @@
     On relative errors of floating-point operations: Optimal bounds and applications,
     Math. Comput., 87(310):803-819, 2018. *)
 
+From HB Require Import structures.
+
 Require Import Reals Flocq.Core.Raux.
 
 Require Import misc.
@@ -41,7 +43,7 @@ Record nat_finset := {
   _ : sorted ltn nat_finset_seq
 }.
 
-Canonical nat_finset_subType := [subType for nat_finset_seq].
+HB.instance Definition _ := [isSub for nat_finset_seq].
 (* Definition nat_finset_eqMixin := Eval hnf in [eqMixin of nat_finset by <:]. *)
 (* Canonical nat_finset_eqType := Eval hnf in EqType nat_finset nat_finset_eqMixin. *)
 
@@ -88,7 +90,7 @@ Record order := {
   _ : leaves order_tree == s
 }.
 
-Canonical order_subType := [subType for order_tree].
+HB.instance Definition _ := [isSub for order_tree].
 
 End OrderRecord.
 

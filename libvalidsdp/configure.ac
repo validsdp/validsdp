@@ -17,8 +17,8 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
 AC_MSG_RESULT($coq_version)
-AX_VERSION_GE([$coq_version], 8.14, [],
-  [ AC_MSG_ERROR([must be at least 8.14.]) ])
+AX_VERSION_GE([$coq_version], 8.16, [],
+  [ AC_MSG_ERROR([must be at least 8.16.]) ])
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
@@ -30,7 +30,7 @@ AS_IF(
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find theories rat, matrix, countalg from mathcomp >= 1.12.0 (http://coq.io/opam/coq-mathcomp-field.1.12.0.html)])])
+    AC_MSG_ERROR([ *** Unable to find theories rat, matrix, countalg from coq-mathcomp-field])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Mathcomp Analysis])
@@ -39,7 +39,7 @@ AS_IF(
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find theory Rstruct from mathcomp anaysis (http://coq.io/opam/coq-mathcomp-analysis.0.3.5.html)])])
+    AC_MSG_ERROR([ *** Unable to find theory Rstruct from coq-mathcomp-analysis])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Flocq])
@@ -49,7 +49,7 @@ AS_IF(
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library Flocq >= 3.1 (http://flocq.gforge.inria.fr/)])])
+    AC_MSG_ERROR([ *** Unable to find library Flocq >= 3.3 (http://flocq.gforge.inria.fr/)])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Coq-interval])
