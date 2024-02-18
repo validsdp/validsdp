@@ -36,6 +36,7 @@ SOSWIT_PLUGIN="soswitness:coq-validsdp.plugin"
 META_FILE="plugins/soswitness/src/META.coq-validsdp"
 CAMLPKGS="-package coq-core.plugins.ltac2 \
   -package zarith \
+  -package logs \
   -package ocplib-simplex \
   -package osdp"
 AX_VERSION_GE([$coq_version], 8.18,
@@ -115,7 +116,7 @@ osdp_version=`ocamlfind query -format %v osdp 2>/dev/null`
 AX_VERSION_GE([$osdp_version], 1.0,
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library OSDP >= 1.0 (https://github.com/Embedded-SW-VnV/osdp).])])
+    AC_MSG_ERROR([ *** Unable to find library OSDP >= 1.1.1 (https://github.com/Embedded-SW-VnV/osdp).])])
 
 AC_MSG_CHECKING([for coq-bignums])
 AS_IF(
