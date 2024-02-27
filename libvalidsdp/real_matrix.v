@@ -495,7 +495,7 @@ Lemma dotprodP_def (x : 'cV_n) : dotprodP P x x = 0%Re -> x = 0.
 Proof.
 rewrite /dotprodP => Px.
 case (x =P 0) => Hx //.
-casetype False; apply (Rlt_irrefl 0); rewrite -{2}Px.
+exfalso; apply (Rlt_irrefl 0); rewrite -{2}Px.
 by replace 0%Re with ((0 : 'M[R]_(1,1)) ord0 ord0); [apply PP|rewrite mxE].
 Qed.
 
@@ -510,7 +510,7 @@ Lemma normP_def_contrap (x : 'cV_n) : x <> 0 -> (0 < normP P x)%Re.
 Proof.
 move=> Hx.
 elim (normP_pos P x); [by []|move=> Hnx].
-by casetype False; apply Hx, normP_def.
+by exfalso; apply Hx, normP_def.
 Qed.
 
 End Dotprod_normP_def.
@@ -555,7 +555,7 @@ have H : (forall i, (0 <= x^T ord0 i * x i ord0)%Re).
 { move=> i'; rewrite mxE; apply Rle_0_sqr. }
 have Ps : (0 <= \sum_i (x^T ord0 i * x i ord0)%Re)%Re by apply big_sum_pos_pos.
 case (Req_dec (\sum_i (x^T ord0 i * x i ord0)%Re) 0) => Hs.
-{ casetype False; apply Hx.
+{ exfalso; apply Hx.
   rewrite -colP => i; rewrite mxE.
   by apply Rsqr_0_uniq; move: (big_sum_pos_eq_0 H Hs i); rewrite mxE. }
 by apply Rnot_le_lt => H'; apply Hs, Rle_antisym.
@@ -780,7 +780,7 @@ have H : (B *m A <=m: C *m A)%Re by apply Mmul_le_compat_r; [|apply Mlt_le].
 move=> i j.
 rewrite /Mle in H; move: {H} (H i j) => H.
 destruct H; [by []|].
-casetype False; apply HA2.
+exfalso; apply HA2.
 have H' : (((C - B) *m A) i j = 0)%Re.
 { by rewrite mulmxBl mxE -H !mxE; apply Rminus_diag_eq. }
 move: H'; rewrite (ord1 j) mulmxv_dotprod; apply dotprod_pos_eq_0_r.

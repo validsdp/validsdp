@@ -17,8 +17,8 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
 AC_MSG_RESULT($coq_version)
-AX_VERSION_GE([$coq_version], 8.16, [],
-  [ AC_MSG_ERROR([must be at least 8.16.]) ])
+AX_VERSION_GE([$coq_version], 8.18, [],
+  [ AC_MSG_ERROR([must be at least 8.18.]) ])
 
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])

@@ -17,8 +17,8 @@ AS_IF([test "x$COQC" = xno], [AC_MSG_ERROR([Cannot find coqc.])])
 AC_MSG_CHECKING(Coq version)
 coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.+a-z]]*\).*$/\1/'`
 AC_MSG_RESULT($coq_version)
-AX_VERSION_GE([$coq_version], 8.16, [],
-  [ AC_MSG_ERROR([must be at least 8.16.]) ])
+AX_VERSION_GE([$coq_version], 8.18, [],
+  [ AC_MSG_ERROR([must be at least 8.18.]) ])
 AC_CHECK_TOOL([OCAMLFIND], [ocamlfind], [no])
 AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
 
@@ -30,8 +30,8 @@ AS_IF([test -d ${LTAC2_DIR}],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq])])
-COQ_VERSION="v816"
-SOSWIT_PLUGIN_EXT="soswitness"
+COQ_VERSION="v818"
+SOSWIT_PLUGIN_EXT="coq-validsdp.plugin"
 SOSWIT_PLUGIN="soswitness:coq-validsdp.plugin"
 META_FILE="plugins/soswitness/src/META.coq-validsdp"
 CAMLPKGS="-package coq-core.plugins.ltac2 \
@@ -39,8 +39,6 @@ CAMLPKGS="-package coq-core.plugins.ltac2 \
   -package logs \
   -package ocplib-simplex \
   -package osdp"
-AX_VERSION_GE([$coq_version], 8.18,
-  [COQ_VERSION="v818"; SOSWIT_PLUGIN_EXT="coq-validsdp.plugin"], [])
 AC_SUBST(COQ_VERSION)
 AC_SUBST(SOSWIT_PLUGIN)
 AC_SUBST(SOSWIT_PLUGIN_EXT)
