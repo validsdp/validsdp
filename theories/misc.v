@@ -28,9 +28,6 @@ Definition Q2R (x : Q) : R :=
 Definition bigQ2R (x : BigQ.t_ (* the type of (_ # _)%bigQ *)) : R :=
   Q2R (BigQ.to_Q x).
 
-Ltac pos_IPR :=
-  by rewrite /= -INR_IPR; apply not_0_INR, not_eq_sym, lt_0_neq, Pos2Nat.is_pos.
-
 Lemma Q2R_0 : Q2R 0%Qrat = 0%Re.
 Proof. by rewrite /Q2R /= /Rdiv Rmult_0_l. Qed.
 
@@ -39,10 +36,11 @@ Proof.
 move: x => [[ |a|a] b] Hx; rewrite /Q2R /Qinv /=.
 { by rewrite /Q2R /= /Rdiv Rmult_0_l in Hx. }
 { clear Hx; rewrite Rinv_Rdiv //. }
-{ clear Hx; rewrite /Rdiv !Ropp_mult_distr_l_reverse -Ropp_inv_permute.
-  rewrite Rinv_Rdiv //; pos_IPR.
-  by apply Rmult_integral_contrapositive_currified;
-    [pos_IPR|apply Rinv_neq_0_compat]. }
+{ have IPRan0 : IPR a <> 0.
+  { by rewrite -INR_IPR; apply: not_0_INR; rewrite Nat.neq_0_lt_0; exact: Pos2Nat.is_pos. }
+  clear Hx; rewrite /Rdiv !Ropp_mult_distr_l_reverse -Ropp_inv_permute.
+  rewrite Rinv_Rdiv //.
+  by apply Rmult_integral_contrapositive_currified; [|apply Rinv_neq_0_compat]. }
 Qed.
 
 Lemma Q2R_mult x y : Q2R (x * y) = (Q2R x * Q2R y)%Re.

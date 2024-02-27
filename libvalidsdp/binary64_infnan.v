@@ -160,7 +160,7 @@ unfold FI2FS, fiplus, prec, emax.
 change ((53 ?= 1024)%Z) with Lt; simpl.
 assert (H := Bplus_correct _ _ Hprec Hprec_emax mode_NE _ _ Fx Fy).
 revert H; case (Rlt_bool _ _); intro H; destruct H as (H, _); [now rewrite H|].
-casetype False; revert Fxy H.
+exfalso; revert Fxy H.
 fold (fiplus x y).
 now case (fiplus x y).
 Qed.
@@ -195,7 +195,7 @@ unfold FI2FS, fimult, prec, emax.
 change (53 ?= 1024)%Z with Lt; simpl.
 assert (H := Bmult_correct _ _ Hprec Hprec_emax mode_NE x y).
 revert H; case (Rlt_bool _ _); intro H; [now rewrite (proj1 H)|].
-casetype False; revert Fxy H.
+exfalso; revert Fxy H.
 fold (fimult x y).
 now case (fimult x y).
 Qed.
@@ -238,7 +238,7 @@ assert (Nzy : B2R y <> 0).
 assert (H := Bdiv_correct _ _ Hprec Hprec_emax mode_NE x _ Nzy).
 revert H; case (Rlt_bool _ _); intro H.
 { now rewrite (proj1 H). }
-casetype False; revert Fxy H.
+exfalso; revert Fxy H.
 fold prec; fold emax; fold (fidiv x y).
 now case (fidiv x y).
 Qed.
@@ -278,7 +278,7 @@ destruct H as (_, (H, _)); revert H; fold prec emax.
 replace (Bsqrt _ _ : binary_float prec emax) with (fisqrt x).
 { intro H; unfold finite; rewrite H; unfold is_finite, FI2FS, B2R; simpl.
   case x; try auto; intros b m e _ _; case b; [|now auto].
-  unfold F2R, IZR; simpl; intro H'; casetype False; revert H'.
+  unfold F2R, IZR; simpl; intro H'; exfalso; revert H'.
   change R0 with 0%Re.
   apply Rgt_not_ge; rewrite <- Ropp_0, Ropp_mult_distr_l_reverse.
   apply Ropp_lt_gt_contravar, Rmult_lt_0_compat; [|now apply bpow_gt_0].

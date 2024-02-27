@@ -182,11 +182,11 @@ Lemma bounded_mult_proof (r1 r2 : R) (b1 : bounded r1) (b2 : bounded r2) :
   (Rabs (b1 * b2) <= r1 * r2)%Re.
 Proof.
 case (Rlt_or_le r1 0) => Hr1.
-{ casetype False; apply (Rlt_irrefl 0).
+{ exfalso; apply (Rlt_irrefl 0).
   have Hb1 := bounded_prop b1.
   apply (Rle_lt_trans 0 (Rabs b1)); [apply Rabs_pos|lra]. }
 case (Rlt_or_le r2 0) => Hr2.
-{ casetype False; apply (Rlt_irrefl 0).
+{ exfalso; apply (Rlt_irrefl 0).
   have Hb2 := bounded_prop b2.
   apply (Rle_lt_trans 0 (Rabs b2)); [apply Rabs_pos|lra]. }
 by rewrite Rabs_mult; apply Rmult_le_compat; try apply Rabs_pos;
