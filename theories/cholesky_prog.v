@@ -488,7 +488,7 @@ case (ltnP i j) => Hij'.
 case (ltnP i' i) => Hi'i; [by rewrite store_ssr_gt1| ].
 rewrite store_ssr_lt2 //; move: Hi'i; apply leq_trans.
 case (leqP i j) => Hij'' //.
-by casetype False; apply Hij, ord_inj, anti_leq; rewrite Hij''.
+by exfalso; apply Hij, ord_inj, anti_leq; rewrite Hij''.
 Qed.
 
 Lemma map_diag_correct_diag f (A : 'M[T]_n.+1) :

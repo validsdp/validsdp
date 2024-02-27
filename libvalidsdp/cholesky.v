@@ -268,7 +268,7 @@ Lemma alpha_iltj i j : (i <= j)%N -> (alpha i j = INR i.+2 * eps)%Re.
 Proof. by move=> Hij; rewrite /alpha min_l //; apply /leP. Qed.
 
 Lemma alpha_sym i j : alpha i j = alpha j i.
-Proof. by rewrite /alpha; rewrite Min.min_comm. Qed.
+Proof. by rewrite /alpha; rewrite Nat.min_comm. Qed.
 
 Lemma delta_sym (i j : 'I_n.+1) : delta i j = delta j i.
 Proof.
@@ -392,10 +392,9 @@ have Hrtij : Rt i j = ytilded c a b bk :> R.
 rewrite Hrtij.
 have Hbk : (bk <> 0 :> R)%Re.
 { rewrite /bk; apply Rgt_not_eq, Rlt_gt, (proj2 HAR). }
-replace (_ - _ : R) with (c - (\sum_k (a k * b k)%Re)
-                          - bk * ytilded c a b bk)%Re;
-  [|by rewrite /GRing.add /GRing.opp /c /=;
-    change (FS_of (format fs)) with F; ring].
+rewrite [X in Rabs X](_ : _ =
+    (c - (\sum_k (a k * b k)%Re) - bk * ytilded c a b bk)%Re); last first.
+  by rewrite /GRing.add /GRing.opp /c /= -[FS_of (format fs)]/F; ring.
 rewrite Rabs_minus_sym; apply (Rlt_le_trans _ _ _ (lemma_2_1 a b c Hbk)).
 rewrite /bk -Hrtij; apply Rplus_le_compat.
 { rewrite alpha_iltj; [|by apply ltnW].
@@ -427,9 +426,9 @@ have Hrtij : Rt i i = ytildes c a :> R by rewrite (proj2 (proj1 HAR)).
 rewrite Hrtij.
 have Hst : (0 <= stilde c a a)%Re.
 { apply Rlt_le, fsqrt_spec2; rewrite -Hrtij; apply HAR. }
-replace (_ - _ : R) with (c - (\sum_k (a k * a k)%Re) - ytildes c a ^ 2)%Re;
-  [|by rewrite /GRing.add /GRing.opp /c /=;
-    change (FS_of (format fs)) with F; ring_simplify].
+rewrite [X in Rabs X](_ : _ =
+    (c - (\sum_k (a k * a k)%Re) - ytildes c a ^ 2)%Re); last first.
+  by rewrite /GRing.add /GRing.opp /c /= -[FS_of (format fs)]/F; ring.
 rewrite Rabs_minus_sym; apply (Rlt_le_trans _ _ _ (lemma_2_2_1 Hst)).
 apply Rplus_le_compat.
 { rewrite alpha_iltj //; apply Rmult_le_compat_l; [by apply INR_eps_pos|].
@@ -820,7 +819,7 @@ rewrite -GRing.mulrA; apply Rmult_le_compat_r.
 { apply Rmult_le_pos; apply sqrt_pos. }
 set il := INR _; set ir := INR _; rewrite /GRing.mul /=.
 apply Rmult_le_compat_r; [by apply eps_pos|].
-by apply /le_INR /leP; rewrite ltnS; apply Min.min_case.
+by apply /le_INR /leP; rewrite ltnS; apply Nat.min_case.
 Qed.
 
 Lemma c_upper_bound_aux1 (x : 'cV_n.+1) : (`||x||_2 = 1)%Re ->
