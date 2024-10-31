@@ -1805,10 +1805,10 @@ apply andb_R.
   rewrite refinesE => p'0 p'0' rp'0 pszQi pszQi' rpszQi.
   move: rpszQi; case pszQi, pszQi' => /=; case s0, s1 => rpszQi.
   apply refinesP; refines_apply; inversion rpszQi; rewrite refinesE //.
-  by inversion X4; inversion H2; inversion H4. }
+  by (inversion X4 || inversion b_R); inversion H2; inversion H4. }
 apply (all_R (T_R := prod_R (ReffmpolyC rAC) RWit)) => //.
 case=> p0 w; case=> p0' w' rpw /=.
-inversion rpw; inversion X4; rewrite H2 H4 /=.
+inversion rpw; (inversion X4 || inversion b_R); rewrite H2 H4 /=.
 apply refinesP; refines_apply.
 Qed.
 
@@ -2247,7 +2247,7 @@ move: Hsos_hyps; apply: etrans.
 apply refines_eq, refines_bool_eq.
 refines_apply1; first refines_apply1;
   first refines_apply1; first refines_apply1.
-{ by eapply (refine_soscheck_hyps (eq_F := eqFIS) (rAC := r_ratBigQ) _). }
+{ by eapply (refine_soscheck_hyps (eq_F := eqFIS) (rAC := r_ratBigQ) eqFIS_P). }
 { rewrite refinesE; apply zip_R.
   { rewrite /bplb /bpl; move: Hltn'.
     elim apl => [|h t Hind] //= /andP [] Hltnh Hltnt; apply list_R_cons_R.
@@ -2312,8 +2312,7 @@ Unshelve.
 { by op22 F'.neg_correct F.add_slow_correct. }
 { by op2 F.mul_correct. }
 { by op2 F.div_correct. }
-{ by rewrite refinesE => ?? H; rewrite (nat_R_eq H). }
-by move=> x' y'; apply: eqFIS_P.
+by rewrite refinesE => ?? H; rewrite (nat_R_eq H).
 Qed.
 (*-/*)
 
