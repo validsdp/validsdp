@@ -4,7 +4,8 @@ depend.dot:: $(VFILES)
 	(echo "digraph ValidSDP_deps {" ; \
 	echo "node [shape=ellipse, style=filled, URL=\"ValidSDP.\N.html\", color=white];"; \
 	(coqdep -f _CoqProject $(VFILES)) | \
-	sed -n -e 's,plugins/soswitness/\|src/\|test-suite/\|theories/,,g;s/[.]vo.*: [^ ]*[.]v//p' | \
+	sed -n -e 's,plugins/soswitness/\|src/\|test-suite/\|theories/,,g' | \
+        sed -n -e 's/[.]vo.*: [^ ]*[.]v//p' | \
 	  while read src dst; do \
 	    color=$$(echo "$$src" | sed -e 's,[A-Za-z].*,cornflowerblue,') ; \
 	    echo "\"$$src\" [fillcolor=$$color];" ; \
@@ -25,7 +26,7 @@ depend.map:: depend.dot
 doc:: html depend.png depend.map theories/validsdp.vo
 	cp depend.png html/
 	if ! grep -e 'depend[.]png' html/toc.html; then \
-	  sed -i html/toc.html \
+	  sed -i.bak html/toc.html \
 	  -e 's,id=.main.>,&<img src='\''depend.png'\'' border=0 usemap='\''#depend'\'' />,' \
 	  -e '/<img src='\''depend.png'\''/r depend.map'; \
 	fi

@@ -25,7 +25,7 @@ depend.map:: depend.dot
 doc:: html depend.png depend.map cholesky_infnan.vo
 	cp depend.png html/
 	if ! grep -e 'depend[.]png' html/toc.html; then \
-	  sed -i html/toc.html \
+	  sed -i.bak html/toc.html \
 	  -e 's,id=.main.>,&<img src='\''depend.png'\'' border=0 usemap='\''#depend'\'' />,' \
 	  -e '/<img src='\''depend.png'\''/r depend.map'; \
 	fi

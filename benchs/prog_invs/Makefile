@@ -40,7 +40,7 @@ logs_qepcad:: $(LOGS_QEPCAD)
 
 %_${NAME}_${TIMEOUT}s.log: %.ml
 	rm -f $@
-	sed -e "s/solver = [^ ]*/solver = Osdp.Sdp.$(NAME)/" -i $<
+	sed -e "s/solver = [^ ]*/solver = Osdp.Sdp.$(NAME)/" -i.bak $<
 	ocamlbuild -use-ocamlfind -pkg osdp $(<:.ml=.native)
 	runlim -s ${MEMLIMIT} -t ${TIMEOUT} -k ./$(<:.ml=.native) > $@ 2>&1 || true
 
