@@ -1004,12 +1004,13 @@ Qed.
 End Cholesky.
 
 Require Import binary64.
-
+(*
 (** The result is valid for any tie-break rule. *)
 Parameter choice : Z -> bool.
+*)
 
 Definition corollary_2_4_with_c_upper_bound64 :=
-  @corollary_2_4_with_c_upper_bound (binary64 choice).
+  @corollary_2_4_with_c_upper_bound binary64.
 
 Definition corollary_2_7_with_c_r_upper_bounds64 :=
-  @corollary_2_7_with_c_r_upper_bounds (binary64 choice).
+  @corollary_2_7_with_c_r_upper_bounds binary64.

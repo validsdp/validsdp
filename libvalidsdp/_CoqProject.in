@@ -15,6 +15,9 @@ flx64.v
 zulp.v
 coqinterval_infnan.v
 primitive_floats_infnan.v
+flocq_float.v
+bsn_infnan.v
+binary_infnan.v
 
 -arg -w -arg -notation-overridden
 -arg -w -arg -ambiguous-paths
