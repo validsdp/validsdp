@@ -68,6 +68,16 @@ Record Float_infnan_spec := {
   fiplus_spec_f x y : finite x -> finite y ->
     Rabs (fplus (FIS2FS x) (FIS2FS y)) < m -> finite (fiplus x y);
 
+  (** Subtraction. *)
+  fiminus : FIS -> FIS -> FIS;
+
+  fiminus_spec x y : finite (fiminus x y) ->
+    FIS2FS (fiminus x y) = fminus (FIS2FS x) (FIS2FS y) :> R;
+  fiminus_spec_fl x y : finite (fiminus x y) -> finite x;
+  fiminus_spec_fr x y : finite (fiminus x y) -> finite y;
+  fiminus_spec_f x y : finite x -> finite y ->
+    Rabs (fminus (FIS2FS x) (FIS2FS y)) < m -> finite (fiminus x y);
+
   (** Multiplication. *)
   fimult : FIS -> FIS -> FIS;
 
@@ -111,30 +121,6 @@ Lemma m_pos : 0 <= m fs.
 Proof.
 apply Rle_trans with 2; [|now apply m_ge_2].
 rewrite <- (Rplus_0_l 0); apply Rplus_le_compat; apply Rle_0_1.
-Qed.
-
-(** Subtraction. *)
-Definition fiminus (x y : FIS fs) : FIS fs := fiplus x (fiopp y).
-
-Lemma fiminus_spec x y : finite (fiminus x y) ->
-  FIS2FS (fiminus x y) = fminus (FIS2FS x) (FIS2FS y).
-Proof.
-unfold fiminus, fminus; intro H.
-assert (Hy : finite (fiopp y)) by apply (fiplus_spec_fr H).
-now unfold fplus; rewrite <- (fiopp_spec Hy); apply val_inj, fiplus_spec.
-Qed.
-
-Lemma fiminus_spec_fl x y : finite (fiminus x y) -> finite x.
-Proof. apply fiplus_spec_fl. Qed.
-
-Lemma fiminus_spec_fr x y : finite (fiminus x y) -> finite y.
-Proof. intro H; apply fiopp_spec_f1, (fiplus_spec_fr H). Qed.
-
-Lemma fiminus_spec_f x y : finite x -> finite y ->
-  Rabs (fminus (FIS2FS x) (FIS2FS y)) < m fs -> finite (fiminus x y).
-Proof.
-intros Fx Fy H; apply (fiplus_spec_f Fx (fiopp_spec_f Fy)).
-now unfold fplus; rewrite fiopp_spec; [|apply fiopp_spec_f].
 Qed.
 
 (** Equality *)

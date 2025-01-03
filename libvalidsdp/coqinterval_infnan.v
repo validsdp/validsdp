@@ -589,9 +589,6 @@ Proof. now intros Fx Fy _; apply fiplus_spec_f_aux. Qed.
 Lemma fiplus_spec x y : finite (fiplus x y) ->
   FI2FS (fiplus x y) = fplus (FI2FS x) (FI2FS y) :> R.
 Proof.
-move=> H.
-suff: FI2FS (fiplus x y) = fplus (FI2FS x) (FI2FS y) :> R; [by []|].
-move: H.
 unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fiplus; simpl; rewrite F.add_slow_correct.
 set (z := Xadd _ _); case_eq z; [now simpl|]; intros r Hr _; simpl.
@@ -602,6 +599,32 @@ rewrite round_generic //.
   by case =><-. }
 now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
+
+Definition fiminus (x y : FI) : FI := fiplus x (fiopp y).
+
+Lemma fiminus_spec_fl x y : finite (fiminus x y) -> finite x.
+Proof. exact: fiplus_spec_fl. Qed.
+
+Lemma fiminus_spec_fr x y : finite (fiminus x y) -> finite y.
+Proof. by move/fiplus_spec_fr/fiopp_spec_f1. Qed.
+
+Lemma fiminus_spec x y : finite (fiminus x y) ->
+  FI2FS (fiminus x y) = fminus (FI2FS x) (FI2FS y) :> R.
+Proof.
+move=> fxmy; rewrite fiplus_spec//; congr (fplus _ _).
+by apply/val_inj/fiopp_spec; apply: fiplus_spec_fr fxmy.
+Qed.
+
+Lemma fiminus_spec_f_aux x y : finite x -> finite y -> finite (fiminus x y).
+Proof.
+move => Hx Hy. apply fiopp_spec_f in Hy. move :Hx Hy.
+unfold finite, fiminus; simpl; do 3 rewrite FtoX_real.
+now rewrite F.add_slow_correct; case (F.toX (F.neg y)); [|intro r]; case (F.toX x).
+Qed.
+
+Lemma fiminus_spec_f x y : finite x -> finite y ->
+  Rabs (fminus (FI2FS x) (FI2FS y)) < m -> finite (fiminus x y).
+Proof. now intros Fx Fy _; apply fiminus_spec_f_aux. Qed.
 
 Lemma fimult_proof rm (x y : F.type) : is_mantissa_bounded (F.mul rm 53%bigZ x y).
 apply/mantissa_boundedP.
@@ -824,6 +847,11 @@ Definition coqinterval_infnan : Float_infnan_spec :=
     fiplus_spec_fl
     fiplus_spec_fr
     fiplus_spec_f
+    fiminus
+    fiminus_spec
+    fiminus_spec_fl
+    fiminus_spec_fr
+    fiminus_spec_f
     fimult
     fimult_spec
     fimult_spec_fl

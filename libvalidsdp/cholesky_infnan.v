@@ -120,8 +120,8 @@ rewrite /stilde_infnan /= -/stilde_infnan => H.
 have HH := stilde_infnan_fc H.
 rewrite (IHk _ _ _ H) /stilde /fcmsum_l2r /=.
 do 2 f_equal; [|apply ffunP=> i]; rewrite !ffunE //.
-rewrite (fiminus_spec HH) /fminus /fplus /= /fmult frnd_F.
-by rewrite (fimult_spec (fiminus_spec_fr HH)).
+apply: val_inj; rewrite [LHS]fiminus_spec//=.
+by rewrite /fminus -fimult_spec ?(fiminus_spec_fr HH)// frnd_F.
 Qed.
 
 Lemma ytilded_infnan_eq_ytilded k c a b bk :
