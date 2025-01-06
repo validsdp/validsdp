@@ -23,7 +23,7 @@ depends: [
   "coq-coquelicot" {>= "3.0"}
   "coq-interval" {>= "4.0.0" & < "5~"}
   "coq-mathcomp-field" {(>= "2.1" & < "2.3~") | (= "dev")}
-  "coq-mathcomp-analysis" {>= "1.0.0"}
+  "coq-mathcomp-analysis" {>= "1.0.0" & < "1.7~"}
   "ocamlfind" {build}
   "conf-autoconf" {build & dev}
 ]

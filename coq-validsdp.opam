@@ -25,7 +25,7 @@ depends: [
   "coq-flocq" {>= "3.3.0"}
   "coq-interval" {>= "4.0.0" & < "5~"}
   "coq-mathcomp-field" {(>= "2.1" & < "2.3~") | (= "dev")}
-  "coq-mathcomp-analysis" {>= "1.0.0"}
+  "coq-mathcomp-analysis" {>= "1.0.0" & < "1.7~"}
   "coq-libvalidsdp" {= version}
   "coq-mathcomp-multinomials" {>= "2.0"}
   "coq-coqeal" {>= "2.0.2"}
