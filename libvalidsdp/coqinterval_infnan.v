@@ -1,6 +1,6 @@
 (** * CoqInterval floats satisfy hypothesis in [Float_infnan_spec] *)
 
-Require Import Reals mathcomp.analysis.Rstruct.
+Require Import Reals.
 Require Import Floats.
 From Bignums Require Import BigZ.
 
@@ -18,6 +18,8 @@ Require Import Interval.Real.Xreal.
 Require Import Interval.Missing.Stdlib.
 
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
+
+From mathcomp Require Import Rstruct.
 
 Require Import float_spec flx64 float_infnan_spec misc zulp.
 

@@ -9,7 +9,7 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import fintype finfun ssralg matrix bigop tuple.
 From mathcomp Require Import ssrnum ssrint rat.
 
-Require Import mathcomp.analysis.Rstruct.
+From mathcomp Require Import Rstruct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

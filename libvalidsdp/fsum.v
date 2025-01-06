@@ -18,7 +18,7 @@ From Coquelicot Require Import Rcomplements.
 From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat.
 From mathcomp Require Import fintype finfun ssralg bigop eqtype seq path.
 
-Require Import mathcomp.analysis.Rstruct.
+From mathcomp Require Import Rstruct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

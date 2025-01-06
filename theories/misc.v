@@ -7,7 +7,7 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 From mathcomp Require Import order ssralg ssrnum ssrint rat.
 
 From CoqEAL.refinements Require Import binrat.
-Require Import mathcomp.analysis.Rstruct.
+From mathcomp Require Import Rstruct.
 Require libValidSDP.misc.
 
 Set Implicit Arguments.

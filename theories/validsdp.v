@@ -17,7 +17,7 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix order ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
 From mathcomp.multinomials Require Import mpoly.
-Require Import mathcomp.analysis.Rstruct.
+From mathcomp Require Import Rstruct.
 Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
 Import Refinements.Op.
 Require Import cholesky_prog libValidSDP.coqinterval_infnan.

@@ -11,9 +11,9 @@
 
 From HB Require Import structures.
 Require Import Reals.
-Require Import mathcomp.analysis.Rstruct.
 Require Import Psatz Flocq.Core.Raux Interval.Missing.Stdlib.
 From mathcomp Require Import ssreflect ssrbool eqtype choice.
+From mathcomp Require Import Rstruct.
 
 Require Export bounded.
 
