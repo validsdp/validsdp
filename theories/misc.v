@@ -169,21 +169,21 @@ Qed.
 
 Lemma int2Z_le m n : int2Z m <=? int2Z n = (m <= n)%Ri.
 Proof.
-rewrite -(ler_int [numDomainType of R]) -!Z2R_int2Z; apply/idP/idP.
+rewrite -(ler_int R) -!Z2R_int2Z; apply/idP/idP.
 { by move/Z.leb_le/IZR_le/RleP. }
 by move/RleP/le_IZR/Z.leb_le.
 Qed.
 
 Lemma int2Z_lt m n : int2Z m <? int2Z n = (m < n)%Ri.
 Proof.
-rewrite -(ltr_int [numDomainType of R]) -!Z2R_int2Z; apply/idP/idP.
+rewrite -(ltr_int R) -!Z2R_int2Z; apply/idP/idP.
 { by move/Z.ltb_lt/IZR_lt/RltP. }
 by move/RltP/lt_IZR/Z.ltb_lt.
 Qed.
 
 Lemma int2Z_eq m n : int2Z m =? int2Z n = (m == n).
 Proof.
-rewrite -(eqr_int [numDomainType of R]) -!Z2R_int2Z; apply/idP/idP.
+rewrite -(eqr_int R) -!Z2R_int2Z; apply/idP/idP.
 { by move/Z.eqb_eq/IZR_eq => ->. }
 by move/eqP/eq_IZR/Z.eqb_eq.
 Qed.
@@ -194,7 +194,7 @@ case: c => [//|n d].
 by rewrite /bigQ2R; apply: Q2R_Qeq; apply: BigQ.spec_red.
 Qed.
 
-Notation rat2R := (@ratr [unitRingType of R]) (only parsing).
+Notation rat2R := (@ratr R) (only parsing).
 
 (* FIXME: remove when requiring analysis >= 1.2.0 *)
 Let neq0_RinvE x : x != 0%Re -> Rinv x = x^-1.

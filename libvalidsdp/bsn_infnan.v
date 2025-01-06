@@ -1,5 +1,6 @@
-Require Import ZArith Bool Reals mathcomp.analysis.Rstruct Psatz.
+Require Import ZArith Bool Reals Psatz.
 From mathcomp Require Import ssreflect ssrbool eqtype.
+From mathcomp Require Import Rstruct.
 
 Require Import Flocq.Core.Raux.
 Require Import Flocq.Core.Generic_fmt.

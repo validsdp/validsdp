@@ -750,7 +750,7 @@ elim/abstr_poly_ind': ap l n => //.
   by rewrite (Hp _ _ Hn Hnp) (Hq _ _ Hn Hnq) !rmorphM. }
 { move=> p Hp m l n Hn /= Hnp; rewrite (Hp _ _ Hn Hnp).
   rewrite -{1}[m]spec_NK /binnat.implem_N bin_of_natE nat_N_Z.
-  by rewrite -pow_powerRZ misc.pow_rexp !rmorphX. }
+  by rewrite -pow_powerRZ misc.pow_rexp !rmorphXn. }
 move=> p Hp qi Hqi l n Hn /= /andP [Hqi' Hp'].
 case (sumb _) => [e|]; [|by rewrite size_map eqxx].
 set qi' := map _ _.
@@ -1135,7 +1135,7 @@ set Q' := matrix.map_mx _ _.
 set p' := _ (_ *m _) _ _.
 set pmp' := poly_sub_op _ _.
 set r := max_coeff _.
-pose zpr := matrix.map_mx [eta mpolyX [ringType of R]] z.
+pose zpr := matrix.map_mx [eta mpolyX R] z.
 pose Q'r := matrix.map_mx (map_mpoly T2R) Q'.
 pose mpolyC_R := fun c : R => mpolyC n c.
 pose map_mpolyC_R := fun m : 'M_s.+1 => matrix.map_mx mpolyC_R m.
@@ -1478,8 +1478,8 @@ rewrite /Qeq /=.
 apply: Z2int_inj.
 rewrite !Z2int_mul Z2Pos.id ?int2ZK; last first.
 { by rewrite -[Z0]/(int2Z 0) -Z2int_lt !int2ZK denq_gt0. }
-apply: (@intr_inj [numDomainType of rat]).
-rewrite [LHS](intrM [ringType of rat]) numqE.
+apply: (@intr_inj rat).
+rewrite [LHS](intrM rat) numqE.
 rewrite mulrAC GRing.mulfVK ?rmorphM //.
 by rewrite intr_eq0 -lt0n nat_of_pos_gt0.
 Qed.

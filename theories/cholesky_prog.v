@@ -839,7 +839,7 @@ move=> i j Hij; suff: finite (At i j).
   by move /eqP in Hij' => H; apply Hij'; rewrite H. }
 apply (@cholesky_success_infnan_f1 _ _ At Rt^T) => //; split.
 { rewrite /Rt -/(cholesky_ssr At).
-  apply cholesky_spec_correct, cholesky_correct. }
+  by apply cholesky_spec_correct, cholesky_correct. }
 move=> i'; rewrite mxE.
 have->: 0%Re = FIS2FS (FIS0 fs) by rewrite FIS2FS0.
 apply filt_spec; [by apply finite0| | ].
