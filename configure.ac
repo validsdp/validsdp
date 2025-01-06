@@ -56,11 +56,11 @@ rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Mathcomp Analysis])
 AS_IF(
-  [ echo "Require Import mathcomp.analysis.Rstruct." > conftest.v
+  [ echo "From mathcomp Require Import Rstruct." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find theory Rstruct from coq-mathcomp-analysis])])
+    AC_MSG_ERROR([ *** Unable to find theory Rstruct from coq-mathcomp-reals-stdlib])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Flocq])

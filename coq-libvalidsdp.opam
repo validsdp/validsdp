@@ -24,6 +24,8 @@ depends: [
   "coq-interval" {>= "4.0.0" & < "5~"}
   "coq-mathcomp-field" {(>= "2.1" & < "2.3~") | (= "dev")}
   "coq-mathcomp-analysis" {>= "1.0.0" & < "1.7~"}
+  # switch to the following when requiring coq >= 8.19
+  # "coq-mathcomp-reals-stdlib" {>= "1.8.0" & "coq" >= "8.19"}
   "ocamlfind" {build}
   "conf-autoconf" {build & dev}
 ]

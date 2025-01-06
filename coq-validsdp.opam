@@ -26,6 +26,10 @@ depends: [
   "coq-interval" {>= "4.0.0" & < "5~"}
   "coq-mathcomp-field" {(>= "2.1" & < "2.3~") | (= "dev")}
   "coq-mathcomp-analysis" {>= "1.0.0" & < "1.7~"}
+  # switch to the following when requiring coq >= 8.19
+  # "coq-mathcomp-reals-stdlib" {>= "1.8.0" & "coq" >= "8.19"}
+  # and cleanup the "FIXME: remove when requiring analysis >= 1.2.0"
+  # in theories/misc.v
   "coq-libvalidsdp" {= version}
   "coq-mathcomp-multinomials" {>= "2.0"}
   "coq-coqeal" {>= "2.0.2"}

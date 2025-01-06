@@ -5,8 +5,9 @@
     a rounding to nearest. More precisely Flocq's FLX(53) is a model
     of binary64 without underflows, NaNs nor overflows. *)
 
-Require Import Reals mathcomp.analysis.Rstruct Psatz.
+Require Import Reals Psatz.
 From mathcomp Require Import ssreflect ssrbool eqtype.
+From mathcomp Require Import Rstruct.
 
 Require Import Flocq.Core.Zaux.
 Require Import Flocq.Core.Raux.

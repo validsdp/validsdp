@@ -6,10 +6,10 @@ Require Import misc.
 
 Require Import Psatz.
 
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
-Require Import mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.algebra.ssralg mathcomp.ssreflect.bigop.
+From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq bigop.
+From mathcomp Require Import fintype finfun ssralg.
 
-Require Import mathcomp.analysis.Rstruct.
+From mathcomp Require Import Rstruct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

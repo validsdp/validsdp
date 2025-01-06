@@ -15,7 +15,7 @@ Require Import Psatz.
 From mathcomp Require Import ssreflect ssrfun ssrnat.
 From mathcomp Require Import fintype finfun ssralg bigop.
 
-Require Import mathcomp.analysis.Rstruct.
+From mathcomp Require Import Rstruct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -48,7 +48,7 @@ Theorem fcmsum_l2r_err_no_underflow n (c : F) (x : R^n) (rho : R) (l : nat) :
   Rabs (rho - fcmsum_l2r c x) <= INR l * eps * Rabs rho ->
   let Delta := (rho - (c - \sum_i (x i : R)))%Re in
   Rabs Delta <= INR (n + l) * eps * (Rabs rho + \sum_i Rabs (x i)).
-Proof.  
+Proof.
 elim: n c x => [|n IHn] c x Hnounder Hl Delta.
 { rewrite /Delta !big_ord0 /Rminus Ropp_0 !Rplus_0_r add0n.
   by move: Hl; rewrite /fcmsum_l2r /fsum_l2r_rec. }
