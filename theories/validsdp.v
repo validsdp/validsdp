@@ -1729,7 +1729,7 @@ Context `{!refines (eqFIS) zero_instFIS zero_instFIS}.
 Context `{!refines (eqFIS) one_instFIS one_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS) opp_instFIS opp_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS) sqrt_instFIS sqrt_instFIS}.
-Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) add_instFIS add_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) sub_instFIS sub_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) mul_instFIS mul_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) div_instFIS div_instFIS}.
 Context `{ref_fin : !refines (eqFIS ==> bool_R) (@finite fs) (@finite fs)}.
@@ -2300,7 +2300,8 @@ Unshelve.
 { by rewrite refinesE. }
 { by op1 F'.neg_correct. }
 { by op1 F.sqrt_correct. }
-{ by op2 F.add_slow_correct. }
+{ rewrite refinesE /eqFIS => ? ? H1 ? ? H2.
+  by rewrite F.add_slow_correct H1 /= F.add_slow_correct !F'.neg_correct H2. }
 { by op2 F.mul_correct. }
 { by op2 F.div_correct. }
 { op1 F.real_correct; exact: bool_Rxx. }
