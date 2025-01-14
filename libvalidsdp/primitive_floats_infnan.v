@@ -1,5 +1,5 @@
 Require Import ZArith Bool Reals Psatz.
-From mathcomp Require Import ssreflect ssrbool eqtype.
+From mathcomp Require Import ssreflect ssrbool ssrfun eqtype.
 From mathcomp Require Import Rstruct.
 
 Require Import float_spec binary64 float_infnan_spec binary64_infnan.
@@ -114,11 +114,9 @@ Section Primitive_float_infnan.
     by rewrite B2Prim_Prim2B.
   Qed.
 
-
-  Lemma BSN_Bplus_congr:
-   forall prec emax Hprec Hprec' Hmax Hmax' mode x y,
-     @BinarySingleNaN.Bplus prec emax Hprec Hmax mode x y = 
-     @BinarySingleNaN.Bplus prec emax Hprec' Hmax' mode x y.
+  Lemma BSN_Bplus_congr prec emax Hprec Hprec' Hmax Hmax' mode x y :
+    @BinarySingleNaN.Bplus prec emax Hprec Hmax mode x y =
+    @BinarySingleNaN.Bplus prec emax Hprec' Hmax' mode x y.
   Proof.
     intros. f_equal; apply Classical_Prop.proof_irrelevance.
   Qed.
@@ -127,7 +125,7 @@ Section Primitive_float_infnan.
   Proof.
     rewrite -(B2Prim_Prim2B (x + y)) -(B2Prim_Prim2B x).
     rewrite add_equiv !finite_equiv Prim2B_B2Prim.
-    intro; eapply (fiplus_spec_fl (f:=binary64_infnan) (y:=Prim2B y)). 
+    intro; eapply (fiplus_spec_fl (f:=binary64_infnan) (y:=Prim2B y)).
     revert H; apply eqbLR. f_equal.
     apply BSN_Bplus_congr.
   Qed.
@@ -159,14 +157,60 @@ Section Primitive_float_infnan.
       apply BSN_Bplus_congr.
     + move: H.
       rewrite -(B2Prim_Prim2B (x + y)) finite_equiv add_equiv.
-      apply eqbLR. f_equal. 
+      apply eqbLR. f_equal.
       apply BSN_Bplus_congr.
   Qed.
 
-  Lemma BSN_Bmult_congr:
-   forall prec emax Hprec Hprec' Hmax Hmax' mode x y,
-     @BinarySingleNaN.Bmult prec emax Hprec Hmax mode x y = 
-     @BinarySingleNaN.Bmult prec emax Hprec' Hmax' mode x y.
+  Lemma BSN_Bminus_congr prec emax Hprec Hprec' Hmax Hmax' mode x y :
+    @BinarySingleNaN.Bminus prec emax Hprec Hmax mode x y =
+    @BinarySingleNaN.Bminus prec emax Hprec' Hmax' mode x y.
+  Proof.
+    intros. f_equal; apply Classical_Prop.proof_irrelevance.
+  Qed.
+
+  Lemma fiminus_spec_fl x y : finite (x - y) -> finite x.
+  Proof.
+    rewrite -(B2Prim_Prim2B (x - y)) -(B2Prim_Prim2B x).
+    rewrite sub_equiv !finite_equiv Prim2B_B2Prim.
+    intro; eapply (fiminus_spec_fl (f:=binary64_infnan) (y:=Prim2B y)).
+    revert H; apply eqbLR. f_equal.
+    apply BSN_Bminus_congr.
+  Qed.
+
+  Lemma fiminus_spec_fr x y : finite (x - y) -> finite y.
+  Proof.
+    rewrite -(B2Prim_Prim2B (x - y)) -(B2Prim_Prim2B y).
+    rewrite sub_equiv !finite_equiv Prim2B_B2Prim.
+    intro H; apply (@fiminus_spec_fr binary64_infnan (Prim2B x) (Prim2B y)); revert H.
+    apply eqbLR. f_equal. apply BSN_Bminus_congr.
+  Qed.
+
+  Lemma fiminus_spec_f x y :
+    finite x -> finite y -> Rabs (fminus (FI2FS x) (FI2FS y)) < m -> finite (x - y).
+  Proof.
+    rewrite -(B2Prim_Prim2B (x - y)) -(B2Prim_Prim2B x) -(B2Prim_Prim2B y).
+    rewrite sub_equiv !finite_equiv !B2Prim_Prim2B.
+    intros H H0 H1.
+    generalize (@fiminus_spec_f binary64_infnan (Prim2B x) (Prim2B y) H H0 H1); clear H H0 H1.
+    apply eqbLR. f_equal. apply BSN_Bminus_congr.
+  Qed.
+
+  Lemma fiminus_spec x y :
+    finite (x - y) -> FI2FS (x - y)%float = fminus (FI2FS x) (FI2FS y) :> R.
+  Proof.
+    move=> H.
+    rewrite -(@fiminus_spec binary64_infnan).
+    + rewrite /FI2FS /fiminus /= sub_equiv. f_equal.
+      apply BSN_Bminus_congr.
+    + move: H.
+      rewrite -(B2Prim_Prim2B (x - y)) finite_equiv sub_equiv.
+      apply eqbLR. f_equal.
+      apply BSN_Bminus_congr.
+  Qed.
+
+  Lemma BSN_Bmult_congr prec emax Hprec Hprec' Hmax Hmax' mode x y :
+    @BinarySingleNaN.Bmult prec emax Hprec Hmax mode x y =
+    @BinarySingleNaN.Bmult prec emax Hprec' Hmax' mode x y.
   Proof.
     intros. f_equal; apply Classical_Prop.proof_irrelevance.
   Qed.
@@ -176,7 +220,7 @@ Section Primitive_float_infnan.
     rewrite -(B2Prim_Prim2B (x * y)) -(B2Prim_Prim2B x).
     rewrite mul_equiv !finite_equiv Prim2B_B2Prim.
     intro H. apply (@fimult_spec_fl binary64_infnan (Prim2B x) (Prim2B y)).
-    revert H. apply eqbLR. f_equal. 
+    revert H. apply eqbLR. f_equal.
     apply BSN_Bmult_congr.
   Qed.
 
@@ -185,7 +229,7 @@ Section Primitive_float_infnan.
     rewrite -(B2Prim_Prim2B (x * y)) -(B2Prim_Prim2B y).
     rewrite mul_equiv !finite_equiv Prim2B_B2Prim.
     intro H. apply (@fimult_spec_fr binary64_infnan (Prim2B x) (Prim2B y)).
-    revert H. apply eqbLR. f_equal. 
+    revert H. apply eqbLR. f_equal.
     apply BSN_Bmult_congr.
   Qed.
 
@@ -196,7 +240,7 @@ Section Primitive_float_infnan.
     rewrite mul_equiv !finite_equiv !B2Prim_Prim2B.
     intros H H1 H2.
     generalize (@fimult_spec_f binary64_infnan (Prim2B x) (Prim2B y) H H1 H2); clear H H1 H2.
-    apply eqbLR. f_equal. 
+    apply eqbLR. f_equal.
     apply BSN_Bmult_congr.
   Qed.
 
@@ -209,14 +253,13 @@ Section Primitive_float_infnan.
       apply BSN_Bmult_congr.
     + move: H.
       rewrite -(B2Prim_Prim2B (x * y)) finite_equiv mul_equiv.
-      apply eqbLR. f_equal. 
+      apply eqbLR. f_equal.
       apply BSN_Bmult_congr.
   Qed.
 
-  Lemma BSN_Bdiv_congr:
-   forall prec emax Hprec Hprec' Hmax Hmax' mode x y,
-     @BinarySingleNaN.Bdiv prec emax Hprec Hmax mode x y = 
-     @BinarySingleNaN.Bdiv prec emax Hprec' Hmax' mode x y.
+  Lemma BSN_Bdiv_congr prec emax Hprec Hprec' Hmax Hmax' mode x y :
+    @BinarySingleNaN.Bdiv prec emax Hprec Hmax mode x y =
+    @BinarySingleNaN.Bdiv prec emax Hprec' Hmax' mode x y.
   Proof.
     intros. f_equal; apply Classical_Prop.proof_irrelevance.
   Qed.
@@ -252,10 +295,9 @@ Section Primitive_float_infnan.
     + by rewrite -finite_equiv B2Prim_Prim2B.
   Qed.
 
-  Lemma BSN_Bsqrt_congr:
-   forall prec emax Hprec Hprec' Hmax Hmax' mode x,
-     @BinarySingleNaN.Bsqrt prec emax Hprec Hmax mode x = 
-     @BinarySingleNaN.Bsqrt prec emax Hprec' Hmax' mode x.
+  Lemma BSN_Bsqrt_congr prec emax Hprec Hprec' Hmax Hmax' mode x :
+    @BinarySingleNaN.Bsqrt prec emax Hprec Hmax mode x =
+    @BinarySingleNaN.Bsqrt prec emax Hprec' Hmax' mode x.
   Proof.
     intros. f_equal; apply Classical_Prop.proof_irrelevance.
   Qed.
@@ -326,6 +368,10 @@ Section Primitive_float_infnan.
       fiplus_spec_fl
       fiplus_spec_fr
       fiplus_spec_f
+      fiminus_spec
+      fiminus_spec_fl
+      fiminus_spec_fr
+      fiminus_spec_f
       fimult_spec
       fimult_spec_fl
       fimult_spec_fr

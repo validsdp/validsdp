@@ -167,14 +167,14 @@ Section seqmx_cholesky.
  *)
 
 Context {T : Type}.
-Context `{!zero_of T, !one_of T, !add_of T, !opp_of T, !div_of T, !mul_of T, !sqrt_of T}.
+Context `{!zero_of T, !one_of T, !sub_of T, !opp_of T, !div_of T, !mul_of T, !sqrt_of T}.
 
 Fixpoint stilde_seqmx k (c : T) a b :=
   match k, a, b with
     | O, _, _ => c
     | S k, [::], _ => c
     | S k, _, [::] => c
-    | S k, a1 :: a2, b1 :: b2 => stilde_seqmx k (c + (- (a1 * b1)))%C a2 b2
+    | S k, a1 :: a2, b1 :: b2 => stilde_seqmx k (c - (a1 * b1))%C a2 b2
   end.
 
 Global Instance dotmulB0_seqmx : dotmulB0_of T ord_instN hseqmx :=
@@ -225,7 +225,7 @@ Section theory_cholesky.
 (** *** Proof-oriented definitions, polymorphic w.r.t scalars *)
 
 Context {T : Type}.
-Context `{!zero_of T, !one_of T, !add_of T, !opp_of T, !div_of T, !mul_of T, !sqrt_of T}.
+Context `{!zero_of T, !one_of T, !sub_of T, !opp_of T, !div_of T, !mul_of T, !sqrt_of T}.
 
 Global Instance fun_of_ssr : fun_of_of T ordinal (matrix T) :=
   fun m n => @matrix.fun_of_matrix T m n.
@@ -236,7 +236,7 @@ Fixpoint fsum_l2r_rec n (c : T) : T ^ n -> T :=
   match n with
     | 0%N => fun _ => c
     | n'.+1 =>
-      fun a => fsum_l2r_rec (c + (a ord0))%C [ffun i => a (lift ord0 i)]
+      fun a => fsum_l2r_rec (c - (a ord0))%C [ffun i => a (lift ord0 i)]
   end.
 
 Global Instance dotmulB0_ssr : dotmulB0_of T ordinal (matrix T) :=
@@ -245,7 +245,7 @@ Global Instance dotmulB0_ssr : dotmulB0_of T ordinal (matrix T) :=
       | 0%N => fun i c a b => c
       | n'.+1 => fun i c a b =>
         fsum_l2r_rec c
-        [ffun k : 'I_i => (- ((a ord0 (inord k)) * (b ord0 (inord k))))%C]
+        [ffun k : 'I_i => (a ord0 (inord k) * b ord0 (inord k))%C]
     end.
 
 Context {n : nat}.
@@ -516,7 +516,7 @@ Section theory_cholesky_2.
 
 Context {fs : Float_infnan_spec} (eta_neq_0 : eta fs <> 0).
 
-Global Instance add_instFIS : add_of (FIS fs) := @fiplus fs.
+Global Instance sub_instFIS : sub_of (FIS fs) := @fiminus fs.
 Global Instance mul_instFIS : mul_of (FIS fs) := @fimult fs.
 Global Instance sqrt_instFIS : sqrt_of (FIS fs) := @fisqrt fs.
 Global Instance div_instFIS : div_of (FIS fs) := @fidiv fs.
@@ -539,12 +539,13 @@ case: k => //= k Hk; elim: k Hk c a b => //= k IHk Hk c a b.
 pose a' := \row_(i < n.+1) a ord0 (inord (lift ord0 i)).
 pose b' := \row_(i < n.+1) b ord0 (inord (lift ord0 i)).
 rewrite (@fsum_l2r_rec_eq _ _ _ _ _ _
-  [ffun i : 'I_k => (- (a' ord0 (inord i) * b' ord0 (inord i)))%C] erefl).
+  [ffun i : 'I_k => (a' ord0 (inord i) * b' ord0 (inord i))%C] erefl).
 { by rewrite (IHk (ltnW Hk)); f_equal; [|apply ffunP => i..];
     rewrite !ffunE // mxE /=;
     do 3 apply f_equal; apply /inordK /(ltn_trans (ltn_ord i)) /ltnW. }
-by move=> i; rewrite !ffunE !mxE /=; apply f_equal, f_equal2;
-  do 3 apply f_equal; apply sym_eq, inordK, (ltn_trans (ltn_ord i)), ltnW.
+move=> i; rewrite !ffunE !mxE.
+by apply: congr2; do 2![apply: congr1]; apply: f_equal2; rewrite // inordK//;
+  apply: ltn_trans (ltn_ord i) _; apply: ltnW.
 Qed.
 
 Lemma ytilded_correct k (c : FIS fs) (a b : 'rV_n.+1) (bk : FIS fs) :
@@ -839,7 +840,7 @@ move=> i j Hij; suff: finite (At i j).
   by move /eqP in Hij' => H; apply Hij'; rewrite H. }
 apply (@cholesky_success_infnan_f1 _ _ At Rt^T) => //; split.
 { rewrite /Rt -/(cholesky_ssr At).
-  apply cholesky_spec_correct, cholesky_correct. }
+  by apply cholesky_spec_correct, cholesky_correct. }
 move=> i'; rewrite mxE.
 have->: 0%Re = FIS2FS (FIS0 fs) by rewrite FIS2FS0.
 apply filt_spec; [by apply finite0| | ].
@@ -1018,7 +1019,7 @@ Section refinement_cholesky.
 
 (** "C" for "concrete type" *)
 Context {C : Type}.
-Context `{!zero_of C, !one_of C, !add_of C, !opp_of C, !mul_of C, !div_of C, !sqrt_of C}.
+Context `{!zero_of C, !one_of C, !sub_of C, !opp_of C, !mul_of C, !div_of C, !sqrt_of C}.
 Local Notation mxC := (@hseqmx C) (only parsing).
 
 Context `{!leq_of C}.
@@ -1030,7 +1031,7 @@ Let r1 := nat_R_S_R nat_R_O_R.
 
 Global Instance refine_dotmulB0 :
   refines (Rord rn ==> eq ==> Rseqmx r1 rn ==> Rseqmx r1 rn ==> eq)
-    (@dotmulB0_ssr _ _ _ _ n1.+1) (@dotmulB0_seqmx C _ _ _ n2.+1).
+    (@dotmulB0_ssr _ _ _ n1.+1) (@dotmulB0_seqmx C _ _ n2.+1).
 Proof.
 eapply refines_abstr => k k' ref_k.
 eapply refines_abstr => c c' ref_c.
@@ -1051,16 +1052,16 @@ elim: n1 k {ha3} a {hb3} b c c' {Ea'} a'0 {Eb'} b'0 ref_c => [ |n' IH] k a b c c
 case Ea'0 : a'0 => [//|a'00 a'01].
 case Eb'0 : b'0 => [//|b'00 b'01] ha1 hb1 ha3 hb3.
 case k => {}k Hk.
-case: k Hk => [ |k Hk] //=; set cc := (c' + - _)%C.
+case: k Hk => [ |k Hk] //=; set cc := (c' - _)%C.
 rewrite ltnS in Hk.
 rewrite ffunE.
-have->: [ffun i => [ffun k0 : 'I__ => (- (a ord0 (inord k0) * b ord0 (inord k0)))%C]
+have->: [ffun i => [ffun k0 : 'I__ => (a ord0 (inord k0) * b ord0 (inord k0))%C]
                     (lift ord0 i)] =
-        [ffun i => (- (a ord0 (inord (lift ord0 i)) * b ord0 (inord (lift ord0 i))))%C].
+        [ffun i => (a ord0 (inord (lift ord0 i)) * b ord0 (inord (lift ord0 i)))%C].
 by move=> n; apply/ffunP => x; rewrite !ffunE.
 rewrite <-(IH (Ordinal Hk) (\row_(i < n'.+1) a ord0 (lift ord0 i))
              (\row_(i < n'.+1) b ord0 (lift ord0 i))
-          (c + - (a ord0 (@inord n'.+1 (@ord0 k.+1)) * b ord0 (@inord n'.+1 (@ord0 k.+1))))%C).
+          (c - (a ord0 (@inord n'.+1 (@ord0 k.+1)) * b ord0 (@inord n'.+1 (@ord0 k.+1))))%C).
 { (* apply eq_subrelation; tc. *)
   apply fsum_l2r_rec_eq => [ |i] //.
   rewrite !ffunE /cc !mxE; repeat f_equal; apply/val_inj; rewrite /= !inordK //;
@@ -1211,7 +1212,7 @@ Context `{!refines (eqFIS) zero_instFIS zero_instFIS}.
 Context `{!refines (eqFIS) one_instFIS one_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS) opp_instFIS opp_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS) sqrt_instFIS sqrt_instFIS}.
-Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) add_instFIS add_instFIS}.
+Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) sub_instFIS sub_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) mul_instFIS mul_instFIS}.
 Context `{!refines (eqFIS ==> eqFIS ==> eqFIS) div_instFIS div_instFIS}.
 Context `{ref_fin : !refines (eqFIS ==> bool_R) (@finite fs) (@finite fs)}.

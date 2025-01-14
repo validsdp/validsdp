@@ -1,5 +1,6 @@
-Require Import ZArith Bool Reals mathcomp.analysis.Rstruct Psatz.
+Require Import ZArith Bool Reals Psatz.
 From mathcomp Require Import ssreflect ssrbool eqtype.
+From mathcomp Require Import Rstruct.
 
 Require Import Flocq.Core.Raux.
 Require Import Flocq.Core.Generic_fmt.
@@ -165,6 +166,44 @@ intros Fx Fy Hm.
 assert (H := Bplus_correct _ _ Hprec Hprec_emax mode_NE _ _ Fx Fy).
 revert H.
 replace (round _ _ _ _) with (fplus (FI2FS x) (FI2FS y) : R); [|now simpl].
+rewrite (Rlt_bool_true _ _ Hm); intro.
+apply H.
+Qed.
+
+Definition fiminus (x y : FI) : FI := Bminus mode_NE x y.
+
+Lemma fiminus_spec_fl x y : finite (fiminus x y) -> finite x.
+Proof.
+case x; case y; unfold finite, fiminus; simpl; try auto.
+now intros b b'; case (Bool.eqb b' (~~ b)).
+Qed.
+
+Lemma fiminus_spec_fr x y : finite (fiminus x y) -> finite y.
+Proof.
+case x; case y; unfold finite, fiminus; simpl; try auto.
+now intros b b'; case (Bool.eqb b' (~~ b)).
+Qed.
+
+Lemma fiminus_spec x y : finite (fiminus x y) ->
+  FI2FS (fiminus x y) = fminus (FI2FS x) (FI2FS y) :> R.
+Proof.
+intro Fxy.
+assert (Fx := fiminus_spec_fl _ _ Fxy); assert (Fy := fiminus_spec_fr _ _ Fxy).
+unfold FI2FS, fiminus, fminus, FS_val, float_spec.frnd, fis, flocq_float, frnd.
+assert (H := Bminus_correct _ _ Hprec Hprec_emax mode_NE _ _ Fx Fy).
+revert H; case (Rlt_bool _ _); intro H; destruct H as (H, _); [now rewrite H|].
+exfalso; revert Fxy H.
+fold (fiminus x y).
+now case (fiminus x y).
+Qed.
+
+Lemma fiminus_spec_f x y : finite x -> finite y ->
+  Rabs (fminus (FI2FS x) (FI2FS y)) < m -> finite (fiminus x y).
+Proof.
+intros Fx Fy Hm.
+assert (H := Bminus_correct _ _ Hprec Hprec_emax mode_NE _ _ Fx Fy).
+revert H.
+replace (round _ _ _ _) with (fminus (FI2FS x) (FI2FS y) : R); [|now simpl].
 rewrite (Rlt_bool_true _ _ Hm); intro.
 apply H.
 Qed.
@@ -339,6 +378,11 @@ Definition bsn_infnan : Float_infnan_spec :=
     fiplus_spec_fl
     fiplus_spec_fr
     fiplus_spec_f
+    fiminus
+    fiminus_spec
+    fiminus_spec_fl
+    fiminus_spec_fr
+    fiminus_spec_f
     fimult
     fimult_spec
     fimult_spec_fl
@@ -358,5 +402,3 @@ Definition bsn_infnan : Float_infnan_spec :=
     ficompare_spec_eq_f.
 
 End Flocq_infnan.
-
-
