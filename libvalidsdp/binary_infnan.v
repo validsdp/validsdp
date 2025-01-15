@@ -31,49 +31,70 @@ Require Import float_infnan_spec float_spec flocq_float.
 Definition nan_payload prec emax : Type :=  (*  from VCFloat *)
    {x : binary_float prec emax | Binary.is_nan prec emax x = true}.
 
+Definition prec_ok (prec: positive) (emax: Z) := 
+   (Zpos prec < emax)%Z /\ Bool.Is_true (negb (prec=?1)%positive).
 
 Class Nans: Type :=
  (* Adapted from VCFloat *)
   {
-    conv_nan: forall {prec1 emax1 prec2 emax2},
+    conv_nan: forall {prec1 emax1} 
+                     (a1: (1 < prec1)%Z)
+                     {b1: Prec_lt_emax prec1 emax1}
+                     {prec2 emax2}
+                     (a1: (1< prec2)%Z)
+                     {b2: Prec_lt_emax prec2 emax2},
                 binary_float prec1 emax1 -> (* guaranteed to be a nan, if this is not a nan then any result will do *)
                 nan_payload prec2 emax2
     ;
     plus_nan:
-      forall {prec emax},
+      forall {prec emax}
+                     (a: (1 < prec)%Z)
+                     {b: Prec_lt_emax prec emax},
         binary_float prec emax ->
         binary_float prec emax ->
         nan_payload prec emax
     ;
     mult_nan:
-      forall {prec emax},
+      forall {prec emax}
+                     (a: (1 < prec)%Z)
+                     {b: Prec_lt_emax prec emax},
         binary_float prec emax ->
         binary_float prec emax ->
         nan_payload prec emax
     ;
     div_nan:
-      forall {prec emax},
+      forall {prec emax}
+                     (a: (1 < prec)%Z)
+                     {b: Prec_lt_emax prec emax},
         binary_float prec emax ->
         binary_float prec emax ->
         nan_payload prec emax
     ;
     abs_nan:
-      forall {prec emax},
+      forall {prec emax}
+                     (a: (1 < prec)%Z)
+                     {b: Prec_lt_emax prec emax},
         binary_float prec emax -> (* guaranteed to be a nan, if this is not a nan then any result will do *)
         nan_payload prec emax
     ;
     opp_nan:
-      forall {prec emax},
+      forall {prec emax}
+                     (a: (1 < prec)%Z)
+                     {b: Prec_lt_emax prec emax},
         binary_float prec emax -> (* guaranteed to be a nan, if this is not a nan then any result will do *)
         nan_payload prec emax
     ;
     sqrt_nan:
-      forall {prec emax},
+      forall {prec emax}
+                     (a: (1 < prec)%Z)
+                     {b: Prec_lt_emax prec emax},
         binary_float prec emax ->
         nan_payload prec emax
     ;
     fma_nan:
-      forall {prec emax},
+      forall {prec emax}
+                     (a: (1 < prec)%Z)
+                     {b: Prec_lt_emax prec emax},
         binary_float prec emax ->
         binary_float prec emax ->
         binary_float prec emax ->
@@ -185,7 +206,7 @@ rewrite round_generic; [now unfold round|].
 now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N].
 Qed.
 
-Definition fiopp : FI -> FI := Bopp _ _ opp_nan.
+Definition fiopp : FI -> FI := Bopp _ _ (opp_nan prec_gt_1).
 
 Lemma fiopp_spec x : finite (fiopp x) -> FI2FS (fiopp x) = fopp (FI2FS x) :> R.
 Proof. now intro Hox; rewrite /= B2R_Bopp. Qed.
@@ -196,7 +217,7 @@ Proof. case x; unfold finite; auto. Qed.
 Lemma fiopp_spec_f x : finite x -> finite (fiopp x).
 Proof. case x; unfold finite; auto. Qed.
 
-Definition fiplus (x y : FI) : FI := Bplus _ _ _ _ plus_nan mode_NE x y.
+Definition fiplus (x y : FI) : FI := Bplus _ _ _ _ (plus_nan prec_gt_1) mode_NE x y.
 
 Lemma fiplus_spec_fl x y : finite (fiplus x y) -> finite x.
 Proof.
@@ -216,10 +237,10 @@ Proof.
 intro Fxy.
 assert (Fx := fiplus_spec_fl _ _ Fxy); assert (Fy := fiplus_spec_fr _ _ Fxy).
 unfold FI2FS, fiplus, fplus, FS_val, float_spec.frnd, fis, flocq_float, frnd.
-assert (H := Bplus_correct _ _ Hprec Hprec_emax plus_nan mode_NE _ _ Fx Fy).
+assert (H := Bplus_correct _ _ Hprec Hprec_emax (plus_nan prec_gt_1) mode_NE _ _ Fx Fy).
 revert H; case (Rlt_bool _ _); intro H; destruct H as (H, _); [now rewrite H|].
 exfalso; revert Fxy H.
-fold (fiplus x y).
+change (Bplus _ _ _ _ _ _ _ _) with (fiplus x y).
 now case (fiplus x y).
 Qed.
 
@@ -227,14 +248,14 @@ Lemma fiplus_spec_f x y : finite x -> finite y ->
   Rabs (fplus (FI2FS x) (FI2FS y)) < m -> finite (fiplus x y).
 Proof.
 intros Fx Fy Hm.
-assert (H := Bplus_correct _ _ Hprec Hprec_emax plus_nan mode_NE _ _ Fx Fy).
+assert (H := Bplus_correct _ _ Hprec Hprec_emax (plus_nan prec_gt_1) mode_NE _ _ Fx Fy).
 revert H.
 replace (round _ _ _ _) with (fplus (FI2FS x) (FI2FS y) : R); [|now simpl].
 rewrite (Rlt_bool_true _ _ Hm); intro.
 apply H.
 Qed.
 
-Definition fiminus (x y : FI) : FI := Bminus _ _ _ _ plus_nan mode_NE x y.
+Definition fiminus (x y : FI) : FI := Bminus _ _ _ _ (plus_nan prec_gt_1) mode_NE x y.
 
 Lemma fiminus_spec_fl x y : finite (fiminus x y) -> finite x.
 Proof.
@@ -254,10 +275,10 @@ Proof.
 intro Fxy.
 assert (Fx := fiminus_spec_fl _ _ Fxy); assert (Fy := fiminus_spec_fr _ _ Fxy).
 unfold FI2FS, fiminus, fminus, FS_val, float_spec.frnd, fis, flocq_float, frnd.
-assert (H := Bminus_correct _ _ Hprec Hprec_emax plus_nan mode_NE _ _ Fx Fy).
+assert (H := Bminus_correct _ _ Hprec Hprec_emax (plus_nan prec_gt_1) mode_NE _ _ Fx Fy).
 revert H; case (Rlt_bool _ _); intro H; destruct H as (H, _); [now rewrite H|].
 exfalso; revert Fxy H.
-fold (fiminus x y).
+change (Bminus _ _ _ _ _ _ _ _) with (fiminus x y).
 now case (fiminus x y).
 Qed.
 
@@ -265,14 +286,14 @@ Lemma fiminus_spec_f x y : finite x -> finite y ->
   Rabs (fminus (FI2FS x) (FI2FS y)) < m -> finite (fiminus x y).
 Proof.
 intros Fx Fy Hm.
-assert (H := Bminus_correct _ _ Hprec Hprec_emax plus_nan mode_NE _ _ Fx Fy).
+assert (H := Bminus_correct _ _ Hprec Hprec_emax (plus_nan prec_gt_1) mode_NE _ _ Fx Fy).
 revert H.
 replace (round _ _ _ _) with (fminus (FI2FS x) (FI2FS y) : R); [|now simpl].
 rewrite (Rlt_bool_true _ _ Hm); intro.
 apply H.
 Qed.
 
-Definition fimult (x y : FI) : FI := Bmult _ _ _ _ mult_nan mode_NE x y.
+Definition fimult (x y : FI) : FI := Bmult _ _ _ _ (mult_nan prec_gt_1) mode_NE x y.
 
 Lemma fimult_spec_fl x y : finite (fimult x y) -> finite x.
 Proof.
@@ -289,10 +310,10 @@ Lemma fimult_spec x y : finite (fimult x y) ->
 Proof.
 intro Fxy.
 unfold FI2FS, fimult, fmult, float_spec.frnd, fis, flocq_float, FS_val, frnd.
-assert (H := Bmult_correct _ _ Hprec Hprec_emax mult_nan mode_NE x y).
+assert (H := Bmult_correct _ _ Hprec Hprec_emax (mult_nan prec_gt_1) mode_NE x y).
 revert H; case (Rlt_bool _ _); intro H; [now rewrite (proj1 H)|].
 exfalso; revert Fxy H.
-fold (fimult x y).
+change (Bmult _ _ _ _ _ _ _ _) with (fimult x y).
 now case (fimult x y).
 Qed.
 
@@ -300,14 +321,14 @@ Lemma fimult_spec_f x y : finite x -> finite y ->
   Rabs (fmult (FI2FS x) (FI2FS y)) < m -> finite (fimult x y).
 Proof.
 intros Fx Fy Hm.
-assert (H := Bmult_correct _ _ Hprec Hprec_emax mult_nan mode_NE x y).
+assert (H := Bmult_correct _ _ Hprec Hprec_emax (mult_nan prec_gt_1) mode_NE x y).
 revert H.
 replace (round _ _ _ _) with (fmult (FI2FS x) (FI2FS y) : R); [|now simpl].
 rewrite (Rlt_bool_true _ _ Hm).
 rewrite Fx Fy; intro H. apply H.
 Qed.
 
-Definition fidiv (x y : FI) : FI := Bdiv _ _ _ _ div_nan mode_NE x y.
+Definition fidiv (x y : FI) : FI := Bdiv _ _ _ _ (div_nan prec_gt_1) mode_NE x y.
 
 Lemma fidiv_spec_fl x y : finite (fidiv x y) -> finite y -> finite x.
 Proof.
@@ -331,11 +352,12 @@ intros Fxy Fy => /=.
 assert (Nzy : B2R _ _  y <> 0).
 { revert Fxy Fy; case x; case y; unfold finite, Bdiv, B2R; auto;
   intros; apply F2R_cond_pos_not_0. }
-assert (H := Bdiv_correct _ _ Hprec Hprec_emax div_nan mode_NE x _ Nzy).
+assert (H := Bdiv_correct _ _ Hprec Hprec_emax (div_nan prec_gt_1) mode_NE x _ Nzy).
 revert H; case (Rlt_bool _ _); intro H.
 { now rewrite (proj1 H). }
 exfalso; revert Fxy H.
 fold (fidiv x y).
+change (Bdiv _ _ _ _ _ _ _ _) with (fidiv x y).
 now case (fidiv x y).
 Qed.
 
@@ -343,14 +365,14 @@ Lemma fidiv_spec_f x y : finite x -> (FI2FS y <> 0 :> R) ->
   Rabs (fdiv (FI2FS x) (FI2FS y)) < m -> finite (fidiv x y).
 Proof.
 intros Fx Nzy Hm.
-assert (H := Bdiv_correct _ _ Hprec Hprec_emax div_nan mode_NE x _ Nzy).
+assert (H := Bdiv_correct _ _ Hprec Hprec_emax (div_nan prec_gt_1) mode_NE x _ Nzy).
 revert H.
 replace (round _ _ _ _) with (fdiv (FI2FS x) (FI2FS y) : R); [|now simpl].
 rewrite (Rlt_bool_true _ _ Hm).
 now fold prec; rewrite Fx; intro H.
 Qed.
 
-Definition fisqrt (x : FI) : FI := Bsqrt _ _ _ _ sqrt_nan mode_NE x.
+Definition fisqrt (x : FI) : FI := Bsqrt _ _ _ _ (sqrt_nan prec_gt_1) mode_NE x.
 
 Lemma fisqrt_spec_f1 x : finite (fisqrt x) -> finite x.
 Proof.
@@ -362,13 +384,13 @@ Lemma fisqrt_spec x : finite (fisqrt x) -> FI2FS (fisqrt x) = fsqrt (FI2FS x) :>
 Proof.
 unfold FI2FS, fisqrt.
 intros Fx => /=.
-assert (H := Bsqrt_correct _ _ Hprec Hprec_emax sqrt_nan mode_NE x).
+assert (H := Bsqrt_correct _ _ Hprec Hprec_emax (sqrt_nan prec_gt_1) mode_NE x).
 now rewrite (proj1 H).
 Qed.
 
 Lemma fisqrt_spec_f x : finite x -> FI2FS x >= 0 -> finite (fisqrt x).
 Proof.
-assert (H := Bsqrt_correct _ _ Hprec Hprec_emax sqrt_nan mode_NE x).
+assert (H := Bsqrt_correct _ _ Hprec Hprec_emax (sqrt_nan prec_gt_1) mode_NE x).
 destruct H as (_, (H, _)); revert H.
 replace (Bsqrt _ _ _ _ _ _ _: binary_float prec emax) with (fisqrt x).
 { intro H; unfold finite; rewrite H; unfold is_finite, FI2FS, B2R; simpl.
