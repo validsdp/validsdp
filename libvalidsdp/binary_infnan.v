@@ -38,63 +38,53 @@ Class Nans: Type :=
  (* Adapted from VCFloat *)
   {
     conv_nan: forall {prec1 emax1} 
-                     (a1: (1 < prec1)%Z)
-                     {b1: Prec_lt_emax prec1 emax1}
                      {prec2 emax2}
-                     (a1: (1< prec2)%Z)
-                     {b2: Prec_lt_emax prec2 emax2},
+                     (a: (1< prec2)%Z),
                 binary_float prec1 emax1 -> (* guaranteed to be a nan, if this is not a nan then any result will do *)
                 nan_payload prec2 emax2
     ;
     plus_nan:
       forall {prec emax}
-                     (a: (1 < prec)%Z)
-                     {b: Prec_lt_emax prec emax},
+                     (a: (1 < prec)%Z),
         binary_float prec emax ->
         binary_float prec emax ->
         nan_payload prec emax
     ;
     mult_nan:
       forall {prec emax}
-                     (a: (1 < prec)%Z)
-                     {b: Prec_lt_emax prec emax},
+                     (a: (1 < prec)%Z),
         binary_float prec emax ->
         binary_float prec emax ->
         nan_payload prec emax
     ;
     div_nan:
       forall {prec emax}
-                     (a: (1 < prec)%Z)
-                     {b: Prec_lt_emax prec emax},
+                     (a: (1 < prec)%Z),
         binary_float prec emax ->
         binary_float prec emax ->
         nan_payload prec emax
     ;
     abs_nan:
       forall {prec emax}
-                     (a: (1 < prec)%Z)
-                     {b: Prec_lt_emax prec emax},
+                     (a: (1 < prec)%Z),
         binary_float prec emax -> (* guaranteed to be a nan, if this is not a nan then any result will do *)
         nan_payload prec emax
     ;
     opp_nan:
       forall {prec emax}
-                     (a: (1 < prec)%Z)
-                     {b: Prec_lt_emax prec emax},
+                     (a: (1 < prec)%Z),
         binary_float prec emax -> (* guaranteed to be a nan, if this is not a nan then any result will do *)
         nan_payload prec emax
     ;
     sqrt_nan:
       forall {prec emax}
-                     (a: (1 < prec)%Z)
-                     {b: Prec_lt_emax prec emax},
+                     (a: (1 < prec)%Z),
         binary_float prec emax ->
         nan_payload prec emax
     ;
     fma_nan:
       forall {prec emax}
-                     (a: (1 < prec)%Z)
-                     {b: Prec_lt_emax prec emax},
+                     (a: (1 < prec)%Z),
         binary_float prec emax ->
         binary_float prec emax ->
         binary_float prec emax ->
