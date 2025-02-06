@@ -11,8 +11,6 @@ bug-reports: "https://github.com/validsdp/validsdp/issues"
 license: "LGPL-2.1-or-later"
 
 build: [
-  ["sh" "-c" "cd libvalidsdp && ./autogen.sh"] {dev}
-  ["sh" "-c" "cd libvalidsdp && ./configure"]
   [make "-C" "libvalidsdp" "-j%{jobs}%"]
 ]
 install: [make "-C" "libvalidsdp" "install"]
@@ -26,8 +24,6 @@ depends: [
   "coq-mathcomp-analysis" {>= "1.0.0" & < "1.7~"}
   # switch to the following when requiring coq >= 8.19
   # "coq-mathcomp-reals-stdlib" {>= "1.8.0" & "coq" >= "8.19"}
-  "ocamlfind" {build}
-  "conf-autoconf" {build & dev}
 ]
 synopsis: "LibValidSDP"
 description: """

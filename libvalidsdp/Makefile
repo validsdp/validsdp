@@ -35,21 +35,6 @@ distclean: clean
 FILES = ../AUTHORS ../LICENSE Makefile.in Makefile.coq.local _CoqProject.in\
   README.md ../coq-libvalidsdp.opam
 
-# This must be disabled to cope with the distributed (stable) tarballs
-# configure: configure.ac
-# 	./autogen.sh
-
-Makefile: Makefile.in configure
-	./configure
-
-_CoqProject: _CoqProject.in configure | Makefile
-#	./configure
-
 -include $(COQ_MAKEFILE).conf
-
-# Create a tarball dist.YYYY-MM-DD.XXX/libvalidsdp-a.b.c.tar.gz
-# containing libvalidsdp-a.b.c/ with $(FILES), configure, and the *.v
-dist: configure $(COQMF_VFILES)
-	export T=$$(readlink -f $$(mktemp -d dist.$$(date -I).XXX)) && export S=@PACKAGE_TARNAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDv $(FILES) $^ $$T/$$S && (cd $$T && sed -i.bak -e 's,cd libvalidsdp && ./autogen.sh && ,,g;s,"-C" "libvalidsdp",,g' $$S/coq-libvalidsdp.opam && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
 
 .PHONY: all plugin install html gallinahtml doc clean distclean dist

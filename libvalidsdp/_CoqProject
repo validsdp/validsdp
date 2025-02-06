@@ -1,4 +1,4 @@
--R . @PACKAGE_NAME@
+-R . libValidSDP
 misc.v
 real_matrix.v
 bounded.v
@@ -22,4 +22,4 @@ binary_infnan.v
 -arg -w -arg -notation-overridden
 -arg -w -arg -ambiguous-paths
 
-COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R . @PACKAGE_NAME@"
+COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R . libValidSDP"
