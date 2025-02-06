@@ -34,15 +34,23 @@ COQ_VERSION="v818"
 SOSWIT_PLUGIN_EXT="coq-validsdp.plugin"
 SOSWIT_PLUGIN="soswitness:coq-validsdp.plugin"
 META_FILE="plugins/soswitness/src/META.coq-validsdp"
+REPLACE_COQ_MAKEFILE="sed -e 's/-shared -o \$\$@ \$\$</-shared -o \$\$@ logs.cmxa OcplibSimplex.cmxa osdp.cmxa \$\$</' -i.bak \$@"
 CAMLPKGS="-package coq-core.plugins.ltac2 \
   -package zarith \
   -package logs \
   -package ocplib-simplex \
   -package osdp"
+AX_VERSION_GE([$coq_version], 8.20, [
+  COQ_VERSION="v820"
+  SOSWIT_PLUGIN_EXT="coq-validsdp.plugin"
+  SOSWIT_PLUGIN="coq-validsdp.plugin"
+  REPLACE_COQ_MAKEFILE=""
+], [])
 AC_SUBST(COQ_VERSION)
 AC_SUBST(SOSWIT_PLUGIN)
 AC_SUBST(SOSWIT_PLUGIN_EXT)
 AC_SUBST(META_FILE)
+AC_SUBST(REPLACE_COQ_MAKEFILE)
 AC_SUBST(CAMLPKGS)
 
 AC_MSG_CHECKING([for Mathcomp])
