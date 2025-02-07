@@ -197,11 +197,11 @@ Qed.
 Notation rat2R := (@ratr R) (only parsing).
 
 (* FIXME: remove when requiring analysis >= 1.2.0 *)
-Let neq0_RinvE x : x != 0%Re -> Rinv x = x^-1.
+#[local] Lemma neq0_RinvE x : x != 0%Re -> Rinv x = x^-1.
 Proof. by move=> x_neq0; rewrite -[RHS]/(if _ then _ else _) x_neq0. Qed.
 
 (* FIXME: remove when requiring analysis >= 1.2.0 *)
-Let RinvE x : Rinv x = x^-1.
+#[local] Lemma RinvE x : Rinv x = x^-1.
 Proof.
 have [->| ] := eqVneq x R0; last exact: neq0_RinvE.
 rewrite /GRing.inv /GRing.mul /= /Rinvx eqxx /=.
