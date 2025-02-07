@@ -66,10 +66,10 @@ _CoqProject: _CoqProject.in configure | Makefile
 
 # Create a tarball dist.YYYY-MM-DD.XXX/validsdp-a.b.c.tar.gz
 # containing validsdp-a.b.c/ with $(FILES), configure, and the
-# git-archive export of dirs {theories,test-suite,$(PLUGDIR)}
+# git-archive export of dirs {libvalidsdp,theories,test-suite,$(PLUGDIR)}
 dist: configure
 	@echo Exporting files from: $$(git describe --all --long --abbrev=40 --always --dirty)
-	export T=$$(readlink -f $$(mktemp -d dist.$$(date -I).XXX)) && export S=@PACKAGE_TARNAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDvR $(FILES) $^ $$T/$$S && for dir in theories test-suite $(PLUGDIR); do git archive --format=tar HEAD -- $$dir | (mkdir -p $$T/$$S/$$dir && cd $$T/$$S && tar xf -); done && (cd $$T && sed -i.bak -e 's,./autogen.sh &&,,' $$S/coq-validsdp.opam && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
+	export T=$$(readlink -f $$(mktemp -d dist.$$(date -I).XXX)) && export S=@PACKAGE_TARNAME@-@PACKAGE_VERSION@ && mkdir -p $$T/$$S && rsync -rlpgoDvR $(FILES) $^ $$T/$$S && for dir in libvalidsdp theories test-suite $(PLUGDIR); do git archive --format=tar HEAD -- $$dir | (mkdir -p $$T/$$S/$$dir && cd $$T/$$S && tar xf -); done && (cd $$T && sed -i.bak -e 's,./autogen.sh &&,,' $$S/coq-validsdp.opam && tar cvzf $$S.tar.gz $$S); echo '\n'See $$T/'\n'
 
 help:
 	@echo $(SOSWITNESS_DIR)
