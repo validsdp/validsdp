@@ -291,7 +291,7 @@ have H : \sum_k (rt i k ord0 * rt j k ord0)%Re
             (rt i (inord k) ord0 * rt j (inord k) ord0)%Re.
 { rewrite big_mkord; apply /eq_bigr => k _.
   by apply f_equal2; (apply f_equal2; [rewrite inord_val|]). }
-rewrite H {H} (big_cat_nat _ _ _ (leq0n i.+1) (ltn_ord i)) /=.
+rewrite H {H} (@big_cat_nat _ _ _ _ _ _ _ _ (leq0n i.+1) (ltn_ord i)) /=.  (* FIXME: remove @ when requiring MC >= 2.4.0 *)
 have H : ((\sum_(i.+1 <= k < n.+1) (rt i (inord k) ord0
                                     * rt j (inord k) ord0)) = 0)%Re.
 { rewrite (@big_addn _ _ _ 0 n.+1 i.+1) big_mkord.
@@ -322,7 +322,7 @@ have H : \sum_k ((Mabs (rt i)) k ord0 * (Mabs (rt j)) k ord0)%Re
             ((Mabs (rt i)) (inord k) ord0 * (Mabs (rt j)) (inord k) ord0)%Re.
 { rewrite big_mkord; apply /eq_bigr => k _.
   by apply f_equal2; (apply f_equal2; [rewrite inord_val|]). }
-rewrite H {H} (big_cat_nat _ _ _ (leq0n i.+1) (ltn_ord i)) /=.
+rewrite H {H} (@big_cat_nat _ _ _ _ _ _ _ _ (leq0n i.+1) (ltn_ord i)) /=.  (* FIXME: remove @ when requiring MC >= 2.4.0 *)
 have H : ((\sum_(i.+1 <= k < n.+1) ((Mabs (rt i)) (inord k) ord0
                                     * (Mabs (rt j)) (inord k) ord0)) = 0)%Re.
 { rewrite (@big_addn _ _ _ 0 n.+1 i.+1) big_mkord.

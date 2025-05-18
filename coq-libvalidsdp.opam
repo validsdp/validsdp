@@ -20,7 +20,7 @@ depends: [
   "coq-flocq" {>= "3.3.0"}
   "coq-coquelicot" {>= "3.0"}
   "coq-interval" {>= "4.0.0" & < "5~"}
-  "coq-mathcomp-field" {(>= "2.1" & < "2.4~") | (= "dev")}
+  "coq-mathcomp-field" {(>= "2.1" & < "2.5~") | (= "dev")}
   ("coq-mathcomp-analysis" {>= "1.0.0" & < "1.7~"}
   | "coq-mathcomp-reals-stdlib" {>= "1.8.0"})
   # remove coq-mathcomp-analysis when requiring coq >= 8.19

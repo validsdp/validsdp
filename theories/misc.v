@@ -196,19 +196,6 @@ Qed.
 
 Notation rat2R := (@ratr R) (only parsing).
 
-(* FIXME: remove when requiring analysis >= 1.2.0 *)
-#[local] Lemma neq0_RinvE x : x != 0%Re -> Rinv x = x^-1.
-Proof. by move=> x_neq0; rewrite -[RHS]/(if _ then _ else _) x_neq0. Qed.
-
-(* FIXME: remove when requiring analysis >= 1.2.0 *)
-#[local] Lemma RinvE x : Rinv x = x^-1.
-Proof.
-have [->| ] := eqVneq x R0; last exact: neq0_RinvE.
-rewrite /GRing.inv /GRing.mul /= /Rinvx eqxx /=.
-rewrite RinvImpl.Rinv_def; case: Req_appart_dec => //.
-by move=> /[dup] -[] /RltP; rewrite Order.POrderTheory.ltxx.
-Qed.
-
 Lemma bigQ2R_rat (c : bigQ) : bigQ2R c = rat2R (bigQ2rat c).
 Proof.
 rewrite -[LHS]bigQ2R_redE /bigQ2R BigQ.strong_spec_red /Q2R.
