@@ -33,6 +33,7 @@ Import Num.Theory.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Unset Uniform Inductive Parameters.  (* Remove when requiring rocq-elpi >= 3.2.0 *)
 
 Local Open Scope R_scope.
 
@@ -1803,13 +1804,13 @@ rewrite /soscheck_hyps_ssr /soscheck_hyps_eff /soscheck_hyps.
 apply andb_R.
 { apply refinesP; refines_apply.
   rewrite refinesE => p'0 p'0' rp'0 pszQi pszQi' rpszQi.
-  move: rpszQi; case pszQi, pszQi' => /=; case s0, s1 => rpszQi.
-  apply refinesP; refines_apply; inversion rpszQi; rewrite refinesE //.
-  by (inversion X4 || inversion b_R); inversion H2; inversion H4. }
+  case: rpszQi => p2 p2' rp2 /= {pszQi pszQi'}.
+  move=> _ _ [s' p3 z2 Q2 p3' z2' Q2' -> -> rp3 rz2 rQ2].
+  exact: refinesP. }
 apply (all_R (T_R := prod_R (ReffmpolyC rAC) RWit)) => //.
-case=> p0 w; case=> p0' w' rpw /=.
-inversion rpw; (inversion X4 || inversion b_R); rewrite H2 H4 /=.
-apply refinesP; refines_apply.
+case=> p0 w; case=> p0' w' [p2 p2' rp2] /=.
+move=> _ _ [s' p3 z2 Q2 p3' z2' Q2' -> -> rp3 rz2 rQ2].
+exact: refinesP.
 Qed.
 
 Lemma refine_has_const :
@@ -1841,8 +1842,8 @@ Lemma nth_lt_list_R T1 T2 (T_R : T1 -> T2 -> Type) (x01 : T1) (x02 : T2) s1 s2 :
   (forall n, (n < size s1)%N -> T_R (nth x01 s1 n) (nth x02 s2 n)) -> list_R T_R s1 s2.
 Proof.
 elim: s1 s2 => [|hs1 ts1 Hind]; [by move=> [//|]|].
-move=> [//|hs2 ts2 /= Hs H]; apply list_R_cons_R; [by apply (H O)|].
-by apply Hind; [apply eq_add_S|move=> n Hn; apply (H (S n))].
+move=> [//|hs2 ts2 /= Hs H]; apply: cons_R; [exact: (H O)|].
+by apply: Hind; [apply: eq_add_S|move=> n Hn; apply: (H (S n))].
 Qed.
 
 (* TODO: begin PR CoqEAL Multipoly ? *)
@@ -2250,13 +2251,13 @@ refines_apply1; first refines_apply1;
 { by eapply (refine_soscheck_hyps (eq_F := eqFIS) (rAC := r_ratBigQ) eqFIS_P). }
 { rewrite refinesE; apply zip_R.
   { rewrite /bplb /bpl; move: Hltn'.
-    elim apl => [|h t Hind] //= /andP [] Hltnh Hltnt; apply list_R_cons_R.
+    elim apl => [|h t Hind] //= /andP [] Hltnh Hltnt; apply cons_R.
     { by apply refinesP, refine_interp_poly. }
     by apply Hind. }
   move: Hns HszQi HszQi_s HszQi_z HszQi_z'; rewrite /szQlb /szQl.
   elim szQi => [//=|h t Hind] /andP [hnsh Hnst].
   move=> /andP [Hsh Hst] /andP [Hnh Hnt] /andP [Hsh' Hst'] /andP [Hsh'' Hst''].
-  apply list_R_cons_R; [|by apply Hind].
+  apply cons_R; [|by apply Hind].
   set s0' := mpoly_of_list_eff h.1; set s0 := mpoly_of_effmpoly_val _ _.
   set z0' := map _ h.2.1; set z0 := spec_seqmx _ _ z0'.
   set Q0' := map _ h.2.2; set Q0 := spec_seqmx _ _ Q0'.
