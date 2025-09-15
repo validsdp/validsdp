@@ -216,7 +216,7 @@ have NZf1 : f1 <> Z0.
 { move=> K; rewrite /F2R -/f1 K /= Rsimpl in H1.
   case: H1; rewrite FtoR_split /F2R /=.
   case/Rmult_integral.
-  { apply: IZR_neq; by case: (s). }
+  { by apply: eq_IZR_contrapositive; case: (s). }
   by apply: Rgt_not_eq; apply: bpow_gt_0. }
 move/(Zdigits_le_Zpower radix2) in Hf2.
 apply/Z.leb_le.
@@ -246,10 +246,10 @@ have Hlte : (bpow radix2 (BigZ.to_Z e) < bpow radix2 (Fexp f))%Re.
     rewrite (Rabs_pos_eq (/ bpow _ _));
       last exact/Rlt_le/Rinv_0_lt_compat/bpow_gt_0.
     field.
-    split; last by apply/Rabs_no_R0; exact: IZR_neq.
+    split; last by apply/Rabs_no_R0; exact: eq_IZR_contrapositive.
     exact/Rgt_not_eq/bpow_gt_0.
   apply.
-  by apply/Rabs_pos_lt; exact: IZR_neq. }
+  by apply/Rabs_pos_lt; exact: eq_IZR_contrapositive. }
 move/lt_bpow in Hlte.
 have {}Hmf : (BigZ.to_Z m = f1 * 2 ^ (Fexp f - BigZ.to_Z e))%Z.
 { clear - Hlte Hmf.
