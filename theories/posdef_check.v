@@ -506,7 +506,7 @@ assert (Hm''' : B2R f = IZR m''').
   unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Uint63Cyclic.ops, Cyclic63.int_ops.
   assert (Hdig_m'p : Z.le (Zdigits radix2 (Z.pos m'p)) prec).
   { revert Hb; unfold bounded, canonical_mantissa.
-    move/andP => [Heq _]; apply Zeq_bool_eq in Heq; revert Heq.
+    move/andP => [/Z.eqb_eq + _].
     unfold fexp; rewrite Zpos_digits2_pos; lia. }
   case sm.
   { rewrite <-(B2Prim_Prim2B (of_uint63 m')).
@@ -522,7 +522,7 @@ assert (He''shift : Z.sub (to_Z e'') shift = e).
   { revert Hb; unfold e; case se.
     { rewrite -{2}(Z.opp_involutive (to_Z e')) -Z.opp_le_mono.
       unfold bounded, canonical_mantissa.
-      move=> /andP [] /Zeq_bool_eq; unfold fexp, emin, emax, prec; lia. }
+      move=> /andP [] /Z.eqb_eq; unfold fexp, emin, emax, prec; lia. }
     rewrite /SpecFloat.bounded => /andP [] _ /Zle_bool_imp_le.
     unfold emin, emax, prec; lia. }
   unfold e'', e; case se.
@@ -546,7 +546,7 @@ rewrite round_generic.
 apply generic_format_F2R; fold m''' e; intros Nzm'''.
 unfold cexp, FLT_exp; rewrite (mag_F2R_Zdigits _ _ _ Nzm''').
 revert Hb; unfold SpecFloat.bounded, SpecFloat.canonical_mantissa.
-move=> /andP [] /Zeq_bool_eq; rewrite -/emin /FLT_exp Zpos_digits2_pos => Hb _.
+move=> /andP [] /Z.eqb_eq; rewrite -/emin /FLT_exp Zpos_digits2_pos => Hb _.
 unfold m'', m'''.
 unfold SpecFloat.fexp.
 now case sm; unfold fexp in Hb; rewrite Hb.

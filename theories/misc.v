@@ -35,17 +35,16 @@ Lemma Q2R_inv x : Q2R x <> 0%Re -> Q2R (/ x) = / (Q2R x).
 Proof.
 move: x => [[ |a|a] b] Hx; rewrite /Q2R /Qinv /=.
 { by rewrite /Q2R /= /Rdiv Rmult_0_l in Hx. }
-{ clear Hx; rewrite Rinv_Rdiv //. }
+{ by clear Hx; rewrite Rinv_div. }
 { have IPRan0 : IPR a <> 0.
-  { by rewrite -INR_IPR; apply: not_0_INR; rewrite Nat.neq_0_lt_0; exact: Pos2Nat.is_pos. }
-  clear Hx; rewrite /Rdiv !Ropp_mult_distr_l_reverse -Ropp_inv_permute.
-  rewrite Rinv_Rdiv //.
-  by apply Rmult_integral_contrapositive_currified; [|apply Rinv_neq_0_compat]. }
+  { by rewrite -INR_IPR; apply: not_0_INR; rewrite Nat.neq_0_lt_0;
+      exact: Pos2Nat.is_pos. }
+  by clear Hx; rewrite /Rdiv !Ropp_mult_distr_l_reverse Rinv_opp Rinv_div. }
 Qed.
 
 Lemma Q2R_mult x y : Q2R (x * y) = (Q2R x * Q2R y)%Re.
 Proof.
-  rewrite /Q2R /= !(mult_IZR, Pos2Z.inj_mul) /Rdiv Rinv_mult_distr //; ring.
+rewrite /Q2R /= !(mult_IZR, Pos2Z.inj_mul) /Rdiv Rinv_mult //; ring.
 Qed.
 
 Lemma Q2R_opp x : Q2R (- x) = (- Q2R x)%Re.
@@ -71,7 +70,7 @@ apply: eq_IZR.
 rewrite !mult_IZR.
 apply (Rmult_eq_reg_r (/ IZR (Z.pos (Qden x)))); last first.
 { apply: Rinv_neq_0_compat.
-  by change 0%Re with (IZR 0); apply: IZR_neq. }
+  by change 0%Re with (IZR 0); apply: eq_IZR_contrapositive. }
 rewrite /Rdiv in Hxy.
 by rewrite Rmult_assoc [(_ * / _)%Re]Rmult_comm -Rmult_assoc Hxy; field.
 Qed.

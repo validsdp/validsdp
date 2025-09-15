@@ -16,6 +16,7 @@ From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix order ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
+#[warning="-notation-incompatible-prefix"]
 From mathcomp.multinomials Require Import mpoly.
 From mathcomp Require Import Rstruct.
 Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
@@ -253,7 +254,7 @@ Definition x_ (nx : nat) : R.
 exact R0.
 Qed.
 
-Ltac2 newvar t nx :=
+Ltac2 newvar _t nx :=
   constr:(x_ $nx).
 
 Ltac2 rec fold_right_ltac2 f l r :=
@@ -274,7 +275,7 @@ Ltac2 mcat s1 s2 :=
 Ltac2 string_of_ident_list s0 l :=
   fold_left_ltac2 (fun r e => mcat r (Message.of_ident e)) s0 l.
 
-Ltac2 mutable deb (str : message) := ().
+Ltac2 mutable deb (_str : message) := ().
 (* Ltac2 Set deb := fun str => Message.print str. *)
 
 Ltac2 deb_s s1 :=
@@ -427,7 +428,7 @@ Ltac2 get_comp_poly get_poly_cur get_poly_pure t vm tac_var :=
       end in
   (* Ensure [t] is a function applied to a real *)
   match! t with
-  | ?fp ?xn =>
+  | ?_fp ?xn =>
     match! Constr.type xn with
     | R => aux1 t t constr:(@Datatypes.nil R) vm
     | _ => tac_var t vm
@@ -1158,7 +1159,7 @@ have : exists E : 'M_s.+1,
   { move=> i j; rewrite !mxE Rabs_mult.
     have NZnbij : INR (nbij i j) <> 0%Re.
     { by change 0%Re with (INR 0); move/INR_eq; move: (Pnbij i j); case nbij. }
-    rewrite Rabs_Rinv // (Rabs_pos_eq _ (pos_INR _)).
+    rewrite Rabs_inv // (Rabs_pos_eq _ (pos_INR _)).
     apply (Rmult_le_reg_r (INR (nbij i j))).
     { apply Rnot_ge_lt=> H; apply NZnbij.
       by apply Rle_antisym; [apply Rge_le|apply pos_INR]. }
@@ -1382,15 +1383,15 @@ case E: nr.
   { by rewrite -[0%Re]/(IZR 0); apply IZR_lt. }
   rewrite -mult_IZR Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc !RmultE.
   rewrite mulVr ?mulr1; [by right|].
-  rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
-  by move: Hd; rewrite H. }
+  rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP.
+  by apply: eq_IZR_contrapositive => H; move: Hd; rewrite H. }
 rewrite /= ifF /=; last first.
 { move: E; rewrite /nr; set nrnr := (_ # _)%bigQ; move: (BigQ_red_den_neq0 nrnr).
   by case (BigQ.red _)=>[//|n' d'] H [] _ <-; move: H=>/negbTE. }
 rewrite F.div_correct /Xround /Xdiv real_FtoX_toR //= real_FtoX_toR //=.
 rewrite /Xdiv' ifF; last first.
 { apply Req_bool_false; rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
-  rewrite -[0%Re]/(IZR 0); apply IZR_neq.
+  rewrite -[0%Re]/(IZR 0); apply: eq_IZR_contrapositive.
   move: E; rewrite /nr; set nrnr := (_ # _)%bigQ.
   move: (BigQ_red_den_neq0_aux nrnr).
   by case (BigQ.red _)=>[//|n' d'] H [] _ <-. }
@@ -1406,12 +1407,12 @@ apply (Rmult_le_reg_r (IZR (int2Z d))).
 set lhs := _ * _; rewrite Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc -mult_IZR.
 rewrite Hnd {}/lhs /GRing.mul /= Rmult_assoc !RmultE.
 rewrite mulVr ?mulr1; [right|]; last first.
-{ rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
-  by move: Hd; rewrite H. }
+{ rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP.
+  by apply: eq_IZR_contrapositive => H; move: Hd; rewrite H. }
 rewrite -RmultE mult_IZR Rmult_assoc Rinv_r ?Rmult_1_r //.
 move: (erefl nr); rewrite /nr; set nrnr := (_ # _)%bigQ=>_.
 move: (BigQ_red_den_neq0_aux nrnr); rewrite /nrnr -/nr E=>H.
-by apply IZR_neq.
+exact: eq_IZR_contrapositive.
 Transparent F.div.
 Qed.
 
@@ -2416,7 +2417,7 @@ Ltac2 fresh_hyp ho :=
            | None => ident:(h)
            | Some h => h
            end in
-  let l := map_filter (fun _ => true) (fun id t => id) (hyps ()) in
+  let l := map_filter (fun _ => true) (fun id _t => id) (hyps ()) in
   let fv := Fresh.Free.of_ids l in
   Fresh.fresh fv h.
 
@@ -2670,10 +2671,10 @@ Ltac2 rec pair_member v l :=
 
 Ltac2 is_ineq t :=
   match! t with
-  | Rle ?x ?y => true
-  | Rge ?x ?y => true
-  | Rlt ?x ?y => true
-  | Rgt ?x ?y => true
+  | Rle ?_x ?_y => true
+  | Rge ?_x ?_y => true
+  | Rlt ?_x ?_y => true
+  | Rgt ?_x ?_y => true
   | _ => false
   end.
 
@@ -2779,7 +2780,7 @@ Ltac2 get_related_hyps expr :=
   let ss := [] in
   let rec aux hh vv ss :=
       match extract_exists_ltac2 (fun couple => match couple with
-                                                | (hyp_id, vars) =>
+                                                | (_hyp_id, vars) =>
                                                   meet_ltac2 vars vv
                                                 end) hh
       with
