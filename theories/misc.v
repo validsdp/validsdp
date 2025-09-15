@@ -153,7 +153,7 @@ rewrite -addn1 PoszD intrD -{}IHn /= addn1.
 set zn := match n with O => Z0 | _ => Z.pos (Pos.of_nat n) end.
 suff->: zn = Z.of_nat n.
 { change 1%N%:~R with (IZR 1).
-  rewrite /GRing.add /= -plus_IZR Z.add_1_r -Nat2Z.inj_succ.
+  rewrite /GRing.add /= -plus_IZR Z.add_1_r -Znat.Nat2Z.inj_succ.
   by rewrite /Z.of_nat Pos.of_nat_succ. }
 clear; rewrite {}/zn /Z.of_nat.
 case: n => // n.
