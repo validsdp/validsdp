@@ -26,10 +26,14 @@ AS_IF([test "x$OCAMLFIND" = xno], [AC_MSG_ERROR([Cannot find ocamlfind.])])
 AC_MSG_CHECKING([for Ltac2])
 COQTOP_WHERE=`coqtop -where`
 LTAC2_DIR="${COQTOP_WHERE}-core/plugins/ltac2"
+LTAC2_ROCQ_DIR="${COQTOP_WHERE}/../rocq-runtime/plugins/ltac2"
 AS_IF([test -d ${LTAC2_DIR}],
   [ AC_MSG_RESULT([yes]) ],
-  [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq])])
+  [ AS_IF([test -d ${LTAC2_ROCQ_DIR}],
+    [ AC_MSG_RESULT([yes])
+      LTAC2_DIR=${LTAC2_ROCQ_DIR} ],
+    [ AC_MSG_RESULT([no])
+      AC_MSG_ERROR([ *** Unable to find Ltac2 which should be installed with Coq])]) ])
 COQ_VERSION="v818"
 SOSWIT_PLUGIN_EXT="coq-validsdp.plugin"
 SOSWIT_PLUGIN="soswitness:coq-validsdp.plugin"
