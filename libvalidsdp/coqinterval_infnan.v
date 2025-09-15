@@ -119,14 +119,14 @@ Lemma digits_ge0 n :(0 <= digits n)%bigZ.
 Proof.
 apply/BigZ.leb_le.
 rewrite BigZ.spec_leb digits_spec //.
-exact/Zle_is_le_bool/Zdigits_ge_0.
+exact/Z.leb_le/Zdigits_ge_0.
 Qed.
 
 Lemma digits_gt0 n : BigZ.to_Z n <> Z0 -> (0 < digits n)%bigZ.
 Proof.
 move=> NZn; apply/BigZ.ltb_lt.
 rewrite BigZ.spec_ltb digits_spec //.
-exact/Zlt_is_lt_bool/Zdigits_gt_0.
+exact/Z.ltb_lt/Zdigits_gt_0.
 Qed.
 
 (** * Number of significant radix2 digits of a [bigZ] number *)
@@ -202,7 +202,7 @@ case E: Bir.mantissa_sign H1 (Bir.mantissa_sign_correct m) => [|s p] H1 Hm.
 rewrite /Bir.MtoZ in Hm.
 rewrite BigZ.spec_leb BigZ.spec_succ BigZ.spec_sub !digits_spec bigZulp_spec.
 case: Hm => Hm Hp.
-have [Hlt|Hle] := Z_lt_le_dec (Z.abs f1) (Z.abs (BigZ.to_Z m)); last first.
+case: Z.leb (Zbool.Zle_cases (Z.abs (BigZ.to_Z m)) (Z.abs f1)) => [Hle|Hlt].
 { move/(Zdigits_le radix2 _ _ (Z.abs_nonneg _)) in Hle.
   rewrite Zdigits_abs in Hle.
   move/(Zdigits_le_Zpower radix2) in Hf2.
@@ -232,7 +232,7 @@ have Hmf : (IZR (BigZ.to_Z m) * bpow radix2 (BigZ.to_Z e) = F2R f)%Re.
   by case: (s). }
 have Hlte : (bpow radix2 (BigZ.to_Z e) < bpow radix2 (Fexp f))%Re.
 { rewrite /F2R in Hmf.
-  move/IZR_lt in Hlt.
+  move/Z.gt_lt/IZR_lt in Hlt.
   rewrite !abs_IZR in Hlt.
   rewrite -/f1 in Hmf.
   move/(congr1 (Rdiv ^~ (bpow radix2 (BigZ.to_Z e)))) in Hmf.
@@ -255,7 +255,7 @@ have {}Hmf : (BigZ.to_Z m = f1 * 2 ^ (Fexp f - BigZ.to_Z e))%Z.
 { clear - Hlte Hmf.
   rewrite /F2R - /f1 in Hmf.
   move/(congr1 (Rmult ^~ (bpow radix2 (- BigZ.to_Z e)))) in Hmf.
-  rewrite !Rmult_assoc -!bpow_plus Zegal_left //= Rmult_1_r in Hmf.
+  rewrite !Rmult_assoc -!bpow_plus Z.add_opp_diag_r /= Rmult_1_r in Hmf.
   rewrite -IZR_Zpower in Hmf; last lia.
   rewrite -mult_IZR in Hmf.
   exact: eq_IZR. }
