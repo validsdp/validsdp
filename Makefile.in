@@ -36,7 +36,6 @@ $(PLUGDIR)/src/soswitness.mlg: $(PLUGDIR)/src/soswitness_@COQ_VERSION@.mlg
 $(COQ_MAKEFILE): $(COQ_PROJ) $(MODULES) $(PLUGDIR)/src/soswitness.mlg
 	$(COQBIN)coq_makefile -f $< $(MODULES) -o $@
 	# FIXME: This sed hack is fragile (if we do "make -B" for example)
-	@REPLACE_COQ_MAKEFILE@
 
 clean:
 	-$(COQ_MAKE) clean
