@@ -20,18 +20,6 @@ all install html gallinahtml doc deps.dot deps.png: $(COQ_MAKEFILE) Makefile
 $(COQ_MAKEFILE): $(COQ_PROJ)
 	$(COQBIN)coq_makefile -f $< -o $@
 
-clean:
-	-$(COQ_MAKE) clean
-	$(RM) depend depend.dot depend.png depend.map
-
-distclean: clean
-	$(RM) -r autom4te.cache
-	$(RM) config.log config.status configure
-	$(RM) _CoqProject Makefile
-	$(RM) $(COQ_MAKEFILE) $(COQ_MAKEFILE).conf
-	$(RM) *~ .*.aux .lia.cache
-
-
 FILES = ../AUTHORS ../LICENSE Makefile.in Makefile.coq.local _CoqProject.in\
   README.md ../coq-libvalidsdp.opam
 

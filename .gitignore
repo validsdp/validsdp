@@ -73,13 +73,6 @@ setup.data
 setup.log
 
 # Misc
-/dist.*/
-/configure
-/config.status
-/autom4te.cache/
-/libvalidsdp/autom4te.cache/
-/libvalidsdp/configure
-/libvalidsdp/config.status
 /libvalidsdp/depend.dot
 /libvalidsdp/depend.map
 /libvalidsdp/depend.png
