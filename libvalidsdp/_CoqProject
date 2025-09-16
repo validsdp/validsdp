@@ -21,5 +21,10 @@ binary_infnan.v
 
 -arg -w -arg -notation-overridden
 -arg -w -arg -ambiguous-paths
+# Warnings we don't really know how to handle
+-arg -w -arg -projection-no-head-constant
+-arg -w -arg -redundant-canonical-projection
+# handle the following when requiring MC >= 2.4.0
+-arg -w -arg -deprecated-since-mathcomp-2.4.0
 
 COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R . libValidSDP"

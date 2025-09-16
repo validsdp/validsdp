@@ -3,11 +3,10 @@
     Dot product, Euclidean norm, Cauchy-Schwarz inequality, componentwise
     orders and absolute value, definition of positive definiteness. *)
 
-Require Import Reals Flocq.Core.Raux.
+From Stdlib Require Import Reals Psatz.
+From Flocq Require Import Core.Raux.
 
 Require Import misc.
-
-Require Import Psatz.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq bigop.
 From mathcomp Require Import fintype finfun ssralg matrix.
@@ -224,7 +223,7 @@ apply Rge_le, Rminus_ge, Rle_ge, HAB.
 Qed.
 
 Lemma Mlt_sub (A B : 'M_(n, m)) : A <m: B -> 0 <m: B - A.
-Proof. rewrite /Mlt => HAB i j; rewrite !mxE; apply Rlt_Rminus, HAB. Qed.
+Proof. rewrite /Mlt => HAB i j; rewrite !mxE Rlt_0_minus; apply: HAB. Qed.
 
 Lemma Msub_lt (A B : 'M_(n, m)) : 0 <m: B - A -> A <m: B.
 Proof.
@@ -785,7 +784,7 @@ have H' : (((C - B) *m A) i j = 0)%Re.
 { by rewrite mulmxBl mxE -H !mxE; apply Rminus_diag_eq. }
 move: H'; rewrite (ord1 j) mulmxv_dotprod; apply dotprod_pos_eq_0_r.
 { move: HBC; rewrite /Mlt => HBC i' j'; rewrite !mxE.
-  apply Rlt_Rminus, HBC. }
+  apply Rlt_0_minus, HBC. }
 exact HA1.
 Qed.
 

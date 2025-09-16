@@ -10,8 +10,9 @@
     and with gradual underflow. *)
 
 From HB Require Import structures.
-Require Import Reals.
-Require Import Psatz Flocq.Core.Raux Interval.Missing.Stdlib.
+From Stdlib Require Import Reals Psatz.
+From Flocq Require Import Core.Raux.
+From Interval Require Import Missing.Stdlib.
 From mathcomp Require Import ssreflect ssrbool eqtype choice.
 From mathcomp Require Import Rstruct.
 

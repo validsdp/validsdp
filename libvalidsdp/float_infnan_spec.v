@@ -1,9 +1,9 @@
 (** * Specification of floating-point operations with overflow. *)
 
-Require Import Reals Floats Flocq.Core.Core.
+From Stdlib Require Import Reals Floats.
+From Flocq Require Import Core.Core.
 
-Require Import mathcomp.ssreflect.ssreflect.
-From mathcomp Require Import ssrfun ssrbool eqtype.
+From mathcomp Require Import ssreflect ssrfun ssrbool eqtype.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

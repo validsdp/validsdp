@@ -14,11 +14,10 @@
     Corollary 3.2 of this paper. Moreover [th_2_3_aux2] corresponds to
     Theorem 4.4 in the above paper. *)
 
-Require Import Reals Flocq.Core.Raux.
+From Stdlib Require Import Reals Psatz.
+From Flocq Require Import Core.Raux.
 
 Require Import misc.
-
-Require Import Psatz.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq bigop.
 From mathcomp Require Import fintype finfun ssralg matrix.
@@ -291,7 +290,7 @@ have H : \sum_k (rt i k ord0 * rt j k ord0)%Re
             (rt i (inord k) ord0 * rt j (inord k) ord0)%Re.
 { rewrite big_mkord; apply /eq_bigr => k _.
   by apply f_equal2; (apply f_equal2; [rewrite inord_val|]). }
-rewrite H {H} (big_cat_nat _ _ _ (leq0n i.+1) (ltn_ord i)) /=.
+rewrite H {H} (@big_cat_nat _ _ _ _ _ _ _ _ (leq0n i.+1) (ltn_ord i)) /=.  (* FIXME: remove @ when requiring MC >= 2.4.0 *)
 have H : ((\sum_(i.+1 <= k < n.+1) (rt i (inord k) ord0
                                     * rt j (inord k) ord0)) = 0)%Re.
 { rewrite (@big_addn _ _ _ 0 n.+1 i.+1) big_mkord.
@@ -322,7 +321,7 @@ have H : \sum_k ((Mabs (rt i)) k ord0 * (Mabs (rt j)) k ord0)%Re
             ((Mabs (rt i)) (inord k) ord0 * (Mabs (rt j)) (inord k) ord0)%Re.
 { rewrite big_mkord; apply /eq_bigr => k _.
   by apply f_equal2; (apply f_equal2; [rewrite inord_val|]). }
-rewrite H {H} (big_cat_nat _ _ _ (leq0n i.+1) (ltn_ord i)) /=.
+rewrite H {H} (@big_cat_nat _ _ _ _ _ _ _ _ (leq0n i.+1) (ltn_ord i)) /=.  (* FIXME: remove @ when requiring MC >= 2.4.0 *)
 have H : ((\sum_(i.+1 <= k < n.+1) ((Mabs (rt i)) (inord k) ord0
                                     * (Mabs (rt j)) (inord k) ord0)) = 0)%Re.
 { rewrite (@big_addn _ _ _ 0 n.+1 i.+1) big_mkord.
@@ -624,7 +623,7 @@ set (d := fun (A : 'M[F]_n.+1) (j : 'I_n.+1) =>
             sqrt (/ (1 - alpha j j) * (A j j + 2 * INR j * eta))%Re).
 have HAtA : forall k : 'I_n.+1, (d At k <= d A k)%Re.
 { move=> k; apply sqrt_le_1_alt, Rmult_le_compat_l.
-  { apply Rlt_le, Rinv_0_lt_compat, Rlt_Rminus.
+  { apply Rlt_le, Rinv_0_lt_compat, Rlt_0_minus.
     rewrite /alpha /GRing.mul (alpha_iltj (leqnn k)).
     move: Hn; apply Rle_lt_trans, Rmult_le_compat_r; [by apply eps_pos|].
     by apply /le_INR /leP; rewrite ltnS. }
@@ -877,7 +876,7 @@ apply Rplus_le_compat; [|right; apply Rmult_eq_compat_l].
   { rewrite /alpha; set In := INR _; rewrite /GRing.mul /= {}/In.
     by rewrite (alpha_iltj (leqnn _)); apply INR_eps_monotone; rewrite ltnS. }
   have H1 : (0 <= / (1 - alpha i i))%Re.
-  { apply Rlt_le, Rinv_0_lt_compat, Rlt_Rminus.
+  { apply Rlt_le, Rinv_0_lt_compat, Rlt_0_minus.
     by move: Hn; apply Rle_lt_trans. }
   have H2 : (0 <= A i i + 2 * INR i * eta)%Re.
   { move: (Rmult_le_pos _ _ (pos_INR i) (eta_pos fs)) (Pdiag i).

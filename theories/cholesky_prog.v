@@ -1,4 +1,4 @@
-Require Import Reals Psatz.
+From Stdlib Require Import Reals Psatz.
 From Bignums Require Import BigZ BigQ.
 From Flocq Require Import Core.Raux Core.Defs Core.Digits.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
@@ -9,10 +9,11 @@ From Interval Require Import Real.Xreal.
 From Interval Require Import Float.Basic.
 From Interval Require Import Float.Specific_ops.
 From mathcomp Require Import Rstruct.
-Require Import libValidSDP.misc.
-Require Import libValidSDP.coqinterval_infnan libValidSDP.zulp.
-Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
-Require Import libValidSDP.cholesky libValidSDP.cholesky_infnan.
+From libValidSDP Require Import misc.
+From libValidSDP Require Import coqinterval_infnan zulp.
+Require Import iteri_ord.
+From libValidSDP Require Import float_infnan_spec real_matrix.
+From libValidSDP Require Import cholesky cholesky_infnan.
 
 (** * Application: program for Cholesky decomposition *)
 
@@ -1027,7 +1028,7 @@ Context `{!leq_of C}.
 (* Erik: do we really need [n1] and [n2] ? *)
 Context {n1 n2 : nat} {rn : nat_R n1.+1 n2.+1}.
 
-Let r1 := nat_R_S_R nat_R_O_R.
+Let r1 := S_R O_R.
 
 Global Instance refine_dotmulB0 :
   refines (Rord rn ==> eq ==> Rseqmx r1 rn ==> Rseqmx r1 rn ==> eq)
@@ -1317,17 +1318,9 @@ refines_apply1.
 refines_apply1.
 eapply refines_apply.
 refines_apply1.
-{ param store_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)). }
+{ rewrite refinesE => ? ? ? ? ? ? n n' ref_n ? ? ?.
+  apply: store_seqmx_R => //; apply: refinesP.
+  by case: ref_n => <- _; rewrite refinesE; apply: nat_Rxx. }
 rewrite refinesE; suff_eq nat_Rxx.
 exact: (Rordn_eq (n1 := n1)).
 refines_apply1.
@@ -1340,63 +1333,27 @@ refines_apply1.
 refines_apply1.
 refines_apply1.
 rewrite /fun_of_op.
-{ param fun_of_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)).
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)). }
+{ rewrite refinesE => ? ? ? x1 x2 rx y1 y2 ry.
+  apply: fun_of_seqmx_R => //; apply: refinesP.
+  { by case: rx => <- _; rewrite refinesE; apply: nat_Rxx. }
+  by case: ry => <- _; rewrite refinesE; apply: nat_Rxx. }
 refines_apply1.
 refines_apply1.
-{ param row_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)). }
+{ rewrite refinesE => x1 x2 rx ? ? ?.
+  by apply: row_seqmx_R => //; case: rx => <- _; apply: nat_Rxx. }
 refines_apply1.
 refines_apply1.
-{ param row_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)). }
+{ rewrite refinesE => x1 x2 rx ? ? ?.
+  by apply: row_seqmx_R => //; case: rx => <- _; apply: nat_Rxx. }
 refines_apply1.
 refines_apply1.
 refines_apply1.
 rewrite /fun_of_op.
-{ param fun_of_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)).
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)). }
-Qed.
+{ rewrite refinesE => ? ? ? x1 x2 rx y1 y2 ry.
+  apply: fun_of_seqmx_R => //; apply: refinesP.
+  { by case: rx => <- _; rewrite refinesE; apply: nat_Rxx. }
+  by case: ry => <- _; rewrite refinesE; apply: nat_Rxx. }
+Unshelve. all: exact: nat_Rxx. Qed.
 
 (* Copy-paste of multipoly.v *)
 Lemma composable_imply_id2 :
@@ -1457,52 +1414,25 @@ refines_apply1.
 refines_apply1.
 refines_apply1.
 rewrite /store_op.
-{ param store_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)).
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)). }
+{ rewrite refinesE => ? ? ? x1 x2 rx y1 y2 ry ? ? ?.
+  apply: store_seqmx_R => //; apply: refinesP.
+  { by case: rx => <- _; rewrite refinesE; apply: nat_Rxx. }
+  by case: ry => <- _; rewrite refinesE; apply: nat_Rxx. }
 refines_apply1.
 refines_apply1.
 refines_apply1.
 refines_apply1.
 refines_apply1.
 rewrite /fun_of_op.
-{ param fun_of_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)).
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)). }
+{ rewrite refinesE => ? ? ? x1 x2 rx y1 y2 ry.
+  apply: fun_of_seqmx_R => //; apply: refinesP.
+  { by case: rx => <- _; rewrite refinesE; apply: nat_Rxx. }
+  by case: ry => <- _; rewrite refinesE; apply: nat_Rxx. }
 refines_apply1.
 refines_apply1.
-{ param row_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)). }
-Qed.
+{ rewrite refinesE => x1 x2 rx ? ? ?.
+  by apply: row_seqmx_R => //; case: rx => <- _; apply: nat_Rxx. }
+Unshelve. all: exact: nat_Rxx. Qed.
 
 Global Instance refine_cholesky_seqmx :
   refines ((list_R (list_R eqFIS)) ==> list_R (list_R eqFIS))
@@ -1630,20 +1560,11 @@ by rewrite refinesE /Rordn; split.
 refines_abstr.
 do 4!refines_apply1.
 rewrite /fun_of_op.
-{ param fun_of_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1')).
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1')). }
-Qed.
+{ rewrite refinesE => ? ? ? x1 x2 rx y1 y2 ry.
+  apply: fun_of_seqmx_R => //; apply: refinesP.
+  { by case: rx => <- _; rewrite refinesE; apply: nat_Rxx. }
+  by case: ry => <- _; rewrite refinesE; apply: nat_Rxx. }
+Unshelve. all: exact: nat_Rxx. Qed.
 
 Global Instance refine_foldl_diag' T' :
   forall eqf : T' -> T' -> Type,
@@ -2090,39 +2011,21 @@ refines_apply1.
 refines_apply1.
 refines_apply1.
 rewrite /store_op.
-{ param store_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)).
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)). }
+{ rewrite refinesE => ? ? ? x1 x2 rx y1 y2 ry ? ? ?.
+  apply: store_seqmx_R => //; apply: refinesP.
+  { by case: rx => <- _; rewrite refinesE; apply: nat_Rxx. }
+  by case: ry => <- _; rewrite refinesE; apply: nat_Rxx. }
 refines_apply1.
 refines_apply1.
 refines_apply1.
 refines_apply1.
 rewrite /fun_of_op.
-{ param fun_of_seqmx_R.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  ref_abstr => n n' ref_n.
-  rewrite !refinesE in ref_n *.
-  suff_eq nat_Rxx.
-  congr S; exact: unify_rel.
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)).
-  rewrite refinesE; suff_eq nat_Rxx.
-  exact: (Rordn_eq (n1 := n1)). }
+{ rewrite refinesE => ? ? ? x1 x2 rx y1 y2 ry.
+  apply: fun_of_seqmx_R => //; apply: refinesP.
+  { by case: rx => <- _; rewrite refinesE; apply: nat_Rxx. }
+  by case: ry => <- _; rewrite refinesE; apply: nat_Rxx. }
 done.
-Qed.
+Unshelve. all: exact: nat_Rxx. Qed.
 
 Global Instance refine_posdef_check_seqmx n1 :
   refines (list_R (list_R eqFIS) ==> bool_R)
@@ -2219,13 +2122,11 @@ refines_apply1.
 refines_apply1.
 by rewrite refinesE.
 { (* could be extracted to some lemma *)
-  refines_abstr; rewrite refinesE /store_op.
-  eapply store_seqmx_R.
-  exact: nat_Rxx.
-  exact: nat_Rxx.
-  exact: refinesP.
-  by suff_eq nat_Rxx; eapply refinesP, refines_Rordn_eq; tc.
-  by suff_eq nat_Rxx; eapply refinesP, refines_Rordn_eq; tc.
+  rewrite refinesE => x1 x2 rx ? ? ?.
+  apply: store_seqmx_R.
+  { exact: refinesP. }
+  { by case: rx => <- _; apply: nat_Rxx. }
+  { by case: rx => <- _; apply: nat_Rxx. }
   eapply refinesP.
   refines_apply1.
   refines_apply1.
@@ -2233,23 +2134,14 @@ by rewrite refinesE.
   refines_apply1.
   refines_apply1.
   rewrite /fun_of_op.
-  { param fun_of_seqmx_R.
-    ref_abstr => m m' ref_m.
-    rewrite !refinesE in ref_m *.
-    suff_eq nat_Rxx.
-    congr S; exact: unify_rel.
-    ref_abstr => p p' ref_p.
-    rewrite !refinesE in ref_p *.
-    suff_eq nat_Rxx.
-    congr S; exact: unify_rel.
-    rewrite refinesE; suff_eq nat_Rxx.
-    exact: (Rordn_eq (n1 := n)).
-    rewrite refinesE; suff_eq nat_Rxx.
-    exact: (Rordn_eq (n1 := n)). }
+  { rewrite refinesE => ? ? ? {}x1 {}x2 {}rx y1 y2 ry.
+    apply: fun_of_seqmx_R => //; apply: refinesP.
+    { by case: rx => <- _; rewrite refinesE; apply: nat_Rxx. }
+    by case: ry => <- _; rewrite refinesE; apply: nat_Rxx. }
   refines_apply1.
   refines_apply1.
   rewrite refinesE; reflexivity. }
-Qed.
+Unshelve. all: exact: nat_Rxx. Qed.
 
 Global Instance refine_posdef_check' n :
   refines (RseqmxC eqFIS (nat_Rxx n.+1) (nat_Rxx n.+1) ==> bool_R)

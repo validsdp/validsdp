@@ -1,5 +1,5 @@
 From Ltac2 Require Import Ltac2.
-Declare ML Module "@SOSWIT_PLUGIN@".
+Declare ML Module "coq-validsdp.plugin".
 
 (* [soswitness q [p1;...; pn] options] calls SDP solvers to retrieve
    witnesses for p1 >= 0 -> ... -> pn >= 0 -> q >= 0. It returns [(z, Q)]
@@ -16,11 +16,11 @@ Declare ML Module "@SOSWIT_PLUGIN@".
 
    [z] is of type seq (seq N)
    [Q] is of type seq (seq (Specific_ops.s_float bigZ bigZ)) *)
-Ltac2 @ external soswitness : constr -> constr -> constr list -> constr * constr := "@SOSWIT_PLUGIN_EXT@" "soswitness".
+Ltac2 @ external soswitness : constr -> constr -> constr list -> constr * constr := "coq-validsdp.plugin" "soswitness".
 
 (* Same as above but attempts to maximise lb such that p1 >= 0 ->
    ... -> pn >= 0 -> q >= lb. It returns a maximized [lb] and [(z, Q)]
    and [[(s1, (z1, Q1));...; (sn, (zn, Qn))]] as above.
 
    [lb] is of type BigQ.t *)
-Ltac2 @ external soswitness_intro : constr -> constr -> constr list -> constr * constr * constr := "@SOSWIT_PLUGIN_EXT@" "soswitness_intro".
+Ltac2 @ external soswitness_intro : constr -> constr -> constr list -> constr * constr * constr := "coq-validsdp.plugin" "soswitness_intro".

@@ -1,0 +1,29 @@
+-I plugins/soswitness/src
+-R plugins/soswitness/theories ValidSDP
+-R plugins/soswitness/src ValidSDP
+-R plugins/soswitness/test-suite ValidSDP
+-R test-suite ValidSDP
+-R theories ValidSDP
+
+plugins/soswitness/src/META.coq-validsdp
+plugins/soswitness/src/soswitness.mlg
+plugins/soswitness/src/soswitness.mllib
+plugins/soswitness/theories/soswitness_plugin.v
+plugins/soswitness/theories/soswitness.v
+plugins/soswitness/test-suite/soswitnesstac.v
+# OPTIONAL: plugins/soswitness/test-suite/soswitnesstac_sdpa.v
+
+theories/misc.v
+theories/cholesky_prog.v
+theories/iteri_ord.v
+theories/posdef_check.v
+theories/validsdp.v
+
+-arg -w -arg -notation-overridden
+-arg -w -arg -ambiguous-paths
+# Warnings we don't really know how to handle
+-arg -w -arg -redundant-canonical-projection
+# handle the following when requiring MC >= 2.4.0
+-arg -w -arg -deprecated-since-mathcomp-2.4.0
+
+COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R theories ValidSDP"

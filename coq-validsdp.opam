@@ -11,8 +11,6 @@ bug-reports: "https://github.com/validsdp/validsdp/issues"
 license: "LGPL-2.1-or-later"
 
 build: [
-  ["sh" "-c" "./autogen.sh"] {dev}
-  ["sh" "-c" "./configure"]
   [make "-j%{jobs}%"]
 ]
 run-test: [make "-j%{jobs}%" "test"]
@@ -20,22 +18,17 @@ install: [make "install"]
 
 depends: [
   "ocaml"
-  "coq" {((>= "8.18" & < "8.21~") | (= "dev"))}
+  "coq" {((>= "9.0" & < "9.2~") | (= "dev"))}
   "coq-bignums"
   "coq-flocq" {>= "3.3.0"}
   "coq-interval" {>= "4.0.0" & < "5~"}
-  "coq-mathcomp-field" {(>= "2.1" & < "2.4~") | (= "dev")}
-  ("coq-mathcomp-analysis" {>= "1.0.0" & < "1.7~"}
-  | "coq-mathcomp-reals-stdlib" {>= "1.8.0"})
-  # remove coq-mathcomp-analysis when requiring coq >= 8.19
-  # and cleanup the "FIXME: remove when requiring analysis >= 1.2.0"
-  # in theories/misc.v
+  "coq-mathcomp-field" {(>= "2.3" & < "2.5~") | (= "dev")}
+  "coq-mathcomp-reals-stdlib" {>= "1.8.0"}
   "coq-libvalidsdp" {= version}
   "coq-mathcomp-multinomials" {>= "2.0"}
-  "coq-coqeal" {>= "2.0.2"}
+  "coq-coqeal" {>= "2.1"}
   "osdp" {>= "1.1.1"}
   "ocamlfind" {build}
-  "conf-autoconf" {build & dev}
 ]
 synopsis: "ValidSDP"
 description: """

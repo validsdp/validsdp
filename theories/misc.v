@@ -1,6 +1,6 @@
 (** * Miscellaneous lemmas. *)
 
-Require Import Reals QArith.
+From Stdlib Require Import Reals QArith.
 From Bignums Require Import BigQ.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
@@ -35,17 +35,16 @@ Lemma Q2R_inv x : Q2R x <> 0%Re -> Q2R (/ x) = / (Q2R x).
 Proof.
 move: x => [[ |a|a] b] Hx; rewrite /Q2R /Qinv /=.
 { by rewrite /Q2R /= /Rdiv Rmult_0_l in Hx. }
-{ clear Hx; rewrite Rinv_Rdiv //. }
+{ by clear Hx; rewrite Rinv_div. }
 { have IPRan0 : IPR a <> 0.
-  { by rewrite -INR_IPR; apply: not_0_INR; rewrite Nat.neq_0_lt_0; exact: Pos2Nat.is_pos. }
-  clear Hx; rewrite /Rdiv !Ropp_mult_distr_l_reverse -Ropp_inv_permute.
-  rewrite Rinv_Rdiv //.
-  by apply Rmult_integral_contrapositive_currified; [|apply Rinv_neq_0_compat]. }
+  { by rewrite -INR_IPR; apply: not_0_INR; rewrite Nat.neq_0_lt_0;
+      exact: Pos2Nat.is_pos. }
+  by clear Hx; rewrite /Rdiv !Ropp_mult_distr_l_reverse Rinv_opp Rinv_div. }
 Qed.
 
 Lemma Q2R_mult x y : Q2R (x * y) = (Q2R x * Q2R y)%Re.
 Proof.
-  rewrite /Q2R /= !(mult_IZR, Pos2Z.inj_mul) /Rdiv Rinv_mult_distr //; ring.
+rewrite /Q2R /= !(mult_IZR, Pos2Z.inj_mul) /Rdiv Rinv_mult //; ring.
 Qed.
 
 Lemma Q2R_opp x : Q2R (- x) = (- Q2R x)%Re.
@@ -71,7 +70,7 @@ apply: eq_IZR.
 rewrite !mult_IZR.
 apply (Rmult_eq_reg_r (/ IZR (Z.pos (Qden x)))); last first.
 { apply: Rinv_neq_0_compat.
-  by change 0%Re with (IZR 0); apply: IZR_neq. }
+  by change 0%Re with (IZR 0); apply: eq_IZR_contrapositive. }
 rewrite /Rdiv in Hxy.
 by rewrite Rmult_assoc [(_ * / _)%Re]Rmult_comm -Rmult_assoc Hxy; field.
 Qed.
@@ -153,7 +152,7 @@ rewrite -addn1 PoszD intrD -{}IHn /= addn1.
 set zn := match n with O => Z0 | _ => Z.pos (Pos.of_nat n) end.
 suff->: zn = Z.of_nat n.
 { change 1%N%:~R with (IZR 1).
-  rewrite /GRing.add /= -plus_IZR Z.add_1_r -Nat2Z.inj_succ.
+  rewrite /GRing.add /= -plus_IZR Z.add_1_r -Znat.Nat2Z.inj_succ.
   by rewrite /Z.of_nat Pos.of_nat_succ. }
 clear; rewrite {}/zn /Z.of_nat.
 case: n => // n.
@@ -195,19 +194,6 @@ by rewrite /bigQ2R; apply: Q2R_Qeq; apply: BigQ.spec_red.
 Qed.
 
 Notation rat2R := (@ratr R) (only parsing).
-
-(* FIXME: remove when requiring analysis >= 1.2.0 *)
-#[local] Lemma neq0_RinvE x : x != 0%Re -> Rinv x = x^-1.
-Proof. by move=> x_neq0; rewrite -[RHS]/(if _ then _ else _) x_neq0. Qed.
-
-(* FIXME: remove when requiring analysis >= 1.2.0 *)
-#[local] Lemma RinvE x : Rinv x = x^-1.
-Proof.
-have [->| ] := eqVneq x R0; last exact: neq0_RinvE.
-rewrite /GRing.inv /GRing.mul /= /Rinvx eqxx /=.
-rewrite RinvImpl.Rinv_def; case: Req_appart_dec => //.
-by move=> /[dup] -[] /RltP; rewrite Order.POrderTheory.ltxx.
-Qed.
 
 Lemma bigQ2R_rat (c : bigQ) : bigQ2R c = rat2R (bigQ2rat c).
 Proof.

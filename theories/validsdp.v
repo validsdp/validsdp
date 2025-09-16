@@ -5,25 +5,32 @@ Require Import Ltac2.Ltac2.
 Import Ltac2.Control.
 Set Default Proof Mode "Classic".
 
-Require Import ZArith.
-From Flocq Require Import Core. Require Import Datatypes.
+From Stdlib Require Import ZArith.
+From Flocq Require Import Core.
+From Stdlib Require Import Datatypes.
 From Interval Require Import Float.Basic Real.Xreal.
 From Interval Require Import Missing.Stdlib.
 From CoqEAL.theory Require Import ssrcomplements.
 From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint binrat.
-Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
+From Stdlib Require Import Reals.
+From Flocq Require Import Core.Raux.
+From Stdlib Require Import QArith Psatz FSetAVL.
 From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix order ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
+#[warning="-notation-incompatible-prefix"]
 From mathcomp.multinomials Require Import mpoly.
 From mathcomp Require Import Rstruct.
-Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
+Require Import iteri_ord.
+From libValidSDP Require Import float_infnan_spec real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog libValidSDP.coqinterval_infnan.
+Require Import cholesky_prog.
+From libValidSDP Require Import coqinterval_infnan.
 From CoqEAL.refinements Require Import multipoly. Import PolyAVL.
-Require Import libValidSDP.zulp.
-Require Import libValidSDP.misc ValidSDP.misc.
+From libValidSDP Require Import zulp.
+From libValidSDP Require Import misc.
+From ValidSDP Require Import misc.
 Require Export soswitness.
 
 Import Order.Theory.
@@ -33,6 +40,7 @@ Import Num.Theory.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Unset Uniform Inductive Parameters.  (* Remove when requiring rocq-elpi >= 3.2.0 *)
 
 Local Open Scope R_scope.
 
@@ -252,7 +260,7 @@ Definition x_ (nx : nat) : R.
 exact R0.
 Qed.
 
-Ltac2 newvar t nx :=
+Ltac2 newvar _t nx :=
   constr:(x_ $nx).
 
 Ltac2 rec fold_right_ltac2 f l r :=
@@ -273,7 +281,7 @@ Ltac2 mcat s1 s2 :=
 Ltac2 string_of_ident_list s0 l :=
   fold_left_ltac2 (fun r e => mcat r (Message.of_ident e)) s0 l.
 
-Ltac2 mutable deb (str : message) := ().
+Ltac2 mutable deb (_str : message) := ().
 (* Ltac2 Set deb := fun str => Message.print str. *)
 
 Ltac2 deb_s s1 :=
@@ -426,7 +434,7 @@ Ltac2 get_comp_poly get_poly_cur get_poly_pure t vm tac_var :=
       end in
   (* Ensure [t] is a function applied to a real *)
   match! t with
-  | ?fp ?xn =>
+  | ?_fp ?xn =>
     match! Constr.type xn with
     | R => aux1 t t constr:(@Datatypes.nil R) vm
     | _ => tac_var t vm
@@ -1157,7 +1165,7 @@ have : exists E : 'M_s.+1,
   { move=> i j; rewrite !mxE Rabs_mult.
     have NZnbij : INR (nbij i j) <> 0%Re.
     { by change 0%Re with (INR 0); move/INR_eq; move: (Pnbij i j); case nbij. }
-    rewrite Rabs_Rinv // (Rabs_pos_eq _ (pos_INR _)).
+    rewrite Rabs_inv // (Rabs_pos_eq _ (pos_INR _)).
     apply (Rmult_le_reg_r (INR (nbij i j))).
     { apply Rnot_ge_lt=> H; apply NZnbij.
       by apply Rle_antisym; [apply Rge_le|apply pos_INR]. }
@@ -1381,15 +1389,15 @@ case E: nr.
   { by rewrite -[0%Re]/(IZR 0); apply IZR_lt. }
   rewrite -mult_IZR Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc !RmultE.
   rewrite mulVr ?mulr1; [by right|].
-  rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
-  by move: Hd; rewrite H. }
+  rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP.
+  by apply: eq_IZR_contrapositive => H; move: Hd; rewrite H. }
 rewrite /= ifF /=; last first.
 { move: E; rewrite /nr; set nrnr := (_ # _)%bigQ; move: (BigQ_red_den_neq0 nrnr).
   by case (BigQ.red _)=>[//|n' d'] H [] _ <-; move: H=>/negbTE. }
 rewrite F.div_correct /Xround /Xdiv real_FtoX_toR //= real_FtoX_toR //=.
 rewrite /Xdiv' ifF; last first.
 { apply Req_bool_false; rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
-  rewrite -[0%Re]/(IZR 0); apply IZR_neq.
+  rewrite -[0%Re]/(IZR 0); apply: eq_IZR_contrapositive.
   move: E; rewrite /nr; set nrnr := (_ # _)%bigQ.
   move: (BigQ_red_den_neq0_aux nrnr).
   by case (BigQ.red _)=>[//|n' d'] H [] _ <-. }
@@ -1405,12 +1413,12 @@ apply (Rmult_le_reg_r (IZR (int2Z d))).
 set lhs := _ * _; rewrite Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc -mult_IZR.
 rewrite Hnd {}/lhs /GRing.mul /= Rmult_assoc !RmultE.
 rewrite mulVr ?mulr1; [right|]; last first.
-{ rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP; apply IZR_neq=>H.
-  by move: Hd; rewrite H. }
+{ rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP.
+  by apply: eq_IZR_contrapositive => H; move: Hd; rewrite H. }
 rewrite -RmultE mult_IZR Rmult_assoc Rinv_r ?Rmult_1_r //.
 move: (erefl nr); rewrite /nr; set nrnr := (_ # _)%bigQ=>_.
 move: (BigQ_red_den_neq0_aux nrnr); rewrite /nrnr -/nr E=>H.
-by apply IZR_neq.
+exact: eq_IZR_contrapositive.
 Transparent F.div.
 Qed.
 
@@ -1803,13 +1811,13 @@ rewrite /soscheck_hyps_ssr /soscheck_hyps_eff /soscheck_hyps.
 apply andb_R.
 { apply refinesP; refines_apply.
   rewrite refinesE => p'0 p'0' rp'0 pszQi pszQi' rpszQi.
-  move: rpszQi; case pszQi, pszQi' => /=; case s0, s1 => rpszQi.
-  apply refinesP; refines_apply; inversion rpszQi; rewrite refinesE //.
-  by (inversion X4 || inversion b_R); inversion H2; inversion H4. }
+  case: rpszQi => p2 p2' rp2 /= {pszQi pszQi'}.
+  move=> _ _ [s' p3 z2 Q2 p3' z2' Q2' -> -> rp3 rz2 rQ2].
+  exact: refinesP. }
 apply (all_R (T_R := prod_R (ReffmpolyC rAC) RWit)) => //.
-case=> p0 w; case=> p0' w' rpw /=.
-inversion rpw; (inversion X4 || inversion b_R); rewrite H2 H4 /=.
-apply refinesP; refines_apply.
+case=> p0 w; case=> p0' w' [p2 p2' rp2] /=.
+move=> _ _ [s' p3 z2 Q2 p3' z2' Q2' -> -> rp3 rz2 rQ2].
+exact: refinesP.
 Qed.
 
 Lemma refine_has_const :
@@ -1841,8 +1849,8 @@ Lemma nth_lt_list_R T1 T2 (T_R : T1 -> T2 -> Type) (x01 : T1) (x02 : T2) s1 s2 :
   (forall n, (n < size s1)%N -> T_R (nth x01 s1 n) (nth x02 s2 n)) -> list_R T_R s1 s2.
 Proof.
 elim: s1 s2 => [|hs1 ts1 Hind]; [by move=> [//|]|].
-move=> [//|hs2 ts2 /= Hs H]; apply list_R_cons_R; [by apply (H O)|].
-by apply Hind; [apply eq_add_S|move=> n Hn; apply (H (S n))].
+move=> [//|hs2 ts2 /= Hs H]; apply: cons_R; [exact: (H O)|].
+by apply: Hind; [apply: eq_add_S|move=> n Hn; apply: (H (S n))].
 Qed.
 
 (* TODO: begin PR CoqEAL Multipoly ? *)
@@ -2250,13 +2258,13 @@ refines_apply1; first refines_apply1;
 { by eapply (refine_soscheck_hyps (eq_F := eqFIS) (rAC := r_ratBigQ) eqFIS_P). }
 { rewrite refinesE; apply zip_R.
   { rewrite /bplb /bpl; move: Hltn'.
-    elim apl => [|h t Hind] //= /andP [] Hltnh Hltnt; apply list_R_cons_R.
+    elim apl => [|h t Hind] //= /andP [] Hltnh Hltnt; apply cons_R.
     { by apply refinesP, refine_interp_poly. }
     by apply Hind. }
   move: Hns HszQi HszQi_s HszQi_z HszQi_z'; rewrite /szQlb /szQl.
   elim szQi => [//=|h t Hind] /andP [hnsh Hnst].
   move=> /andP [Hsh Hst] /andP [Hnh Hnt] /andP [Hsh' Hst'] /andP [Hsh'' Hst''].
-  apply list_R_cons_R; [|by apply Hind].
+  apply cons_R; [|by apply Hind].
   set s0' := mpoly_of_list_eff h.1; set s0 := mpoly_of_effmpoly_val _ _.
   set z0' := map _ h.2.1; set z0 := spec_seqmx _ _ z0'.
   set Q0' := map _ h.2.2; set Q0 := spec_seqmx _ _ Q0'.
@@ -2415,7 +2423,7 @@ Ltac2 fresh_hyp ho :=
            | None => ident:(h)
            | Some h => h
            end in
-  let l := map_filter (fun _ => true) (fun id t => id) (hyps ()) in
+  let l := map_filter (fun _ => true) (fun id _t => id) (hyps ()) in
   let fv := Fresh.Free.of_ids l in
   Fresh.fresh fv h.
 
@@ -2669,10 +2677,10 @@ Ltac2 rec pair_member v l :=
 
 Ltac2 is_ineq t :=
   match! t with
-  | Rle ?x ?y => true
-  | Rge ?x ?y => true
-  | Rlt ?x ?y => true
-  | Rgt ?x ?y => true
+  | Rle ?_x ?_y => true
+  | Rge ?_x ?_y => true
+  | Rlt ?_x ?_y => true
+  | Rgt ?_x ?_y => true
   | _ => false
   end.
 
@@ -2778,7 +2786,7 @@ Ltac2 get_related_hyps expr :=
   let ss := [] in
   let rec aux hh vv ss :=
       match extract_exists_ltac2 (fun couple => match couple with
-                                                | (hyp_id, vars) =>
+                                                | (_hyp_id, vars) =>
                                                   meet_ltac2 vars vv
                                                 end) hh
       with

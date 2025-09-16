@@ -1,10 +1,9 @@
 (** * Type for real numbers with bounded absolute value. *)
 
-Require Import Reals Flocq.Core.Raux.
+From Stdlib Require Import Reals Psatz.
+From Flocq Require Import Core.Raux.
 
 Require Import misc.
-
-Require Import Psatz.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq bigop.
 From mathcomp Require Import fintype finfun ssralg.
@@ -70,7 +69,7 @@ case (Req_dec (Rabs r1 + Rabs r2) 0)%Re => Hr1.
 set (bv := ((b1 * r1 + b2 * r2) / (Rabs r1 + Rabs r2))%Re).
 suff H : (Rabs bv <= r)%Re.
 { exists (Build_bounded H); rewrite /bv /=; field; lra. }
-rewrite /bv {bv} /Rdiv Rabs_mult Rabs_Rinv //.
+rewrite /bv {bv} /Rdiv Rabs_mult Rabs_inv //.
 have Hnn := Rabs_pos (Rabs r1 + Rabs r2).
 have Hp : (0 < Rabs (Rabs r1 + Rabs r2)) by apply Rabs_pos_lt.
 apply (Rmult_le_reg_r (Rabs (Rabs r1 + Rabs r2))); [by []|].
@@ -115,7 +114,7 @@ move=> Hr12; case (Req_dec r2 0) => Hr2.
   by exists bounded_0; rewrite Hr1 Hr2 !Rmult_0_r. }
 suff H : (Rabs (b * r1 / r2) <= r).
 { by exists (Build_bounded H); simpl; field. }
-rewrite /Rdiv !Rabs_mult Rabs_Rinv //.
+rewrite /Rdiv !Rabs_mult Rabs_inv //.
 have H0 := Rabs_no_R0 r2 Hr2; have H1 := Rabs_pos r1.
 have H2 : (0 < Rabs r2) by lra.
 apply (Rmult_le_reg_r (Rabs r2)); [by []|].
@@ -134,7 +133,7 @@ move=> Hr12; case (Req_dec r2 0) => Hr2.
   by apply Rabs_eq_R0, Rle_antisym; [lra|apply Rabs_pos]. }
 suff H : (Rabs (r1 / r2) <= 1).
 { by exists (Build_bounded H); rewrite Rmult_assoc Rinv_l // Rmult_1_r. }
-rewrite Rabs_mult Rabs_Rinv //.
+rewrite Rabs_mult Rabs_inv //.
 have HAr2 : (0 < Rabs r2) by move: (Rabs_pos r2) (Rabs_no_R0 r2 Hr2); lra.
 apply (Rmult_le_reg_r (Rabs r2)); [by []|rewrite Rmult_1_l].
 rewrite Rmult_assoc Rinv_l; [rewrite Rmult_1_r|lra].
@@ -160,7 +159,7 @@ move=> Hr2; case (Rle_or_lt r1 0) => Hr1.
     [apply (Rle_trans _ _ _ (bounded_prop b1))|apply Rabs_pos]. }
 suff H : (Rabs (b1 * (r2 / r1)) <= r2).
 { exists (Build_bounded H); simpl; field; lra. }
-rewrite !Rabs_mult Rabs_Rinv; [|lra].
+rewrite !Rabs_mult Rabs_inv.
 rewrite (Rabs_right r1); [|lra]; rewrite (Rabs_right r2); [|lra].
 apply (Rmult_le_reg_r r1); [by []|].
 replace (_ * _)%Re with (r2 * Rabs b1)%Re; [|by field; lra].

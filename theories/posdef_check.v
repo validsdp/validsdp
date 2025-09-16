@@ -1,22 +1,27 @@
 (* (setq coq-prog-name "~/forge/git/validsdp/coq/bin/coqtop") *)
 (** * Main tactic for multivariate polynomial positivity. *)
 
-Require Import ZArith.
-From Flocq Require Import Core. Require Import Datatypes.
+From Stdlib Require Import ZArith.
+From Flocq Require Import Core.
+From Corelib Require Import Datatypes.
 From Interval Require Import Float.Basic Real.Xreal.
 From Interval Require Import Missing.Stdlib.
 From Interval Require Import Float.Specific_ops. (* for Float *)
 From CoqEAL.theory Require Import ssrcomplements.
 From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint binrat.
-Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
+From Stdlib Require Import Reals.
+From Flocq Require Import Core.Raux.
+From Stdlib Require Import QArith Psatz FSetAVL.
 From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
 From mathcomp Require Import Rstruct.
-Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
+Require Import iteri_ord.
+From libValidSDP Require Import float_infnan_spec real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog libValidSDP.coqinterval_infnan.
+Require Import cholesky_prog.
+From libValidSDP Require Import coqinterval_infnan.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -236,10 +241,8 @@ Time posdef_check.
 Qed.
 
 From Bignums Require Import BigZ BigN.
-Require Import Uint63.
-Require Import Floats.
-Require Import Bool.
-Require Import libValidSDP.primitive_floats_infnan.
+From Stdlib Require Import Uint63 Floats Bool.
+From libValidSDP Require Import primitive_floats_infnan.
 
 Definition BigZ2int63 (n : BigZ.t_) : option (bool * Uint63.int) :=
   match n with
@@ -506,7 +509,7 @@ assert (Hm''' : B2R f = IZR m''').
   unfold CyclicAxioms.ZnZ.to_Z, Cyclic63.Uint63Cyclic.ops, Cyclic63.int_ops.
   assert (Hdig_m'p : Z.le (Zdigits radix2 (Z.pos m'p)) prec).
   { revert Hb; unfold bounded, canonical_mantissa.
-    move/andP => [Heq _]; apply Zeq_bool_eq in Heq; revert Heq.
+    move/andP => [/Z.eqb_eq + _].
     unfold fexp; rewrite Zpos_digits2_pos; lia. }
   case sm.
   { rewrite <-(B2Prim_Prim2B (of_uint63 m')).
@@ -522,7 +525,7 @@ assert (He''shift : Z.sub (to_Z e'') shift = e).
   { revert Hb; unfold e; case se.
     { rewrite -{2}(Z.opp_involutive (to_Z e')) -Z.opp_le_mono.
       unfold bounded, canonical_mantissa.
-      move=> /andP [] /Zeq_bool_eq; unfold fexp, emin, emax, prec; lia. }
+      move=> /andP [] /Z.eqb_eq; unfold fexp, emin, emax, prec; lia. }
     rewrite /SpecFloat.bounded => /andP [] _ /Zle_bool_imp_le.
     unfold emin, emax, prec; lia. }
   unfold e'', e; case se.
@@ -546,7 +549,7 @@ rewrite round_generic.
 apply generic_format_F2R; fold m''' e; intros Nzm'''.
 unfold cexp, FLT_exp; rewrite (mag_F2R_Zdigits _ _ _ Nzm''').
 revert Hb; unfold SpecFloat.bounded, SpecFloat.canonical_mantissa.
-move=> /andP [] /Zeq_bool_eq; rewrite -/emin /FLT_exp Zpos_digits2_pos => Hb _.
+move=> /andP [] /Z.eqb_eq; rewrite -/emin /FLT_exp Zpos_digits2_pos => Hb _.
 unfold m'', m'''.
 unfold SpecFloat.fexp.
 now case sm; unfold fexp in Hb; rewrite Hb.

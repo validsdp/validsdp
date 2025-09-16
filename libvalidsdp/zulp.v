@@ -1,5 +1,4 @@
-Require Import Reals.
-Require Import ZArith.
+From Stdlib Require Import ZArith Reals.
 From Bignums Require Import BigQ.
 From Flocq Require Import Core.Defs.
 From Flocq Require Import Core.Digits.
@@ -68,8 +67,7 @@ Proof.
 elim: q => [q IHp|q IHp| ] =>//=.
 now_show (N.double (N.pos (Pos.succ q)) mod N.double (Pos.ldiff (Pos.succ q) q)
   = 0)%num.
-rewrite !N.double_spec !N.mul_mod_distr_l; [ |exact: Pos_ldiff_neq0|done].
-by rewrite IHp.
+  by rewrite !N.double_spec !N.Div0.mul_mod_distr_l IHp.
 by rewrite Pos_ldiff_eq0 /= N.mod_1_r.
 Qed.
 
@@ -184,8 +182,7 @@ case: m => [ |p|p] //.
     rewrite -N2Z.inj_mod; last first.
     try (rewrite N.double_spec; apply/N.neq_mul_0;
          split =>//; exact: Pos_ldiff_neq0).
-    rewrite !N.double_spec !N.mul_mod_distr_l; [ |exact: Pos_ldiff_neq0|done].
-    by rewrite Pos_ldiff_mod. }
+    by rewrite !N.double_spec !N.Div0.mul_mod_distr_l Pos_ldiff_mod. }
   { exfalso; clear IHp.
     move: E; by case: p. }
   clear E.
@@ -215,8 +212,7 @@ have->: p = Pos.succ q.
   rewrite -N2Z.inj_mod; last first.
   rewrite N.double_spec.
   try (apply/N.neq_mul_0; split =>//; exact: Pos_ldiff_neq0).
-  rewrite !N.double_spec !N.mul_mod_distr_l; [ |exact: Pos_ldiff_neq0|done].
-  by rewrite Pos_ldiff_mod. }
+  by rewrite !N.double_spec !N.Div0.mul_mod_distr_l Pos_ldiff_mod. }
 { exfalso; clear IHp.
   move: E; by case: p. }
 clear E.

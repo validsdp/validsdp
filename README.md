@@ -9,17 +9,16 @@ Coq tactics to prove multivariate inequalities using SDP solvers.
 Dependencies
 ------------
 
-- [Coq](https://coq.inria.fr) version 8.18 or later
+- [Rocq](https://rocq-prover.org) version 9.0 or later
 - [Bignums](https://github.com/coq/bignums) (Coq version specific)
-- [mathcomp](https://math-comp.github.io/math-comp/) (version 2.1 or later)
+- [mathcomp](https://math-comp.github.io/math-comp/) (version 2.3 or later)
 - [mathcomp reals stdlib](https://github.com/math-comp/analysis/) (version 1.8.0 or later)
 - [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.4.1)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.2.0)
 - [Coq-interval](http://coq-interval.gforge.inria.fr/) (tested with version 4.3.0)
 - [OSDP](https://github.com/Embedded-SW-VnV/osdp) (tested with version 1.1.1)
 - [multinomials](https://github.com/math-comp/multinomials) (tested with version 2.0)
-- [paramcoq](https://github.com/coq-community/paramcoq) (tested with version 1.1.3)
-- [CoqEAL](https://github.com/CoqEAL/CoqEAL) (tested with version 2.0.2)
+- [CoqEAL](https://github.com/CoqEAL/CoqEAL) (tested with version 2.1.0)
 
 See also the [coq-validsdp.opam](./coq-validsdp.opam) file for the
 detail of ValidSDP dependencies' version constraints.
@@ -48,8 +47,8 @@ of OPAM:
     $ opam install -y opam-depext  # install depext in the switch
     $ opam depext -u -i -y conf-gmp conf-csdp
 
-Install the dev version with Autoconf and OPAM
-----------------------------------------------
+Install the dev version with OPAM
+---------------------------------
 
 If you rely on [OPAM](https://opam.ocaml.org) to manage your Coq
 installation, you can install the ValidSDP library by doing:
@@ -66,11 +65,11 @@ OPAM installation does not know yet about this OPAM repository:
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
 
-Build the dev version with Autoconf and Make
---------------------------------------------
+Build the dev version with Make
+-------------------------------
 
-We assume you have [Autoconf](https://www.gnu.org/software/autoconf/)
-and a Coq installation managed by [OPAM](https://opam.ocaml.org).
+We assume you have a Rocq installation
+managed by [OPAM](https://opam.ocaml.org).
 
 Then, you can install the ValidSDP dependencies by doing:
 
@@ -80,13 +79,8 @@ Then, you can install the ValidSDP dependencies by doing:
 
 Finally, you can build and install the ValidSDP library by doing:
 
-    $ ./autogen.sh && ./configure && make && make install
-
-Note that the command above is necessary if you build the dev version
-of ValidSDP (e.g. from a git clone) while the release tarballs already
-contain a `configure` script, so in this case you'll just need to run:
-
-    $ ./configure && make && make install
+    $ cd libvalidsdp && make && make install && cd ..
+    $ make && make install
 
 Documentation
 -------------

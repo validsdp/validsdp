@@ -1,9 +1,8 @@
 (** * Miscellaneous lemmas. *)
 
-Require Import Reals QArith.
+From Stdlib Require Import Reals QArith Psatz.
 From Bignums Require Import BigQ.
-Require Import Flocq.Core.Raux.
-Require Import Psatz.
+From Flocq Require Import Core.Raux.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import fintype finfun ssralg matrix bigop tuple.
@@ -282,7 +281,7 @@ Qed.
 Lemma max_tuple_sum n (a : R ^ n.+1) : \sum_i a i <= INR n.+1 * max_tuple a.
 Proof.
 elim: n a => [|n IHn] a.
-{ by rewrite zmodp.big_ord1 Rmult_1_l; right. }
+{ by rewrite big_ord1 Rmult_1_l; right. }
 rewrite big_ord_recr S_INR Rmult_plus_distr_r Rmult_1_l; apply Rplus_le_compat.
 { apply Rle_trans with (INR n.+1 * max_tuple [ffun i : 'I_n.+1 => a (inord i)]).
   { replace (_ : R) with (\sum_i [ffun i : 'I_n.+1 => a (inord i)] i);
