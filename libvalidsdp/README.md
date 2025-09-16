@@ -9,9 +9,9 @@ multivariate inequalities using SDP solvers.
 Dependencies
 ------------
 
-- [Coq](https://coq.inria.fr) version 8.18.x or later
+- [Rocq](https://rocq-prover.org) version 9.0 or later
 - [Bignums](https://github.com/coq/bignums) (Coq version specific)
-- [mathcomp](https://math-comp.github.io/math-comp/) (version 2.1 or later)
+- [mathcomp](https://math-comp.github.io/math-comp/) (version 2.3 or later)
 - [mathcomp reals stdlib](https://github.com/math-comp/analysis/) (version 1.8.0 or later)
 - [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.4.1)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.2.0)
@@ -36,8 +36,8 @@ OPAM installation does not know yet about this OPAM repository:
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
 
-Install the dev version with Autoconf and OPAM
-----------------------------------------------
+Install the dev version with OPAM
+---------------------------------
 
 If you rely on [OPAM](https://opam.ocaml.org) to manage your Coq
 installation, you can install the libValidSDP library by doing:
@@ -53,11 +53,11 @@ OPAM installation does not know yet about this OPAM repository:
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
 
-Build the dev version with Autoconf and Make
---------------------------------------------
+Build the dev version with Make
+-------------------------------
 
-We assume you have [Autoconf](https://www.gnu.org/software/autoconf/)
-and a Coq installation managed by [OPAM](https://opam.ocaml.org).
+We assume you have a Rocq installation
+managed by [OPAM](https://opam.ocaml.org).
 
 Then, you can install the libValidSDP dependencies by doing:
 
@@ -66,13 +66,7 @@ Then, you can install the libValidSDP dependencies by doing:
 
 Finally, you can build and install the libValidSDP library by doing:
 
-    $ ./autogen.sh && ./configure && make && make install
-
-Note that the command above is necessary if you build the dev version
-of libValidSDP (e.g. from a git clone) while the release tarballs already
-contain a `configure` script, so in this case you'll just need to run:
-
-    $ ./configure && make && make install
+    $ make && make install
 
 Documentation
 -------------

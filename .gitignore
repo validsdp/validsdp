@@ -48,9 +48,7 @@ tramp
 .lia.cache
 Makefile.coq
 Makefile.coq.conf
-Makefile.coq.local
 .Makefile.coq.d
-libvalidsdp/Makefile
 
 ### OCaml ###
 *.annot
@@ -78,7 +76,6 @@ setup.log
 /dist.*/
 /configure
 /config.status
-/Makefile
 /autom4te.cache/
 /libvalidsdp/autom4te.cache/
 /libvalidsdp/configure
@@ -96,16 +93,12 @@ setup.log
 /plugins/soswitness/Makefile
 /plugins/soswitness/src/soswitness.cmt
 /plugins/soswitness/src/soswitness.ml
-/plugins/soswitness/src/soswitness.ml4
-/plugins/soswitness/src/soswitness.ml4.d
 /plugins/soswitness/src/soswitness.mlg
 /plugins/soswitness/src/soswitness.mlg.d
-/plugins/soswitness/theories/soswitness_plugin.v
 *.mllib.d
 *.log
 csdp.cache
 lia.cache
-_CoqProject
 
 # PVS
 *.summary

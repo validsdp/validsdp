@@ -1,11 +1,11 @@
 -I plugins/soswitness/src
--R plugins/soswitness/theories @PACKAGE_NAME@
--R plugins/soswitness/src @PACKAGE_NAME@
--R plugins/soswitness/test-suite @PACKAGE_NAME@
--R test-suite @PACKAGE_NAME@
--R theories @PACKAGE_NAME@
+-R plugins/soswitness/theories ValidSDP
+-R plugins/soswitness/src ValidSDP
+-R plugins/soswitness/test-suite ValidSDP
+-R test-suite ValidSDP
+-R theories ValidSDP
 
-@META_FILE@
+plugins/soswitness/src/META.coq-validsdp
 plugins/soswitness/src/soswitness.mlg
 plugins/soswitness/src/soswitness.mllib
 plugins/soswitness/theories/soswitness_plugin.v
@@ -28,4 +28,4 @@ theories/validsdp.v
 # handle the following when requiring MC >= 2.4.0
 -arg -w -arg -deprecated-since-mathcomp-2.4.0
 
-COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R theories @PACKAGE_NAME@"
+COQDOCFLAGS = "-g -interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp --external http://flocq.gforge.inria.fr/coqdoc/ Flocq -R theories ValidSDP"

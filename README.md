@@ -47,8 +47,8 @@ of OPAM:
     $ opam install -y opam-depext  # install depext in the switch
     $ opam depext -u -i -y conf-gmp conf-csdp
 
-Install the dev version with Autoconf and OPAM
-----------------------------------------------
+Install the dev version with OPAM
+---------------------------------
 
 If you rely on [OPAM](https://opam.ocaml.org) to manage your Coq
 installation, you can install the ValidSDP library by doing:
@@ -65,11 +65,11 @@ OPAM installation does not know yet about this OPAM repository:
     $ opam repo add coq-released https://coq.inria.fr/opam/released
     $ opam update
 
-Build the dev version with Autoconf and Make
---------------------------------------------
+Build the dev version with Make
+-------------------------------
 
-We assume you have [Autoconf](https://www.gnu.org/software/autoconf/)
-and a Coq installation managed by [OPAM](https://opam.ocaml.org).
+We assume you have a Rocq installation
+managed by [OPAM](https://opam.ocaml.org).
 
 Then, you can install the ValidSDP dependencies by doing:
 
@@ -79,13 +79,8 @@ Then, you can install the ValidSDP dependencies by doing:
 
 Finally, you can build and install the ValidSDP library by doing:
 
-    $ ./autogen.sh && ./configure && make && make install
-
-Note that the command above is necessary if you build the dev version
-of ValidSDP (e.g. from a git clone) while the release tarballs already
-contain a `configure` script, so in this case you'll just need to run:
-
-    $ ./configure && make && make install
+    $ cd libvalidsdp && make && make install && cd ..
+    $ make && make install
 
 Documentation
 -------------
