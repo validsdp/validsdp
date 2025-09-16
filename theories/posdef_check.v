@@ -1,22 +1,27 @@
 (* (setq coq-prog-name "~/forge/git/validsdp/coq/bin/coqtop") *)
 (** * Main tactic for multivariate polynomial positivity. *)
 
-Require Import ZArith.
-From Flocq Require Import Core. Require Import Datatypes.
+From Stdlib Require Import ZArith.
+From Flocq Require Import Core.
+From Corelib Require Import Datatypes.
 From Interval Require Import Float.Basic Real.Xreal.
 From Interval Require Import Missing.Stdlib.
 From Interval Require Import Float.Specific_ops. (* for Float *)
 From CoqEAL.theory Require Import ssrcomplements.
 From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint binrat.
-Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
+From Stdlib Require Import Reals.
+From Flocq Require Import Core.Raux.
+From Stdlib Require Import QArith Psatz FSetAVL.
 From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix ssralg bigop.
 From mathcomp Require Import ssrnum ssrint rat div.
 From mathcomp Require Import Rstruct.
-Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
+Require Import iteri_ord.
+From libValidSDP Require Import float_infnan_spec real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog libValidSDP.coqinterval_infnan.
+Require Import cholesky_prog.
+From libValidSDP Require Import coqinterval_infnan.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -236,10 +241,8 @@ Time posdef_check.
 Qed.
 
 From Bignums Require Import BigZ BigN.
-Require Import Uint63.
-Require Import Floats.
-Require Import Bool.
-Require Import libValidSDP.primitive_floats_infnan.
+From Stdlib Require Import Uint63 Floats Bool.
+From libValidSDP Require Import primitive_floats_infnan.
 
 Definition BigZ2int63 (n : BigZ.t_) : option (bool * Uint63.int) :=
   match n with

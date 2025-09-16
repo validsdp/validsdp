@@ -5,13 +5,16 @@ Require Import Ltac2.Ltac2.
 Import Ltac2.Control.
 Set Default Proof Mode "Classic".
 
-Require Import ZArith.
-From Flocq Require Import Core. Require Import Datatypes.
+From Stdlib Require Import ZArith.
+From Flocq Require Import Core.
+From Stdlib Require Import Datatypes.
 From Interval Require Import Float.Basic Real.Xreal.
 From Interval Require Import Missing.Stdlib.
 From CoqEAL.theory Require Import ssrcomplements.
 From CoqEAL.refinements Require Import hrel refinements param seqmx seqmx_complements binnat binint binrat.
-Require Import Reals Flocq.Core.Raux QArith Psatz FSetAVL.
+From Stdlib Require Import Reals.
+From Flocq Require Import Core.Raux.
+From Stdlib Require Import QArith Psatz FSetAVL.
 From Bignums Require Import BigZ BigQ.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import choice finfun fintype tuple matrix order ssralg bigop.
@@ -19,12 +22,15 @@ From mathcomp Require Import ssrnum ssrint rat div.
 #[warning="-notation-incompatible-prefix"]
 From mathcomp.multinomials Require Import mpoly.
 From mathcomp Require Import Rstruct.
-Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
+Require Import iteri_ord.
+From libValidSDP Require Import float_infnan_spec real_matrix.
 Import Refinements.Op.
-Require Import cholesky_prog libValidSDP.coqinterval_infnan.
+Require Import cholesky_prog.
+From libValidSDP Require Import coqinterval_infnan.
 From CoqEAL.refinements Require Import multipoly. Import PolyAVL.
-Require Import libValidSDP.zulp.
-Require Import libValidSDP.misc ValidSDP.misc.
+From libValidSDP Require Import zulp.
+From libValidSDP Require Import misc.
+From ValidSDP Require Import misc.
 Require Export soswitness.
 
 Import Order.Theory.

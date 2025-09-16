@@ -1,6 +1,6 @@
 (** * Miscellaneous lemmas. *)
 
-Require Import Reals QArith.
+From Stdlib Require Import Reals QArith.
 From Bignums Require Import BigQ.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat.

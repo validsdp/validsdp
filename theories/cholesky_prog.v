@@ -1,4 +1,4 @@
-Require Import Reals Psatz.
+From Stdlib Require Import Reals Psatz.
 From Bignums Require Import BigZ BigQ.
 From Flocq Require Import Core.Raux Core.Defs Core.Digits.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
@@ -9,10 +9,11 @@ From Interval Require Import Real.Xreal.
 From Interval Require Import Float.Basic.
 From Interval Require Import Float.Specific_ops.
 From mathcomp Require Import Rstruct.
-Require Import libValidSDP.misc.
-Require Import libValidSDP.coqinterval_infnan libValidSDP.zulp.
-Require Import iteri_ord libValidSDP.float_infnan_spec libValidSDP.real_matrix.
-Require Import libValidSDP.cholesky libValidSDP.cholesky_infnan.
+From libValidSDP Require Import misc.
+From libValidSDP Require Import coqinterval_infnan zulp.
+Require Import iteri_ord.
+From libValidSDP Require Import float_infnan_spec real_matrix.
+From libValidSDP Require Import cholesky cholesky_infnan.
 
 (** * Application: program for Cholesky decomposition *)
 
