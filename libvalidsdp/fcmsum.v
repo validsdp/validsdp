@@ -6,11 +6,10 @@
     Improved Backward Error Bounds for LU and Cholesky Factorizations,
     SIAM J. Matrix Analysis Applications, 35(2):684-698, 2014. *)
 
-Require Import Reals Flocq.Core.Raux.
+From Stdlib Require Import Reals Psatz.
+From Flocq Require Import Core.Raux.
 
 Require Import misc.
-
-Require Import Psatz.
 
 From mathcomp Require Import ssreflect ssrfun ssrnat.
 From mathcomp Require Import fintype finfun ssralg bigop.

@@ -3,7 +3,7 @@
 (** Uses the Flocq library (http://flocq.gforge.inria.fr) to build a
     record [Float_infnan_spec] corresponding to IEEE754 binary64 format with
     a rounding to nearest with overflows and NaN. *)
-Require Import ZArith.
+From Stdlib Require Import ZArith.
 Require float_infnan_spec bsn_infnan.
 
 Definition binary64_infnan : float_infnan_spec.Float_infnan_spec :=

@@ -1,17 +1,17 @@
-Require Import ZArith Bool Reals Psatz.
+From Stdlib Require Import ZArith Bool Reals Psatz.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 From mathcomp Require Import Rstruct.
 
-Require Import Flocq.Core.Raux.
-Require Import Flocq.Core.Generic_fmt.
-Require Import Flocq.Core.FLX.
-Require Import Flocq.Core.FLT.
-Require Import Flocq.Core.Ulp.
-Require Import Flocq.Core.Round_NE.
+From Flocq Require Import Core.Raux.
+From Flocq Require Import Core.Generic_fmt.
+From Flocq Require Import Core.FLX.
+From Flocq Require Import Core.FLT.
+From Flocq Require Import Core.Ulp.
+From Flocq Require Import Core.Round_NE.
 Import Zaux.
 
-Require Import Flocq.IEEE754.Binary.
-Require Import Flocq.IEEE754.Bits.
+From Flocq Require Import IEEE754.Binary.
+From Flocq Require Import IEEE754.Bits.
 Import BinarySingleNaN.
 Require float_infnan_spec.
 Import Defs SpecFloat Float_prop.
@@ -19,12 +19,11 @@ Require Import float_infnan_spec float_spec flocq_float.
 
 Section Flocq_infnan.
 
-
-  Context {precp: positive}.
-  Context {emax: Z}.
-  Definition prec := Zpos precp.
-  Context {prec_gt_1: (1 < prec)%Z}.  (* need this for sqrt rounding *)
-  Context {prec_lt_emax_bool: Z.ltb prec emax}.
+Context {precp: positive}.
+Context {emax: Z}.
+Definition prec := Zpos precp.
+Context {prec_gt_1: (1 < prec)%Z}.  (* need this for sqrt rounding *)
+Context {prec_lt_emax_bool: Z.ltb prec emax}.
 
 Let emin := (3 - emax - prec)%Z.
 Let fexp := FLT_exp emin prec.

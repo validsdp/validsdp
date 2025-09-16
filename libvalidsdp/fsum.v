@@ -7,11 +7,10 @@
 
 From HB Require Import structures.
 
-Require Import Reals Flocq.Core.Raux.
+From Stdlib Require Import Reals Psatz.
+From Flocq Require Import Core.Raux.
 
 Require Import misc.
-
-Require Import Psatz.
 
 From Coquelicot Require Import Rcomplements.
 

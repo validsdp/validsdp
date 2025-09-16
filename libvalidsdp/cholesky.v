@@ -14,11 +14,10 @@
     Corollary 3.2 of this paper. Moreover [th_2_3_aux2] corresponds to
     Theorem 4.4 in the above paper. *)
 
-Require Import Reals Flocq.Core.Raux.
+From Stdlib Require Import Reals Psatz.
+From Flocq Require Import Core.Raux.
 
 Require Import misc.
-
-Require Import Psatz.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq bigop.
 From mathcomp Require Import fintype finfun ssralg matrix.

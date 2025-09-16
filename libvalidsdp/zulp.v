@@ -1,5 +1,4 @@
-Require Import Reals.
-Require Import ZArith.
+From Stdlib Require Import ZArith Reals.
 From Bignums Require Import BigQ.
 From Flocq Require Import Core.Defs.
 From Flocq Require Import Core.Digits.

@@ -1,9 +1,8 @@
 (** * Miscellaneous lemmas. *)
 
-Require Import Reals QArith.
+From Stdlib Require Import Reals QArith Psatz.
 From Bignums Require Import BigQ.
-Require Import Flocq.Core.Raux.
-Require Import Psatz.
+From Flocq Require Import Core.Raux.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import fintype finfun ssralg matrix bigop tuple.

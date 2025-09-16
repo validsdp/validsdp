@@ -24,8 +24,6 @@ binary_infnan.v
 # Warnings we don't really know how to handle
 -arg -w -arg -projection-no-head-constant
 -arg -w -arg -redundant-canonical-projection
-# handle the following when requiring Rocq >= 9.0
--arg -w -arg -deprecated-missing-stdlib
 # handle the following when requiring MC >= 2.4.0
 -arg -w -arg -deprecated-since-mathcomp-2.4.0
 

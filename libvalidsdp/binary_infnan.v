@@ -1,18 +1,18 @@
-Require Import ZArith Bool Reals Psatz.
+From Stdlib Require Import ZArith Bool Reals Psatz.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 From mathcomp Require Import Rstruct.
 
-Require Import Flocq.Core.Raux.
-Require Import Flocq.Core.Generic_fmt.
-Require Import Flocq.Core.FLX.
-Require Import Flocq.Core.FLT.
-Require Import Flocq.Core.Ulp.
-Require Import Flocq.Core.Round_NE.
+From Flocq Require Import Core.Raux.
+From Flocq Require Import Core.Generic_fmt.
+From Flocq Require Import Core.FLX.
+From Flocq Require Import Core.FLT.
+From Flocq Require Import Core.Ulp.
+From Flocq Require Import Core.Round_NE.
 Import Zaux.
 
-Require Import Flocq.IEEE754.BinarySingleNaN.
-Require Import Flocq.IEEE754.Binary.
-Require Import Flocq.IEEE754.Bits.
+From Flocq Require Import IEEE754.BinarySingleNaN.
+From Flocq Require Import IEEE754.Binary.
+From Flocq Require Import IEEE754.Bits.
 Require float_infnan_spec.
 Import Defs (* SpecFloat *) Float_prop.
 Require Import float_infnan_spec float_spec flocq_float.

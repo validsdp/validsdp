@@ -1,10 +1,9 @@
 (** * Type for real numbers with bounded absolute value. *)
 
-Require Import Reals Flocq.Core.Raux.
+From Stdlib Require Import Reals Psatz.
+From Flocq Require Import Core.Raux.
 
 Require Import misc.
-
-Require Import Psatz.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq bigop.
 From mathcomp Require Import fintype finfun ssralg.

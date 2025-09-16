@@ -1,21 +1,20 @@
 (** * CoqInterval floats satisfy hypothesis in [Float_infnan_spec] *)
 
-Require Import Reals.
-Require Import Floats.
+From Stdlib Require Import Reals Floats Psatz.
 From Bignums Require Import BigZ.
 
-Require Import Flocq.Core.Raux.
-Require Import Flocq.Core.Defs.
-Require Import Flocq.Core.Digits.
-Require Import Flocq.Core.Generic_fmt.
-Require Import Flocq.Core.FLX.
+From Flocq Require Import Core.Raux.
+From Flocq Require Import Core.Defs.
+From Flocq Require Import Core.Digits.
+From Flocq Require Import Core.Generic_fmt.
+From Flocq Require Import Core.FLX.
 
-Require Import Interval.Float.Specific_bigint.
-Require Import Interval.Float.Specific_ops.
-Require Import Interval.Float.Basic.
-Require Import Interval.Float.Generic_proof.
-Require Import Interval.Real.Xreal.
-Require Import Interval.Missing.Stdlib.
+From Interval Require Import Float.Specific_bigint.
+From Interval Require Import Float.Specific_ops.
+From Interval Require Import Float.Basic.
+From Interval Require Import Float.Generic_proof.
+From Interval Require Import Real.Xreal.
+From Interval Require Import Missing.Stdlib.
 
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 
@@ -38,8 +37,6 @@ Notation toR := (fun f => proj_val (F.toX f)).
 
 Lemma Xreal_inj x y : Xreal x = Xreal y -> x = y.
 Proof. by case. Qed.
-
-Require Import Psatz.
 
 Open Scope R_scope.
 
