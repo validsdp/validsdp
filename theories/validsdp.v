@@ -1206,7 +1206,7 @@ have : exists E : 'M_s.+1,
       by apply/ssrnat.ltP/card_gt0P; exists (j, i); rewrite unfold_in eqseqE. }
     by rewrite mcoeff_msupp; move/eqP->; rewrite GRing.raddf0 GRing.mul0r. }
   rewrite /p' mxE.
-  under eq_bigr do rewrite mxE big_distrl /=.
+  under [in X in (_ = X + _)%Ri]eq_bigr do rewrite mxE big_distrl /=.
   under eq_bigr do under eq_bigr do rewrite mxE.
   rewrite pair_bigA /= (big_morph _ (GRing.raddfD _) (mcoeff0 _ _)) /=.
   under eq_bigr do rewrite (GRing.mulrC (zp _ _)) -GRing.mulrA mxE mcoeffCM.
