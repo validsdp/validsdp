@@ -1,4 +1,6 @@
-Require Export Bignums.BigQ.BigQ mathcomp.ssreflect.seq Interval.Float.Specific_ops.
+From Bignums Require Export BigQ.
+From mathcomp Require Export seq.
+From Interval.Float Require Export Specific_ops.
 
 Variant validsdp_tac_parameters :=
 | s_sdpa
