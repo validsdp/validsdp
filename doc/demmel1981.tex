@@ -275,4 +275,217 @@ or
 Using the bounds in (88) and (89) in (91), we obtain the bounds
 in the statement of the lemma.  Q.E.D.
 
+~.~.~.
+
+\subsection*{Appendix 2: Program Listing of Solution of Both Triangular Systems Following
+  Triangular Decomposition}
+
+\begin{tabbing}
+array B[1..N] of real;\\
+array X[1..N] of real;\\
+array Y[1..N] of real;\\
+/* Again, B,X, and Y could occupy the same locations in memory. Arrays\\
+A,L and U are defined above.  As in Appendix 1, precisions of all computations\\
+except entries of B, X, and Y are shown. */\\
+\\
+/* Forward Substitution: $LY=B$ */\\
+\\
+for i=1 to N do\\
+~~~~~\=begin\\
+\>SUM=0;\\
+\>for k=1 to i-1 do SUM=SUM+L[i,k]*Y[k]; /* precision $(\epsilon_\mathrm{s},\mu_\mathrm{s})$ */\\
+\>Y[i]=B[i]-SUM; /* precision $(\epsilon_\mathrm{s},\mu_\mathrm{s})$\\
+\>/* \=Editor's note: After Cholesky factorization, where L[i,i] is not 1, must\\
+\>\>also divide by L[i,i] with precision $(\epsilon,\mu)$ */\\
+\\
+/* Back Substitution: UX=Y */\\
+for i=N downto 1 do\\
+\>begin\\
+\>SUM=0;\\
+\>for k=i+1 to N do SUM = SUM + U[i,k]*X[k]; /* precision $(\epsilon_\mathrm{s},\mu_\mathrm{s})$ */\\
+\>X[i]=(Y[i]-SUM)/U[i,i]; /* precision  $(\epsilon_\mathrm{s},\mu_\mathrm{s})$ */\\
+/* Editor's note: in the line above, the division is done at precision $(\epsilon,\mu)$ */\\
+\end{tabbing}
+
+\section*{All over again, with zero-based indexing!}
+
+\emph{Editor's note: This was not in the original.}
+
+\subsection*{0.3.3 Error Analysis Details}
+
+~.~.~.
+
+\paragraph*{Proposition 0.2.}~
+
+To analyze solving a triangular system, we need another expression for the error in
+computing an inner product:
+\begin{equation}\tag{0.31}
+  \float{\sum_{i=0}^{i<n} a_i b_i} = \sum_{i=0}^{i<n} a_i b_i (1 + E_i) + \eta ~.
+\end{equation}
+In the absence of underflow we have
+\begin{equation}\tag{0.32}
+\begin{array}{l}
+  |E_1| \le n \epsilon \\
+  |E_j| \le (n+1-j)\epsilon \quad \mathrm{if}\quad j>0~.
+\end{array}
+\end{equation}
+
+In the case of G.U.\footnote{Editor's note: G.U. = Gradual Underflow, that is,
+a floating-point format that supports subnormal numbers.  The technical report also covers the case of ``S.Z.'' or ``store zero'', which we omit here in all lemmas and theorems.}
+we have the same bounds on the $|E_i|$, and
+\begin{equation}\tag{0.34}
+|\eta| \le n \lambda \epsilon
+\end{equation}
+
+\paragraph*{Proof.} Letting
+\begin{eqnarray*}
+  S_m & = & \fl{\sum_{i=0}^{i<m} a_i b_i} \\
+  & = & \fl{S_{m-1} + a_{m-1} b_{m-1}} \\
+  & = & (S_{m-1} + a_{m-1} b_{m-1}(1+e_{m-1})+\eta_{m-1})(1+w_{m-2})+z_{m-2}
+\end{eqnarray*}
+
+It is easy to prove by induction on $m$ that
+\begin{eqnarray*}
+  S_m & = & a_0b_0(1+e_0)\prod_{i=0}^{i<m-1}(1+w_i)+\eta_0 \prod_{i=0}^{i<m-1}(1+w_i)+\\
+  & & \sum_{k=1}^{k<m} a_k b_k (1+e_k)\prod_{i=k-1}^{i<m-1}(1+w_i)+
+  \sum_{k=0}^{k<m} \eta_k \prod_{i=k-1}^{i<m-1}(1+w_i) +\\
+  & & \sum_{k=0}^{k<m-1}z_k \prod_{i=k+1}^{i<m-1}(1+w_i).
+\end{eqnarray*}
+$z_{m-2}=0$ always for G.U. \ldots Thus \ldots $z_{m-1}\eta_m = 0$, so the
+contribution from underflow is at most $n$ times the bound for $\eta_{m-1}$
+and $z_{m-2}$.  Approximating $(1+e_k)\prod_{i=r}^{i<n-1}(1+w_i)$ by
+$1+(n-r+2)\epsilon$ we get the result.  Note that the $\sum_{i=}^{i<n} a_i b_i(1+E_i)$
+term is the same term as would have been given by round-off alone.  Q.E.D.
+
+~.~.~.
+
+\subsection*{Lemma 0.4: Error Analysis of Solving a Triangular System}
+
+Consider the lower triangular system $Ly=b$ where $L$ does not necessarily
+have ones on the diagonal.  (The analyses when only ones are on the
+diagonal or L is upper triangular are similar.)  Then in solving
+$Ly=b$ using the program in Appendix 0.2 (where inner products are
+accumulated with roundoff error $\epsilon_\mathrm{s}$ and
+smallest number $\mu_\mathrm{s}$ we obtain $\hat{y}=y+\delta y$ which
+actually satisfies $(L+\delta L)\hat{y}= b + \delta b$, where
+\begin{equation}\tag{0.80}
+  |\delta L_{ij}| \le |L_{ij}| \cdot \left\lbrace
+  \begin{array}{lll}
+    \epsilon & \mathrm{if} & i=j=0 \\
+    i\epsilon_\mathrm{s} & \mathrm{if} & i>j=0 \\
+    (i+1-j)\epsilon_\mathrm{s} & \mathrm{if} & i>j>0 \\
+    \epsilon+\epsilon_\mathrm{s} & \mathrm{if} & i=j>0 
+  \end{array}\right.
+\end{equation}
+independent of underflow.
+
+In the absence of underflow
+\begin{equation}\tag{0.81}
+  \delta b = 0~.
+\end{equation}
+Using G.U.
+\begin{equation}\tag{0.82}
+  \begin{array}{lcl@{~}ll}
+    \mathrm{if} & i=0 & |\delta b_i |~ \le &\lambda\epsilon|L_{00}|\mathit{UN}(y_0)
+    & \mathrm{if}~y_0~\mathrm{underflows} \\
+    \mathrm{if} & i>0 & |\delta b_i |~ \le &i \cdot \lambda_\mathrm{s}\epsilon_\mathrm{s}~ + & \mathrm{intermediate~underflows} \\
+    & & & \lambda \epsilon |L_{00}| \mathit{UN}(y_0) 
+    & \mathrm{if}~y_0~\mathrm{underflows}
+  \end{array} ~.
+\end{equation}
+If $L_{ii}$ is known to be 1, the only changes in the above bounds
+(besides substituting 1 for $L_{ii}$) are that $E_{00} = \delta b_0 = 0$
+independent of underflow.
+
+\paragraph*{Proof:}  We apply Proposition 2 to the program in Appendix 2.
+We have two cases.
+
+\noindent Case $i=0$: In this case,
+\begin{equation}\tag{0.84}
+  y_0 = \float{b_0/L_{00}} = \frac{b_0}{L_{00}(1+E_{00})}+\nu_0
+\end{equation}
+so
+\begin{equation}\tag{0.85}
+  L_{00}(1+E_{00})y_0 = b_0 + \nu_0 L_{00}(1+E_{00})\mathit{UN}(y_0)
+\end{equation}
+where
+\begin{equation}\tag{0.86}
+  |E_{00}|\le \epsilon \quad \mathrm{and} \quad |\nu_0|\le \lambda ~\mathrm{or}~\lambda/\epsilon
+\end{equation}
+
+\noindent Case $i>0$: Now
+\begin{equation}\tag{0.87}
+\begin{array}{lcl}
+  y_i & = & \float{(b_i - \sum_{j=0}^{j<i-1}L_{ij}y_j)/L_{ii}}\\
+  & = & [(1+e_i)(b_i - \sum_{j=0}^{j<i-1}L_{ij}(1+E_{ij})y_j-\rho_i)+\sigma_i]/
+  (L_{ii}(1+\zeta_i))+\nu_i
+  \end{array}
+\end{equation}
+where
+\begin{equation}\tag{0.88a}
+  |E_{ij}|\le\left\lbrace \begin{array}{ll}(i-1)\epsilon_\mathrm{s} & \mathrm{if}~~j=0\\
+    (i+1-j)\epsilon_\mathrm{s} & \mathrm{if}~~j>0 \end{array}\right.
+\end{equation}
+\begin{equation}\tag{0.88b}
+|e_i|\le \epsilon_\mathrm{s}
+\end{equation}
+\begin{equation}\tag{0.88c}
+|\zeta_i|\le \epsilon
+\end{equation}
+and
+\begin{equation}\tag{0.89a}
+|\rho_i|\le i\lambda_\mathrm{s}\epsilon_\mathrm{s}\qquad\mathrm{using~G.U.}
+\end{equation}
+\begin{equation}\tag{0.89b}
+|\sigma_i|\le \lambda_\mathrm{s}\epsilon_\mathrm{s}\qquad\mathrm{using~G.U.}
+\end{equation}
+\begin{equation}\tag{0.89c}
+|\nu_i|\le \lambda\epsilon\qquad\mathrm{using~G.U.}
+\end{equation}
+
+In the absence of underflow, $\rho_i=\sigma_i=\nu_i=0$.
+Rearranging equation (0.87), we obtain
+\begin{equation}\tag{0.90}
+  L_{ii}(1+\zeta_i)y_i = (1+e_i)(b_i-\sum_{j=0}^{j<i-1}L_{ij}(1+E_{ij})y_j - \rho_i)
+  + \sigma_i + \nu_iL_{ii}(1+\zeta_i)
+\end{equation}
+or 
+\begin{equation}\tag{0.91}
+  b_i = \sum_{j=0}^{j<i-1}L_{ij}(1+E_{ij})y_j+L_{ii}\left(\frac{1+\zeta_i}{1+e_i}\right)y_i
+  + \rho_i - \frac{\sigma_i}{1+e_i} - \nu_i L_{ii} \left(\frac{1+\zeta_i}{1+e_i}\right)~~.
+\end{equation}
+Using the bounds in (0.88) and (0.89) in (0.91), we obtain the bounds
+in the statement of the lemma.  Q.E.D.
+
+~.~.~.
+
+\subsection*{Appendix 0.2: Program Listing of Solution of Both Triangular Systems Following
+  Triangular Decomposition}
+
+\begin{tabbing}
+array B[N] of real;\\
+array X[N] of real;\\
+array Y[N] of real;\\
+/* Again, B,X, and Y could occupy the same locations in memory. Arrays\\
+A,L and U are defined above.  As in Appendix 1, precisions of all computations\\
+except entries of B, X, and Y are shown. */\\
+\\
+/* Forward Substitution: $LY=B$ */\\
+\\
+for (i=0; i<N; i++)\\
+~~~~~\=begin\\
+\>SUM=0;\\
+\>for (k=i; k<i-1; k++) do SUM=SUM+L[i,k]*Y[k]; /* precision $(\epsilon_\mathrm{s},\mu_\mathrm{s})$ */\\
+\>Y[i]=B[i]-SUM; /* precision $(\epsilon_\mathrm{s},\mu_\mathrm{s})$\\
+\>/* \=Editor's note: After Cholesky factorization, where L[i,i] is not 1, must\\
+\>\>also divide by L[i,i] with precision $(\epsilon,\mu)$ */\\
+\\
+/* Back Substitution: UX=Y */\\
+for (i=N-1; i>=0; i--) do\\
+\>begin\\
+\>SUM=0;\\
+\>for (k=i+1; i<N; k++) do SUM = SUM + U[i,k]*X[k]; /* precision $(\epsilon_\mathrm{s},\mu_\mathrm{s})$ */\\
+\>X[i]=(Y[i]-SUM)/U[i,i]; /* precision  $(\epsilon_\mathrm{s},\mu_\mathrm{s})$ */\\
+/* Editor's note: in the line above, the division is done at precision $(\epsilon,\mu)$ */\\
+\end{tabbing}
 \end{document}
