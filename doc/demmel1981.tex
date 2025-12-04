@@ -1,0 +1,278 @@
+\documentclass[a4paper]{article}
+
+%% Language and font encodings
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+
+%% Sets page size and margins
+\usepackage[top=3cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+%% Useful packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+
+\title{Effects of Underflow on Solving Linear Systems (Excerpt)}
+\author{James Demmel\\ Computer Science Division \\ Electronic Research Laboratory \\
+  U.C. Berkeley}
+\date{May 1981}
+
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  \url{https://www2.eecs.berkeley.edu/Pubs/TechRpts/1983/CSD-83-128.pdf}\newline
+  \emph{This is an excerpt, prepared by Andrew W. Appel in 2025, of some parts of the
+  tech. report relevant to accuracy bounds for forward substitution and back substitution.}
+  \newline
+  In this paper we examine the effects of underflow on solving systems of linear equations using Gaussian Elimination.  Our goal is to decide if reliable software for solving linear
+  systems in the presence of underflow can be written at reasonable cost.
+  We constrast the utilities of gradual underflow and ``store zero'',
+  and show that only by using gradual underflow can we achieve reliability easily.
+  \end{abstract}
+
+\subsection*{1. Introduction}
+
+~.~.~.
+
+\subsection*{2. Examples}
+
+~.~.~.
+
+Let $\epsilon$ be the rounding error of the arithmetic, and $\lambda$ be the
+underflow threshold.  Suppose, for example, a binary floating point number is
+represented as $f\cdot 2^e$ where $f$ lies between 1 and 2 with an $n$ bit fraction,
+and $e$ is an integer exponent in the range $e_\mathrm{min} \le e \le e_\mathrm{max}$.
+Then $\epsilon=2^{-n}$ (the difference between 1 and the next largest number).
+The underflow threshold is $\lambda=2^{e_\mathrm{min}}$; this is the smallest \ldots
+normalized number for G.U. \ldots Denormalized numbers lie between 0 and $2^{e_\mathrm{min}}$
+in G.U. arithmetic for which the smallest nonzero number is thus $\mu = \epsilon \lambda$.
+We will give a more precise model of rounding and underflow errors in the next section.
+
+\subsection*{3. Error Analysis}
+
+~.~.~.
+
+\newcommand\fl[1]{\ensuremath{\mathit{fl}(#1)}}
+
+Let $\blacksquare$ be one of the operations $(+,-,\ast,/)$ and let
+$\fl{a \blacksquare b}$ denote the floating point result of the indicated
+computation. \ldots To take underflow into account, we write ([Kahan and Palmer, 1979])
+\begin{equation}\tag{11}
+\fl{a \blacksquare b} = (a \blacksquare b)(1 + e)+\eta\qquad
+\mathrm{unless}~a\blacksquare b ~\mathrm{overflows.}
+\end{equation}
+In the case of G.U. we have the following constraints on $e$ and $\eta$:
+\begin{enumerate}
+\item[(1)] $|e|\le \epsilon ~\mathrm{and}~ |\eta|\le \lambda \epsilon$,
+\item[(2)] $\eta \times e = 0$
+\item[(3)] $\eta=0$ if $\blacksquare$ is either addition or subtraction.
+\end{enumerate}
+
+~.~.~.
+
+We define the function $\mathit{UN}(x)$ to be
+\[
+UN(x)=\left\lbrace\begin{array}{ll}1 & \mathrm{if}~x~\mathrm{underflows}~(x<\lambda)\\
+    0 & \mathrm{if~it~does~not}\end{array}\right.
+  \]
+
+We assume no overflow occurs.
+
+We ignore terms which are $O(\epsilon^2)$ or $O(\epsilon\mu)$.  This allows us
+to make the following substitutions when convenient:
+\begin{itemize}
+\item[] Replace $1/(1+e_1)$ by $1+e_2$,
+\item[] Replace $(1+e_1)^j$ by $1 + je_2$,
+\item[] Replace $\prod_{j=1}^m(1+e_j)/\prod_{i=1}^n (1+e'_i)$ by $1+(n+m)e$
+\item[] Replace $\eta_1 \ast (1+e_1)^j$ by $\eta_2$.
+\end{itemize}
+
+By replacing every appearance of an original datum $a$ by $1. \cdot a$,
+and using the above formula for error in multiplication, we can take into
+account effects of rounding and underflow errors in the original data.\footnote{Editors note: Ugh.  It's provable that $1. \cdot a=a$ exactly, so this notational trick does not
+appeal to me.}
+
+\newcommand{\norm}[1]{\ensuremath \lVert #1 \rVert}
+$\norm{A}$ and $\norm{b}$ denote the norms of matrix $A$ and vector $b$.
+$\norm{A}_\infty$ denotes the infinity norm of $A$, and similarly for
+$\norm{b}_\infty$.  $k(A)=\norm{A}_\infty\norm{A^{-1}}_\infty$ denotes the condition number
+of the matrix $A$.
+
+$|A|~(|b|)$ denotes the matrix (vector) whose entries are the absolute values
+  of the corresponding entries in $A$ ($b$).  Inequalities like $|A|>|B|$
+  $(|a|>|b|)$ are meant componentwise.
+
+\subsection*{3.2 Approach}
+
+As stated in the introduction, we use backward error analysis.  Thus, when trying
+to solve
+\begin{equation}\tag{12}
+  Ax = b
+\end{equation}
+for $x$ we obtain an approximation $\hat{x}=x~\delta x$ which satisfies the
+perturbed problem
+\begin{equation}\tag{13}
+  (A+\delta A)\hat{x}=b+\delta b~.
+\end{equation}
+The task of backwards error analysis is to obtain bounds on $\delta A$ and $\delta b$.
+These bounds can be used in turn to bound the residual $r$:
+\begin{equation}\tag{14}
+  r = A \hat{x}-b = -\delta A \hat{x} + \delta b
+\end{equation}
+
+~.~.~.
+
+
+\subsection*{3.3 Error Analysis Details}
+
+~.~.~.
+
+\paragraph*{Proposition 2.}~
+
+\newcommand\float[1]{\ensuremath \mathit{float}(#1)}
+To analyze solving a triangular system, we need another expression for the error in
+computing an inner product:
+\begin{equation}\tag{31}
+  \float{\sum_{i=1}^n a_i b_i} = \sum_{i=1}^n a_i b_i (1 + E_i) + \eta ~.
+\end{equation}
+In the absence of underflow we have
+\begin{equation}\tag{32}
+\begin{array}{l}
+  |E_1| \le n \epsilon \\
+  |E_j| \le (n+2-j)\epsilon \quad \mathrm{if}\quad j>1~.
+\end{array}
+\end{equation}
+
+In the case of G.U.\footnote{Editor's note: G.U. = Gradual Underflow, that is,
+a floating-point format that supports subnormal numbers.  The technical report also covers the case of ``S.Z.'' or ``store zero'', which we omit here in all lemmas and theorems.}
+we have the same bounds on the $|E_i|$, and
+\begin{equation}\tag{34}
+|\eta| \le n \lambda \epsilon
+\end{equation}
+
+\paragraph*{Proof.} Letting
+\begin{eqnarray*}
+  S_m & = & \fl{\sum_{i=1}^m a_i b_i} \\
+  & = & \fl{S_{m-1} + a_m b_m} \\
+  & = & (S_{m-1} + a_m b_m(1+e_m)+\eta_m)(1+w_{m-1})+z_{m-1}
+\end{eqnarray*}
+It is easy to prove by induction on $m$ that
+\begin{eqnarray*}
+  S_m & = & a_1b_1(1+e_1)\prod_{i=1}^{m-1}(1+w_i)+\eta_1 \prod_{i=1}^{m-1}(1+w_i)+\\
+  & & \sum_{k=2}^m a_k b_k (1+e_k)\prod_{i=k-1}^{m-1}(1+w_i)+
+  \sum_{k=2}^m \eta_k \prod_{i=k-1}^{m-1}(1+w_i) +\\
+  & & \sum_{k=1}^{m-1}z_k \prod_{i=k+1}^{m-1}(1+w_i).
+\end{eqnarray*}
+$z_{m-1}=0$ always for G.U. \ldots Thus \ldots $z_{m-1}\eta_m = 0$, so the
+contribution from underflow is at most $n$ times the bound for $\eta_m$
+and $z_{m-1}$.  Approximating $(1+e_k)\prod_{i=r}^{n-1}(1+w_i)$ by
+$1+(n-r+1)\epsilon$ we get the result.  Note that the $\sum_{i=1}^n a_i b_i(1+E_i)$
+term is the same term as would have been given by round-off alone.  Q.E.D.
+
+~.~.~.
+
+\subsection*{Lemma 4: Error Analysis of Solving a Triangular System}
+
+Consider the lower triangular system $Ly=b$ where $L$ does not necessarily
+have ones on the diagonal.  (The analyses when only ones are on the
+diagonal or L is upper triangular are similar.)  Then in solving
+$Ly=b$ using the program in Appendix 2 (where inner products are
+accumulated with roundoff error $\epsilon_\mathrm{s}$ and
+smallest number $\mu_\mathrm{s}$ we obtain $\hat{y}=y+\delta y$ which
+actually satisfies $(L+\delta L)\hat{y}= b + \delta b$, where
+\begin{equation}\tag{80}
+  |\delta L_{ij}| \le |L_{ij}| \cdot \left\lbrace
+  \begin{array}{lll}
+    \epsilon & \mathrm{if} & i=j=1 \\
+    (i-1)\epsilon_\mathrm{s} & \mathrm{if} & i>j=1 \\
+    (i+1-j)\epsilon_\mathrm{s} & \mathrm{if} & i>j>1 \\
+    \epsilon+\epsilon_\mathrm{s} & \mathrm{if} & i=j>1 
+  \end{array}\right.
+\end{equation}
+independent of underflow.
+
+In the absence of underflow
+\begin{equation}\tag{81}
+  \delta b = 0~.
+\end{equation}
+Using G.U.
+\begin{equation}\tag{82}
+  \begin{array}{lcl@{~}ll}
+    \mathrm{if} & i=1 & |\delta b_i |~ \le &\lambda\epsilon|L_{11}|\mathit{UN}(y_1)
+    & \mathrm{if}~y_1~\mathrm{underflows} \\
+    \mathrm{if} & i>1 & |\delta b_i |~ \le &i \cdot \lambda_\mathrm{s}\epsilon_\mathrm{s}~ + & \mathrm{intermediate~underflows} \\
+    & & & \lambda \epsilon |L_{ii}| \mathit{UN}(y_i) 
+    & \mathrm{if}~y_i~\mathrm{underflows}
+  \end{array} ~.
+\end{equation}
+If $L_{ii}$ is known to be 1, the only changes in the above bounds
+(besides substituting 1 for $L_{ii}$) are that $E_{11} = \delta b_1 = 0$
+independent of underflow.
+
+\paragraph*{Proof:}  We apply Proposition 2 to the program in Appendix 2.
+We have two cases.
+
+\noindent Case $i=1$: In this case,
+\begin{equation}\tag{84}
+  y_1 = \float{b_1/L_{11}} = \frac{b_1}{L_{11}(1+E_{11})}+\nu_1
+\end{equation}
+so
+\begin{equation}\tag{85}
+  L_{11}(1+E_{11})y_1 = b_1 + \nu_1 L_{11}(1+E_{11})\mathit{UN}(y_1)
+\end{equation}
+where
+\begin{equation}\tag{86}
+  |E_{11}|\le \epsilon \quad \mathrm{and} \quad |\nu_1|\le \lambda ~\mathrm{or}~\lambda/\epsilon
+\end{equation}
+
+\noindent Case $i>1$: Now
+\begin{equation}\tag{87}
+\begin{array}{lcl}
+  y_i & = & \float{(b_i - \sum_{j=1}^{i-1}L_{ij}y_j)/L_{ii}}\\
+  & = & [(1+e_i)(b_i - \sum_{j=1}^{i-1}L_{ij}(1+E_{ij})y_j-\rho_i)+\sigma_i]/
+  (L_{ii}(1+\zeta_i))+\nu_i
+  \end{array}
+\end{equation}
+where
+\begin{equation}\tag{88a}
+  |E_{ij}|\le\left\lbrace \begin{array}{ll}(i-1)\epsilon_\mathrm{s} & \mathrm{if}~~j=1\\
+    (i+1-j)\epsilon_\mathrm{s} & \mathrm{if}~~j>1 \end{array}\right.
+\end{equation}
+\begin{equation}\tag{88b}
+|e_i|\le \epsilon_\mathrm{s}
+\end{equation}
+\begin{equation}\tag{88c}
+|\zeta_i|\le \epsilon
+\end{equation}
+and
+\begin{equation}\tag{89a}
+|\rho_i|\le (i-1)\lambda_\mathrm{s}\epsilon_\mathrm{s}\qquad\mathrm{using~G.U.}
+\end{equation}
+\begin{equation}\tag{89b}
+|\sigma_i|\le \lambda_\mathrm{s}\epsilon_\mathrm{s}\qquad\mathrm{using~G.U.}
+\end{equation}
+\begin{equation}\tag{89c}
+|\nu_i|\le \lambda\epsilon\qquad\mathrm{using~G.U.}
+\end{equation}
+
+In the absence of underflow, $\rho_i=\sigma_i=\nu_i=0$.
+Rearranging equation (87), we obtain
+\begin{equation}\tag{90}
+  L_{ii}(1+\zeta_i)y_i = (1+e_i)(b_i-\sum_{j=1}^{i-1}L_{ij}(1+E_{ij})y_j - \rho_i)
+  + \sigma_i + \nu_iL_{ii}(1+\zeta_i)
+\end{equation}
+or
+\begin{equation}\tag{91}
+  b_i = \sum_{j=1}^{i-1}L_{ij}(1+E_{ij})y_j+L_{ii}\left(\frac{1+\zeta_i}{1+e_i}\right)y_i
+  + \rho_i - \frac{\sigma_i}{1+e_i} - \nu_i L_{ii} \left(\frac{1+\zeta_i}{1+e_i}\right)~~.
+\end{equation}
+Using the bounds in (88) and (89) in (91), we obtain the bounds
+in the statement of the lemma.  Q.E.D.
+
+\end{document}
