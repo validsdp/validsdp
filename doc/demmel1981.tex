@@ -307,61 +307,28 @@ for i=N downto 1 do\\
 /* Editor's note: in the line above, the division is done at precision $(\epsilon,\mu)$ */\\
 \end{tabbing}
 
-\section*{All over again, with zero-based indexing!}
+\newpage
 
-\emph{Editor's note: This was not in the original.}
+\section*{Application to libValidSDP}
 
-\subsection*{0.3.3 Error Analysis Details}
+That concludes the excerpt of Demmel's 1981 technical report.  Now we
+explain what's proved in libValidSDP.
 
-~.~.~.
+Instead of Demmel's Proposition 2, we will be using
+the following lemma:
 
-\paragraph*{Proposition 0.2.}~
+\paragraph*{Rump/Jeannerod Lemma 2.1:} Error analysis of $(c-\sum a_i b_i)/b_k$.
+  (libvalidsdp.cholesky.lemma\_2\_1)
+  \newline
+  Let $\hat{y} = \fl{(c-\sum_{0\le i<k} a_i b_i)/b_k}$ computed by repeated subtraction left to right.  Assume $b_k\not= 0$. Then
+\begin{equation}\tag{lemma2.1}
+  |b_k \hat{y} - (c-\sum_{0 \le i<k}a_i b_i)| < (k+1)\epsilon |b_k\hat{y}|\sum_{0\le i < k}|a_ib_i|
+  + (1+(k+1)\epsilon)(k+1+|b_k|)\lambda\epsilon.
+  \end{equation}
+  
+\subsection*{Error Analysis of Solving a Triangular System}
 
-To analyze solving a triangular system, we need another expression for the error in
-computing an inner product:
-\begin{equation}\tag{0.31}
-  \float{\sum_{i=0}^{i<n} a_i b_i} = \sum_{i=0}^{i<n} a_i b_i (1 + E_i) + \eta ~.
-\end{equation}
-In the absence of underflow we have
-\begin{equation}\tag{0.32}
-\begin{array}{l}
-  |E_1| \le n \epsilon \\
-  |E_j| \le (n+1-j)\epsilon \quad \mathrm{if}\quad j>0~.
-\end{array}
-\end{equation}
-
-In the case of G.U.\footnote{Editor's note: G.U. = Gradual Underflow, that is,
-a floating-point format that supports subnormal numbers.  The technical report also covers the case of ``S.Z.'' or ``store zero'', which we omit here in all lemmas and theorems.}
-we have the same bounds on the $|E_i|$, and
-\begin{equation}\tag{0.34}
-|\eta| \le n \lambda \epsilon
-\end{equation}
-
-\paragraph*{Proof.} Letting
-\begin{eqnarray*}
-  S_m & = & \fl{\sum_{i=0}^{i<m} a_i b_i} \\
-  & = & \fl{S_{m-1} + a_{m-1} b_{m-1}} \\
-  & = & (S_{m-1} + a_{m-1} b_{m-1}(1+e_{m-1})+\eta_{m-1})(1+w_{m-2})+z_{m-2}
-\end{eqnarray*}
-
-It is easy to prove by induction on $m$ that
-\begin{eqnarray*}
-  S_m & = & a_0b_0(1+e_0)\prod_{i=0}^{i<m-1}(1+w_i)+\eta_0 \prod_{i=0}^{i<m-1}(1+w_i)+\\
-  & & \sum_{k=1}^{k<m} a_k b_k (1+e_k)\prod_{i=k-1}^{i<m-1}(1+w_i)+
-  \sum_{k=0}^{k<m} \eta_k \prod_{i=k-1}^{i<m-1}(1+w_i) +\\
-  & & \sum_{k=0}^{k<m-1}z_k \prod_{i=k+1}^{i<m-1}(1+w_i).
-\end{eqnarray*}
-$z_{m-2}=0$ always for G.U. \ldots Thus \ldots $z_{m-1}\eta_m = 0$, so the
-contribution from underflow is at most $n$ times the bound for $\eta_{m-1}$
-and $z_{m-2}$.  Approximating $(1+e_k)\prod_{i=r}^{i<n-1}(1+w_i)$ by
-$1+(n-r+2)\epsilon$ we get the result.  Note that the $\sum_{i=}^{i<n} a_i b_i(1+E_i)$
-term is the same term as would have been given by round-off alone.  Q.E.D.
-
-~.~.~.
-
-\subsection*{Lemma 0.4: Error Analysis of Solving a Triangular System}
-
-Consider the lower triangular system $Ly=b$ where $L$ does not necessarily
+\paragraph*{Demmel Lemma 4, zero-based indexing.} Consider the lower triangular system $Ly=b$ where $L$ does not necessarily
 have ones on the diagonal.  (The analyses when only ones are on the
 diagonal or L is upper triangular are similar.)  Then in solving
 $Ly=b$ using the program in Appendix 0.2 (where inner products are
@@ -379,85 +346,133 @@ actually satisfies $(L+\delta L)\hat{y}= b + \delta b$, where
 \end{equation}
 independent of underflow.
 
-In the absence of underflow
-\begin{equation}\tag{0.81}
-  \delta b = 0~.
+However, in all these cases we will prove a
+weaker bound because that allows us to
+re-use the Rump/Jeannerod Lemma 2.1 for $c - \sum x_i y_i$.
+
+\paragraph*{Theorem Demmel\_L4\_adapted:} 
+\begin{equation}\tag{demmel\_lemma\_4}
+  |\delta L_{ij}| \le |L_{ij}|n\epsilon\qquad\mathrm{and}
 \end{equation}
-Using G.U.
-\begin{equation}\tag{0.82}
+\begin{equation}
   \begin{array}{lcl@{~}ll}
     \mathrm{if} & i=0 & |\delta b_i |~ \le &\lambda\epsilon|L_{00}|\mathit{UN}(y_0)
     & \mathrm{if}~y_0~\mathrm{underflows} \\
-    \mathrm{if} & i>0 & |\delta b_i |~ \le &i \cdot \lambda_\mathrm{s}\epsilon_\mathrm{s}~ + & \mathrm{intermediate~underflows} \\
-    & & & \lambda \epsilon |L_{00}| \mathit{UN}(y_0) 
-    & \mathrm{if}~y_0~\mathrm{underflows}
+    \mathrm{if} & i>0 & |\delta b_i |~ \le &(1+(i+1)\epsilon)(i+1) \cdot \lambda_\mathrm{s}\epsilon_\mathrm{s}~ + & \mathrm{intermediate~underflows} \\
+    & & & (1+(i+1)\epsilon)\lambda \epsilon |L_{ii}| \mathit{UN}(y_0) 
+    & \mathrm{if}~y_i~\mathrm{underflows}
   \end{array} ~.
 \end{equation}
-If $L_{ii}$ is known to be 1, the only changes in the above bounds
-(besides substituting 1 for $L_{ii}$) are that $E_{00} = \delta b_0 = 0$
-independent of underflow.
+\noindent The factor $(1+(i+1)\epsilon)$ was omitted from Demmel's original but is required for correctness. 
 
-\paragraph*{Proof:}  We apply Proposition 2 to the program in Appendix 2.
-We have two cases.
+\paragraph*{Proof.}  From libValidSDP lemma\_2\_1\_aux, by a derivation of several lines.  Q.E.D.
 
-\noindent Case $i=0$: In this case,
-\begin{equation}\tag{0.84}
-  y_0 = \float{b_0/L_{00}} = \frac{b_0}{L_{00}(1+E_{00})}+\nu_0
-\end{equation}
-so
-\begin{equation}\tag{0.85}
-  L_{00}(1+E_{00})y_0 = b_0 + \nu_0 L_{00}(1+E_{00})\mathit{UN}(y_0)
-\end{equation}
-where
-\begin{equation}\tag{0.86}
-  |E_{00}|\le \epsilon \quad \mathrm{and} \quad |\nu_0|\le \lambda ~\mathrm{or}~\lambda/\epsilon
+\subsection*{Solving a linear system by Cholesky+Substitution}
+
+Let $\hat{x}$ be the result of solving $Ax=b$ by Cholesky decomposition $A=R^T R$ followed by forward substitution $R^Ty=b$ then back substitution $Rx=y$.
+
+\paragraph*{Lemma th\_2\_3\_aux3: Accuracy of Cholesky decomposition.}
+Suppose $A$ is an $n\times n$ symmetric positive definite floating-point matrix,
+with $(n+1)\epsilon < 1$.
+Let $\hat{R}$ be the result of floating-point Cholesky decomposition (inner-product method)
+of  $A$ into $\hat{R}^T \hat{R}$.
+Let $\delta A = A - \hat{R}^T \hat{R}$.
+Let the vector $R_j$ be the $j$th column of $R$.
+Let $a_\mathrm{max}$ be the maximum diagonal element of $|A|$.
+Then
+\begin{equation}\tag{2.3aux3}
+  |\delta A _{ij}| < (\mathrm{min}(i,j)+2)\epsilon \norm{R_i}_2 \norm{R_j}_2
+  + 4 \lambda\epsilon (n+1+a_\mathrm{max}).
 \end{equation}
 
-\noindent Case $i>0$: Now
-\begin{equation}\tag{0.87}
-\begin{array}{lcl}
-  y_i & = & \float{(b_i - \sum_{j=0}^{j<i-1}L_{ij}y_j)/L_{ii}}\\
-  & = & [(1+e_i)(b_i - \sum_{j=0}^{j<i-1}L_{ij}(1+E_{ij})y_j-\rho_i)+\sigma_i]/
-  (L_{ii}(1+\zeta_i))+\nu_i
+\paragraph*{Proof.} See Rump+Jeannerod, or see libValidSDP.  Q.E.D.
+
+\paragraph*{Remark.}  Let $A$ and $\hat{R}$ be as above.
+Then
+\begin{equation}\tag{2.3aux1}
+  \norm{\hat{R}_j}_2 \le \sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)}.
+  \end{equation}
+
+\paragraph{Proof.} LibValidSDP   th\_2\_3\_aux1.
+
+
+\paragraph{Corollary.} Combining (2.3aux1) and (2.3aux2), we have,
+\begin{equation}\tag{ch\_back\_err}
+\begin{array}{rl}
+|\delta A_{ij}| & <
+(\mathrm{min}(i,j)+2)\epsilon
+\sqrt{(A_{ii}+2i\lambda\epsilon)/(1-(i+2)\epsilon)}
+\sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)}
++ 4 \lambda\epsilon (n+1+a_\mathrm{max}) \\
+& \le
+(n+1)\epsilon
+\sqrt{(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)} \\
+& \qquad \cdot
+\sqrt{(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)}
++ 4 \lambda\epsilon (n+1+a_\mathrm{max}) \\
+& =
+(n+1)\epsilon
+(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)
++ 4 \lambda\epsilon (n+1+a_\mathrm{max}) \\
+\end{array}
+\end{equation}
+
+\paragraph*{Lemma.} We obtain bounds on $\delta R^T \hat{R}$ (et cetera) by
+combining (2.3aux1) and (demmel\_lemma\_4):
+\begin{equation}\tag{csolve\_back\_err\_aux1}
+\begin{array}{rl}
+|(\delta R^T\hat{R})_{ij}| & \le (|\delta R|^T|\hat{R}|)_{ij}| \\
+& \le  \sum_k (k+1)\epsilon |\hat{R}_{ki}|\cdot|\hat{R}_{kj}| \qquad \mathrm{(by~Lemma~0.4)}\\
+& \le n\epsilon \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2 \qquad \mathrm{(by~Cauchy-Schwartz)}\\
+& \le n\epsilon \sqrt{(A_{ii}+2i\lambda\epsilon)/(1-(i+2)\epsilon)} \sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)} \qquad\mathrm{(2.3aux1)}\\
+& \le n\epsilon \sqrt{(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)} \sqrt{(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)} \\
+& = n\epsilon (a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon) \\
+\end{array}
+\end{equation}
+
+\paragraph{Lemma.} Bounds on $\delta R^T \delta R$ as follows:
+\begin{equation}\tag{csolve\_back\_err\_aux2}
+  \begin{array}{rl}
+    |(\delta R ^T \delta R)_{ij}| & \le (|\delta R^T| \cdot |\delta R|)_{ij} \\
+    & \le \sum_k |\delta R^T|_{ik} |\delta R|_{kj} \\
+    & = \sum_k |delta R|_{ki} |\delta R|_{kj} \\
+    & \le \sum_k (k+1)^2\epsilon^2 |\hat{R}_{ki}|\cdot|\hat{R}_{kj}| \\
+    & \le n^2\epsilon^2 \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2 \\
+    & \le n^2\epsilon^2 (a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon).
   \end{array}
 \end{equation}
-where
-\begin{equation}\tag{0.88a}
-  |E_{ij}|\le\left\lbrace \begin{array}{ll}(i-1)\epsilon_\mathrm{s} & \mathrm{if}~~j=0\\
-    (i+1-j)\epsilon_\mathrm{s} & \mathrm{if}~~j>0 \end{array}\right.
-\end{equation}
-\begin{equation}\tag{0.88b}
-|e_i|\le \epsilon_\mathrm{s}
-\end{equation}
-\begin{equation}\tag{0.88c}
-|\zeta_i|\le \epsilon
-\end{equation}
-and
-\begin{equation}\tag{0.89a}
-|\rho_i|\le i\lambda_\mathrm{s}\epsilon_\mathrm{s}\qquad\mathrm{using~G.U.}
-\end{equation}
-\begin{equation}\tag{0.89b}
-|\sigma_i|\le \lambda_\mathrm{s}\epsilon_\mathrm{s}\qquad\mathrm{using~G.U.}
-\end{equation}
-\begin{equation}\tag{0.89c}
-|\nu_i|\le \lambda\epsilon\qquad\mathrm{using~G.U.}
+
+
+\paragraph*{Theorem: Cholesky factor + substitution.}
+Suppose $A$ is an $n\times n$ symmetric positive definite floating-point matrix
+with minimum eigenvalue $>\sqrt{\lambda}$, with $(n+1)\epsilon < 1$.
+Suppose $b$ is a floating-point vector of length $n$.
+Suppose $\hat{x}$ is the result of floating-point Cholesky factorization of
+$A$ into $\hat{R}^T\hat{R}$ followed by forward substitution finding $\hat{y}$ such
+that $\hat{R}^T \hat{y}=b$ and then $\hat{R}\hat{x}=\hat{y}$.
+Then
+\begin{equation}\tag{xxx}
+  \mathrm{fill~this~in~\ldots}
 \end{equation}
 
-In the absence of underflow, $\rho_i=\sigma_i=\nu_i=0$.
-Rearranging equation (0.87), we obtain
-\begin{equation}\tag{0.90}
-  L_{ii}(1+\zeta_i)y_i = (1+e_i)(b_i-\sum_{j=0}^{j<i-1}L_{ij}(1+E_{ij})y_j - \rho_i)
-  + \sigma_i + \nu_iL_{ii}(1+\zeta_i)
+\paragraph*{Proof.}
+If it were not for the underflow terms $\delta b$ and $\delta y$, we would have
+\begin{equation}\tag{csolve\_back\_err}
+  \begin{array}{rl}
+    b &= (\hat{R}^T+\delta R^T)\hat{y}\\
+    & = (\hat{R}^T+\delta R^T)(\hat{R}+\delta R)\hat{x} \\
+    & = (\hat{R}^T\hat{R}+\delta R^T\hat{R} +\hat{R}^T\delta R  +\delta R^T \delta R)\hat{x} \\
+    & = (A + \delta A +\delta R^T\hat{R} +\hat{R}^T\delta R  +\delta R^T \delta R)\hat{x} \\
+    & = A\hat{x} + (\delta A +\delta R^T\hat{R} +\hat{R}^T\delta R  +\delta R^T \delta R)\hat{x}. \\
+  \end{array}
 \end{equation}
-or 
-\begin{equation}\tag{0.91}
-  b_i = \sum_{j=0}^{j<i-1}L_{ij}(1+E_{ij})y_j+L_{ii}\left(\frac{1+\zeta_i}{1+e_i}\right)y_i
-  + \rho_i - \frac{\sigma_i}{1+e_i} - \nu_i L_{ii} \left(\frac{1+\zeta_i}{1+e_i}\right)~~.
-\end{equation}
-Using the bounds in (0.88) and (0.89) in (0.91), we obtain the bounds
-in the statement of the lemma.  Q.E.D.
 
-~.~.~.
+From (2.3aux3) we have
+$  |\delta A _{ij}| < (\mathrm{min}(i,j)+2)\epsilon \norm{R_i}_2 \norm{R_j}_2
++ 4 \lambda\epsilon (n+1+a_\mathrm{max})$.
+
+From 
+
 
 \subsection*{Appendix 0.2: Program Listing of Solution of Both Triangular Systems Following
   Triangular Decomposition}
