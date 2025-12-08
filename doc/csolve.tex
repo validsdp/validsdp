@@ -24,9 +24,10 @@ with advice from David Bindel}
 \maketitle
 
 \begin{abstract}
-  Following Demmel (1981) with some lemmas improved by Rump and Jeannerod (2014)
-  and previously implemented in libValidSDP by Roux (2017), we derive
-  the backward error analysis for solving a s.d.p. linear system $Ax=b$
+  Following Demmel \cite{demmel81} with some lemmas improved by Rump and Jeannerod
+\cite{rump14}
+  and then implemented in libValidSDP by Roux \cite{DBLP:journals/jar/Roux16}, we derive
+  the backward error analysis for solving a s.p.d. linear system $Ax=b$
   with fully accurate consideration of underflows.  We do this as a guide
   to what will be mechanized in Rocq, or what will be documentation of
   what will have been mechanized.
@@ -50,7 +51,8 @@ We will give a more precise model of rounding and underflow errors in the next s
 
 Let $\bullet$ be one of the operations $(+,-,\ast,/)$ and let
 $\fl{a \bullet b}$ denote the floating point result of the indicated
-computation. \ldots To take underflow into account, we write ([Kahan and Palmer, 1979])
+computation. \ldots To take underflow into account, we write
+(\cite{10.1145/1057520.1057522}),
 \begin{equation}\tag{11}
 \fl{a \bullet b} = (a \bullet b)(1 + e)+\eta\qquad
 \mathrm{unless}~a\bullet b ~\mathrm{overflows.}
@@ -103,11 +105,11 @@ These bounds can be used in turn to bound the residual $r$:
 \newcommand\float[1]{\ensuremath \mathit{float}(#1)}
 To analyze solving a triangular system, we need another expression for the error in
 computing an inner product:
-\begin{equation}\tag{31}
+\begin{equation}\tag{demmel.31}
   \float{\sum_{i=1}^n a_i b_i} = \sum_{i=1}^n a_i b_i (1 + E_i) + \eta ~.
 \end{equation}
 In the absence of underflow we have
-\begin{equation}\tag{32}
+\begin{equation}\tag{demmel.32}
 \begin{array}{l}
   |E_1| \le n \epsilon \\
   |E_j| \le (n+2-j)\epsilon \quad \mathrm{if}\quad j>1~.
@@ -117,14 +119,14 @@ In the absence of underflow we have
 In the case of G.U.\footnote{Editor's note: G.U. = Gradual Underflow, that is,
 a floating-point format that supports subnormal numbers.  The technical report also covers the case of ``S.Z.'' or ``store zero'', which we omit here in all lemmas and theorems.}
 we have the same bounds on the $|E_i|$, and
-\begin{equation}\tag{34}
+\begin{equation}\tag{demmel.34}
 |\eta| \le n \lambda \epsilon
 \end{equation}
 
 
 \paragraph*{Demmel's Lemma 4: Error Analysis of Solving a Triangular System.}
-As we explain in the next sections, we make some adjustments to the
-statement of this lemma.
+\emph{As we explain in the next sections, we will use a variation
+of this lemma.}
 
 Consider the lower triangular system $Ly=b$ where $L$ does not necessarily
 have ones on the diagonal.  (The analyses when only ones are on the
@@ -167,8 +169,7 @@ independent of underflow.
 Instead of Demmel's Proposition 2, we will be using
 the following lemma:
 
-\paragraph*{Rump/Jeannerod Lemma 2.1:} Error analysis of $(c-\sum a_i b_i)/b_k$.
-  (libvalidsdp.cholesky.lemma\_2\_1)
+\paragraph*{Rump/Jeannerod Lemma 2.1} (LibValidSDP lemma\_2\_1): Analysis of $(c-\sum a_i b_i)/b_k$.
   \newline
   Let $\hat{y} = \fl{(c-\sum_{0\le i<k} a_i b_i)/b_k}$ computed by repeated subtraction left to right.  Assume $b_k\not= 0$. Then
 \begin{equation}\tag{lemma2.1}
@@ -199,9 +200,10 @@ re-use the Rump/Jeannerod Lemma 2.1 for $c - \sum x_i y_i$.
 
 \paragraph*{Proof.}  From libValidSDP lemma\_2\_1\_aux, by a derivation of several lines.  Q.E.D.
 
-\subsection*{Solving a linear system by Cholesky+Substitution}
+\section{Solving a linear system by Cholesky+Substitution}
 
-Let $\hat{x}$ be the result of solving $Ax=b$ by Cholesky decomposition $A=R^T R$ followed by forward substitution $R^Ty=b$ then back substitution $Rx=y$.
+We now derive mixed error bounds for the
+floating-point result $\hat{x}$ of solving $Ax=b$ by Cholesky decomposition $A=R^T R$ followed by forward substitution $R^Ty=b$ then back substitution $Rx=y$.
 
 \paragraph*{Lemma th\_2\_3\_aux3: Accuracy of Cholesky decomposition.}
 Suppose $A$ is an $n\times n$ symmetric positive definite floating-point matrix,
@@ -233,8 +235,9 @@ Then
 \begin{array}{rl}
 |\delta A_{ij}| & <
 (\mathrm{min}(i,j)+2)\epsilon
-\sqrt{(A_{ii}+2i\lambda\epsilon)/(1-(i+2)\epsilon)}
-\sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)}
+\sqrt{(A_{ii}+2i\lambda\epsilon)/(1-(i+2)\epsilon)} \\
+& \qquad
+\cdot \sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)}
 + 4 \lambda\epsilon (n+1+a_\mathrm{max}) \\
 & \le
 (n+1)\epsilon
@@ -249,25 +252,26 @@ Then
 \end{array}
 \end{equation}
 
-\paragraph*{Lemma.} We obtain bounds on $\delta R^T \hat{R}$ (et cetera) by
+\paragraph*{Lemma.} We obtain bounds on $\delta R^T \hat{R}$ by
 combining (2.3aux1) and (demmel\_lemma\_4):
 \begin{equation}\tag{csolve\_back\_err\_aux1}
 \begin{array}{rl}
 |(\delta R^T\hat{R})_{ij}| & \le (|\delta R|^T|\hat{R}|)_{ij}| \\
 & \le  \sum_k (k+1)\epsilon |\hat{R}_{ki}|\cdot|\hat{R}_{kj}| \qquad \mathrm{(by~Lemma~0.4)}\\
 & \le n\epsilon \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2 \qquad \mathrm{(by~Cauchy-Schwartz)}\\
-& \le n\epsilon \sqrt{(A_{ii}+2i\lambda\epsilon)/(1-(i+2)\epsilon)} \sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)} \qquad\mathrm{(2.3aux1)}\\
+& \le n\epsilon \sqrt{(A_{ii}+2i\lambda\epsilon)/(1-(i+2)\epsilon)} \sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)} \quad\qquad\mathrm{(by 2.3aux1)}\\
 & \le n\epsilon \sqrt{(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)} \sqrt{(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)} \\
 & = n\epsilon (a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon) \\
 \end{array}
 \end{equation}
+The same bound is obtained on $\hat{R}\delta R$.
 
 \paragraph{Lemma.} Bounds on $\delta R^T \delta R$ as follows:
 \begin{equation}\tag{csolve\_back\_err\_aux2}
   \begin{array}{rl}
     |(\delta R ^T \delta R)_{ij}| & \le (|\delta R^T| \cdot |\delta R|)_{ij} \\
     & \le \sum_k |\delta R^T|_{ik} |\delta R|_{kj} \\
-    & = \sum_k |delta R|_{ki} |\delta R|_{kj} \\
+    & = \sum_k |\delta R|_{ki} |\delta R|_{kj} \\
     & \le \sum_k (k+1)^2\epsilon^2 |\hat{R}_{ki}|\cdot|\hat{R}_{kj}| \\
     & \le n^2\epsilon^2 \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2 \\
     & \le n^2\epsilon^2 (a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon).
@@ -324,4 +328,8 @@ From csolve\_back\_err\_aux2 we have
 The result follows immediately.  Q.E.D.
 
 \paragraph{Still to do:}  Account for underflows in the forward substitution and back substitution.
+
+\bibliographystyle{alpha}
+\bibliography{cholesky}
+
 \end{document}
