@@ -169,12 +169,12 @@ independent of underflow.
 Instead of Demmel's Proposition 2, we will be using
 the following lemma:
 
-\paragraph*{Rump/Jeannerod Lemma 2.1} (LibValidSDP lemma\_2\_1): Analysis of $(c-\sum a_i b_i)/b_k$.
+\paragraph*{Rump/Jeannerod Lemma 2.1} (LibValidSDP lemma\_2\_1\_aux): Analysis of $(c-\sum a_i b_i)/b_k$.
   \newline
   Let $\hat{y} = \fl{(c-\sum_{0\le i<k} a_i b_i)/b_k}$ computed by repeated subtraction left to right.  Assume $b_k\not= 0$. Then
-\begin{equation}\tag{lemma2.1}
-  |b_k \hat{y} - (c-\sum_{0 \le i<k}a_i b_i)| < (k+1)\epsilon |b_k\hat{y}|\sum_{0\le i < k}|a_ib_i|
-  + (1+(k+1)\epsilon)(k+1+|b_k|)\lambda\epsilon.
+\begin{equation}\label{lemma_2_1}\tag{lemma2.1}
+  |b_k \hat{y} - (c-\sum_{0 \le i<k}a_i b_i)| \le (k+1)\epsilon \left(|b_k\hat{y}| + \sum_{0\le i < k}|a_ib_i|\right)
+  + (1+(k+1)\epsilon)(k+|b_k|)\lambda\epsilon.
   \end{equation}
   
 Demmel's Lemma 4 provides fine-tuned bounds for four different cases,
@@ -184,21 +184,29 @@ weaker bound because that allows us to
 re-use the Rump/Jeannerod Lemma 2.1 for $c - \sum x_i y_i$.
 
 \paragraph*{Theorem Demmel\_L4\_adapted:} 
+Solving the lower triangular system $Ly = b$ we obtain $\hat{y}=y+\delta y$
+which satisfies $(L+\delta L)\hat{y}= b + \delta b$, where
 \begin{equation}\tag{demmel\_lemma\_4}
-  |\delta L_{ij}| \le |L_{ij}|n\epsilon\qquad\mathrm{and}
+  \begin{array}{rcl}
+  |\delta L_{ij}| & \le & n\epsilon|L_{ij}|\qquad\mathrm{and} \\
+  |\delta b_i | & \le & (1+n\epsilon)\lambda \epsilon \left(n + |L_{ii}|\right)~.
+  \end{array}
 \end{equation}
-\begin{equation}
-  \begin{array}{lcl@{~}ll}
-    \mathrm{if} & i=0 & |\delta b_i |~ \le &\lambda\epsilon|L_{00}|\mathit{UN}(y_0)
-    & \mathrm{if}~y_0~\mathrm{underflows} \\
-    \mathrm{if} & i>0 & |\delta b_i |~ \le &(1+(i+1)\epsilon)(i+1) \cdot \lambda_\mathrm{s}\epsilon_\mathrm{s}~ + & \mathrm{intermediate~underflows} \\
-    & & & (1+(i+1)\epsilon)\lambda \epsilon |L_{ii}| \mathit{UN}(y_0) 
-    & \mathrm{if}~y_i~\mathrm{underflows}
-  \end{array} ~.
-\end{equation}
-\noindent The factor $(1+(i+1)\epsilon)$ was omitted from Demmel's original but is required for correctness. 
+\noindent The factor $(1+n\epsilon)$ was omitted from Demmel's original but is required for correctness.
 
-\paragraph*{Proof.}  From libValidSDP lemma\_2\_1\_aux, by a derivation of several lines.  Q.E.D.
+\paragraph*{Proof.}  From \ref{lemma_2_1}, we get
+\begin{equation}
+  \left|L_{ii}\hat{y}_i - \left(b_i - \sum_{j=0}^{i-1}L_{ij} \hat{y}_j\right)\right|
+  \le (i+1)\epsilon \left(|L_{ii}\hat{y}_i| + \sum_{j=0}^{i-1}|L_{ij}\hat{y}_j|\right)
+  + (1 + (i+1)\epsilon)(i + |L_{ii}|)\lambda \epsilon
+\end{equation}
+that is
+\begin{equation}
+  \left|b_i - \sum_{j=0}^{i}L_{ij} \hat{y}_j\right|
+  \le (i+1)\epsilon \left(\sum_{j=0}^{i}|L_{ij}\hat{y}_j|\right)
+  + (1 + (i+1)\epsilon)(i + |L_{ii}|)\lambda \epsilon
+\end{equation}
+and since $i < n$, we have $i + 1 \le n$ which enables to conclude. Q.E.D.
 
 \section{Solving a linear system by Cholesky+Substitution}
 
