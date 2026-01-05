@@ -219,43 +219,41 @@ with $(n+1)\epsilon < 1$.
 Let $\hat{R}$ be the result of floating-point Cholesky decomposition (inner-product method)
 of  $A$ into $\hat{R}^T \hat{R}$.
 Let $\delta A = A - \hat{R}^T \hat{R}$.
-Let the vector $R_j$ be the $j$th column of $R$.
+Let the vector $\hat{R}_j$ be the $j$th column of $\hat{R}$.
 Let $a_\mathrm{max}$ be the maximum diagonal element of $|A|$.
 Then
 \begin{equation}\tag{2.3aux3}
-  |\delta A _{ij}| < (\mathrm{min}(i,j)+2)\epsilon \norm{R_i}_2 \norm{R_j}_2
+  |\delta A _{ij}| < (\mathrm{min}(i,j)+2)\epsilon \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2
   + 4 \lambda\epsilon (n+1+a_\mathrm{max}).
 \end{equation}
 
 \paragraph*{Proof.} See Rump+Jeannerod, or see libValidSDP.  Q.E.D.
 
+\paragraph*{Definition.} Define $a'_\mathrm{max}$
+as $\frac{a_\mathrm{max}+2(n-1)\lambda \epsilon}{1-(n+1)\epsilon}$.
+
 \paragraph*{Remark.}  Let $A$ and $\hat{R}$ be as above.
 Then
 \begin{equation}\tag{2.3aux1}
-  \norm{\hat{R}_j}_2 \le \sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)}.
+  \norm{\hat{R}_j}_2 \le \sqrt{a'_\mathrm{max}}.
   \end{equation}
 
-\paragraph{Proof.} LibValidSDP   th\_2\_3\_aux1.
+\paragraph{Proof.} LibValidSDP   th\_2\_3\_aux1 gives
+\begin{equation}
+  \norm{\hat{R}_j}_2 \le \sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)}.
+  \end{equation}
+and the definition of $a'_\mathrm{max}$ enables to conclude. Q.E.D.
 
-
-\paragraph{Corollary.} Combining (2.3aux1) and (2.3aux2), we have,
+\paragraph{Corollary.} Combining (2.3aux3) and (2.3aux1), we have,
 \begin{equation}\tag{ch\_back\_err}
 \begin{array}{rl}
 |\delta A_{ij}| & <
 (\mathrm{min}(i,j)+2)\epsilon
-\sqrt{(A_{ii}+2i\lambda\epsilon)/(1-(i+2)\epsilon)} \\
-& \qquad
-\cdot \sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)}
+\sqrt{a'_\mathrm{max}} \cdot \sqrt{a'_\mathrm{max}}
 + 4 \lambda\epsilon (n+1+a_\mathrm{max}) \\
 & \le
 (n+1)\epsilon
-\sqrt{(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)} \\
-& \qquad \cdot
-\sqrt{(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)}
-+ 4 \lambda\epsilon (n+1+a_\mathrm{max}) \\
-& =
-(n+1)\epsilon
-(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)
+a'_\mathrm{max}
 + 4 \lambda\epsilon (n+1+a_\mathrm{max}) \\
 \end{array}
 \end{equation}
@@ -264,12 +262,11 @@ Then
 combining (2.3aux1) and (demmel\_lemma\_4):
 \begin{equation}\tag{csolve\_back\_err\_aux1}
 \begin{array}{rl}
-|(\delta R^T\hat{R})_{ij}| & \le (|\delta R|^T|\hat{R}|)_{ij}| \\
-& \le  \sum_k (k+1)\epsilon |\hat{R}_{ki}|\cdot|\hat{R}_{kj}| \qquad \mathrm{(by~Lemma~0.4)}\\
+|(\delta R^T\hat{R})_{ij}| & \le (|\delta R^T|\cdot|\hat{R}|)_{ij} \\
+& \le  \sum_k n\epsilon |\hat{R}_{ki}|\cdot|\hat{R}_{kj}| \qquad \mathrm{(by~demmel\_lemma\_4)}\\
 & \le n\epsilon \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2 \qquad \mathrm{(by~Cauchy-Schwartz)}\\
-& \le n\epsilon \sqrt{(A_{ii}+2i\lambda\epsilon)/(1-(i+2)\epsilon)} \sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)} \quad\qquad\mathrm{(by 2.3aux1)}\\
-& \le n\epsilon \sqrt{(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)} \sqrt{(a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)} \\
-& = n\epsilon (a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon) \\
+& \le n\epsilon \sqrt{a'_\mathrm{max}} \sqrt{a'_\mathrm{max}} \quad\qquad\mathrm{(by 2.3aux1)}\\
+& = n\epsilon a'_\mathrm{max}.
 \end{array}
 \end{equation}
 The same bound is obtained on $\hat{R}\delta R$.
@@ -279,10 +276,9 @@ The same bound is obtained on $\hat{R}\delta R$.
   \begin{array}{rl}
     |(\delta R ^T \delta R)_{ij}| & \le (|\delta R^T| \cdot |\delta R|)_{ij} \\
     & \le \sum_k |\delta R^T|_{ik} |\delta R|_{kj} \\
-    & = \sum_k |\delta R|_{ki} |\delta R|_{kj} \\
-    & \le \sum_k (k+1)^2\epsilon^2 |\hat{R}_{ki}|\cdot|\hat{R}_{kj}| \\
+    & \le \sum_k n^2\epsilon^2 |\hat{R}_{ki}|\cdot|\hat{R}_{kj}| \\
     & \le n^2\epsilon^2 \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2 \\
-    & \le n^2\epsilon^2 (a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon).
+    & \le n^2\epsilon^2 a'_\mathrm{max}.
   \end{array}
 \end{equation}
 
@@ -299,7 +295,7 @@ considering underflows in the substitutions, we have
 that there is a backward error $\delta A$ such that
 $(A+\delta A)\hat{x}=b$, bounded as follows:
 \begin{equation}\tag{csolve\_back\_err}
-|\delta A| \le ((3n+1)\epsilon+n^2\epsilon^2)\frac{a_\mathrm{max}+2(n-1)\lambda\epsilon)}{1-(n+1)\epsilon}+4 \lambda\epsilon (n+1+a_\mathrm{max}).
+|\delta A| \le ((3n+1)\epsilon+n^2\epsilon^2)a'_\mathrm{max}+4 \lambda\epsilon (n+1+a_\mathrm{max}).
 \end{equation}
 
 \paragraph*{Proof.}
@@ -322,16 +318,16 @@ We will define
   \end{array}
 \end{equation}
 
-From (2.3aux3) we have
-$  |\delta A'_{ij}| < (\mathrm{min}(i,j)+2)\epsilon \norm{R_i}_2 \norm{R_j}_2
+From (ch\_back\_err) we have
+$  |\delta A'_{ij}| < (n+1)\epsilon a'_\mathrm{max}
 + 4 \lambda\epsilon (n+1+a_\mathrm{max}).$\newline
 From csolve\_back\_err\_aux1 we have
-$|(\delta R^T\hat{R})_{ij}| \le n\epsilon (a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)$\newline
+$|(\delta R^T\hat{R})_{ij}| \le n\epsilon a'_\mathrm{max}$
 and similarly 
-$|(\hat{R}^T\delta R)_{ij}| \le n\epsilon (a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)$.\newline
+$|(\hat{R}^T\delta R)_{ij}| \le n\epsilon a'_\mathrm{max}$.\newline
 From csolve\_back\_err\_aux2 we have
     $|\delta R^T \delta R|
- \le n^2\epsilon^2 (a_\mathrm{max}+2(n-1)\lambda\epsilon)/(1-(n+1)\epsilon)$.
+ \le n^2\epsilon^2 a'_\mathrm{max}$.
 \newline
 The result follows immediately.  Q.E.D.
 
