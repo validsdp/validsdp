@@ -282,28 +282,57 @@ The same bound is obtained on $\hat{R}\delta R$.
   \end{array}
 \end{equation}
 
+\paragraph*{Lemma.} We obtain bounds on $\delta b'$ by
+combining (demmel\_lemma\_4) and (2.3aux1):
+\begin{equation}\tag{csolve\_back\_err\_aux3}
+\begin{array}{rl}
+|\delta b'_i| & \le (1+n\epsilon)\lambda \epsilon (n + |\hat{R}^T_{ii}|) \\
+& \le (1+n\epsilon)\lambda \epsilon (n + \norm{\hat{R}_i}_2) \\
+& \le (1+n\epsilon)\lambda \epsilon (n + \sqrt{a'_\mathrm{max}}) \\
+& \le (1+n\epsilon)^2\lambda \epsilon (n + \sqrt{a'_\mathrm{max}}).
+\end{array}
+\end{equation}
+
+\paragraph*{Lemma.} We obtain bounds on $(\hat{R}^T + \delta R^T) \delta y$ by
+combining (demmel\_lemma\_4) and (2.3aux1):
+\begin{equation}\tag{csolve\_back\_err\_aux4}
+\begin{array}{rl}
+|((\hat{R}^T + \delta R^T) \delta y)_i| & \le (|\hat{R}^T + \delta R^T| \cdot |\delta y|)_i \\
+& \le \sum_k |\hat{R}^T + \delta R^T|_{ik} |\delta y|_k \\
+& \le \sum_k (1+n\epsilon)|\hat{R}_{ki}| \cdot |\delta y|_k \qquad \mathrm{(by~demmel\_lemma\_4)} \\
+& \le (1+n\epsilon) \norm{\hat{R}_i}_2 \norm{\delta y}_2 \qquad \mathrm{(by~Cauchy-Schwartz)} \\
+& \le (1+n\epsilon) \sqrt{a'_\mathrm{max}} \norm{\delta y}_2 \qquad \mathrm{(by~2.3aux1)} \\
+& \le (1+n\epsilon) \sqrt{a'_\mathrm{max}} n \norm{\delta y}_\infty \\
+& \le (1+n\epsilon) \sqrt{a'_\mathrm{max}} n (1+n\epsilon) \lambda \epsilon (n + \sqrt{a'_\mathrm{max}}) \\
+& = (1+n\epsilon)\lambda \epsilon (n + \sqrt{a'_\mathrm{max}}) (1+n\epsilon)n\sqrt{a'_\mathrm{max}} \\
+& \le (1+n\epsilon)^2\lambda \epsilon (n + \sqrt{a'_\mathrm{max}}) n\sqrt{a'_\mathrm{max}}.
+\end{array}
+\end{equation}
+
 
 \paragraph*{Theorem: Cholesky factor + substitution.}
 Suppose $A$ is an $n\times n$ symmetric positive definite floating-point matrix
-with minimum eigenvalue $>\sqrt{\lambda}$, with $(n+1)\epsilon < 1$.
+, with $(n+1)\epsilon < 1$.
 Suppose $b$ is a floating-point vector of length $n$.
 Suppose $\hat{x}$ is the result of floating-point Cholesky factorization of
 $A$ into $\hat{R}^T\hat{R}$ followed by forward substitution finding $\hat{y}$ such
 that $\hat{R}^T \hat{y}=b$ and then $\hat{R}\hat{x}=\hat{y}$.
-Taking into account underflows in the factorization, but not yet
-considering underflows in the substitutions, we have
-that there is a backward error $\delta A$ such that
-$(A+\delta A)\hat{x}=b$, bounded as follows:
+Taking into account underflows in both the factorization and the substitution, we have
+that there is a mixed error $\delta A$ and $\delta b$ such that
+$(A+\delta A)\hat{x}=b+\delta b$, bounded as follows:
 \begin{equation}\tag{csolve\_back\_err}
-|\delta A| \le ((3n+1)\epsilon+n^2\epsilon^2)a'_\mathrm{max}+4 \lambda\epsilon (n+1+a_\mathrm{max}).
+\begin{array}{rcl}
+|\delta A| & \le & ((3n+1)\epsilon+n^2\epsilon^2)a'_\mathrm{max}+4 \lambda\epsilon (n+1+a_\mathrm{max}). \\
+|\delta b| & \le & (1+n\epsilon)^2 (n+1)^2 \lambda \epsilon (1 + a'_\mathrm{max})
+\end{array}
 \end{equation}
 
 \paragraph*{Proof.}
-If it were not for the underflow terms $\delta b$ and $\delta y$, we would have
+Since $\hat{y} + \delta y = (\hat{R} + \delta R)\hat{x}$, we have
 \begin{equation}\tag{xxx}
   \begin{array}{rl}
-    b &= (\hat{R}^T+\delta R^T)\hat{y}\\
-    & = (\hat{R}^T+\delta R^T)(\hat{R}+\delta R)\hat{x} \\
+    b + \delta b' &= (\hat{R}^T+\delta R^T)\hat{y}\\
+    b + \delta b' + (\hat{R}^T + \delta R^T) \delta y & = (\hat{R}^T+\delta R^T)(\hat{R}+\delta R)\hat{x} \\
     & = (\hat{R}^T\hat{R}+\delta R^T\hat{R} +\hat{R}^T\delta R  +\delta R^T \delta R)\hat{x} \\
     & = (A + \delta A' +\delta R^T\hat{R} +\hat{R}^T\delta R  +\delta R^T \delta R)\hat{x} \\
     & = A\hat{x} + (\delta A' +\delta R^T\hat{R} +\hat{R}^T\delta R  +\delta R^T \delta R)\hat{x}. \\
@@ -314,7 +343,13 @@ We will define
 \begin{equation}\tag{xxx}
   \begin{array}{rl}
     \delta A   & = \delta A' +\delta R^T\hat{R} + \hat{R}^T\delta R  + \delta R^T \delta R\\
-      & \le |\delta A'| +|\delta R^T\hat{R}| +|\hat{R}^T\delta R|  +|\delta R^T \delta R|.
+      & \le |\delta A'| +|\delta R^T\hat{R}| +|\hat{R}^T\delta R|  +|\delta R^T \delta R|
+  \end{array}
+\end{equation}
+and
+\begin{equation}\tag{xxx}
+  \begin{array}{rl}
+    \delta b   & = \delta b' +(\hat{R}^T + \delta R^T) \delta y.
   \end{array}
 \end{equation}
 
@@ -329,9 +364,7 @@ From csolve\_back\_err\_aux2 we have
     $|\delta R^T \delta R|
  \le n^2\epsilon^2 a'_\mathrm{max}$.
 \newline
-The result follows immediately.  Q.E.D.
-
-\paragraph{Still to do:}  Account for underflows in the forward substitution and back substitution.
+The result follows using csolve\_back\_err3 and csolve\_back\_err4 and $\sqrt{a'_\mathrm{max}} \le 1 + a'_\mathrm{max}$.  Q.E.D.
 
 \bibliographystyle{alpha}
 \bibliography{cholesky}
