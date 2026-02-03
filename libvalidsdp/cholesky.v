@@ -20,24 +20,24 @@ From Flocq Require Import Core.Raux.
 Require Import misc.
 
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq bigop.
-From mathcomp Require Import fintype finfun ssralg matrix.
+From mathcomp Require Import fintype finfun order ssralg matrix ssrnum.
 
 From mathcomp Require Import Rstruct.
 
-Import GRing.Theory.
+Require Import fsum_l2r fcmsum real_matrix.
+
+Import GRing.Theory Order.Theory Num.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
-Open Scope R_scope.
-Open Scope ring_scope.
+Local Open Scope R_scope.
+Local Open Scope ring_scope.
 
 Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
-
-Require Import fsum_l2r fcmsum real_matrix.
 
 Section Cholesky.
 
@@ -77,9 +77,9 @@ Definition ytilded (k : nat) (c : F) (a b : F^k) (bk : F) :=
   fdiv (stilde c a b) bk.
 
 Lemma lemma_2_1_aux k (a b : F^k) (c bk : F) (Hbk : bk <> 0 :> R) :
-  Rabs (bk * ytilded c a b bk - (c - \sum_i (a i * b i)%Re))
-  <= INR k.+1 * eps * (Rabs (bk * ytilded c a b bk) + \sum_i Rabs (a i * b i))
-     + (1 + INR k.+1 * eps) * (INR k + Rabs bk) * eta.
+  (Rabs (bk * ytilded c a b bk - (c - \sum_i (a i * b i)%Re))
+   <= INR k.+1 * eps * (Rabs (bk * ytilded c a b bk) + \sum_i Rabs (a i * b i))
+      + (1 + INR k.+1 * eps) * (INR k + Rabs bk) * eta)%Re.
 Proof.
 rewrite -addn1 (Rmult_assoc _ _ eta) (Rmult_plus_distr_r (INR k)).
 replace (\sum__ _) with (\sum_i [ffun i => (a i * b i)%Re] i);
@@ -102,13 +102,13 @@ apply frnd_spec_round_max.
 Qed.
   
 Lemma lemma_2_1 k (a b : F^k) (c bk : F) (Hbk : bk <> 0 :> R) :
-  Rabs (bk * ytilded c a b bk - (c - \sum_i (a i * b i)%Re))
-  < INR k.+1 * eps * (Rabs (bk * ytilded c a b bk) + \sum_i Rabs (a i * b i))
-    + (1 + INR k.+1 * eps) * (INR k.+1 + Rabs bk) * eta.
+  (Rabs (bk * ytilded c a b bk - (c - \sum_i (a i * b i)%Re))
+   < INR k.+1 * eps * (Rabs (bk * ytilded c a b bk) + \sum_i Rabs (a i * b i))
+     + (1 + INR k.+1 * eps) * (INR k.+1 + Rabs bk) * eta)%Re.
 Proof.
 apply (Rle_lt_trans _ _ _ (lemma_2_1_aux _ _ _ Hbk)), Rplus_lt_compat_l.
 rewrite !Rmult_assoc; apply Rmult_lt_compat_l.
-{ have H : 0 <= INR k.+1 * eps; [|lra].
+{ have H : (0 <= INR k.+1 * eps)%Re; [|lra].
   apply Rmult_le_pos; [apply pos_INR|apply eps_pos]. }
 apply Rmult_lt_compat_r;
   [by move: (eta_pos fs) eta_neq_0 => [|<-]|rewrite S_INR; lra].
@@ -121,10 +121,10 @@ Section Lemma_2_2.
 
 Definition ytildes (k : nat) (c : F) (a : F^k) := fsqrt (stilde c a a).
 
-Lemma lemma_2_2_1_aux k (a : F^k) (c : F) (Hst : 0 <= stilde c a a) :
-  Rabs (ytildes c a ^ 2 - (c - \sum_i (a i * a i)%Re))
-  <= INR k.+2 * eps * (ytildes c a ^ 2 + \sum_i (a i * a i)%Re)
-     + (1 + INR k.+2 * eps) * INR k * eta.
+Lemma lemma_2_2_1_aux k (a : F^k) (c : F) (Hst : (0 <= stilde c a a)%Re) :
+  (Rabs (ytildes c a ^ 2 - (c - \sum_i (a i * a i)%Re))
+   <= INR k.+2 * eps * (ytildes c a ^ 2 + \sum_i (a i * a i)%Re)
+      + (1 + INR k.+2 * eps) * INR k * eta)%Re.
 Proof.
 rewrite -(addn2 k) (Rmult_assoc _ _ eta).
 replace (\sum__ _) with (\sum_i [ffun i => (a i * a i)%Re] i);
@@ -153,21 +153,21 @@ apply (Rle_trans _ ((sqrt (1 + 2 * eps) + 1) * (sqrt (1 + 2 * eps) - 1))).
 ring_simplify; rewrite /pow Rmult_1_r sqrt_def; [|right; simpl; ring].
 apply Rplus_le_le_0_compat; move: (eps_pos fs); lra.
 Qed.
-
-Lemma lemma_2_2_1 k (a : F^k) (c : F) (Hst : 0 <= stilde c a a) :
-  Rabs (ytildes c a ^ 2 - (c - \sum_i (a i * a i)%Re))
-  < INR k.+2 * eps * (ytildes c a ^ 2 + \sum_i (a i * a i)%Re)
-    + (1 + INR k.+2 * eps) * INR k.+1 * eta.
+  
+Lemma lemma_2_2_1 k (a : F^k) (c : F) (Hst : (0 <= stilde c a a)%Re) :
+  (Rabs (ytildes c a ^ 2 - (c - \sum_i (a i * a i)%Re))
+   < INR k.+2 * eps * (ytildes c a ^ 2 + \sum_i (a i * a i)%Re)
+     + (1 + INR k.+2 * eps) * INR k.+1 * eta)%Re.
 Proof.
 apply (Rle_lt_trans _ _ _ (lemma_2_2_1_aux Hst)), Rplus_lt_compat_l.
 apply Rmult_lt_compat_r; [by move: (eta_pos fs) eta_neq_0 => [//|<-]|].
 apply Rmult_lt_compat_l; [|by apply lt_INR].
-have H : 0 <= INR k.+2 * eps; [|lra].
+have H : (0 <= INR k.+2 * eps)%Re; [|lra].
 apply Rmult_le_pos; [apply pos_INR|apply eps_pos].
 Qed.
 
-Lemma lemma_2_2_2 k (Hk : INR k.+2 * eps < 1)
-      (a : F^k) (c : F) (Hst : 0 <= stilde c a a) :
+Lemma lemma_2_2_2 k (Hk : (INR k.+2 * eps < 1)%Re)
+      (a : F^k) (c : F) (Hst : (0 <= stilde c a a)%Re) :
   (ytildes c a ^ 2 + \sum_i (a i * a i)%Re
    <= / (1 - INR k.+2 * eps) * (c + 2 * INR k * eta))%Re.
 Proof.
@@ -231,7 +231,7 @@ Hypothesis HAR : cholesky_success.
 
 Variable maxdiag : R.
 
-Hypothesis Hmaxdiag : forall i : 'I_n.+1, A i i <= maxdiag.
+Hypothesis Hmaxdiag : forall i : 'I_n.+1, (A i i <= maxdiag)%Re.
 
 (** *** A bunch of definitions used in the following theorem and corollaries. *)
 
@@ -243,12 +243,12 @@ Let rt (j : 'I_n.+1) : 'cV[R]_n.+1 := col j Rte.
 
 Let alpha (i j : nat) : R := INR (min i j).+2 * eps.
 
-Lemma INR_eps_pos n' : 0 <= INR n' * eps.
+Lemma INR_eps_pos n' : (0 <= INR n' * eps)%Re.
 Proof. apply Rmult_le_pos; [apply pos_INR|apply eps_pos]. Qed.
 
-Lemma INR_eps_monotone i j : (i <= j)%N -> INR i * eps <= INR j * eps.
+Lemma INR_eps_monotone i j : (i <= j)%N -> (INR i * eps <= INR j * eps)%Re.
 Proof.
-by move=> ?; apply Rmult_le_compat_r; [apply eps_pos|apply /le_INR /leP].
+by move=> ?; apply Rmult_le_compat_r; [apply eps_pos|apply /le_INR /ssrnat.leP].
 Qed.
 
 Let d (j : 'I_n.+1) : R :=
@@ -261,11 +261,11 @@ Definition Delta : 'M[R]_n.+1 :=
                   + 4%Re * eta * (INR n.+2 + maxdiag)).
 
 (** A bunch of lemmas. *)
-Lemma alpha_pos (i j : 'I_n.+1) : 0 <= alpha i j.
+Lemma alpha_pos (i j : 'I_n.+1) : (0 <= alpha i j)%Re.
 Proof. by apply INR_eps_pos. Qed.
 
 Lemma alpha_iltj i j : (i <= j)%N -> (alpha i j = INR i.+2 * eps)%Re.
-Proof. by move=> Hij; rewrite /alpha min_l //; apply /leP. Qed.
+Proof. by move=> Hij; rewrite /alpha Peano.min_l //; apply /ssrnat.leP. Qed.
 
 Lemma alpha_sym i j : alpha i j = alpha j i.
 Proof. by rewrite /alpha; rewrite Nat.min_comm. Qed.
@@ -353,7 +353,7 @@ Lemma th_2_3_aux1 (Hn : (INR n.+2 * eps < 1)%Re) (j : 'I_n.+1) :
 Proof.
 have Hj : (INR j.+2 * eps < 1)%Re.
 { move: Hn; apply Rle_lt_trans, Rmult_le_compat_r; [by apply eps_pos|].
-  by apply /le_INR /leP; rewrite ltnS. }
+  by apply /le_INR /ssrnat.leP; rewrite ltnS. }
 suff: (`||rt j||_2^2 <= (d j)^2)%Re.
 { rewrite /= !Rmult_1_r -!/(Rsqr _) => H.
   by apply Rsqr_incr_0; [|apply norm2_pos|rewrite /d; apply sqrt_pos]. }
@@ -407,8 +407,8 @@ apply Rmult_le_compat_r; [by apply eta_pos|].
 apply Rmult_le_compat; try apply Rplus_le_le_0_compat;
   [lra|apply INR_eps_pos|apply pos_INR|apply Rabs_pos| |].
 { apply Rplus_le_compat_l, Rmult_le_compat_r; [by apply eps_pos|].
-  by apply /le_INR /leP; rewrite ltnS; apply ltnW. }
-apply Rplus_le_compat; [by apply /le_INR /leP /ltn_ord|].
+  by apply /le_INR /ssrnat.leP; rewrite ltnS; apply ltnW. }
+apply Rplus_le_compat; [by apply /le_INR /ssrnat.leP /ltn_ord|].
 rewrite Rabs_pos_eq; [apply Rlt_le, (proj2 HAR)|apply Hmaxdiag'].
 Qed.
 
@@ -440,9 +440,9 @@ apply Rmult_le_compat_r; [by apply eta_pos|].
 apply Rmult_le_compat; try apply Rplus_le_le_0_compat;
   [lra|apply INR_eps_pos|apply pos_INR| |].
 { apply Rplus_le_compat_l, Rmult_le_compat_r; [by apply eps_pos|].
-  by apply /le_INR /leP; rewrite ltnS. }
+  by apply /le_INR /ssrnat.leP; rewrite ltnS. }
 rewrite -(Rplus_0_r (INR _)).
-apply Rplus_le_compat; [by apply /le_INR /leP /ltn_ord|].
+apply Rplus_le_compat; [by apply /le_INR /ssrnat.leP /ltn_ord|].
 apply Rlt_le, (Rlt_le_trans _ _ _ ((proj2 (HAR)) ord0)), Hmaxdiag'.
 Qed.
 
@@ -464,7 +464,7 @@ Lemma th_2_3_aux3_aux i : (Rt i i <= 2 * (maxdiag + 1))%Re.
 Proof.
 rewrite (proj2 (proj1 HAR)) /ytildes.
 set (a := [ffun k : 'I_i => Rt (inord k) i]).
-have Hst : (0 <= stilde (A i i) a a).
+have Hst : (0 <= stilde (A i i) a a)%Re.
 { apply Rlt_le, fsqrt_spec2; rewrite -/(ytildes _ _).
   rewrite -(proj2 (proj1 HAR)); apply HAR. }
 have [d' Hd'] := fsqrt_spec (stilde (A i i) a a); rewrite Hd'.
@@ -481,7 +481,7 @@ Lemma th_2_3_aux3 (Hn : (INR n.+2 * eps < 1)%Re) (i j : 'I_n.+1) :
    < alpha i j * `||rt i||_2 * `||rt j||_2
      + 4 * eta * (INR n.+2 + maxdiag))%Re.
 Proof.
-have Hmd : forall i0 : 'I_n.+1, Rt i0 i0 <= 2 * (maxdiag + 1);
+have Hmd : forall i0 : 'I_n.+1, (Rt i0 i0 <= 2 * (maxdiag + 1))%Re;
   [by move=> k; apply th_2_3_aux3_aux|].
 apply (Rlt_le_trans _ _ _ (th_2_3_aux2 _ _ Hmd)), Rplus_le_compat.
 { rewrite Rmult_assoc; apply Rmult_le_compat_l; [by apply alpha_pos|].
@@ -532,7 +532,7 @@ Section Corollaries.
 
 Variable n : nat.
 
-Hypothesis Hn : INR n.+2 * eps < 1.
+Hypothesis Hn : (INR n.+2 * eps < 1)%Re.
 
 Variable A : 'M[F]_n.+1.
 
@@ -544,7 +544,7 @@ Hypothesis Pdiag : forall i : 'I_n.+1, (0 <= A i i)%Re.
 
 Variable maxdiag : R.
 
-Hypothesis Hmaxdiag : forall i : 'I_n.+1, A i i <= maxdiag.
+Hypothesis Hmaxdiag : forall i : 'I_n.+1, (A i i <= maxdiag)%Re.
 
 Lemma Pmaxdiag : (0 <= maxdiag)%Re.
 Proof. apply (Rle_trans _ _ _ (Pdiag ord0) (Hmaxdiag ord0)). Qed.
@@ -605,7 +605,7 @@ rewrite -{3}norm2_const -norm2_scale_pos; [lra|]; apply f_equal.
 rewrite -matrixP => i j; rewrite !mxE; apply Rinv_r; lra.
 Qed.
 
-Lemma c_pos : 0 <= c.
+Lemma c_pos : (0 <= c)%Re.
 Proof.
 replace 0%Re with ((0 : 'M[R]_1) ord0 ord0); [|by rewrite mxE].
 replace c with ((c%:M : 'M[R]_1) ord0 ord0); [|by rewrite mxE].
@@ -615,7 +615,7 @@ rewrite -Mle_scalar; move: (Hc vconst_norm1); apply Mle_trans.
   apply Mlt_le, Delta_pos. }
 Qed.
 
-Lemma Delta_At'_le_Delta_A : Delta At' maxdiag <=m: Delta A maxdiag.
+Lemma Delta_At'_le_Delta_A : (Delta At' maxdiag <=m: Delta A maxdiag)%Re.
 Proof.
 move=> i j; rewrite !mxE ifT ?leqnn //.
 set (alpha := fun i j => (INR (min i j).+2 * eps)%Re).
@@ -627,7 +627,7 @@ have HAtA : forall k : 'I_n.+1, (d At k <= d A k)%Re.
   { apply Rlt_le, Rinv_0_lt_compat, Rlt_0_minus.
     rewrite /alpha /GRing.mul (alpha_iltj (leqnn k)).
     move: Hn; apply Rle_lt_trans, Rmult_le_compat_r; [by apply eps_pos|].
-    by apply /le_INR /leP; rewrite ltnS. }
+    by apply /le_INR /ssrnat.leP; rewrite ltnS. }
   apply Rplus_le_compat_r, (Rle_trans _ _ _ (proj2 HAt k)); move: c_pos; lra. }
 apply Rplus_le_compat_r.
 rewrite /GRing.mul /= !(Rmult_assoc (alpha _ _)); apply Rmult_le_compat_l.
@@ -708,7 +708,7 @@ by split; [move=> i j Hij|move=> i]; rewrite /At' !mxE;
   [rewrite (ltnW Hij)|rewrite (leqnn i)]; apply HAt.
 Qed.
 
-Lemma r_pos : 0 <= r.
+Lemma r_pos : (0 <= r)%Re.
 Proof.
 replace 0%Re with ((0 : 'M[R]_1) ord0 ord0); [|by rewrite mxE].
 replace r with ((r%:M : 'M[R]_1) ord0 ord0); [|by rewrite mxE].
@@ -787,7 +787,7 @@ Variable n : nat.
 Variable H3n : (3 * INR n.+2 * eps < 1)%Re.
 (* Variable H4n : 4 * INR n.+2 * eps fs < 1. *)
 
-Lemma Hn : INR n.+2 * eps < 1.
+Lemma Hn : (INR n.+2 * eps < 1)%Re.
 Proof. move: H3n; apply Rle_lt_trans; move: (INR_eps_pos n.+2); lra. Qed.
 
 Variable A : 'M[F]_n.+1.
@@ -796,7 +796,7 @@ Hypothesis Pdiag : forall i : 'I_n.+1, (0 <= A i i)%Re.
 
 Variable maxdiag : R.
 
-Hypothesis Hmaxdiag : forall i : 'I_n.+1, A i i <= maxdiag.
+Hypothesis Hmaxdiag : forall i : 'I_n.+1, (A i i <= maxdiag)%Re.
 
 Let alpha i j := INR (min i j).+2 * eps.
 
@@ -819,7 +819,7 @@ rewrite -GRing.mulrA; apply Rmult_le_compat_r.
 { apply Rmult_le_pos; apply sqrt_pos. }
 set il := INR _; set ir := INR _; rewrite /GRing.mul /=.
 apply Rmult_le_compat_r; [by apply eps_pos|].
-by apply /le_INR /leP; rewrite ltnS; apply Nat.min_case.
+by apply /le_INR /ssrnat.leP; rewrite ltnS; apply Nat.min_case.
 Qed.
 
 Lemma c_upper_bound_aux1 (x : 'cV_n.+1) : (`||x||_2 = 1)%Re ->
@@ -885,7 +885,7 @@ apply Rplus_le_compat; [|right; apply Rmult_eq_compat_l].
   rewrite /dv !mxE /In1 /d sqrt_def; first exact: Rmult_le_pos.
   apply Rmult_le_compat => //; [apply Rinv_le; [rewrite /In2|]; lra|].
   apply Rplus_le_compat_l, Rmult_le_compat_r; [move: (eta_pos fs); lra|].
-  apply Rmult_le_compat_l; [lra|apply /le_INR /leP /ltnW /ltn_ord]. }
+  apply Rmult_le_compat_l; [lra|apply /le_INR /ssrnat.leP /ltnW /ltn_ord]. }
 by rewrite /In1 norm2_const sqrt_def; first exact: pos_INR.
 Qed.
 
@@ -924,7 +924,7 @@ End C_upper_bound.
 
 (** *** A (very rough but easy to compute) upper bound on the constant r. *)
 Lemma r_upper_bound n (Rad : 'M[F]_n.+1) (PRad : 0 <=m: MF2R Rad)
-      r (Hr : forall i j, Rad i j <= r) (x : 'cV_n.+1) : (`||x||_2 = 1)%Re ->
+      r (Hr : forall i j, (Rad i j <= r)%Re) (x : 'cV_n.+1) : (`||x||_2 = 1)%Re ->
   (Mabs x)^T *m MF2R Rad *m (Mabs x) <=m: ((INR n.+1 * r)%Re)%:M.
 Proof.
 move=> Hx; apply Mle_trans with ((Mabs x)^T *m const_mx r *m (Mabs x)).
@@ -949,17 +949,17 @@ rewrite -norm2_const -(norm2_scale_pos _ (sqrt_pos _)) -/(Rsqr _).
 by do 2 f_equal; rewrite -matrixP => i j; rewrite !mxE GRing.mulr1.
 Qed.
 
-Lemma corollary_2_4_with_c_upper_bound n (H3n : 3 * INR n.+2 * eps < 1) :
+Lemma corollary_2_4_with_c_upper_bound n (H3n : (3 * INR n.+2 * eps < 1)%Re) :
   forall A : 'M[F]_n.+1, MF2R A^T = MF2R A ->
-  (forall i : 'I_n.+1, 0 <= A i i) ->
-  forall maxdiag : R, (forall i : 'I_n.+1, A i i <= maxdiag) ->
+  (forall i : 'I_n.+1, (0 <= A i i)%Re) ->
+  forall maxdiag : R, (forall i : 'I_n.+1, (A i i <= maxdiag)%Re) ->
   forall c : R,
   (INR n.+2 * eps / (1 - INR n.+2 * eps) * (\tr (MF2R A))
    + 4 * eta * INR n.+1 * (2 * INR n.+2 + maxdiag)
    <= c)%Re ->
   forall At : 'M[F]_n.+1,
   ((forall i j : 'I_n.+1, (i < j)%N -> At i j = A i j) /\
-   (forall i : 'I_n.+1, At i i <= A i i - c)) ->
+   (forall i : 'I_n.+1, (At i i <= A i i - c))%Re) ->
   forall Rt : 'M[F]_n.+1, cholesky_success At Rt ->
   posdef (MF2R A).
 Proof.
@@ -973,11 +973,11 @@ have Hn : (INR n.+2 * eps < 1)%Re; [by move: H3n; lra|].
 apply (corollary_2_4 Hn SymA Pdiag Hmaxdiag Hc' HAt HARt).
 Qed.
 
-Lemma corollary_2_7_with_c_r_upper_bounds n (H3n : 3 * INR n.+2 * eps < 1) :
+Lemma corollary_2_7_with_c_r_upper_bounds n (H3n : (3 * INR n.+2 * eps < 1)%Re) :
   forall A : 'M[F]_n.+1, MF2R A^T = MF2R A ->
-  (forall i : 'I_n.+1, 0 <= A i i) ->
+  (forall i : 'I_n.+1, (0 <= A i i)%Re) ->
   forall Rad : 'M_n.+1, 0 <=m: MF2R Rad ->
-  forall maxdiag : R, (forall i : 'I_n.+1, A i i <= maxdiag) ->
+  forall maxdiag : R, (forall i : 'I_n.+1, (A i i <= maxdiag)%Re) ->
   forall c : R,
   (INR n.+2 * eps / (1 - INR n.+2 * eps) * (\tr (MF2R A))
    + 4 * eta * INR n.+1 * (2 * INR n.+2 + maxdiag)
