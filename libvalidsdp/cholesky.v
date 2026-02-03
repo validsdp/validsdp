@@ -232,6 +232,8 @@ Variable maxdiag : R.
 
 Hypothesis Hmaxdiag : forall i : 'I_n.+1, (A i i <= maxdiag)%Re.
 
+Hypothesis maxdiag_ge0 : (0 <= maxdiag)%Re.
+
 (** *** A bunch of definitions used in the following theorem and corollaries. *)
 
 (** [Rt] casted to R plus filled with zeros in the bottom triangular part
@@ -522,6 +524,67 @@ apply Mle_trans with (- Mabs (x^T *m delta *m x)).
 apply (Mle_trans (Mge_opp_abs _)).
 rewrite /delta mulmxBr mulmxBl -{2}(GRing.subr0 (_ *m _)).
 apply Madd_le_compat_l, Mopp_le_contravar, mxtrmx_semipos.
+Qed.
+
+Definition maxdiag' : R := (maxdiag + 2 * INR n * eta) / (1 - INR n.+2 * eps).
+
+Lemma maxdiag'_ge0 (Hn : (INR n.+2 * eps < 1)%Re) : 0 <= maxdiag'.
+Proof.
+rewrite ?(addr_ge0, mulr_ge0) ?INRE//; [apply/RleP..|].
+- exact/maxdiag_ge0.
+- exact/eta_pos.
+by rewrite invr_ge0 subr_ge0 ltW// -INRE; apply/RltP.
+Qed.
+
+Lemma Hmaxdiag' (Hn : (INR n.+2 * eps < 1)%Re) i :
+  ((A i i + 2 * INR i * eta) / (1 - INR i.+2 * eps) <= maxdiag')%Re.
+Proof.
+rewrite /maxdiag'.
+apply/RleP; rewrite !(RplusE, RminusE, RmultE, RdivE, INRE).
+have Amaxdiag : (A i i : R) + 2%Re * i%:R * eta <= maxdiag + 2%Re * n%:R * eta.
+  rewrite lerD//; first exact/RleP/Hmaxdiag.
+  apply: ler_wpM2r; first exact /RleP/eta_pos.
+  by rewrite ler_pM2l ?addr_gt0// ler_nat -ltnS.
+rewrite ler_pdivrMr; last first.
+  move/RltP: Hn; rewrite RmultE INRE subr_gt0; apply: le_lt_trans.
+  by rewrite ler_pM ?ler_nat 1?ltnS //; apply/RleP/eps_pos.
+apply: le_trans Amaxdiag _; rewrite -[leRHS]mulrA ler_peMr//.
+  rewrite ?(addr_ge0, mulr_ge0)//; apply/RleP; last exact: eta_pos.
+  exact: maxdiag_ge0.
+rewrite ler_pdivlMl ?mulr1; last by rewrite subr_gt0 -INRE -RmultE; apply/RltP.
+rewrite lerD2l lerNl opprK.
+by apply: ler_wpM2r; [apply/RleP/eps_pos|rewrite ler_nat ltnS].
+Qed.
+
+Lemma cholesky_back_err_aux (Hn : (INR n.+2 * eps < 1)%Re) j :
+  (`||rt j||_2 <= sqrt maxdiag')%Re.
+Proof.
+apply: (Rle_trans _ _ _ (th_2_3_aux1 Hn _)).
+apply/RleP; rewrite /d /alpha !RsqrtE ler_sqrt ?maxdiag'_ge0//.
+apply/RleP; apply: Rle_trans (Hmaxdiag' Hn j); apply/RleP.
+by rewrite !(RplusE, RminusE, RmultE, RdivE) [leLHS]mulrC Nat.min_id le_refl.
+Qed.
+
+(* Backward error bound on Cholesky decomposition *)
+Lemma cholesky_back_err (Hn : (INR n.+2 * eps < 1)%Re) (i j : 'I_n.+1) :
+  (Rabs (delta i j)
+   < INR n.+2 * eps * maxdiag' + 4 * eta * (INR n.+2 + maxdiag))%Re.
+Proof.
+apply: Rlt_le_trans (th_2_3_aux3 Hn _ _) _.
+apply/RleP; rewrite !(RplusE, RminusE, RmultE, RdivE, INRE).
+rewrite lerD2r -mulrA ler_pM//.
+- exact/RleP/alpha_pos.
+- by rewrite mulr_ge0//; apply/RleP/norm2_pos.
+- have [ij|/ltnW ij] := leqP i j.
+  + rewrite alpha_iltj// RmultE INRE.
+    by apply: ler_wpM2r; [apply/RleP/eps_pos|rewrite ler_nat ltnS].
+  + rewrite alpha_sym alpha_iltj// RmultE INRE.
+    by apply: ler_wpM2r; [apply/RleP/eps_pos|rewrite ler_nat ltnS].
+rewrite -[leRHS]sqr_sqrtr ?maxdiag'_ge0// expr2 ler_pM//.
+- exact/RleP/norm2_pos.
+- exact/RleP/norm2_pos.
+- by rewrite -RsqrtE; apply/RleP/cholesky_back_err_aux.
+- by rewrite -RsqrtE; apply/RleP/cholesky_back_err_aux.
 Qed.
 
 End Cholesky_def.
