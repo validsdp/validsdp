@@ -27,6 +27,9 @@ Section Bounded.
 Record bounded (r : R) := { bounded_val :> R;
                             bounded_prop : Rabs bounded_val <= r }.
 
+Lemma bounded_pos r (b : bounded r) : (0 <= r)%Re.
+Proof. by case: b => v; apply/Rle_trans/Rabs_pos. Qed.
+
 (** A bound. *)
 Variable r : R.
 
@@ -204,3 +207,60 @@ Definition bounded_mult_1_l (r : R)
 Definition bounded_mult_1_r (r : R)
            (b : bounded r) (b1 : bounded 1) : bounded r :=
   cast_bounded (Rmult_1_r r) (bounded_mult b b1).
+
+Lemma bounded_distrl_rev (r r1 r2 : R) :
+    (Rabs r <= r1 + r2)%Re -> (0 <= r1)%Re -> (0 <= r2)%Re ->
+  exists (b1 : bounded r1) (b2 : bounded r2), (r = b1 + b2 :> R)%Re.
+Proof.
+move=> rler12 r1ge0 r2ge0.
+have [f1 ->] := bounded_le_1 rler12.
+pose b1v := (f1 * r1)%Re; pose b2v := (f1 * r2)%Re.
+have b1P : (Rabs b1v <= r1)%Re.
+  rewrite Rabs_mult -[X in (_ <= X)%Re](Rmult_1_l r1) (Rabs_pos_eq _ r1ge0).
+  by apply: Rmult_le_compat_r => //; case: f1 b1v b2v.
+have b2P : (Rabs b2v <= r2)%Re.
+  rewrite Rabs_mult -[X in (_ <= X)%Re](Rmult_1_l r2) (Rabs_pos_eq _ r2ge0).
+  by apply: Rmult_le_compat_r => //; case: f1 b1v b2v b1P.
+by exists (Build_bounded b1P), (Build_bounded b2P); rewrite Rmult_plus_distr_l.
+Qed.
+
+Lemma big_bounded_distrl_rev (r : R) n (F : R ^ n) :
+    (Rabs r <= \sum_i F i)%Re -> (forall i, 0 <= F i)%Re ->
+  exists (b : R ^ n), r = (\sum_i b i)%Re /\ forall i, Rabs (b i) <= F i.
+Proof.
+elim: n r F => [|n IHn] r F.
+  rewrite big_ord0 => rle0 _.
+  have -> : (r = 0)%Re by apply/Rabs_eq_R0/Rle_antisym => //; apply: Rabs_pos.
+  by exists [ffun=> 0]; split=> [|i]; [rewrite big_ord0 | case: i].
+move=> + Fige0; rewrite big_ord_recr/=.
+have sge0 : (0 <= \sum_(i < n) F (widen_ord (m:=n.+1) (leqnSn n) i))%Re.
+  by apply: big_sum_pos_pos => i; apply: Fige0.
+have mge0 : (0 <= F ord_max)%Re by exact: Fige0.
+move=> /bounded_distrl_rev /(_ sge0 mge0) [b1 [b2 ->]].
+have b1le : (Rabs b1 <= \sum_i [ffun k => F (widen_ord (m:=n.+1) (leqnSn n) k)] i)%Re.
+  under [in X in _ <= X]eq_bigr => i _ do rewrite ffunE.
+  exact: bounded_prop b1.
+have b1ge0 : forall i : 'I_n,
+        (0 <= [ffun k => F (widen_ord (m:=n.+1) (leqnSn n) k)] i)%Re.
+  by move=> i; rewrite ffunE; apply: Fige0.
+have [b [-> bE]] := IHn _ _ b1le b1ge0.
+exists [ffun k : 'I_n.+1 =>
+  (if ltnP k n is LtnNotGeq kltn then b (Ordinal kltn) else b2) : R]; split.
+- rewrite big_ord_recr/= ffunE.
+  under [in RHS]eq_bigr => i _.
+    rewrite ffunE/=.
+    case: ltnP => [iltn /=|]; last by rewrite leqNgt ltn_ord.
+    have -> : Ordinal iltn = i by exact/val_inj.
+  over.
+  case: ltnP => [/[dup]|_]; first by rewrite [in X in X -> _]ltnNge leqnn.
+  by rewrite RplusE.
+- move=> i; rewrite ffunE.
+  case: ltnP => [iltn | nlei].
+  + apply: (Rle_trans _ _ _ (bE _)).
+    rewrite ffunE (_ : widen_ord _ _ = i); last exact/val_inj.
+    exact: Rle_refl.
+  + apply: (Rle_trans _ _ _ (bounded_prop b2)).
+    rewrite (_ : ord_max = i); first exact/Rle_refl.
+    apply/val_inj => /=.
+    by apply: anti_leq; rewrite nlei (eqbLR (ltnS _ _) (ltn_ord i)).
+Qed.
