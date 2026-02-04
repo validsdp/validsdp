@@ -536,11 +536,15 @@ rewrite ?(addr_ge0, mulr_ge0) ?INRE//; [apply/RleP..|].
 by rewrite invr_ge0 subr_ge0 ltW// -INRE; apply/RltP.
 Qed.
 
+(* TODO: remove when requiring Analysis >= 1.16 *)
+Definition RealsE := (RplusE, RminusE, RmultE, RoppE, RinvE, RdivE, INRE,
+  Pos_to_natE, IZRposE, RsqrtE, RpowE, RmaxE, RminE, RabsE, RdistE,
+  sum_f_R0E, factE).
+
 Lemma Hmaxdiag' (Hn : (INR n.+2 * eps < 1)%Re) i :
   ((A i i + 2 * INR i * eta) / (1 - INR i.+2 * eps) <= maxdiag')%Re.
 Proof.
-rewrite /maxdiag'.
-apply/RleP; rewrite !(RplusE, RminusE, RmultE, RdivE, INRE).
+rewrite /maxdiag'; apply/RleP; rewrite !RealsE.
 have Amaxdiag : (A i i : R) + 2%Re * i%:R * eta <= maxdiag + 2%Re * n%:R * eta.
   rewrite lerD//; first exact/RleP/Hmaxdiag.
   apply: ler_wpM2r; first exact /RleP/eta_pos.
@@ -562,7 +566,7 @@ Proof.
 apply: (Rle_trans _ _ _ (th_2_3_aux1 Hn _)).
 apply/RleP; rewrite /d /alpha !RsqrtE ler_sqrt ?maxdiag'_ge0//.
 apply/RleP; apply: Rle_trans (Hmaxdiag' Hn j); apply/RleP.
-by rewrite !(RplusE, RminusE, RmultE, RdivE) [leLHS]mulrC Nat.min_id le_refl.
+by rewrite !RealsE [leLHS]mulrC Nat.min_id le_refl.
 Qed.
 
 (* Backward error bound on Cholesky decomposition *)
@@ -571,8 +575,7 @@ Lemma cholesky_back_err (Hn : (INR n.+2 * eps < 1)%Re) (i j : 'I_n.+1) :
    < INR n.+2 * eps * maxdiag' + 4 * eta * (INR n.+2 + maxdiag))%Re.
 Proof.
 apply: Rlt_le_trans (th_2_3_aux3 Hn _ _) _.
-apply/RleP; rewrite !(RplusE, RminusE, RmultE, RdivE, INRE).
-rewrite lerD2r -mulrA ler_pM//.
+apply/RleP; rewrite !RealsE lerD2r -mulrA ler_pM//.
 - exact/RleP/alpha_pos.
 - by rewrite mulr_ge0//; apply/RleP/norm2_pos.
 - have [ij|/ltnW ij] := leqP i j.
