@@ -183,7 +183,10 @@ In all these cases we will prove a
 weaker bound because that allows us to
 re-use the Rump/Jeannerod Lemma 2.1 for $c - \sum x_i y_i$.
 
-\paragraph*{Theorem Demmel\_L4\_adapted:} 
+\paragraph*{Theorem Demmel\_L4\_adapted:} (lemma\_4 in triangle\_subst.v in LibValidSDP)
+Suppose $L$ is an $n \times n$ lower triangular (i.e., for all $i < j$,
+$L_{ij} = 0$) floating-point matrix with non zero diagonal elements
+(i.e., for all $i$, $L_{ii} \neq 0$) and $b$ is a floating-point vector.
 Solving the lower triangular system $Ly = b$ we obtain $\hat{y}=y+\delta y$
 which satisfies $(L+\delta L)\hat{y}= b + \delta b$, where
 \begin{equation}\tag{demmel\_lemma\_4}
@@ -220,7 +223,8 @@ Let $\hat{R}$ be the result of floating-point Cholesky decomposition (inner-prod
 of  $A$ into $\hat{R}^T \hat{R}$.
 Let $\delta A = A - \hat{R}^T \hat{R}$.
 Let the vector $\hat{R}_j$ be the $j$th column of $\hat{R}$.
-Let $a_\mathrm{max}$ be the maximum diagonal element of $|A|$.
+Let $a_\mathrm{max}$ be greater or equal to all diagonal elements of $A$
+and assume $a_\mathrm{max} \geq 0$.
 Then
 \begin{equation}\tag{2.3aux3}
   |\delta A _{ij}| < (\mathrm{min}(i,j)+2)\epsilon \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2
