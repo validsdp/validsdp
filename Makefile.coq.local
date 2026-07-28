@@ -1,4 +1,4 @@
-CAMLPKGS := -package coq-core.plugins.ltac2   -package zarith   -package logs   -package ocplib-simplex   -package osdp
+CAMLPKGS := -package rocq-runtime.plugins.ltac2   -package zarith   -package logs   -package ocplib-simplex   -package osdp
 
 depend.dot:: $(VFILES)
 	(echo "digraph ValidSDP_deps {" ; \
