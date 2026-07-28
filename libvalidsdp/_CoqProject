@@ -21,6 +21,8 @@ binary_infnan.v
 
 -arg -w -arg -notation-overridden
 -arg -w -arg -ambiguous-paths
+# Rocq >= 9.3 renamed the ssreflect 'rewrite' tactic to 'rw'
+-arg -w -arg -rewrite-rw
 # Warnings we don't really know how to handle
 -arg -w -arg -projection-no-head-constant
 -arg -w -arg -redundant-canonical-projection
