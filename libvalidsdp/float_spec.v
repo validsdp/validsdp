@@ -122,7 +122,7 @@ Proof. apply Rmult_le_pos; [|apply Rlt_le, Rinv_0_lt_compat]; lra. Qed.
 Lemma epsd1peps_le_eps : eps / (1 + eps) <= eps.
 Proof.
 apply (Rmult_le_reg_r (1 + eps)); [lra|].
-unfold Rdiv; rewrite Rmult_assoc Rinv_l; [|lra].
+unfold Rdiv; rewrite Rmult_assoc Rinv_l; try lra.
 assert (0 <= eps * eps); [apply misc.sqr_ge_0|lra].
 Qed.
 
@@ -141,7 +141,7 @@ field_simplify; [|lra|intro H; apply sqrt_eq_0 in H; lra].
 unfold Rdiv, Rminus; (try rewrite Rinv_1 !Rmult_1_r); rewrite !Rplus_assoc.
 rewrite <-(Rplus_0_r (sqrt _ * _)) at 2; apply Rplus_le_compat_l.
 apply (Rplus_le_reg_r (1 + eps)); ring_simplify.
-rewrite <-(sqrt_square (_ + 1)); [|lra]; apply sqrt_le_1_alt.
+rewrite <-(sqrt_square (_ + 1)); try lra; apply sqrt_le_1_alt.
 assert (H := misc.sqr_ge_0 eps); lra.
 Qed.
 
@@ -223,9 +223,9 @@ assert (Hd' : Rabs d' <= eps).
 { unfold d'; rewrite Hde Ze Rplus_0_r.
   replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
   unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
-  rewrite (Rabs_pos_eq (/ _)); [|apply Rlt_le, Rinv_0_lt_compat; lra].
+  rewrite (Rabs_pos_eq (/ _)); try (apply Rlt_le, Rinv_0_lt_compat; lra).
   apply (Rmult_le_reg_r (1 + d)); [lra|].
-  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; [|lra].
+  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; try lra.
   apply (Rle_trans _ _ _ (bounded_prop d)).
   unfold Rdiv; apply Rmult_le_compat_l; [now apply eps_pos|].
   apply (Rle_trans _ (1 - eps / (1 + eps))); [right; field|]; lra. }
@@ -266,9 +266,9 @@ assert (Hd' : Rabs d' <= eps).
 { unfold d'; rewrite Hd.
   replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
   unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
-  rewrite (Rabs_pos_eq (/ _)); [|apply Rlt_le, Rinv_0_lt_compat; lra].
+  rewrite (Rabs_pos_eq (/ _)); try (apply Rlt_le, Rinv_0_lt_compat; lra).
   apply (Rmult_le_reg_r (1 + d)); [lra|].
-  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; [|lra].
+  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; try lra.
   apply (Rle_trans _ _ _ (bounded_prop d)).
   unfold Rdiv; apply Rmult_le_compat_l; [now apply eps_pos|].
   apply (Rle_trans _ (1 - eps / (1 + eps))); [right; field|]; lra. }
@@ -326,9 +326,9 @@ assert (Hd' : Rabs d' <= sqrt (1 + 2 * eps) - 1).
 { unfold d'; rewrite Hd.
   replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
   unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
-  rewrite (Rabs_pos_eq (/ _)); [|apply Rlt_le, Rinv_0_lt_compat; lra].
+  rewrite (Rabs_pos_eq (/ _)); try (apply Rlt_le, Rinv_0_lt_compat; lra).
   apply (Rmult_le_reg_r (1 + d)); [lra|].
-  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; [|lra].
+  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; try lra.
   apply (Rle_trans _ _ _ (bounded_prop d)).
   apply (Rle_trans _ ((sqrt (1 + 2 * eps) - 1) * (1/sqrt (1 + 2 * eps))));
     [right; field|apply Rmult_le_compat_l]; lra. }

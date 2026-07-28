@@ -75,7 +75,7 @@ have Hp : (0 < Rabs (Rabs r1 + Rabs r2)) by apply Rabs_pos_lt.
 apply (Rmult_le_reg_r (Rabs (Rabs r1 + Rabs r2))); [by []|].
 field_simplify; [|lra]; try rewrite /Rdiv Rinv_1 !Rmult_1_r.
 apply (Rle_trans _ _ _ (Rabs_triang _ _)).
-rewrite !Rabs_mult (Rabs_right (_ + _)); [|lra].
+rewrite !Rabs_mult (Rabs_right (_ + _)); try lra.
 rewrite (Rmult_comm _ r) Rmult_plus_distr_l.
 by apply Rplus_le_compat; apply Rmult_le_compat_r; [|case b1| |case b2].
 Qed.
@@ -98,7 +98,7 @@ apply eq_trans with (ba ord0 * a ord0 + hb1)%Re; [apply Rplus_eq_compat_l|].
 { by rewrite /hb1; apply /eq_bigr => i _; rewrite !ffunE. }
 rewrite Hb' Hb'' big_ord_recl.
 apply Rmult_eq_compat_l, Rplus_eq_compat_l.
-rewrite /hb2 Rabs_pos_eq; [|by apply big_sum_Rabs_pos].
+rewrite /hb2 Rabs_pos_eq; try by apply big_sum_Rabs_pos.
 by apply /eq_bigr => i _; rewrite ffunE.
 Qed.
 
@@ -118,7 +118,7 @@ rewrite /Rdiv !Rabs_mult Rabs_inv //.
 have H0 := Rabs_no_R0 r2 Hr2; have H1 := Rabs_pos r1.
 have H2 : (0 < Rabs r2) by lra.
 apply (Rmult_le_reg_r (Rabs r2)); [by []|].
-rewrite Rmult_assoc Rinv_l; [rewrite Rmult_1_r|lra].
+rewrite Rmult_assoc Rinv_l; try lra; rewrite Rmult_1_r.
 by apply Rmult_le_compat; try apply Rabs_pos; try case b.
 Qed.
 
@@ -136,7 +136,7 @@ suff H : (Rabs (r1 / r2) <= 1).
 rewrite Rabs_mult Rabs_inv //.
 have HAr2 : (0 < Rabs r2) by move: (Rabs_pos r2) (Rabs_no_R0 r2 Hr2); lra.
 apply (Rmult_le_reg_r (Rabs r2)); [by []|rewrite Rmult_1_l].
-rewrite Rmult_assoc Rinv_l; [rewrite Rmult_1_r|lra].
+rewrite Rmult_assoc Rinv_l; try lra; rewrite Rmult_1_r.
 apply (Rle_trans _ _ _ Hr12 (Rle_abs r2)).
 Qed.
 
@@ -160,7 +160,7 @@ move=> Hr2; case (Rle_or_lt r1 0) => Hr1.
 suff H : (Rabs (b1 * (r2 / r1)) <= r2).
 { exists (Build_bounded H); simpl; field; lra. }
 rewrite !Rabs_mult Rabs_inv.
-rewrite (Rabs_right r1); [|lra]; rewrite (Rabs_right r2); [|lra].
+rewrite (Rabs_right r1); try lra; rewrite (Rabs_right r2); try lra.
 apply (Rmult_le_reg_r r1); [by []|].
 replace (_ * _)%Re with (r2 * Rabs b1)%Re; [|by field; lra].
 by apply Rmult_le_compat_l; [lra|case b1].

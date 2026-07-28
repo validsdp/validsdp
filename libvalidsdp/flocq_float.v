@@ -85,13 +85,13 @@ unfold eps, bpow.
 apply (Rmult_lt_reg_r (IZR (Z.pow_pos radix2 precp))).
 by apply IZR_lt, Zpower_pos_gt_0.
 simpl.
-rewrite Rmult_inv_l.
+rewrite Rmult_inv_l;
+  try (apply eq_IZR_contrapositive;
+       pose proof (Zpower_pos_gt_0 2 precp); lia).
 rewrite  Rmult_1_l.
 apply IZR_lt.
 rewrite <- Zpower.two_power_pos_correct, Zpower.two_power_pos_equiv.
 apply Z.pow_gt_1; reflexivity.
-apply eq_IZR_contrapositive.
-pose proof (Zpower_pos_gt_0 2 precp); lia.
 Qed.
 
 Let b_eps := bounded eps.

@@ -81,7 +81,7 @@ Qed.
 Lemma Rabs_div_gt_1 a b : a <> R0 -> (Rabs a < b <-> 1 < b / Rabs a)%Re.
 Proof.
 move=> H0; split => Hab.
-{ rewrite -[1%Re](Rinv_r_simpl_l (Rabs a)); last exact: Rabs_no_R0.
+{ rewrite -[1%Re](Rinv_r_simpl_l (Rabs a)); try exact: Rabs_no_R0.
   rewrite Rmult_1_l /Rdiv.
   apply: Rmult_lt_compat_r =>//.
   apply/Rinv_0_lt_compat.
@@ -179,9 +179,9 @@ case: m => [ |p|p] //.
       case: Pos.ldiff (@Pos_ldiff_neq0 q).
     now_show (Z.of_N (N.double (N.pos (Pos.succ q)))
       mod Z.of_N (N.double (Pos.ldiff (Pos.succ q) q)) = Z0)%Z.
-    rewrite -N2Z.inj_mod; last first.
-    try (rewrite N.double_spec; apply/N.neq_mul_0;
-         split =>//; exact: Pos_ldiff_neq0).
+    rewrite -N2Z.inj_mod;
+      try (rewrite N.double_spec; apply/N.neq_mul_0;
+           split =>//; exact: Pos_ldiff_neq0).
     by rewrite !N.double_spec !N.Div0.mul_mod_distr_l Pos_ldiff_mod. }
   { exfalso; clear IHp.
     move: E; by case: p. }
@@ -209,9 +209,9 @@ have->: p = Pos.succ q.
   now_show (- Z.of_N (N.double (N.pos (Pos.succ q)))
     mod Z.of_N (N.double (Pos.ldiff (Pos.succ q) q)) = Z0)%Z.
   (*:*) apply Z_mod_zero_opp_full.
-  rewrite -N2Z.inj_mod; last first.
-  rewrite N.double_spec.
-  try (apply/N.neq_mul_0; split =>//; exact: Pos_ldiff_neq0).
+  rewrite -N2Z.inj_mod;
+    try (rewrite N.double_spec; apply/N.neq_mul_0;
+         split =>//; exact: Pos_ldiff_neq0).
   by rewrite !N.double_spec !N.Div0.mul_mod_distr_l Pos_ldiff_mod. }
 { exfalso; clear IHp.
   move: E; by case: p. }
@@ -267,7 +267,7 @@ case: m NZm => [//|p|p] _.
 { elim: p => [p IHp|p IHp|//].
   by rewrite /= Pos_ldiff_eq0 /=.
   have->: Z.pos p~0 = Z.double (Z.pos p) by [].
-  rewrite Zulp_double // -[in RHS]IHp Zdigits2_double; last exact: Zulp_neq0.
+  rewrite Zulp_double // -[in RHS]IHp Zdigits2_double; try exact: Zulp_neq0.
   have->: (Z.succ ?[n] - 1 = Z.succ (?n - 1))%Z by intros; ring.
   rewrite Z.pow_succ_r //.
   apply(*:*) Z.lt_le_pred.
@@ -277,7 +277,7 @@ case: m NZm => [//|p|p] _.
 { elim: p => [p IHp|p IHp|//].
   by rewrite /= Pos_ldiff_eq0 /=.
   have->: Z.neg p~0 = Z.double (Z.neg p) by [].
-  rewrite Zulp_double // -[in RHS]IHp Zdigits2_double; last exact: Zulp_neq0.
+  rewrite Zulp_double // -[in RHS]IHp Zdigits2_double; try exact: Zulp_neq0.
   have->: (Z.succ ?[n] - 1 = Z.succ (?n - 1))%Z by intros; ring.
   rewrite Z.pow_succ_r //.
   apply(*:*) Z.lt_le_pred.
@@ -291,7 +291,7 @@ Proof.
 move=> NZm.
 rewrite -{3}(Zulp_mul m).
 rewrite -{3}(Zulp_digits NZm).
-rewrite Zdigits2_mult_Zpower; first ring.
+rewrite Zdigits2_mult_Zpower; try ring.
 { apply/Z.div_small_iff; first exact: Zulp_neq0.
   move=> [[K1 K2]|[K1 K2]].
   { have Absm : (Z.abs m < Zulp m)%Z by rewrite Z.abs_eq.
@@ -326,7 +326,7 @@ case: m NZm => [//|p|p] _.
   rewrite Zulp_double //.
   have->: Z.double (Zulp (Z.pos p)) = (Zulp (Z.pos p) * 2 ^ 1)%Z
     by rewrite Z.double_spec Zmult_comm.
-  rewrite Zdigits2_mult_Zpower //; last exact: Zulp_neq0.
+  rewrite Zdigits2_mult_Zpower //; try exact: Zulp_neq0.
   have->: (?[a] + 1 - 1 = Z.succ (?a - 1))%Z by move=> ?; rewrite /Z.succ; ring.
   rewrite Z.double_spec Z.testbit_even_succ //.
   { apply(*:*) Z.lt_le_pred.
@@ -338,7 +338,7 @@ case: m NZm => [//|p|p] _.
   rewrite Zulp_double //.
   have->: Z.double (Zulp (Z.pos p)) = (Zulp (Z.pos p) * 2 ^ 1)%Z
     by rewrite Z.double_spec Zmult_comm.
-  rewrite Zdigits2_mult_Zpower //; last exact: Zulp_neq0.
+  rewrite Zdigits2_mult_Zpower //; try exact: Zulp_neq0.
   have->: (?[a] + 1 - 1 = Z.succ (?a - 1))%Z by move=> ?; rewrite /Z.succ; ring.
   rewrite Z.double_spec Z.testbit_even_succ //.
   { apply(*:*) Z.lt_le_pred.

@@ -98,8 +98,9 @@ set (ex := cexp radix2 fexp x).
 assert (H := binary_normalize_correct prec emax _ _ mode_NE mx ex false).
 revert H; simpl; case (Rlt_bool (Rabs _) _).
 { unfold mx, round_mode; intro H; destruct H as (H, _); rewrite H.
-  rewrite round_generic; [now unfold round|].
-  now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N]. }
+  rewrite round_generic;
+    try (now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N]).
+  now unfold round. }
 unfold binary_overflow, overflow_to_inf.
 change (BinarySingleNaN.binary_normalize _ _ _ _ _ _ _ _) with (firnd x).
 revert Frx; unfold finite, is_finite, B2SF; case (firnd x); try discriminate.
@@ -116,8 +117,9 @@ assert (H := binary_normalize_correct
 revert H; simpl.
 replace (round _ _ _ _) with (float_spec.frnd fis x : R).
 rewrite (Rlt_bool_true _ _ Hm); intros [? [? ?]]; auto.
-rewrite round_generic; [now unfold round|].
-now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N].
+rewrite round_generic;
+  try (now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N]).
+now unfold round.
 Qed.
 
 Definition fiopp : FI -> FI := Bopp.

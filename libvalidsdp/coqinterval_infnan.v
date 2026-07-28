@@ -83,11 +83,11 @@ have {Hn} [Zn|NZn] := Hn.
   apply/Z.max_l_iff.
   rewrite BigN.spec_Ndigits BigN.spec_head00 //.
   lia. }
-{ rewrite [LHS]Bir.mantissa_digits_correct; last first.
-  { case E: (BigZ.to_Z (BigZ.Pos n)) NZn => [|p|p] //= NZn.
-    exists p; by rewrite -E.
-    clear NZn; exfalso; simpl in E.
-    by have := BigN.spec_pos n; rewrite E; auto. }
+{ rewrite [LHS]Bir.mantissa_digits_correct;
+    try (case E: (BigZ.to_Z (BigZ.Pos n)) NZn => [|p|p] //= NZn;
+         [exists p; by rewrite -E
+         |clear NZn; exfalso; simpl in E;
+          by have := BigN.spec_pos n; rewrite E; auto]).
   rewrite -digits_conversion.
   rewrite /Zdigits2; f_equal.
   rewrite /= /Bir.MtoP; simpl in NZn.
@@ -101,11 +101,11 @@ have {Hn} [Zn|NZn] := Hn.
   apply/Z.max_l_iff.
   rewrite BigN.spec_Ndigits BigN.spec_head00 //.
   lia. }
-{ rewrite [LHS]Bir.mantissa_digits_correct; last first.
-  { case E: (BigZ.to_Z (BigZ.Pos n)) NZn => [|p|p] //= NZn.
-    exists p; by rewrite -E.
-    clear NZn; exfalso; simpl in E.
-    by have := BigN.spec_pos n; rewrite E; auto. }
+{ rewrite [LHS]Bir.mantissa_digits_correct;
+    try (case E: (BigZ.to_Z (BigZ.Pos n)) NZn => [|p|p] //= NZn;
+         [exists p; by rewrite -E
+         |clear NZn; exfalso; simpl in E;
+          by have := BigN.spec_pos n; rewrite E; auto]).
   rewrite -digits_conversion.
   rewrite [RHS]Zdigits_opp /Zdigits2; f_equal.
   rewrite /= /Bir.MtoP; simpl in NZn.
@@ -151,32 +151,32 @@ split => H.
     case=> Hm Vn; rewrite /= FtoR_split.
     case: s Hm => Hm; rewrite /= -Hm /F2R /= /Bir.MtoZ /Bir.EtoZ.
     { rewrite BigZ.spec_add bpow_plus /= -Rmult_assoc; congr Rmult.
-      rewrite -IZR_Zpower; last first.
-      { rewrite BigZ.spec_sub digits_spec.
-        apply(*:*) Z.lt_le_pred.
-        apply: Zdigits_gt_0.
-        rewrite /bigZulp BigZ.spec_land BigZ.spec_opp -/(Zulp (BigZ.to_Z m)).
-        apply: Zulp_neq0.
-        by move: Hm; rewrite /Bir.MtoZ =>->. }
+      rewrite -IZR_Zpower;
+        try (rewrite BigZ.spec_sub digits_spec;
+             apply(*:*) Z.lt_le_pred;
+             apply: Zdigits_gt_0;
+             rewrite /bigZulp BigZ.spec_land BigZ.spec_opp -/(Zulp (BigZ.to_Z m));
+             apply: Zulp_neq0;
+             by move: Hm; rewrite /Bir.MtoZ =>->).
       rewrite BigZ.spec_sub digits_spec.
       rewrite -mult_IZR; congr IZR.
       rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
       rewrite -/(Zulp (BigZ.to_Z m)) /= Zulp_digits;
-        last by move=> K; rewrite /Bir.MtoZ K in Hm.
+        try (by move=> K; rewrite /Bir.MtoZ K in Hm).
       by rewrite Zulp_mul. }
     rewrite BigZ.spec_add bpow_plus /= -Rmult_assoc; congr Rmult.
-    rewrite -IZR_Zpower; last first.
-    { rewrite BigZ.spec_sub digits_spec.
-      apply(*:*) Z.lt_le_pred.
-      apply: Zdigits_gt_0.
-      rewrite /bigZulp BigZ.spec_land BigZ.spec_opp -/(Zulp (BigZ.to_Z m)).
-      apply: Zulp_neq0.
-      by move: Hm; rewrite /Bir.MtoZ =>->. }
+    rewrite -IZR_Zpower;
+      try (rewrite BigZ.spec_sub digits_spec;
+           apply(*:*) Z.lt_le_pred;
+           apply: Zdigits_gt_0;
+           rewrite /bigZulp BigZ.spec_land BigZ.spec_opp -/(Zulp (BigZ.to_Z m));
+           apply: Zulp_neq0;
+           by move: Hm; rewrite /Bir.MtoZ =>->).
     rewrite BigZ.spec_sub digits_spec.
     rewrite -mult_IZR; congr IZR.
     rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
     rewrite -/(Zulp (BigZ.to_Z m)) /= Zulp_digits;
-      last by move=> K; rewrite /Bir.MtoZ K in Hm.
+      try (by move=> K; rewrite /Bir.MtoZ K in Hm).
     by rewrite Zulp_mul. }
   (* could be extracted to some lemma *)
   have [_ H1] := Zdigits_correct radix2 (BigZ.to_Z (m / bigZulp m)).
@@ -217,7 +217,7 @@ have NZf1 : f1 <> Z0.
   by apply: Rgt_not_eq; apply: bpow_gt_0. }
 move/(Zdigits_le_Zpower radix2) in Hf2.
 apply/Z.leb_le.
-rewrite -/(Z.succ _) -Zdigits_div_ulp; last by rewrite Hm; case: (s).
+rewrite -/(Z.succ _) -Zdigits_div_ulp; try (by rewrite Hm; case: (s)).
 apply: Z.le_trans _ Hf2.
 rewrite /Zdigits2 -Zdigits_abs -(Zdigits_abs _ f1).
 apply Zdigits_le; first exact: Z.abs_nonneg.
@@ -233,18 +233,18 @@ have Hlte : (bpow radix2 (BigZ.to_Z e) < bpow radix2 (Fexp f))%Re.
   rewrite !abs_IZR in Hlt.
   rewrite -/f1 in Hmf.
   move/(congr1 (Rdiv ^~ (bpow radix2 (BigZ.to_Z e)))) in Hmf.
-  rewrite /Rdiv Rinv_r_simpl_l in Hmf; last exact/Rgt_not_eq/bpow_gt_0.
+  rewrite /Rdiv Rinv_r_simpl_l in Hmf; try exact/Rgt_not_eq/bpow_gt_0.
   rewrite {}Hmf in Hlt.
   rewrite !Rabs_mult in Hlt.
   apply/Rdiv_gt_1; first exact: bpow_gt_0.
   move/Rdiv_gt_1: Hlt.
-  rewrite (_ : ?[a] * Rabs ?[b] * Rabs ?[c] / ?a = ?b * ?c)%Re; last first.
-    rewrite (Rabs_pos_eq (bpow _ _)); last exact: bpow_ge_0.
-    rewrite (Rabs_pos_eq (/ bpow _ _));
-      last exact/Rlt_le/Rinv_0_lt_compat/bpow_gt_0.
-    field.
-    split; last by apply/Rabs_no_R0; exact: eq_IZR_contrapositive.
-    exact/Rgt_not_eq/bpow_gt_0.
+  rewrite (_ : ?[a] * Rabs ?[b] * Rabs ?[c] / ?a = ?b * ?c)%Re;
+    try (rewrite (Rabs_pos_eq (bpow _ _)); try exact: bpow_ge_0;
+         rewrite (Rabs_pos_eq (/ bpow _ _));
+           try exact/Rlt_le/Rinv_0_lt_compat/bpow_gt_0;
+         field;
+         split; [exact/Rgt_not_eq/bpow_gt_0
+                |by apply/Rabs_no_R0; exact: eq_IZR_contrapositive]).
   apply.
   by apply/Rabs_pos_lt; exact: eq_IZR_contrapositive. }
 move/lt_bpow in Hlte.
@@ -253,7 +253,7 @@ have {}Hmf : (BigZ.to_Z m = f1 * 2 ^ (Fexp f - BigZ.to_Z e))%Z.
   rewrite /F2R - /f1 in Hmf.
   move/(congr1 (Rmult ^~ (bpow radix2 (- BigZ.to_Z e)))) in Hmf.
   rewrite !Rmult_assoc -!bpow_plus Z.add_opp_diag_r /= Rmult_1_r in Hmf.
-  rewrite -IZR_Zpower in Hmf; last lia.
+  rewrite -IZR_Zpower in Hmf; try lia.
   rewrite -mult_IZR in Hmf.
   exact: eq_IZR. }
 have Hdiv : (Z.abs (BigZ.to_Z m / Zulp (BigZ.to_Z m)) | BigZ.to_Z m)%Z.
@@ -427,8 +427,9 @@ rewrite toF_fromF_id; right; exists (frnd fis x).
 { set (f := frnd fis x).
   set (fexp := FLX_exp 53).
   assert (Hfr : Generic_fmt.round radix2 fexp Ztrunc f = f).
-  { rewrite round_generic =>//.
-    apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N]. }
+  { rewrite round_generic;
+      try (apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N]);
+      by []. }
   set (m := scaled_mantissa _ _ _).
   set (zm := Ztrunc m).
   unfold FtoX; case_eq zm.
@@ -456,8 +457,9 @@ Proof.
 rewrite /FI2FS /=.
 set (f := Generic_fmt.round _ _ _ _).
 assert (Hfr : Generic_fmt.round radix2 (FLX_exp 53) Ztrunc f = f).
-{ rewrite round_generic =>//.
-  apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N]. }
+{ rewrite round_generic;
+    try (apply generic_format_round; [now apply FLX_exp_valid|apply valid_rnd_N]);
+    by []. }
 unfold F.toF, firnd, firnd_val; simpl; fold f.
 set (m := scaled_mantissa _ _ _).
 set (e := cexp _ _ _).
@@ -589,12 +591,12 @@ Proof.
 unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fiplus; simpl; rewrite F.add_slow_correct.
 set (z := Xadd _ _); case_eq z; [now simpl|]; intros r Hr _; simpl.
-rewrite round_generic //.
+rewrite round_generic //;
+  try (now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]).
 { apply f_equal; revert Hr; unfold z.
   case_eq (F.toX x); [now simpl|]; intros rx Hrx.
   case_eq (F.toX y); [now simpl|]; intros ry Hry.
   by case =><-. }
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
 Definition fiminus (x y : FI) : FI := fiplus x (fiopp y).
@@ -666,12 +668,12 @@ move: H.
 unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fimult; simpl; rewrite F.mul_correct.
 set (z := Xmul _ _); case_eq z; [now simpl|]; intros r Hr _; simpl.
-rewrite round_generic.
+rewrite round_generic;
+  try (now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]).
 { apply f_equal; revert Hr; unfold z.
   case_eq (F.toX x); [now simpl|]; intros rx Hrx.
   case_eq (F.toX y); [now simpl|]; intros ry Hry.
   by case => <-. }
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
 Lemma fidiv_proof rm (x y : F.type) : is_mantissa_bounded (F.div rm 53%bigZ x y).
@@ -716,12 +718,12 @@ Proof.
 unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fidiv; simpl; rewrite F.div_correct.
 set (z := Xdiv _ _); case_eq z; [now simpl|]; intros r Hr _; simpl.
-rewrite round_generic.
+rewrite round_generic;
+  try (now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]).
 { apply f_equal; revert Hr; unfold z.
   case_eq (F.toX x); [now simpl|]; intros rx Hrx.
   case_eq (F.toX y); [now simpl|]; intros ry Hry.
   by rewrite /Xdiv /Xdiv'; case: ifP =>// _ [->]. }
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
 Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
@@ -765,11 +767,11 @@ move: H.
 unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fisqrt; simpl; rewrite F.sqrt_correct.
 set (z := Xsqrt_nan _); case_eq z; [now simpl|]; intros r Hr _; simpl.
-rewrite round_generic.
+rewrite round_generic;
+  try (now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]).
 { apply f_equal; revert Hr; unfold z.
   case_eq (F.toX x); [now simpl|]; intros rx Hrx.
   by rewrite /= /Xsqrt_nan'; case: is_negative_spec =>// _ [->]. }
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
 Qed.
 
 Definition ficompare (x y : FI) : float_comparison :=
@@ -792,11 +794,11 @@ rewrite real_FtoX_toR // => H.
 rewrite real_FtoX_toR // => H'.
 rewrite Hx1 Hy1 /X2F.
 case: Rcompare_spec =>//= H0.
-- do 2![rewrite round_generic; last exact: generic_format_FLX].
+- do 2![rewrite round_generic; try exact: generic_format_FLX].
   by rewrite Rcompare_Lt.
-- do 2![rewrite round_generic; last exact: generic_format_FLX].
+- do 2![rewrite round_generic; try exact: generic_format_FLX].
   by rewrite Rcompare_Eq.
-- do 2![rewrite round_generic; last exact: generic_format_FLX].
+- do 2![rewrite round_generic; try exact: generic_format_FLX].
   by rewrite Rcompare_Gt.
 Qed.
 
@@ -905,10 +907,9 @@ caseFI x Hx Hx1 Hx2.
 caseFI y Hy Hy1 Hy2.
 set (z := Xadd _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
 rewrite Hx1 Hy1 /=.
-rewrite !round_generic.
-2: exact/generic_format_round/FLX_exp_valid.
-2: exact: generic_format_FLX.
-2: exact: generic_format_FLX.
+rewrite !round_generic;
+  try exact/generic_format_round/FLX_exp_valid;
+  try exact: generic_format_FLX.
 apply: (Rle_trans _ r).
 by right; apply Xreal_inj; rewrite -Hr /z Hx1 Hy1.
 now apply round_UP_pt, FLX_exp_valid.
@@ -939,10 +940,9 @@ caseFI x Hx Hx1 Hx2.
 caseFI y Hy Hy1 Hy2.
 set (z := Xmul _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
 rewrite Hx1 Hy1 /=.
-rewrite !round_generic.
-2: exact/generic_format_round/FLX_exp_valid.
-2: exact: generic_format_FLX.
-2: exact: generic_format_FLX.
+rewrite !round_generic;
+  try exact/generic_format_round/FLX_exp_valid;
+  try exact: generic_format_FLX.
 apply: (Rle_trans _ r).
 by right; apply Xreal_inj; rewrite -Hr /z Hx1 Hy1.
 now apply round_UP_pt, FLX_exp_valid.
@@ -968,10 +968,9 @@ caseFI x Hx Hx1 Hx2.
 caseFI y Hy Hy1 Hy2.
 set (z := Xdiv _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
 rewrite Hx1 Hy1 /=.
-rewrite !round_generic.
-2: exact/generic_format_round/FLX_exp_valid.
-2: exact: generic_format_FLX.
-2: exact: generic_format_FLX.
+rewrite !round_generic;
+  try exact/generic_format_round/FLX_exp_valid;
+  try exact: generic_format_FLX.
 apply: (Rle_trans _ r).
 { right; apply Xreal_inj; rewrite -Hr /z Hx1 Hy1.
   rewrite /z Hx1 Hy1 in Hr.

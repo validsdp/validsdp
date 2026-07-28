@@ -68,8 +68,10 @@ Proof.
 unfold eps, bpow.
 apply (Rmult_lt_reg_r (IZR (Z.pow_pos radix2 53)));
   [now fold (bpow radix2 53); apply bpow_gt_0|].
-rewrite Rinv_l; [rewrite Rmult_1_l|now apply Rgt_not_eq, Rlt_gt;
-                                    fold (bpow radix2 53); apply bpow_gt_0].
+rewrite Rinv_l;
+  try (now apply Rgt_not_eq, Rlt_gt;
+       fold (bpow radix2 53); apply bpow_gt_0).
+rewrite Rmult_1_l.
 change 1 with (IZR 1); apply IZR_lt.
 unfold Z.pow_pos; simpl.
 now compute.
