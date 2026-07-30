@@ -80,6 +80,21 @@
       }; coqPackages = common-bundle // {
          coq.override.version = "9.1";
       }; };
+      "9.2" = { rocqPackages = {
+        rocq-core.override.version = "9.2";
+      }; coqPackages = common-bundle // {
+         coq.override.version = "9.2";
+      }; };
+      "9.3" = { rocqPackages = {
+        rocq-core.override.version = "9.3";
+      }; coqPackages = common-bundle // {
+         coq.override.version = "9.3";
+      }; };
+      "master" = { rocqPackages = {
+        rocq-core.override.version = "master";
+      }; coqPackages = common-bundle // {
+         coq.override.version = "master";
+      }; };
       };
 
   ## Cachix caches to use in CI
