@@ -8,6 +8,9 @@ on:
     branches:
       - '**'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     # the OS must be GNU/Linux to be able to use the docker-coq-action
@@ -20,7 +23,7 @@ jobs:
           # - mathcomp/mathcomp:2.3.0-rocq-prover-9.0
       fail-fast: false
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: coq-community/docker-coq-action@v1
       with:
         opam_file: 'coq-validsdp.opam'
