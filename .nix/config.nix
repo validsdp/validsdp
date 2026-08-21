@@ -10,15 +10,6 @@
   ## Will determine the default main-job of the bundles defined below
   attribute = "validsdp";
 
-  ## The attribute for coq compat shim, default to attribute
-  ## set this when you need both to differ
-  ## (for instance "rocq-elpi" and "coq-elpi")
-  # coq-attribute = "validsdp";
-
-  ## Set this when the package has no rocqPackages version yet
-  ## (either in nixpkgs or in .nix/rocq-overlays)
-  no-rocq-yet = true;
-
   ## If you want to select a different attribute (to build from the local sources as well)
   ## when calling `nix-shell` and `nix-build` without the `--argstr job` argument
   # shell-attribute = "{{nix_name}}";
@@ -42,7 +33,7 @@
 
   ## select an entry to build in the following `bundles` set
   ## defaults to "default"
-  default-bundle = "9.0";
+  default-bundle = "9.1";
 
   ## write one `bundles.name` attribute set per
   ## alternative configuration
@@ -63,24 +54,21 @@
         #   from https://github.com/<github_login>/<repository>
       };
     in {
-      "9.0-2.3.0" = { rocqPackages = {
+      "9.0-2.3.0".rocqPackages = common-bundle // {
         rocq-core.override.version = "9.0";
-      }; coqPackages = common-bundle // {
-         coq.override.version = "9.0";
-         mathcomp.override.version = "2.3.0";
-         mathcomp.job = false;
-      }; };
-      "9.0" = { rocqPackages = {
-        rocq-core.override.version = "9.0";
-      }; coqPackages = common-bundle // {
-         coq.override.version = "9.0";
-      }; };
-      "9.1" = { rocqPackages = {
-        rocq-core.override.version = "9.1";
-      }; coqPackages = common-bundle // {
-         coq.override.version = "9.1";
-      }; };
+        coq.override.version = "9.0";
+        mathcomp.override.version = "2.3.0";
+        mathcomp.job = false;
       };
+      "9.0".rocqPackages = common-bundle // {
+        rocq-core.override.version = "9.0";
+        coq.override.version = "9.0";
+      };
+      "9.1".rocqPackages = common-bundle // {
+        rocq-core.override.version = "9.1";
+         coq.override.version = "9.1";
+      };
+    };
 
   ## Cachix caches to use in CI
   ## Below we list some standard ones
