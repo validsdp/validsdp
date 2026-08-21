@@ -18,6 +18,8 @@ From Stdlib Require Import Floats.
 From Flocq Require Import IEEE754.PrimFloat.
 Module Z := FloatOps.Z. (* workaround *)
 
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
+
 Section Primitive_float_infnan.
 
   Definition m := float_infnan_spec.m binary64_infnan.
@@ -153,11 +155,11 @@ Section Primitive_float_infnan.
   Proof.
     move=> H.
     rewrite -(@fiplus_spec binary64_infnan).
-    + rewrite /FI2FS /fiplus /= add_equiv. f_equal.
-      apply BSN_Bplus_congr.
     + move: H.
       rewrite -(B2Prim_Prim2B (x + y)) finite_equiv add_equiv.
       apply eqbLR. f_equal.
+      apply BSN_Bplus_congr.
+    + rewrite /FI2FS /fiplus /= add_equiv. f_equal.
       apply BSN_Bplus_congr.
   Qed.
 
@@ -200,11 +202,11 @@ Section Primitive_float_infnan.
   Proof.
     move=> H.
     rewrite -(@fiminus_spec binary64_infnan).
-    + rewrite /FI2FS /fiminus /= sub_equiv. f_equal.
-      apply BSN_Bminus_congr.
     + move: H.
       rewrite -(B2Prim_Prim2B (x - y)) finite_equiv sub_equiv.
       apply eqbLR. f_equal.
+      apply BSN_Bminus_congr.
+    + rewrite /FI2FS /fiminus /= sub_equiv. f_equal.
       apply BSN_Bminus_congr.
   Qed.
 
@@ -249,11 +251,11 @@ Section Primitive_float_infnan.
   Proof.
     move=> H.
     rewrite -(@fimult_spec binary64_infnan).
-    + rewrite /FI2FS /fimult /= mul_equiv. f_equal.
-      apply BSN_Bmult_congr.
     + move: H.
       rewrite -(B2Prim_Prim2B (x * y)) finite_equiv mul_equiv.
       apply eqbLR. f_equal.
+      apply BSN_Bmult_congr.
+    + rewrite /FI2FS /fimult /= mul_equiv. f_equal.
       apply BSN_Bmult_congr.
   Qed.
 
@@ -288,11 +290,11 @@ Section Primitive_float_infnan.
   Proof.
     move=> H Hy.
     rewrite -(@fidiv_spec binary64_infnan).
-    + rewrite /FI2FS /fidiv /= div_equiv. f_equal. apply BSN_Bdiv_congr.
     + move: H.
       rewrite -(B2Prim_Prim2B (x / y)) finite_equiv div_equiv.
       apply eqbLR. f_equal. apply BSN_Bdiv_congr.
     + by rewrite -finite_equiv B2Prim_Prim2B.
+    + rewrite /FI2FS /fidiv /= div_equiv. f_equal. apply BSN_Bdiv_congr.
   Qed.
 
   Lemma BSN_Bsqrt_congr prec emax Hprec Hprec' Hmax Hmax' mode x :
@@ -325,10 +327,10 @@ Section Primitive_float_infnan.
   Proof.
     move=> H.
     rewrite -fisqrt_spec.
-    + rewrite /FI2FS /fidiv /= sqrt_equiv. f_equal. apply BSN_Bsqrt_congr.
     + move: H.
       rewrite -(B2Prim_Prim2B (sqrt x)) finite_equiv sqrt_equiv.
       apply eqbLR. f_equal. apply BSN_Bsqrt_congr.
+    + rewrite /FI2FS /fidiv /= sqrt_equiv. f_equal. apply BSN_Bsqrt_congr.
   Qed.
 
   Lemma ficompare_spec x y :

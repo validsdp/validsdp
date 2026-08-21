@@ -68,6 +68,13 @@
         rocq-core.override.version = "9.1";
          coq.override.version = "9.1";
       };
+      "9.2".rocqPackages = common-bundle // {
+        rocq-core.override.version = "9.2";
+        coq.override.version = "9.2";
+        coquelicot.override.version = "master";
+        interval.override.version = "master";
+        validsdp.job = false;  # only ported libvalidsdp for now
+      };
     };
 
   ## Cachix caches to use in CI

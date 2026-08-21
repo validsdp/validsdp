@@ -19,6 +19,7 @@ From mathcomp Require Import Rstruct.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 Open Scope R_scope.
 Open Scope ring_scope.
@@ -71,10 +72,10 @@ have HDelta_decomp :
   apply (Rle_trans _ _ _ (Rabs_triang _ _)), Rplus_le_compat_r, Rabs_triang. }
 have HDelta1 : (Rabs Delta1 <= INR (n + l) * eps * delta1)%Re.
 { rewrite /Delta1 (eq_bigr (fun i => [ffun i => x (lift ord0 i)] i : R));
-    [|by move=> i _; rewrite ffunE].
+    first by move=> i _; rewrite ffunE.
   set Delta' := (rho - _)%Re.
   rewrite /delta1 (eq_bigr (fun i => Rabs ([ffun i => x (lift ord0 i)] i)));
-    [|by move=> i _; rewrite ffunE].
+    first by move=> i _; rewrite ffunE.
   by apply IHn => [i|]; [rewrite ffunE; apply Hnounder|rewrite -Hshat]. }
 have HDelta2 : (Rabs Delta2 <= eps * delta2)%Re.
 { rewrite /Delta2 /delta2 Rabs_minus_sym; apply Hnounder. }
@@ -192,7 +193,7 @@ case (Rle_or_lt alpha (INR l * eps * Rabs rho)) => Hmax.
 { apply (Rle_trans _ (INR (n + l) * eps * (Rabs rho + \big[+%R/0]_i Rabs (x i))
                       + (1 + INR (n + l) * eps) * (INR n * eta))).
   { apply fcmsum_l2r_err_aux, (Rle_trans _ _ _ Hl).
-    by rewrite Rmax_left; [right|]. }
+    by rewrite Rmax_left; [|right]. }
   apply Rplus_le_compat_l, Rmult_le_compat_l.
   { apply Rplus_le_le_0_compat; [lra|].
     apply Rmult_le_pos; [apply pos_INR|apply eps_pos]. }
@@ -202,7 +203,7 @@ apply (Rle_trans _ (Rabs (rho - shat) + Rabs (shat - (c - \sum_i x i)))).
 { by have ->: Delta = ((rho - shat) + (shat - (c - \sum_i x i)))%Re;
     [rewrite /Delta; ring|apply Rabs_triang]. }
 have Hrhomshat : Rabs (rho - shat) <= alpha.
-{ by apply (Rle_trans _ _ _ Hl); rewrite Rmax_right; [right|apply Rlt_le]. }
+{ by apply (Rle_trans _ _ _ Hl); rewrite Rmax_right; [apply Rlt_le|right]. }
 apply (Rle_trans _ (alpha + (INR (n + l) * eps * (Rabs shat + \sum_i Rabs (x i))
                              + (1 + INR (n + l) * eps) * (INR n * eta)))).
 { apply (Rplus_le_compat _ _ _ _ Hrhomshat), fcmsum_l2r_err_aux.

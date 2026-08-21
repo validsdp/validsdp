@@ -7,6 +7,7 @@ From mathcomp Require Import ssreflect ssrfun ssrbool eqtype.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 Open Scope R_scope.
 
