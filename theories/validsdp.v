@@ -41,6 +41,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Unset Uniform Inductive Parameters.  (* Remove when requiring rocq-elpi >= 3.2.0 *)
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 Local Open Scope R_scope.
 
@@ -109,13 +110,13 @@ elim c.
   { by rewrite /bigQ2R IQRp /IZR. }
   by rewrite /bigQ2R /IZR -IQRp -Q2R_opp. }
 { move=> c' Hc' p; rewrite /= -Hc' /Rdiv /bigQ2R /= -IQRp -Q2R_inv.
-  { by rewrite -Q2R_mult; apply Q2R_Qeq; rewrite BigQ.spec_div. }
-  by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl. }
+  { by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl. }
+  by rewrite -Q2R_mult; apply Q2R_Qeq; rewrite BigQ.spec_div. }
 { move=> p Hp; rewrite /= -Hp /bigQ2R -Q2R_opp; apply Q2R_Qeq, BigQ.spec_opp. }
 move=> p; rewrite /bigQ2R /interp_p_real_cst -IQRp -Q2R_inv.
-{ apply Q2R_Qeq; rewrite -(Qmult_1_l (Qinv _)) -/(BigQ.to_Q 1).
-  by rewrite -BigQ.spec_inv -BigQ.spec_mul. }
-by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl.
+{ by rewrite /= BigN.spec_of_pos /Q2R /= Rsimpl. }
+apply Q2R_Qeq; rewrite -(Qmult_1_l (Qinv _)) -/(BigQ.to_Q 1).
+by rewrite -BigQ.spec_inv -BigQ.spec_mul.
 Qed.
 
 (* After requiring Ltac2, mathcomp's notation "... of ... & ..." doesn't work *)
@@ -762,15 +763,15 @@ elim/abstr_poly_ind': ap l n => //.
 move=> p Hp qi Hqi l n Hn /= /andP [Hqi' Hp'].
 case (sumb _) => [e|]; [|by rewrite size_map eqxx].
 set qi' := map _ _.
-rewrite (Hp qi' (size qi)); [|by rewrite /qi' /= size_map|by []].
+rewrite (Hp qi' (size qi)); [by rewrite /qi' /= size_map|by []|].
 rewrite (map_mpoly_comp _ _ (fmorph_inj _)) comp_mpoly_meval /=.
 apply meval_eq => i.
 rewrite tnth_map tcastE /tnth /= (set_nth_default 0%R (tnth_default _ _));
-  [|by rewrite /= size_map; case i].
+  [by rewrite /= size_map; case i|].
 rewrite (nth_map (Const 0)) => //.
 move: Hqi => /all_prop_nthP Hqi.
 move: Hqi' => /all_nthP Hqi'.
-rewrite (Hqi _ _ _ _ n) => //; [|by apply Hqi'].
+((rewrite (Hqi _ _ _ _ n) => [//|//||]) || (rewrite -(Hqi _ _ _ _ n) => //)); [by apply Hqi'|].  (* TODO: remove left part when requiring MC >= 2.6 *)
 by rewrite (nth_map (Const 0)).
 Qed.
 
@@ -1001,7 +1002,7 @@ Section theory_soscheck.
 
 (** *** Proof-oriented definitions, polymorphic w.r.t scalars *)
 
-Context {n : nat} {T : comRingType}.
+Context {n : nat} {T : comNzRingType}.
 
 Let monom := 'X_{1..n}.
 
@@ -1187,7 +1188,7 @@ have : exists E : 'M_s.+1,
   under eq_bigr do rewrite (GRing.mulrC (zpr _ _)) -GRing.mulrA mxE mcoeffCM.
   under eq_bigr do rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX.
   rewrite (bigID (fun ij => zij ij.2 ij.1 == m)) /= GRing.addrC.
-  rewrite big1 ?GRing.add0r; last first.
+  rewrite big1 ?GRing.add0r.
   { by move=> ij; move/negbTE=> ->; rewrite GRing.mul0r. }
   under eq_bigr => ? Hi do rewrite Hi GRing.mul1r 2!mxE.
   rewrite big_split /= GRing.addrC.
@@ -1199,8 +1200,8 @@ have : exists E : 'M_s.+1,
   rewrite -{1}(GRing.addr0 (T2R _)); f_equal.
   { rewrite GRing.mulrC -GRing.mulrA; case_eq (m \in msupp p).
     { move=> Hm; move: (check_base_correct Hbase Hm).
-      move=> [i [j {}Hm]]; rewrite /GRing.mul /=; field.
-      apply Rgt_not_eq, Rlt_gt.
+      move=> [i [j {}Hm]]; rewrite /GRing.mul /= Rmult_inv_l ?Rmult_1_r//.
+      apply/Rgt_not_eq/Rlt_gt.
       change 0%Re with (INR 0); apply lt_INR.
       rewrite /nbm; rewrite -cardE.
       by apply/ssrnat.ltP/card_gt0P; exists (j, i); rewrite unfold_in eqseqE. }
@@ -1213,12 +1214,12 @@ have : exists E : 'M_s.+1,
   under eq_bigr do rewrite GRing.mulrC 2!mxE -mpolyXD mcoeffX.
   rewrite GRing.raddf_sum /= (bigID (fun ij => zij ij.2 ij.1 == m)) /=.
   under eq_bigr => ? Hi do rewrite Hi GRing.mul1r.
-  set b := bigop _ _ _; rewrite big1; last first; [|rewrite {}/b GRing.addr0].
+  set b := bigop _ _ _; rewrite big1; [|rewrite {}/b GRing.addr0].
   { by move=> ij; move/negbTE => ->; rewrite GRing.mul0r GRing.raddf0. }
   rewrite -big_filter /nbm /I_sp1_2.
   set ie := index_enum _; set fs' := [seq _ <- _ | _]; case fs'.
-  { by rewrite big_nil GRing.addr0 GRing.oppr0 GRing.mul0r. }
-  move=> h t; rewrite GRing.mulrC -GRing.mulrA /GRing.mul /= Rinv_l.
+  { by rewrite big_nil addr0 oppr0 mul0r ?mulr0. }  (* TODO: remove the ? when requiring MC >= 2.6 *)
+  move=> h t; rewrite GRing.mulrC -GRing.mulrA /GRing.mul /= Rinv_l; last first.
   { by rewrite Rmult_1_r GRing.addNr. }
   case size; [exact R1_neq_R0|].
   move=> n'; apply Rgt_not_eq, Rlt_gt.
@@ -1299,16 +1300,16 @@ case: m => m; case: e => e.
 { rewrite /= BigN.spec_shiftl_pow2 /Q2R mult_IZR Rcomplements.Rdiv_1.
   rewrite (IZR_Zpower radix2) //.
   exact: BigN.spec_pos. }
-{ rewrite /= ifF /Q2R /=; last exact/BigN.eqb_neq/BigN.shiftl_eq_0_iff.
+{ rewrite /= ifF /Q2R /=; first exact/BigN.eqb_neq/BigN.shiftl_eq_0_iff.
   rewrite BigN.spec_shiftl_pow2 /=.
-  rewrite bpow_opp -IZR_Zpower; last exact: BigN.spec_pos.
+  rewrite bpow_opp -IZR_Zpower; first exact: BigN.spec_pos.
   move: (Zpower_gt_0 radix2 (BigN.to_Z e) (BigN.spec_pos _)); simpl.
   by case: Zpower =>// p Hp. }
-{ rewrite /= BigN.spec_shiftl_pow2 /= -IZR_Zpower; last exact: BigN.spec_pos.
+{ rewrite /= BigN.spec_shiftl_pow2 /= -IZR_Zpower; first exact: BigN.spec_pos.
   by rewrite /Q2R /= Zopp_mult_distr_l mult_IZR Rcomplements.Rdiv_1. }
-{ rewrite /= ifF /Q2R /=; last exact/BigN.eqb_neq/BigN.shiftl_eq_0_iff.
+{ rewrite /= ifF /Q2R /=; first exact/BigN.eqb_neq/BigN.shiftl_eq_0_iff.
   rewrite BigN.spec_shiftl_pow2 /=.
-  rewrite bpow_opp -IZR_Zpower; last exact: BigN.spec_pos.
+  rewrite bpow_opp -IZR_Zpower; first exact: BigN.spec_pos.
   move: (Zpower_gt_0 radix2 (BigN.to_Z e) (BigN.spec_pos _)); simpl.
   by case: Zpower =>// p Hp. }
 Qed.
@@ -1364,7 +1365,7 @@ rewrite F2FI_correct //=.
 rewrite /rat2bigQ /ratr.
 set n := numq r; set d := denq r.
 rewrite /bigQ2F' /=.
-rewrite F2FI_valE; last first.
+rewrite F2FI_valE.
 { apply/mantissa_boundedP; rewrite /bigQ2F.
   set r' := BigQ.red _; case r'=>[t|t t0]; apply/fidiv_proof. }
 move=>->/=; rewrite /bigQ2F.
@@ -1374,13 +1375,13 @@ have Hd' := Z.lt_le_incl _ _ Hd.
 set nr := BigQ.red _.
 move: (Qeq_refl (BigQ.to_Q nr)).
 rewrite {2}BigQ.strong_spec_red Qred_correct /Qeq /=.
-rewrite ifF /=; last first.
+rewrite ifF /=.
 { rewrite BigN.spec_eqb !BigN.spec_N_of_Z //=; apply/negP.
   by rewrite /is_true Z.eqb_eq=> H; move: Hd; rewrite H. }
 rewrite BigN.spec_N_of_Z // Z2Pos.id // BigZ.spec_of_Z.
 case E: nr.
 { move=> /= Hnr; rewrite F.div_correct /Xround real_FtoX_toR //=.
-  rewrite /Xdiv' ifF; [|by apply Req_bool_false, R1_neq_R0].
+  rewrite /Xdiv' ifF; [by apply Req_bool_false, R1_neq_R0|].
   rewrite /Rdiv Rinv_1 Rmult_1_r /round /rnd_of_mode /=.
   set x := proj_val _; apply (Rle_trans _ x); last first.
   { by apply round_UP_pt, FLX_exp_valid. }
@@ -1388,20 +1389,20 @@ case E: nr.
   apply (Rmult_le_reg_r (IZR (int2Z d))).
   { by rewrite -[0%Re]/(IZR 0); apply IZR_lt. }
   rewrite -mult_IZR Hnr Z.mul_1_r /GRing.mul /= Rmult_assoc !RmultE.
-  rewrite mulVr ?mulr1; [by right|].
+  rewrite mulVr ?mulr1; [|by right].
   rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP.
   by apply: eq_IZR_contrapositive => H; move: Hd; rewrite H. }
-rewrite /= ifF /=; last first.
+rewrite /= ifF /=.
 { move: E; rewrite /nr; set nrnr := (_ # _)%bigQ; move: (BigQ_red_den_neq0 nrnr).
   by case (BigQ.red _)=>[//|n' d'] H [] _ <-; move: H=>/negbTE. }
 rewrite F.div_correct /Xround /Xdiv real_FtoX_toR //= real_FtoX_toR //=.
-rewrite /Xdiv' ifF; last first.
+rewrite /Xdiv' ifF.
 { apply Req_bool_false; rewrite real_FtoX_toR // toR_Float /= Rmult_1_r.
   rewrite -[0%Re]/(IZR 0); apply: eq_IZR_contrapositive.
   move: E; rewrite /nr; set nrnr := (_ # _)%bigQ.
   move: (BigQ_red_den_neq0_aux nrnr).
   by case (BigQ.red _)=>[//|n' d'] H [] _ <-. }
-rewrite Z2Pos.id; last first.
+rewrite Z2Pos.id.
 { move: E; rewrite /nr; set nrnr := (_ # _)%bigQ.
   move: (BigQ_red_den_neq0_aux nrnr); case (BigQ.red _)=>[//|? d'] H [] _ <-.
   by case (Z_le_lt_eq_dec _ _ (BigN.spec_pos d'))=>// H'; exfalso; apply H. }
@@ -1412,7 +1413,7 @@ apply (Rmult_le_reg_r (IZR (int2Z d))).
 { by rewrite -[0%Re]/(IZR 0); apply IZR_lt. }
 set lhs := _ * _; rewrite Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc -mult_IZR.
 rewrite Hnd {}/lhs /GRing.mul /= Rmult_assoc !RmultE.
-rewrite mulVr ?mulr1; [right|]; last first.
+rewrite mulVr ?mulr1; [|right].
 { rewrite /in_mem /= /unit_R -[0%Re]/(IZR 0); apply/negP=>/eqP.
   by apply: eq_IZR_contrapositive => H; move: Hd; rewrite H. }
 rewrite -RmultE mult_IZR Rmult_assoc Rinv_r ?Rmult_1_r //.
@@ -1475,16 +1476,16 @@ rewrite BigQ.spec_eq_bool.
 apply/Qeq_bool_iff.
 have int2Z_den_ge0 : forall x, (0 <= int2Z (denq x))%coq_Z.
 { by move=> r; rewrite -[Z0]/(int2Z 0) -Z2int_le !int2ZK denq_ge0. }
-rewrite /rat2bigQ /= ifF; last first.
-{ rewrite BigN.spec_eqb BigN.spec_0 BigN.spec_N_of_Z; [|exact: int2Z_den_ge0].
+rewrite /rat2bigQ /= ifF.
+{ rewrite BigN.spec_eqb BigN.spec_0 BigN.spec_N_of_Z; [exact: int2Z_den_ge0|].
   by rewrite -[Z0]/(int2Z 0) int2Z_eq denq_eq0. }
-rewrite BigZ.spec_of_Z BigN.BigN.spec_N_of_Z; [|exact: int2Z_den_ge0].
+rewrite BigZ.spec_of_Z BigN.BigN.spec_N_of_Z; [exact: int2Z_den_ge0|].
 rewrite /bigQ2rat unlock /bigQ2rat_def /=.
 case: (BigQ.to_Q x) => n d.
 rewrite Z2int_Qred.
 rewrite /Qeq /=.
 apply: Z2int_inj.
-rewrite !Z2int_mul Z2Pos.id ?int2ZK; last first.
+rewrite !Z2int_mul Z2Pos.id ?int2ZK.
 { by rewrite -[Z0]/(int2Z 0) -Z2int_lt !int2ZK denq_gt0. }
 apply: (@intr_inj rat).
 rewrite [LHS](intrM rat) numqE.
@@ -1571,19 +1572,19 @@ case Ea: (BigQ.red a); case Eb: (BigQ.red b).
 { move: H; rewrite Ea Eb /=.
   case E: (_ =? _)%bigN.
   { by move: (BigQ_red_den_neq0 b); rewrite Eb E. }
-  case=> ->; rewrite -Z2Pos.inj_1 Z2Pos.inj_iff; [by move<-|done|].
+  case=> ->; rewrite -Z2Pos.inj_1 Z2Pos.inj_iff; [done| |by move<-].
   by apply BigQ.N_to_Z_pos; rewrite -Z.eqb_neq -BigN.spec_eqb. }
 { move: H; rewrite Ea Eb /=.
   case E: (_ =? _)%bigN.
   { by move: (BigQ_red_den_neq0 a); rewrite Ea E. }
-  case=> ->; rewrite -Z2Pos.inj_1 Z2Pos.inj_iff; [by move->| |done].
+  case=> ->; rewrite -Z2Pos.inj_1 Z2Pos.inj_iff; [|done|by move->].
   by apply BigQ.N_to_Z_pos; rewrite -Z.eqb_neq -BigN.spec_eqb. }
 move: H; rewrite Ea Eb /=.
 case E: (_ =? _)%bigN.
 { by move: (BigQ_red_den_neq0 a); rewrite Ea E. }
 case E': (_ =? _)%bigN.
 { by move: (BigQ_red_den_neq0 b); rewrite Eb E'. }
-case=>->; rewrite Z2Pos.inj_iff; [by move->| |];
+case=>->; rewrite Z2Pos.inj_iff; [| |by move->];
   by apply BigQ.N_to_Z_pos; rewrite -Z.eqb_neq -BigN.spec_eqb.
 Transparent F.div.
 Qed.
@@ -1626,7 +1627,7 @@ by rewrite /max; case: ifP; rewrite /leq_op /leq_rat => H; apply: rat2R_le. Qed.
 
 Section refinement_soscheck.
 
-Variables (A : comRingType) (C : Type) (rAC : A -> C -> Type).
+Variables (A : comNzRingType) (C : Type) (rAC : A -> C -> Type).
 Context `{!zero_of C, !one_of C, !opp_of C, !add_of C, !sub_of C, !mul_of C, !eq_of C}.
 Context {n s : nat}.
 
@@ -1662,7 +1663,7 @@ suff : forall (m : 'X_{1..n}) m', Rseqmultinom m m' ->
     by rewrite refinesE. }
   apply: all_R=> mc mc' rmc.
   move: (H mc.1 mc'.1); rewrite /smem_ssr /smem_eff /smem=>H'.
-  rewrite H'; [by apply bool_Rxx|].
+  rewrite H'; [|by apply bool_Rxx].
   by case: rmc. }
 move=> m m' rm.
 rewrite /sm /sm'.
@@ -1758,7 +1759,7 @@ Local Instance refine_soscheck {s'} :
           RseqmxC eq_F (nat_Rxx s'.+1) (nat_Rxx s'.+1) ==> bool_R)
     (soscheck_ssr (s:=s') (F2T:=F2A) (T2F:=A2F))
     (soscheck_eff (n:=n) (s:=s') (F2T:=F2C) (T2F:=C2F)).
-Proof.
+Proof using -eta_neq_0.
 rewrite refinesE=> p p' rp z z' rz Q Q' rQ.
 rewrite /soscheck_ssr /soscheck_eff /soscheck.
 suff_eq bool_Rxx.
@@ -1854,14 +1855,14 @@ by apply: Hind; [apply: eq_add_S|move=> n Hn; apply: (H (S n))].
 Qed.
 
 (* TODO: begin PR CoqEAL Multipoly ? *)
-Lemma size_seq_ReffmpolyC (A : ringType) (C : Type) (rAC : A -> C -> Type)
+Lemma size_seq_ReffmpolyC (A : nzRingType) (C : Type) (rAC : A -> C -> Type)
       (n k : nat) (lq : k.-tuple {mpoly A[n]}) (lq' : seq (effmpoly C)) :
   seq_ReffmpolyC rAC lq lq' -> size lq' = k.
 Proof.
 move=> [b [[Hb _] Hb']]; rewrite -Hb; apply esym, nat_R_eq, (size_R Hb').
 Qed.
 
-Lemma nth_seq_ReffmpolyC (A : ringType) (C : Type) (rAC : A -> C -> Type)
+Lemma nth_seq_ReffmpolyC (A : nzRingType) (C : Type) (rAC : A -> C -> Type)
       (n k : nat) (lq : k.-tuple {mpoly A[n]}) (lq' : seq (effmpoly C)) :
   seq_ReffmpolyC rAC lq lq' ->
   forall i, refines (ReffmpolyC rAC) lq`_i (nth mp0_eff lq' i).
@@ -1871,7 +1872,7 @@ rewrite refinesE; apply nth_R; [|by []|apply nat_Rxx].
 apply refinesP, refine_M_hrel_mp0_eff.
 Qed.
 
-Lemma seq_ReffmpolyC_spec (A : ringType) (C : Type) (rAC : A -> C -> Type)
+Lemma seq_ReffmpolyC_spec (A : nzRingType) (C : Type) (rAC : A -> C -> Type)
       (n k : nat) (lq : k.-tuple {mpoly A[n]}) (lq' : seq (effmpoly C)) :
   ((size lq' = k)
    * (forall i, refines (ReffmpolyC rAC) lq`_i (nth mp0_eff lq' i)))%type ->
@@ -2272,11 +2273,11 @@ refines_apply1; first refines_apply1;
   { exists (M.map bigQ2rat s0'); split.
     { rewrite /Reffmpoly /s0 /mpoly_of_effmpoly_val /ofun_hrel /mpoly_of_effmpoly.
       rewrite ifT // /is_true (P.for_all_iff _) => k e.
-      { rewrite F.map_mapsto_iff => [] [] x' [] _ Hk.
-        move: hnsh; rewrite /is_true (P.for_all_iff _) -/s0' => H.
-        { by move: (H _ _ Hk). }
-        by move=> y' /mnmc_eq_seqP /eqP ->. }
-      by move=> /mnmc_eq_seqP /eqP ->. }
+      { by move=> /mnmc_eq_seqP /eqP ->. }
+      rewrite F.map_mapsto_iff => [] [] x' [] _ Hk.
+      move: hnsh; rewrite /is_true (P.for_all_iff _) -/s0' => H.
+      { by move=> y' /mnmc_eq_seqP /eqP ->. }
+      by move: (H _ _ Hk). }
     split=> [k|k e e']; [by apply F.map_in_iff|].
     move /(map_mapsto_iff_dec s0' k e bigQ2rat) => [] e'' [] He'' Hke'' Hke'.
     by have <- : e'' = e'; [move: Hke'' Hke'; apply F.MapsTo_fun|]. }
@@ -2313,6 +2314,8 @@ Unshelve.
 { by op2 F.mul_correct. }
 { by op2 F.div_correct. }
 { op1 F.real_correct; exact: bool_Rxx. }
+{ by op202 ltac:(rewrite /eq_instFIS /fieq /= /ficompare /=; suff_eq bool_Rxx)
+  F'.cmp_correct F.real_correct. }
 { by op202 ltac:(rewrite /leq_instFIS /file /= /ficompare /=; suff_eq bool_Rxx)
   F'.cmp_correct F.real_correct. }
 { by op202 ltac:(rewrite /lt_instFIS /filt /= /ficompare /=; suff_eq bool_Rxx)
