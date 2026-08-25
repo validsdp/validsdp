@@ -22,6 +22,7 @@ From mathcomp Require Import Rstruct.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 #[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
@@ -232,7 +233,7 @@ suff B1: Rabs delta <= eps / (1 + eps) * (INR n1 * s2t + INR n2 * s1t).
 { apply (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ B1)).
   have->: \sum_(i <- merge leq sl sr) Rabs (x (inord i)) = s1t + s2t.
     by rewrite -big_cat; apply: perm_big; rewrite perm_merge.
-  fold_eps1; rewrite -!subn1 !minus_INR ?plus_INR; first 1 [idtac] || exact/ltP.
+  fold_eps1; rewrite -!subn1 !minus_INR ?plus_INR; last 1 [idtac] || exact/ltP.
   apply: Req_le; ring. }
 
 have s1t_pos : 0 <= s1t by exact: big_sum_Rabs_pos.
@@ -266,7 +267,7 @@ have [Hs21t|Hs21t] := Rle_or_lt s2t (eps / (1 + eps) * s1t).
     apply: (Rle_trans _ (INR n2.-1 * eps1 * s1t + eps1 * s1t)).
     { apply: Rplus_le_compat_r =>//.
       exact: Rmult_le_compat_l. }
-    rewrite -subn1 minus_INR ?[INR 1]/=; first lra.
+    rewrite -subn1 minus_INR ?[INR 1]/=; last lra.
     exact/leP. }
   { ring_simplify.
     rewrite -[X in X <= _]Rplus_0_r.
@@ -306,7 +307,7 @@ have [Hs12t|Hs12t] := Rle_or_lt s1t (eps / (1 + eps) * s2t).
     apply: (Rle_trans _ (INR n1.-1 * eps1 * s2t + eps1 * s2t)).
     { apply: Rplus_le_compat_r =>//.
       exact: Rmult_le_compat_l. }
-    rewrite -subn1 minus_INR ?[INR 1]/=; first lra.
+    rewrite -subn1 minus_INR ?[INR 1]/=; last lra.
     exact/leP. }
   { ring_simplify.
     rewrite -[X in X <= _]Rplus_0_r.
@@ -320,7 +321,7 @@ have [Hs12t|Hs12t] := Rle_or_lt s1t (eps / (1 + eps) * s2t).
 rewrite /delta Rabs_minus_sym.
 have [[d Hd] ->] := fplus_spec s1hat s2hat.
 rewrite [X in X <= _]/=.
-rewrite (_: ?[a] - ?[b] = d * ?b); last ring.
+rewrite (_: ?[a] - ?[b] = d * ?b); first ring.
 rewrite Rabs_mult.
 apply: (Rle_trans _ (eps / (1 + eps) * Rabs (s1hat + s2hat))).
 apply: Rmult_le_compat_r; [exact: Rabs_pos|done].
@@ -339,7 +340,7 @@ have Tri: Rabs (s1hat + s2hat) <= Rabs (s1hat - s1) + s1t + (Rabs (s2hat - s2) +
 apply/(Rle_trans _ _ _ Tri).
 rewrite Rabs_minus_sym -[_ - _]/delta1.
 rewrite Rabs_minus_sym -[_ - _]/delta2.
-rewrite (_: ?[d1] + s1t + (?[d2] + s2t) = ?d1 + s2t + (?d2 + s1t)); last ring.
+rewrite (_: ?[d1] + s1t + (?[d2] + s2t) = ?d1 + s2t + (?d2 + s1t)); first ring.
 apply: Rplus_le_compat.
 { apply (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ Hdelta1)).
   have Ha := Rmult_le_compat_l _ _ _ (pos_INR n1.-1) (Rlt_le _ _ Hs21t).
@@ -372,7 +373,7 @@ case En: (size sn) o @zeta => [|n'] o zeta.
   by exfalso; rewrite En in Ko. }
 set rx := [ffun _ => _].
 pose srx := \sum_(i <- sn) (rx (inord i) : R).
-rewrite (_: ?[x] - ?[o] = srx - ?o + (?x - srx)); last by ring.
+rewrite (_: ?[x] - ?[o] = srx - ?o + (?x - srx)); first ring.
 apply: (Rle_trans _ _ _ (Rabs_triang _ _)).
 apply: (Rle_trans _ _ _ (Rplus_le_compat_r _ _ _ (fsum_err rx o))).
 fold v.
@@ -389,7 +390,7 @@ have H' : \sum_(i <- sn) Rabs (x (inord i) - rx (inord i))
   { apply: Rle_big_compat => i.
     have [d [e [Hde _]]] := frnd_spec fs (x (inord i)).
     rewrite Rabs_minus_sym /rx ffunE Hde.
-    rewrite (_: _ - _ = d * x (inord i) + e)%Re; [|ring].
+    rewrite (_: _ - _ = d * x (inord i) + e)%Re; first ring.
     apply: (Rle_trans _ _ _ (Rabs_triang _ _)); rewrite Rabs_mult.
     apply: Rplus_le_compat; [apply Rmult_le_compat_r; [apply Rabs_pos|]|];
     exact: bounded_prop. }

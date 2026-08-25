@@ -20,6 +20,7 @@ Require Export bounded.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 #[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
@@ -122,7 +123,7 @@ Proof. apply Rmult_le_pos; [|apply Rlt_le, Rinv_0_lt_compat]; lra. Qed.
 Lemma epsd1peps_le_eps : eps / (1 + eps) <= eps.
 Proof.
 apply (Rmult_le_reg_r (1 + eps)); [lra|].
-unfold Rdiv; rewrite Rmult_assoc Rinv_l; [|lra].
+unfold Rdiv; rewrite Rmult_assoc Rinv_l; first lra.
 assert (0 <= eps * eps); [apply misc.sqr_ge_0|lra].
 Qed.
 
@@ -223,9 +224,9 @@ assert (Hd' : Rabs d' <= eps).
 { unfold d'; rewrite Hde Ze Rplus_0_r.
   replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
   unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
-  rewrite (Rabs_pos_eq (/ _)); [|apply Rlt_le, Rinv_0_lt_compat; lra].
-  apply (Rmult_le_reg_r (1 + d)); [lra|].
-  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; [|lra].
+  rewrite (Rabs_pos_eq (/ _)); first (apply Rlt_le, Rinv_0_lt_compat; lra).
+  apply (Rmult_le_reg_r (1 + d)); first lra.
+  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; first lra.
   apply (Rle_trans _ _ _ (bounded_prop d)).
   unfold Rdiv; apply Rmult_le_compat_l; [now apply eps_pos|].
   apply (Rle_trans _ (1 - eps / (1 + eps))); [right; field|]; lra. }
@@ -262,17 +263,17 @@ destruct (Req_dec (fplus x y) 0) as [Zfxy|Nzfxy].
 destruct (Req_dec (x + y) 0) as [Zxy|Nzxy].
 { now exfalso; revert Hd; rewrite Zxy Rmult_0_r. }
 set (d' := ((x + y) - fplus x y) / fplus x y).
-assert (Hd' : Rabs d' <= eps).
-{ unfold d'; rewrite Hd.
-  replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
-  unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
-  rewrite (Rabs_pos_eq (/ _)); [|apply Rlt_le, Rinv_0_lt_compat; lra].
-  apply (Rmult_le_reg_r (1 + d)); [lra|].
-  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; [|lra].
-  apply (Rle_trans _ _ _ (bounded_prop d)).
-  unfold Rdiv; apply Rmult_le_compat_l; [now apply eps_pos|].
-  apply (Rle_trans _ (1 - eps / (1 + eps))); [right; field|]; lra. }
-now exists (Build_bounded Hd'); unfold d'; simpl; field.
+suff Hd' : Rabs d' <= eps.
+{ by exists (Build_bounded Hd'); unfold d'; simpl; field. }
+unfold d'; rewrite Hd.
+replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
+unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
+rewrite (Rabs_pos_eq (/ _)); first (apply Rlt_le, Rinv_0_lt_compat; lra).
+apply (Rmult_le_reg_r (1 + d)); first lra.
+rewrite Rmult_assoc Rinv_l ?Rmult_1_r; first lra.
+apply (Rle_trans _ _ _ (bounded_prop d)).
+unfold Rdiv; apply Rmult_le_compat_l; [now apply eps_pos|].
+apply (Rle_trans _ (1 - eps / (1 + eps))); [right; field|]; lra.
 Qed.
 
 Lemma fplus_spec_r (x y : F) : Rabs (fplus x y - (x + y)) <= Rabs y.
@@ -322,17 +323,17 @@ destruct (Req_dec (fsqrt x) 0) as [Zfx|Nzfx].
 destruct (Req_dec (sqrt x) 0) as [Zx|Nzx].
 { now exfalso; revert Hd; rewrite Zx Rmult_0_r. }
 set (d' := (sqrt x - fsqrt x) / fsqrt x).
-assert (Hd' : Rabs d' <= sqrt (1 + 2 * eps) - 1).
-{ unfold d'; rewrite Hd.
-  replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
-  unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
-  rewrite (Rabs_pos_eq (/ _)); [|apply Rlt_le, Rinv_0_lt_compat; lra].
-  apply (Rmult_le_reg_r (1 + d)); [lra|].
-  rewrite Rmult_assoc Rinv_l ?Rmult_1_r; [|lra].
-  apply (Rle_trans _ _ _ (bounded_prop d)).
-  apply (Rle_trans _ ((sqrt (1 + 2 * eps) - 1) * (1/sqrt (1 + 2 * eps))));
-    [right; field|apply Rmult_le_compat_l]; lra. }
-now exists (Build_bounded Hd'); unfold d'; simpl; field.
+suff Hd' : Rabs d' <= sqrt (1 + 2 * eps) - 1.
+{ by exists (Build_bounded Hd'); unfold d'; simpl; field. }
+unfold d'; rewrite Hd.
+replace (_ / _) with (- d / (1 + d)); [|now field; split; lra].
+unfold Rdiv; rewrite Rabs_mult Rabs_Ropp.
+rewrite (Rabs_pos_eq (/ _)); first (apply Rlt_le, Rinv_0_lt_compat; lra).
+apply (Rmult_le_reg_r (1 + d)); first lra.
+rewrite Rmult_assoc Rinv_l ?Rmult_1_r; first lra.
+apply (Rle_trans _ _ _ (bounded_prop d)).
+apply (Rle_trans _ ((sqrt (1 + 2 * eps) - 1) * (1/sqrt (1 + 2 * eps))));
+  [right; field|apply Rmult_le_compat_l]; lra.
 Qed.
 
 End Derived_spec.

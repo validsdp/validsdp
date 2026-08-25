@@ -11,7 +11,7 @@ Dependencies
 
 - [Rocq](https://rocq-prover.org) version 9.0 or later
 - [Bignums](https://github.com/coq/bignums) (Coq version specific)
-- [mathcomp](https://math-comp.github.io/math-comp/) (version 2.3 or later)
+- [mathcomp](https://math-comp.github.io/math-comp/) (version 2.3 or later for libvalidsdp and 2.4 or later for validsdp)
 - [mathcomp reals stdlib](https://github.com/math-comp/analysis/) (version 1.8.0 or later)
 - [Flocq](http://flocq.gforge.inria.fr/) (tested with version 3.4.1)
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (tested with version 3.2.0)

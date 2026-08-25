@@ -13,6 +13,7 @@ From mathcomp Require Import Rstruct.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 Open Scope ring_scope.
 Open Scope R_scope.
@@ -77,7 +78,7 @@ Proof. by replace (x * x)%Re with (x ^ 2)%Re; [apply pow2_ge_0|ring]. Qed.
 Lemma sqrtx_le_x x : (1 <= x -> sqrt x <= x)%Re.
 Proof.
 move=> Hx.
-rewrite -{2}(sqrt_Rsqr x); [|lra].
+rewrite -{2}(sqrt_Rsqr x); first lra.
 apply sqrt_le_1_alt; rewrite /Rsqr -{1}(Rmult_1_r x).
 apply Rmult_le_compat_l; lra.
 Qed.
@@ -85,7 +86,7 @@ Qed.
 Lemma sqrtx_le_xp1 x : (0 <= x -> sqrt x <= x + 1)%Re.
 Proof.
 move=> Hx.
-rewrite -(sqrt_Rsqr (x + 1)); [|lra].
+rewrite -(sqrt_Rsqr (x + 1)); first lra.
 have Lx := Rle_0_sqr x; have L1 := Rle_0_sqr 1.
 apply sqrt_le_1_alt; rewrite Rsqr_plus; lra.
 Qed.
@@ -263,8 +264,8 @@ Lemma max_tuple_Rmult n (a : R ^ n.+1) (c : R) : 0 <= c ->
   (max_tuple [ffun i => c * a i] = c * max_tuple a)%Re.
 Proof.
 elim: n a c => [|n IHn] a c Hc /=; [by rewrite ffunE|].
-rewrite -RmaxRmult; [|by []]; apply f_equal2; [|by rewrite ffunE].
-by rewrite -IHn; [|by []]; apply max_tuple_eq => i; rewrite !ffunE.
+rewrite -RmaxRmult; [by []|]; apply f_equal2; [|by rewrite ffunE].
+by rewrite -IHn; [by []|]; apply max_tuple_eq => i; rewrite !ffunE.
 Qed.
 
 Lemma max_tuple_prod n (a b : R ^ n.+1) :

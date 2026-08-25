@@ -22,6 +22,8 @@ From Flocq.Prop Require Import Div_sqrt_error.
 Require Import bounded.
 Require Import float_spec.
 
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
+
 #[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
 Open Scope R_scope.
@@ -68,8 +70,9 @@ Proof.
 unfold eps, bpow.
 apply (Rmult_lt_reg_r (IZR (Z.pow_pos radix2 53)));
   [now fold (bpow radix2 53); apply bpow_gt_0|].
-rewrite Rinv_l; [rewrite Rmult_1_l|now apply Rgt_not_eq, Rlt_gt;
-                                    fold (bpow radix2 53); apply bpow_gt_0].
+rewrite Rinv_l; [now apply Rgt_not_eq, Rlt_gt;
+                 fold (bpow radix2 53); apply bpow_gt_0
+                |rewrite Rmult_1_l].
 change 1 with (IZR 1); apply IZR_lt.
 unfold Z.pow_pos; simpl.
 now compute.
