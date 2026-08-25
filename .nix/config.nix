@@ -89,6 +89,24 @@
         coqeal.override.version = "master";
         coqeal.job = false;
       };
+      "9.3".rocqPackages = common-bundle // {
+        rocq-core.override.version = "9.3";
+        coq.override.version = "9.3";
+        coquelicot.override.version = "master";
+        interval.override.version = "rocq93";
+        mathcomp.override.version = "proux01:ringunivpoly";
+        mathcomp.job = false;
+        mathcomp-finmap.override.version = "master";
+        mathcomp-finmap.job = false;
+        multinomials.override.version = "master";
+        multinomials.job = false;
+        mathcomp-real-closed.override.version = "master";
+        mathcomp-real-closed.job = false;
+        mathcomp-analysis.override.version = "master";
+        mathcomp-analysis.job = false;
+        coqeal.override.version = "master";
+        coqeal.job = false;
+      };
     };
 
   ## Cachix caches to use in CI
