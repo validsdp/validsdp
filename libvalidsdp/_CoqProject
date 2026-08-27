@@ -18,6 +18,7 @@ primitive_floats_infnan.v
 flocq_float.v
 bsn_infnan.v
 binary_infnan.v
+triangle_subst.v
 
 -arg -w -arg -notation-overridden
 -arg -w -arg -ambiguous-paths

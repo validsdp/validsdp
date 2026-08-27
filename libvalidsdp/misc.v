@@ -57,6 +57,16 @@ Section Misc.
 Lemma inord0E n : inord 0 = ord0 :> 'I_n.+1.
 Proof. by apply: ord_inj; rewrite inordK. Qed.
 
+Lemma size_ord_enum n : size (ord_enum n) = n.
+Proof. by rewrite -(size_map val) val_ord_enum size_iota. Qed.
+
+Lemma nth_ord_enum n i i0 :
+  nth i0 (ord_enum n) i = (if (i < n)%N then i else i0) :> nat.
+Proof.
+case: ltnP => ni; last by rewrite nth_default ?size_ord_enum.
+by rewrite -(nth_map _ (i0 : nat)) ?size_ord_enum// val_ord_enum nth_iota.
+Qed.
+
 (** About [Rabs]. *)
 Lemma Rge_opp_abs x : - Rabs x <= x.
 Proof. split_Rabs; lra. Qed.
