@@ -1,0 +1,376 @@
+\documentclass[a4paper]{article}
+
+%% Language and font encodings
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+
+%% Sets page size and margins
+\usepackage[top=3cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+%% Useful packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+
+\title{Error Analysis for Solving a Linear System \\ by Cholesky Factorization}
+\author{Andrew W. Appel and Pierre Roux\\
+with advice from David Bindel}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  Following Demmel \cite{demmel81} with some lemmas improved by Rump and Jeannerod
+\cite{rump14}
+  and then implemented in libValidSDP by Roux \cite{DBLP:journals/jar/Roux16}, we derive
+  the backward error analysis for solving a s.p.d. linear system $Ax=b$
+  with fully accurate consideration of underflows.  We do this as a guide
+  to what will be mechanized in Rocq, or what will be documentation of
+  what will have been mechanized.
+  \end{abstract}
+
+\section{Preliminaries}
+
+\emph{Almost all of this section is quoted directly from Demmel (1981).}
+
+Let $\epsilon$ be the rounding error of the arithmetic, and $\lambda$ be the
+underflow threshold.  Suppose, for example, a binary floating point number is
+represented as $f\cdot 2^e$ where $f$ lies between 1 and 2 with an $n$ bit fraction,
+and $e$ is an integer exponent in the range $e_\mathrm{min} \le e \le e_\mathrm{max}$.
+Then $\epsilon=2^{-n}$ (the difference between 1 and the next largest number).
+The underflow threshold is $\lambda=2^{e_\mathrm{min}}$; this is the smallest \ldots
+normalized number for G.U. \ldots Denormalized numbers lie between 0 and $2^{e_\mathrm{min}}$
+in G.U. arithmetic for which the smallest nonzero number is thus $\mu = \epsilon \lambda$.
+We will give a more precise model of rounding and underflow errors in the next section.
+
+\newcommand\fl[1]{\ensuremath{\mathit{fl}(#1)}}
+
+Let $\bullet$ be one of the operations $(+,-,\ast,/)$ and let
+$\fl{a \bullet b}$ denote the floating point result of the indicated
+computation. \ldots To take underflow into account, we write
+(\cite{10.1145/1057520.1057522}),
+\begin{equation}\tag{11}
+\fl{a \bullet b} = (a \bullet b)(1 + e)+\eta\qquad
+\mathrm{unless}~a\bullet b ~\mathrm{overflows.}
+\end{equation}
+In the case of G.U. we have the following constraints on $e$ and $\eta$:
+\begin{enumerate}
+\item[(1)] $|e|\le \epsilon ~\mathrm{and}~ |\eta|\le \lambda \epsilon$,
+\item[(2)] $\eta \times e = 0$
+\item[(3)] $\eta=0$ if $\bullet$ is either addition or subtraction.
+\end{enumerate}
+
+We define the function $\mathit{UN}(x)$ to be
+\[
+UN(x)=\left\lbrace\begin{array}{ll}1 & \mathrm{if}~x~\mathrm{underflows}~(x<\lambda)\\
+    0 & \mathrm{if~it~does~not}\end{array}\right.
+  \]
+
+\newcommand{\norm}[1]{\ensuremath \lVert #1 \rVert}
+$\norm{A}$ and $\norm{b}$ denote the norms of matrix $A$ and vector $b$.
+$\norm{A}_\infty$ denotes the infinity norm of $A$, and similarly for
+$\norm{b}_\infty$.  $k(A)=\norm{A}_\infty\norm{A^{-1}}_\infty$ denotes the condition number
+of the matrix $A$.
+
+$|A|~(|b|)$ denotes the matrix (vector) whose entries are the absolute values
+  of the corresponding entries in $A$ ($b$).  Inequalities like $|A|>|B|$
+  $(|a|>|b|)$ are meant componentwise.
+
+\paragraph{Approach.}
+We use backward error analysis.  Thus, when trying
+to solve
+\begin{equation}\tag{12}
+  Ax = b
+\end{equation}
+for $x$ we obtain an approximation $\hat{x}=x~\delta x$ which satisfies the
+perturbed problem
+\begin{equation}\tag{13}
+  (A+\delta A)\hat{x}=b+\delta b~.
+\end{equation}
+The task of backwards error analysis is to obtain bounds on $\delta A$ and $\delta b$.
+These bounds can be used in turn to bound the residual $r$:
+\begin{equation}\tag{14}
+  r = A \hat{x}-b = -\delta A \hat{x} + \delta b
+\end{equation}
+
+\section{Comparison with Demmel (1981)}
+
+  \paragraph*{Demmel's Proposition 2} is as follows.  As we explain in the
+  next sections, we'll use something slightly different.
+
+\newcommand\float[1]{\ensuremath \mathit{float}(#1)}
+To analyze solving a triangular system, we need another expression for the error in
+computing an inner product:
+\begin{equation}\tag{demmel.31}
+  \float{\sum_{i=1}^n a_i b_i} = \sum_{i=1}^n a_i b_i (1 + E_i) + \eta ~.
+\end{equation}
+In the absence of underflow we have
+\begin{equation}\tag{demmel.32}
+\begin{array}{l}
+  |E_1| \le n \epsilon \\
+  |E_j| \le (n+2-j)\epsilon \quad \mathrm{if}\quad j>1~.
+\end{array}
+\end{equation}
+
+In the case of G.U.\footnote{Editor's note: G.U. = Gradual Underflow, that is,
+a floating-point format that supports subnormal numbers.  The technical report also covers the case of ``S.Z.'' or ``store zero'', which we omit here in all lemmas and theorems.}
+we have the same bounds on the $|E_i|$, and
+\begin{equation}\tag{demmel.34}
+|\eta| \le n \lambda \epsilon
+\end{equation}
+
+
+\paragraph*{Demmel's Lemma 4: Error Analysis of Solving a Triangular System.}
+\emph{As we explain in the next sections, we will use a variation
+of this lemma.}
+
+Consider the lower triangular system $Ly=b$ where $L$ does not necessarily
+have ones on the diagonal.  (The analyses when only ones are on the
+diagonal or L is upper triangular are similar.)  Then in solving
+$Ly=b$ using the program in Appendix 2 (where inner products are
+accumulated with roundoff error $\epsilon_\mathrm{s}$ and
+smallest number $\mu_\mathrm{s}$ we obtain $\hat{y}=y+\delta y$ which
+actually satisfies $(L+\delta L)\hat{y}= b + \delta b$, where
+\begin{equation}\tag{demmel.80}
+  |\delta L_{ij}| \le |L_{ij}| \cdot \left\lbrace
+  \begin{array}{lll}
+    \epsilon & \mathrm{if} & i=j=1 \\
+    (i-1)\epsilon_\mathrm{s} & \mathrm{if} & i>j=1 \\
+    (i+1-j)\epsilon_\mathrm{s} & \mathrm{if} & i>j>1 \\
+    \epsilon+\epsilon_\mathrm{s} & \mathrm{if} & i=j>1 
+  \end{array}\right.
+\end{equation}
+independent of underflow.
+
+In the absence of underflow
+\begin{equation}\tag{demmel.81}
+  \delta b = 0~.
+\end{equation}
+Using G.U.
+\begin{equation}\tag{demmel.82}
+  \begin{array}{lcl@{~}ll}
+    \mathrm{if} & i=1 & |\delta b_i |~ \le &\lambda\epsilon|L_{11}|\mathit{UN}(y_1)
+    & \mathrm{if}~y_1~\mathrm{underflows} \\
+    \mathrm{if} & i>1 & |\delta b_i |~ \le &i \cdot \lambda_\mathrm{s}\epsilon_\mathrm{s}~ + & \mathrm{intermediate~underflows} \\
+    & & & \lambda \epsilon |L_{ii}| \mathit{UN}(y_i) 
+    & \mathrm{if}~y_i~\mathrm{underflows}
+  \end{array} ~.
+\end{equation}
+If $L_{ii}$ is known to be 1, the only changes in the above bounds
+(besides substituting 1 for $L_{ii}$) are that $E_{11} = \delta b_1 = 0$
+independent of underflow.
+
+\section{Error analysis of Cholesky Solve}
+
+Instead of Demmel's Proposition 2, we will be using
+the following lemma:
+
+\paragraph*{Rump/Jeannerod Lemma 2.1} (LibValidSDP lemma\_2\_1\_aux): Analysis of $(c-\sum a_i b_i)/b_k$.
+  \newline
+  Let $\hat{y} = \fl{(c-\sum_{0\le i<k} a_i b_i)/b_k}$ computed by repeated subtraction left to right.  Assume $b_k\not= 0$. Then
+\begin{equation}\label{lemma_2_1}\tag{lemma2.1}
+  |b_k \hat{y} - (c-\sum_{0 \le i<k}a_i b_i)| \le (k+1)\epsilon \left(|b_k\hat{y}| + \sum_{0\le i < k}|a_ib_i|\right)
+  + (1+(k+1)\epsilon)(k+|b_k|)\lambda\epsilon.
+  \end{equation}
+  
+Demmel's Lemma 4 provides fine-tuned bounds for four different cases,
+depending on whether $i>j$ and whether $j>0$.
+In all these cases we will prove a
+weaker bound because that allows us to
+re-use the Rump/Jeannerod Lemma 2.1 for $c - \sum x_i y_i$.
+
+\paragraph*{Theorem Demmel\_L4\_adapted:} (lemma\_4 in triangle\_subst.v in LibValidSDP)
+Suppose $L$ is an $n \times n$ lower triangular (i.e., for all $i < j$,
+$L_{ij} = 0$) floating-point matrix with non zero diagonal elements
+(i.e., for all $i$, $L_{ii} \neq 0$) and $b$ is a floating-point vector.
+Solving the lower triangular system $Ly = b$ we obtain $\hat{y}=y+\delta y$
+which satisfies $(L+\delta L)\hat{y}= b + \delta b$, where
+\begin{equation}\tag{demmel\_lemma\_4}
+  \begin{array}{rcl}
+  |\delta L_{ij}| & \le & n\epsilon|L_{ij}|\qquad\mathrm{and} \\
+  |\delta b_i | & \le & (1+n\epsilon)\lambda \epsilon \left(n + |L_{ii}|\right)~.
+  \end{array}
+\end{equation}
+\noindent The factor $(1+n\epsilon)$ was omitted from Demmel's original but is required for correctness.
+
+\paragraph*{Proof.}  From \ref{lemma_2_1}, we get
+\begin{equation}
+  \left|L_{ii}\hat{y}_i - \left(b_i - \sum_{j=0}^{i-1}L_{ij} \hat{y}_j\right)\right|
+  \le (i+1)\epsilon \left(|L_{ii}\hat{y}_i| + \sum_{j=0}^{i-1}|L_{ij}\hat{y}_j|\right)
+  + (1 + (i+1)\epsilon)(i + |L_{ii}|)\lambda \epsilon
+\end{equation}
+that is
+\begin{equation}
+  \left|b_i - \sum_{j=0}^{i}L_{ij} \hat{y}_j\right|
+  \le (i+1)\epsilon \left(\sum_{j=0}^{i}|L_{ij}\hat{y}_j|\right)
+  + (1 + (i+1)\epsilon)(i + |L_{ii}|)\lambda \epsilon
+\end{equation}
+and since $i < n$, we have $i + 1 \le n$ which enables to conclude. Q.E.D.
+
+\section{Solving a linear system by Cholesky+Substitution}
+
+We now derive mixed error bounds for the
+floating-point result $\hat{x}$ of solving $Ax=b$ by Cholesky decomposition $A=R^T R$ followed by forward substitution $R^Ty=b$ then back substitution $Rx=y$.
+
+\paragraph*{Lemma th\_2\_3\_aux3: Accuracy of Cholesky decomposition.}
+Suppose $A$ is an $n\times n$ symmetric positive definite floating-point matrix,
+with $(n+1)\epsilon < 1$.
+Let $\hat{R}$ be the result of floating-point Cholesky decomposition (inner-product method)
+of  $A$ into $\hat{R}^T \hat{R}$.
+Let $\delta A = A - \hat{R}^T \hat{R}$.
+Let the vector $\hat{R}_j$ be the $j$th column of $\hat{R}$.
+Let $a_\mathrm{max}$ be greater or equal to all diagonal elements of $A$
+and assume $a_\mathrm{max} \geq 0$.
+Then
+\begin{equation}\tag{2.3aux3}
+  |\delta A _{ij}| < (\mathrm{min}(i,j)+2)\epsilon \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2
+  + 4 \lambda\epsilon (n+1+a_\mathrm{max}).
+\end{equation}
+
+\paragraph*{Proof.} See Rump+Jeannerod, or see libValidSDP.  Q.E.D.
+
+\paragraph*{Definition.} Define $a'_\mathrm{max}$
+as $\frac{a_\mathrm{max}+2(n-1)\lambda \epsilon}{1-(n+1)\epsilon}$.
+
+\paragraph*{Remark.}  Let $A$ and $\hat{R}$ be as above.
+Then
+\begin{equation}\tag{2.3aux1}
+  \norm{\hat{R}_j}_2 \le \sqrt{a'_\mathrm{max}}.
+  \end{equation}
+
+\paragraph{Proof.} LibValidSDP   th\_2\_3\_aux1 gives
+\begin{equation}
+  \norm{\hat{R}_j}_2 \le \sqrt{(A_{jj}+2j\lambda\epsilon)/(1-(j+2)\epsilon)}.
+  \end{equation}
+and the definition of $a'_\mathrm{max}$ enables to conclude. Q.E.D.
+
+\paragraph{Corollary.} Combining (2.3aux3) and (2.3aux1), we have,
+\begin{equation}\tag{cholesky\_back\_err}
+\begin{array}{rl}
+|\delta A_{ij}| & <
+(\mathrm{min}(i,j)+2)\epsilon
+\sqrt{a'_\mathrm{max}} \cdot \sqrt{a'_\mathrm{max}}
++ 4 \lambda\epsilon (n+1+a_\mathrm{max}) \\
+& \le
+(n+1)\epsilon
+a'_\mathrm{max}
++ 4 \lambda\epsilon (n+1+a_\mathrm{max}) \\
+\end{array}
+\end{equation}
+
+\paragraph*{Lemma.} We obtain bounds on $\delta R^T \hat{R}$ by
+combining (2.3aux1) and (demmel\_lemma\_4):
+\begin{equation}\tag{csolve\_back\_err\_aux1}
+\begin{array}{rl}
+|(\delta R^T\hat{R})_{ij}| & \le (|\delta R^T|\cdot|\hat{R}|)_{ij} \\
+& \le  \sum_k n\epsilon |\hat{R}_{ki}|\cdot|\hat{R}_{kj}| \qquad \mathrm{(by~demmel\_lemma\_4)}\\
+& \le n\epsilon \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2 \qquad \mathrm{(by~Cauchy-Schwartz)}\\
+& \le n\epsilon \sqrt{a'_\mathrm{max}} \sqrt{a'_\mathrm{max}} \quad\qquad\mathrm{(by 2.3aux1)}\\
+& = n\epsilon a'_\mathrm{max}.
+\end{array}
+\end{equation}
+The same bound is obtained on $\hat{R}\delta R$.
+
+\paragraph{Lemma.} Bounds on $\delta R^T \delta R$ as follows:
+\begin{equation}\tag{csolve\_back\_err\_aux2}
+  \begin{array}{rl}
+    |(\delta R ^T \delta R)_{ij}| & \le (|\delta R^T| \cdot |\delta R|)_{ij} \\
+    & \le \sum_k |\delta R^T|_{ik} |\delta R|_{kj} \\
+    & \le \sum_k n^2\epsilon^2 |\hat{R}_{ki}|\cdot|\hat{R}_{kj}| \\
+    & \le n^2\epsilon^2 \norm{\hat{R}_i}_2 \norm{\hat{R}_j}_2 \\
+    & \le n^2\epsilon^2 a'_\mathrm{max}.
+  \end{array}
+\end{equation}
+
+\paragraph*{Lemma.} We obtain bounds on $\delta b'$ by
+combining (demmel\_lemma\_4) and (2.3aux1):
+\begin{equation}\tag{csolve\_back\_err\_aux3}
+\begin{array}{rl}
+|\delta b'_i| & \le (1+n\epsilon)\lambda \epsilon (n + |\hat{R}^T_{ii}|) \\
+& \le (1+n\epsilon)\lambda \epsilon (n + \norm{\hat{R}_i}_2) \\
+& \le (1+n\epsilon)\lambda \epsilon (n + \sqrt{a'_\mathrm{max}}) \\
+& \le (1+n\epsilon)^2\lambda \epsilon (n + \sqrt{a'_\mathrm{max}}).
+\end{array}
+\end{equation}
+
+\paragraph*{Lemma.} We obtain bounds on $(\hat{R}^T + \delta R^T) \delta y$ by
+combining (demmel\_lemma\_4) and (2.3aux1):
+\begin{equation}\tag{csolve\_back\_err\_aux4}
+\begin{array}{rl}
+|((\hat{R}^T + \delta R^T) \delta y)_i| & \le (|\hat{R}^T + \delta R^T| \cdot |\delta y|)_i \\
+& \le \sum_k |\hat{R}^T + \delta R^T|_{ik} |\delta y|_k \\
+& \le \sum_k (1+n\epsilon)|\hat{R}_{ki}| \cdot |\delta y|_k \qquad \mathrm{(by~demmel\_lemma\_4)} \\
+& \le (1+n\epsilon) \norm{\hat{R}_i}_2 \norm{\delta y}_2 \qquad \mathrm{(by~Cauchy-Schwartz)} \\
+& \le (1+n\epsilon) \sqrt{a'_\mathrm{max}} \norm{\delta y}_2 \qquad \mathrm{(by~2.3aux1)} \\
+& \le (1+n\epsilon) \sqrt{a'_\mathrm{max}} n \norm{\delta y}_\infty \\
+& \le (1+n\epsilon) \sqrt{a'_\mathrm{max}} n (1+n\epsilon) \lambda \epsilon (n + \sqrt{a'_\mathrm{max}}) \\
+& = (1+n\epsilon)\lambda \epsilon (n + \sqrt{a'_\mathrm{max}}) (1+n\epsilon)n\sqrt{a'_\mathrm{max}} \\
+& \le (1+n\epsilon)^2\lambda \epsilon (n + \sqrt{a'_\mathrm{max}}) n\sqrt{a'_\mathrm{max}}.
+\end{array}
+\end{equation}
+
+
+\paragraph*{Theorem: Cholesky factor + substitution.}
+Suppose $A$ is an $n\times n$ symmetric positive definite floating-point matrix
+, with $(n+1)\epsilon < 1$.
+Suppose $b$ is a floating-point vector of length $n$.
+Suppose $\hat{x}$ is the result of floating-point Cholesky factorization of
+$A$ into $\hat{R}^T\hat{R}$ followed by forward substitution finding $\hat{y}$ such
+that $\hat{R}^T \hat{y}=b$ and then $\hat{R}\hat{x}=\hat{y}$.
+Taking into account underflows in both the factorization and the substitution, we have
+that there is a mixed error $\delta A$ and $\delta b$ such that
+$(A+\delta A)\hat{x}=b+\delta b$, bounded as follows:
+\begin{equation}\tag{csolve\_back\_err}
+\begin{array}{rcl}
+|\delta A| & \le & ((3n+1)\epsilon+n^2\epsilon^2)a'_\mathrm{max}+4 \lambda\epsilon (n+1+a_\mathrm{max}). \\
+|\delta b| & \le & (1+n\epsilon)^2 (n+1)^2 \lambda \epsilon (1 + a'_\mathrm{max})
+\end{array}
+\end{equation}
+
+\paragraph*{Proof.}
+Since $\hat{y} + \delta y = (\hat{R} + \delta R)\hat{x}$, we have
+\begin{equation}\tag{xxx}
+  \begin{array}{rl}
+    b + \delta b' &= (\hat{R}^T+\delta R^T)\hat{y}\\
+    b + \delta b' + (\hat{R}^T + \delta R^T) \delta y & = (\hat{R}^T+\delta R^T)(\hat{R}+\delta R)\hat{x} \\
+    & = (\hat{R}^T\hat{R}+\delta R^T\hat{R} +\hat{R}^T\delta R  +\delta R^T \delta R)\hat{x} \\
+    & = (A + \delta A' +\delta R^T\hat{R} +\hat{R}^T\delta R  +\delta R^T \delta R)\hat{x} \\
+    & = A\hat{x} + (\delta A' +\delta R^T\hat{R} +\hat{R}^T\delta R  +\delta R^T \delta R)\hat{x}. \\
+  \end{array}
+\end{equation}
+
+We will define 
+\begin{equation}\tag{xxx}
+  \begin{array}{rl}
+    \delta A   & = \delta A' +\delta R^T\hat{R} + \hat{R}^T\delta R  + \delta R^T \delta R\\
+      & \le |\delta A'| +|\delta R^T\hat{R}| +|\hat{R}^T\delta R|  +|\delta R^T \delta R|
+  \end{array}
+\end{equation}
+and
+\begin{equation}\tag{xxx}
+  \begin{array}{rl}
+    \delta b   & = \delta b' +(\hat{R}^T + \delta R^T) \delta y.
+  \end{array}
+\end{equation}
+
+From (cholesky\_back\_err) we have
+$  |\delta A'_{ij}| < (n+1)\epsilon a'_\mathrm{max}
++ 4 \lambda\epsilon (n+1+a_\mathrm{max}).$\newline
+From csolve\_back\_err\_aux1 we have
+$|(\delta R^T\hat{R})_{ij}| \le n\epsilon a'_\mathrm{max}$
+and similarly 
+$|(\hat{R}^T\delta R)_{ij}| \le n\epsilon a'_\mathrm{max}$.\newline
+From csolve\_back\_err\_aux2 we have
+    $|\delta R^T \delta R|
+ \le n^2\epsilon^2 a'_\mathrm{max}$.
+\newline
+The result follows using csolve\_back\_err3 and csolve\_back\_err4 and $\sqrt{a'_\mathrm{max}} \le 1 + a'_\mathrm{max}$.  Q.E.D.
+
+\bibliographystyle{alpha}
+\bibliography{cholesky}
+
+\end{document}
