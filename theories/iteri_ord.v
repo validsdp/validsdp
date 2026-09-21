@@ -8,6 +8,7 @@ From CoqEAL Require Import seqmx_complements.  (* for Rord *)
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 Implicit Types n : nat.
 

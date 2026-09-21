@@ -13,6 +13,7 @@ Require libValidSDP.misc.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 Open Scope ring_scope.
 Open Scope R_scope.

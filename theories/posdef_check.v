@@ -26,6 +26,7 @@ From libValidSDP Require Import coqinterval_infnan.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 (** ** Part 1: Generic programs *)
 
@@ -123,7 +124,7 @@ set s' := s.-1.
 set Q' := map (map F2FI) Q.
 pose Qb := @spec_seqmx _ (FIS0 fs) _ (id) (s'.+1) (s'.+1) Q'.
 case/and4P => Hs HQ'1 HQ'2 Hposdef.
-have Hs' : s'.+1 = s by rewrite prednK => [//| ]; rewrite lt0n.
+have Hs' : s'.+1 = s by rewrite prednK => [|//]; rewrite lt0n.
 rewrite /posdef_seqF.
 set Q'' := spec_seqmx _ _ _.
 have Hpos : posdefcheck_ssr Qb.
@@ -173,16 +174,16 @@ have Hrow : forall i : 'I_(size Q), (size (nth [::] Q i) = size Q)%N.
   rewrite -(eqP HQ'1) HQ'.
   move/(_ (@ltn_ord _ k))/eqP; apply etrans.
   by rewrite /Q' (nth_map [::]) // size_map. }
-rewrite (nth_map ([::] : seq R)); last by rewrite size_map.
+rewrite (nth_map ([::] : seq R)); first by rewrite size_map.
 rewrite (nth_map R0);
-  last by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
+  first by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
 rewrite (nth_map ([::] : seq F.type)) //.
-rewrite (nth_map F.zero); last by rewrite Hrow.
-rewrite (nth_map ([::] : seq (FIS fs))); last by rewrite size_map.
+rewrite (nth_map F.zero); first by rewrite Hrow.
+rewrite (nth_map ([::] : seq (FIS fs))); first by rewrite size_map.
 rewrite (nth_map (F2FI F.zero));
-  last by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
+  first by rewrite (nth_map ([::] : seq F.type)) // size_map Hrow.
 rewrite (nth_map ([::] : seq F.type)) //.
-rewrite (nth_map F.zero); last by rewrite Hrow.
+rewrite (nth_map F.zero); first by rewrite Hrow.
 have HFin' : forall (i j : 'I_(size Q)),
   finite (F2FI (nth F.zero (nth [::] Q i) j)).
 { move=> k l.
@@ -278,42 +279,40 @@ Proof.
     now rewrite Ht.
   - apply eqb_false_correct in Ht.
     unfold Bir.mantissa_sign.
-    rewrite ifF.
-    + reflexivity.
-    + apply not_true_is_false.
-      intro H.
-      apply Ht.
-      vm_compute in H.
-      revert H.
-      case_eq (t ?= 0)%uint63 ; try discriminate.
-      rewrite Uint63.compare_spec.
-      rewrite Z.compare_eq_iff.
-      intros H _.
-      now apply to_Z_inj.
+    rewrite ifF; last reflexivity.
+    apply not_true_is_false.
+    intro H.
+    apply Ht.
+    vm_compute in H.
+    revert H.
+    case_eq (t ?= 0)%uint63 ; try discriminate.
+    rewrite Uint63.compare_spec.
+    rewrite Z.compare_eq_iff.
+    intros H _.
+    now apply to_Z_inj.
   - apply eqb_correct in Ht.
     now rewrite Ht.
   - apply eqb_false_correct in Ht.
     unfold Bir.mantissa_sign.
-    rewrite ifF.
-    + reflexivity.
-    + apply not_true_is_false.
-      intro H.
-      apply Ht.
-      vm_compute in H.
-      revert H.
-      case_eq (0 ?= t)%uint63; try discriminate.
-      * rewrite Uint63.compare_spec.
-        rewrite Z.compare_eq_iff.
-        intros H _.
-        now apply to_Z_inj.
-      * rewrite Uint63.compare_spec.
-        rewrite Z.compare_gt_iff.
-        intro Hl.
-        exfalso.
-        revert Hl.
-        apply Zle_not_lt.
-        change (Uint63.to_Z 0) with Z0.
-        apply to_Z_bounded.
+    rewrite ifF; last reflexivity.
+    apply not_true_is_false.
+    intro H.
+    apply Ht.
+    vm_compute in H.
+    revert H.
+    case_eq (0 ?= t)%uint63; try discriminate.
+    + rewrite Uint63.compare_spec.
+      rewrite Z.compare_eq_iff.
+      intros H _.
+      now apply to_Z_inj.
+    + rewrite Uint63.compare_spec.
+      rewrite Z.compare_gt_iff.
+      intro Hl.
+      exfalso.
+      revert Hl.
+      apply Zle_not_lt.
+      change (Uint63.to_Z 0) with Z0.
+      apply to_Z_bounded.
 Qed.
 
 Definition canonical_mantissaPrim (m : int) (se : bool) (e : int) :=
@@ -358,7 +357,7 @@ case_eq (to_Z m) => [ |mp|mp] Hm; [exact I| | ].
   { move=> ->; rewrite Z.max_r //; lia. }
   move=> Hlbmp'.
   have -> : mag radix2 (IZR (Z.pos mp)) = prec :> BinNums.Z.
-  { by apply mag_unique; rewrite Rabs_pos_eq; [ |apply IZR_le]. }
+  { by apply mag_unique; rewrite Rabs_pos_eq; [apply IZR_le|]. }
   rewrite Z.max_l; lia. }
 move: (to_Z_bounded m); lia.
 Qed.
@@ -444,7 +443,7 @@ assert (Hr : Generic_fmt.round radix2 (fexp prec emax) ZnearestE r = r).
   apply generic_format_F2R; intros _; unfold F2R; simpl; rewrite Rmult_1_r.
   unfold cexp, fexp, FLT_exp; apply Z.max_lub; [ |unfold emin, emax; lia].
   rewrite -Zdigits_mag; lia. }
-revert Hb; simpl; rewrite Hr ifT.
+revert Hb; simpl; rewrite Hr ifT; last first.
 { now intros (Hr', _); rewrite Hr'; unfold r, F2R; simpl; rewrite Rmult_1_r. }
 apply Rlt_bool_true; unfold r, F2R; simpl; rewrite Rmult_1_r.
 change (IZR (Z.pow_pos 2 _)) with (bpow radix2 1024).
@@ -529,22 +528,22 @@ assert (He''shift : Z.sub (to_Z e'') shift = e).
     rewrite /SpecFloat.bounded => /andP [] _ /Zle_bool_imp_le.
     unfold emin, emax, prec; lia. }
   unfold e'', e; case se.
-  { rewrite Uint63.sub_spec Zmod_small; [ |split].
-    { rewrite of_Z_spec Zmod_small; [ring|now compute]. }
-    { rewrite of_Z_spec Zmod_small; [ |now compute].
+  { rewrite Uint63.sub_spec Zmod_small; [split|].
+    { rewrite of_Z_spec Zmod_small; [now compute|].
       revert He'; unfold emin, emax, prec, shift; lia. }
-    apply (Z.le_lt_trans _ shift); [ |now simpl].
-    rewrite of_Z_spec Zmod_small; [ |now compute].
-    assert (H := to_Z_bounded e'); lia. }
-  rewrite Uint63.add_spec Zmod_small; [ |split].
-  { rewrite of_Z_spec Zmod_small; [ring|now compute]. }
-  { rewrite of_Z_spec Zmod_small; [ |now compute].
+    { apply (Z.le_lt_trans _ shift); [ |now simpl].
+      rewrite of_Z_spec Zmod_small; [now compute|].
+      assert (H := to_Z_bounded e'); lia. }
+    rewrite of_Z_spec Zmod_small; [now compute|ring]. }
+  rewrite Uint63.add_spec Zmod_small; [split|].
+  { rewrite of_Z_spec Zmod_small; [now compute|].
     rewrite /shift; assert (H := to_Z_bounded e'); lia. }
-  apply (Z.le_lt_trans _ (4 * emax)); [ |now simpl].
-  rewrite of_Z_spec Zmod_small; [ |now compute].
-  rewrite /shift; revert He'; unfold emin, emax, prec; lia. }
+  { apply (Z.le_lt_trans _ (4 * emax)); [ |now simpl].
+    rewrite of_Z_spec Zmod_small; [now compute|].
+    rewrite /shift; revert He'; unfold emin, emax, prec; lia. }
+  rewrite of_Z_spec Zmod_small; [now compute|ring]. }
 rewrite He''shift.
-rewrite round_generic.
+rewrite round_generic; last first.
 { now case e; [rewrite Rmult_1_r|intro p; rewrite mult_IZR|simpl]. }
 apply generic_format_F2R; fold m''' e; intros Nzm'''.
 unfold cexp, FLT_exp; rewrite (mag_F2R_Zdigits _ _ _ Nzm''').

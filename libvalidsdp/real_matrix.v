@@ -16,6 +16,7 @@ From mathcomp Require Import Rstruct.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 Open Scope R_scope.
 Open Scope ring_scope.
@@ -406,7 +407,7 @@ Proof. by rewrite /normP dotprodP_opp_l dotprodP_opp_r Ropp_involutive. Qed.
 Lemma normP_scale (r : R) (x : 'cV_n) : (normP (r *: x) = Rabs r * normP x)%Re.
 Proof.
 rewrite /normP dotprodP_scale_l dotprodP_scale_r -Rmult_assoc.
-rewrite sqrt_mult_alt; [|by apply sqr_ge_0].
+rewrite sqrt_mult_alt; first exact: sqr_ge_0.
 by rewrite sqrt_Rsqr_abs.
 Qed.
 
@@ -427,16 +428,16 @@ case (Req_dec (normP y) 0) => Hny.
   rewrite !dotprodP_scale_l !dotprodP_scale_r (dotprodP_sym y x).
   rewrite -(normP_sqr_dotprod y) Hny /= Rmult_0_l !Rmult_0_r.
   rewrite -normP_sqr_dotprod /lambda; ring_simplify.
-  rewrite Rinv_r; [rewrite Rmult_1_l|lra].
-  rewrite (Rmult_comm 2) /Rdiv 2!Rmult_assoc Rinv_l; [ring|].
+  rewrite Rinv_r; [lra|rewrite Rmult_1_l].
+  rewrite (Rmult_comm 2) /Rdiv 2!Rmult_assoc Rinv_l; last ring.
   by move=> H; apply Nzxy, (Rmult_eq_reg_l 2); [rewrite Rmult_0_r|lra]. }
 apply Rabs_le_inv.
-rewrite -(Rabs_pos_eq (_ * _)%Re); [|by apply Rmult_le_pos; apply normP_pos].
+rewrite -(Rabs_pos_eq (_ * _)%Re); first by apply Rmult_le_pos; apply normP_pos.
 apply Rsqr_le_abs_0.
 rewrite Rsqr_mult.
 apply (Rmult_le_reg_r (/ (Rsqr (normP y))));
   [by apply Rinv_0_lt_compat, Rlt_0_sqr|].
-rewrite Rmult_assoc Rinv_r; [rewrite Rmult_1_r|by apply Rgt_not_eq, Rlt_0_sqr].
+rewrite Rmult_assoc Rinv_r; [by apply Rgt_not_eq, Rlt_0_sqr|rewrite Rmult_1_r].
 rewrite /Rsqr Rmult_assoc.
 set (t0 := (dotprodP x y * / (normP y * normP y))%Re).
 apply (Rplus_le_reg_r (dotprodP x y * (- t0))%Re); ring_simplify.
@@ -469,11 +470,11 @@ Proof.
 rewrite /normP.
 apply Rsqr_incr_0_var; [|by apply Rplus_le_le_0_compat; apply sqrt_pos].
 rewrite /Rsqr Rmult_plus_distr_l !Rmult_plus_distr_r.
-repeat (try rewrite sqrt_def; [|by apply dotprodP_pos]).
+repeat (try rewrite sqrt_def; first exact: dotprodP_pos).
 rewrite dotprodP_linear_r !dotprodP_linear_l // dotprodP_sym //.
 apply (Rplus_le_reg_r (- dotprodP x x - dotprodP y y)).
 ring_simplify.
-rewrite Rmult_assoc; apply Rmult_le_compat_l; [lra|].
+rewrite Rmult_assoc; apply: Rmult_le_compat_l; first lra.
 by rewrite Rmult_comm; apply cauchy_schwarzP.
 Qed.
 
@@ -724,8 +725,8 @@ Proof.
 apply (Rle_trans _ (`||\col_i (sqrt (INR m)
                               * sqrt (\sum_j (M i j) * (M i j)))%Re||_2)).
 { apply Mle_norm2 => i j; rewrite !mxE.
-  rewrite Rabs_pos_eq; [|by apply big_sum_Rabs_pos].
-  rewrite Rabs_pos_eq; [|by apply Rmult_le_pos; apply sqrt_pos].
+  rewrite Rabs_pos_eq; first exact: big_sum_Rabs_pos.
+  rewrite Rabs_pos_eq; first by apply Rmult_le_pos; apply sqrt_pos.
   replace (\sum_j Rabs (M i j)) with (`||\col_j M i j||_1);
     [|by apply /eq_bigr => j'; rewrite mxE].
   replace (sqrt (\sum__ _)) with (`||\col_j M i j||_2);
@@ -734,12 +735,12 @@ apply (Rle_trans _ (`||\col_i (sqrt (INR m)
   apply norm1_le_sqrt_norm2. }
 right.
 rewrite /norm2 /normFrobenius -sqrt_mult;
-  [|by apply pos_INR
-   |by apply big_sum_pos_pos => i; apply big_sum_pos_pos => j; apply Rle_0_sqr].
+  [by apply pos_INR
+  |by apply big_sum_pos_pos => i; apply big_sum_pos_pos => j; apply Rle_0_sqr|].
 apply f_equal; rewrite big_distrr /= /dotprod mxE.
 apply /eq_bigr => i _; rewrite !mxE.
 rewrite -sqrt_mult;
-  [|by apply pos_INR|by apply big_sum_pos_pos => i'; apply Rle_0_sqr].
+  [by apply pos_INR|by apply big_sum_pos_pos => i'; apply Rle_0_sqr|].
 rewrite /GRing.mul /= sqrt_def //; apply Rmult_le_pos; [by apply pos_INR|].
 apply big_sum_pos_pos => i'; apply Rle_0_sqr.
 Qed.
@@ -805,8 +806,8 @@ have Hinx := Rinv_0_lt_compat _ (norm2_def_contrap Hx).
 apply (Mscale_lt_reg Hinx); rewrite GRing.scaler0 scalemxAr.
 apply (Mscale_lt_reg Hinx); rewrite GRing.scaler0 !scalemxAl -scale_trmx.
 apply HA.
-rewrite norm2_scale_pos; [|by apply Rlt_le].
-by rewrite Rinv_l; [|apply Rgt_not_eq, norm2_def_contrap].
+rewrite norm2_scale_pos; first exact: Rlt_le.
+by rewrite Rinv_l; first apply Rgt_not_eq, norm2_def_contrap.
 Qed.
 
 End Mabs_order_mul_lt_prop.

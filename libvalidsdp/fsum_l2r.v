@@ -16,6 +16,7 @@ Require Import fsum.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 #[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
@@ -63,9 +64,9 @@ rewrite /fplus; do 2 apply f_equal; apply f_equal2.
 { do 2 f_equal; [|apply ffunP=> i]; rewrite !ffunE; apply f_equal.
   { apply Rplus_eq_compat_l; do 2 apply f_equal.
     by apply ord_inj; rewrite inordK. }
-  apply ord_inj; rewrite inordK /=.
+  apply ord_inj; rewrite inordK /=; last first.
   { by apply f_equal2; [by []|apply inordK, (ltn_trans (ltn_ord i))]. }
-    apply ltn_trans with i.+2; [by []|].
+  apply ltn_trans with i.+2; [by []|].
   rewrite -addn2 -(addn2 n) ltn_add2r; apply ltn_ord. }
 by do 2 apply f_equal; apply ord_inj.
 Qed.
@@ -80,9 +81,8 @@ rewrite /fsum_l2r fsum_l2r_rec_r.
 rewrite /fplus; do 2 apply f_equal; apply f_equal2.
 { do 2 f_equal; [|apply ffunP=> i]; rewrite !ffunE; apply f_equal.
   { by apply ord_inj; rewrite inordK. }
-  apply ord_inj; rewrite !lift0 inordK.
-  { rewrite inordK // -addn2 -(addn2 n) leq_add2r; apply ltnW, ltn_ord. }
-  apply ltnW, ltn_ord. }
+  apply ord_inj; rewrite !lift0 inordK; first exact/ltnW/ltn_ord.
+  rewrite inordK // -addn2 -(addn2 n) leq_add2r; apply ltnW, ltn_ord. }
 by rewrite ffunE; do 2 apply f_equal; apply ord_inj.
 Qed.
 
@@ -128,9 +128,9 @@ set a' := [ffun i : 'I_n.+1 => a (inord i)].
 set f := fsum_l2r a'; rewrite /= {}/f.
 rewrite /fplus; do 2 apply f_equal; apply f_equal2.
 { rewrite -[binary_tree_l2r n]/(order_l2r n : binary_tree).
-  rewrite -(@fsum_eq _ _ _ a'); [by apply Hind|].
+  rewrite -(@fsum_eq _ _ _ a'); last exact: Hind.
   move=> i Hi; rewrite /a' ffunE; do 2 apply f_equal.
-  by rewrite inordK; [|move: Hi; rewrite mem_iota]. }
+  by rewrite inordK; first (move: Hi; rewrite mem_iota). }
 by apply /f_equal /f_equal /val_inj => /=; rewrite inordK.
 Qed.
 
@@ -142,7 +142,7 @@ elim: n x => [|n IHn] x.
 { by rewrite big_ord_recl big_cons big_ord0 big_nil inord0E. }
 rewrite big_ord_recl big_cons !inord0E -/iota; apply: congr1.
 have->: 1%N :: iota 2 n = map (addn 1) (iota_finset 0 n.+1).
-{ by rewrite /= -iotaDl. }
+{ by rewrite /= -[X in _ = _ :: X]iotaDl. }
 rewrite big_map.
 have->: \sum_(j <- iota_finset 0 n.+1) h (x (inord (1 + j))) =
         \sum_(i <- iota_finset 0 n.+1) h ([ffun j : 'I_n.+1 => x (inord (1 + j))] (inord i)).

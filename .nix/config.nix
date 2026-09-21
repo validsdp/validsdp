@@ -59,14 +59,53 @@
         coq.override.version = "9.0";
         mathcomp.override.version = "2.3.0";
         mathcomp.job = false;
+        validsdp.job = false;  # contrary to libvalidsdp, validsdp no longer compiles on MC 2.3
       };
       "9.0".rocqPackages = common-bundle // {
         rocq-core.override.version = "9.0";
         coq.override.version = "9.0";
+        mathcomp.override.version = "2.4.0";
+        mathcomp.job = false;
       };
       "9.1".rocqPackages = common-bundle // {
         rocq-core.override.version = "9.1";
          coq.override.version = "9.1";
+      };
+      "9.2".rocqPackages = common-bundle // {
+        rocq-core.override.version = "9.2";
+        coq.override.version = "9.2";
+        coquelicot.override.version = "master";
+        interval.override.version = "master";
+        mathcomp.override.version = "proux01:ringunivpoly";
+        mathcomp.job = false;
+        mathcomp-finmap.override.version = "master";
+        mathcomp-finmap.job = false;
+        multinomials.override.version = "master";
+        multinomials.job = false;
+        mathcomp-real-closed.override.version = "master";
+        mathcomp-real-closed.job = false;
+        mathcomp-analysis.override.version = "master";
+        mathcomp-analysis.job = false;
+        coqeal.override.version = "master";
+        coqeal.job = false;
+      };
+      "9.3".rocqPackages = common-bundle // {
+        rocq-core.override.version = "9.3";
+        coq.override.version = "9.3";
+        coquelicot.override.version = "master";
+        interval.override.version = "rocq93";
+        mathcomp.override.version = "proux01:ringunivpoly";
+        mathcomp.job = false;
+        mathcomp-finmap.override.version = "master";
+        mathcomp-finmap.job = false;
+        multinomials.override.version = "master";
+        multinomials.job = false;
+        mathcomp-real-closed.override.version = "master";
+        mathcomp-real-closed.job = false;
+        mathcomp-analysis.override.version = "master";
+        mathcomp-analysis.job = false;
+        coqeal.override.version = "master";
+        coqeal.job = false;
       };
     };
 

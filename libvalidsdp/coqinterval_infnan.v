@@ -25,6 +25,7 @@ Require Import float_spec flx64 float_infnan_spec misc zulp.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 #[global] Obligation Tactic := idtac.  (* no automatic intro *)
 
@@ -83,7 +84,7 @@ have {Hn} [Zn|NZn] := Hn.
   apply/Z.max_l_iff.
   rewrite BigN.spec_Ndigits BigN.spec_head00 //.
   lia. }
-{ rewrite [LHS]Bir.mantissa_digits_correct; last first.
+{ rewrite [LHS]Bir.mantissa_digits_correct.
   { case E: (BigZ.to_Z (BigZ.Pos n)) NZn => [|p|p] //= NZn.
     exists p; by rewrite -E.
     clear NZn; exfalso; simpl in E.
@@ -101,7 +102,7 @@ have {Hn} [Zn|NZn] := Hn.
   apply/Z.max_l_iff.
   rewrite BigN.spec_Ndigits BigN.spec_head00 //.
   lia. }
-{ rewrite [LHS]Bir.mantissa_digits_correct; last first.
+{ rewrite [LHS]Bir.mantissa_digits_correct.
   { case E: (BigZ.to_Z (BigZ.Pos n)) NZn => [|p|p] //= NZn.
     exists p; by rewrite -E.
     clear NZn; exfalso; simpl in E.
@@ -151,7 +152,7 @@ split => H.
     case=> Hm Vn; rewrite /= FtoR_split.
     case: s Hm => Hm; rewrite /= -Hm /F2R /= /Bir.MtoZ /Bir.EtoZ.
     { rewrite BigZ.spec_add bpow_plus /= -Rmult_assoc; congr Rmult.
-      rewrite -IZR_Zpower; last first.
+      rewrite -IZR_Zpower.
       { rewrite BigZ.spec_sub digits_spec.
         apply(*:*) Z.lt_le_pred.
         apply: Zdigits_gt_0.
@@ -162,10 +163,10 @@ split => H.
       rewrite -mult_IZR; congr IZR.
       rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
       rewrite -/(Zulp (BigZ.to_Z m)) /= Zulp_digits;
-        last by move=> K; rewrite /Bir.MtoZ K in Hm.
+        first by move=> K; rewrite /Bir.MtoZ K in Hm.
       by rewrite Zulp_mul. }
     rewrite BigZ.spec_add bpow_plus /= -Rmult_assoc; congr Rmult.
-    rewrite -IZR_Zpower; last first.
+    rewrite -IZR_Zpower.
     { rewrite BigZ.spec_sub digits_spec.
       apply(*:*) Z.lt_le_pred.
       apply: Zdigits_gt_0.
@@ -176,7 +177,7 @@ split => H.
     rewrite -mult_IZR; congr IZR.
     rewrite BigZ.spec_div BigZ.spec_land BigZ.spec_opp.
     rewrite -/(Zulp (BigZ.to_Z m)) /= Zulp_digits;
-      last by move=> K; rewrite /Bir.MtoZ K in Hm.
+      first by move=> K; rewrite /Bir.MtoZ K in Hm.
     by rewrite Zulp_mul. }
   (* could be extracted to some lemma *)
   have [_ H1] := Zdigits_correct radix2 (BigZ.to_Z (m / bigZulp m)).
@@ -217,7 +218,7 @@ have NZf1 : f1 <> Z0.
   by apply: Rgt_not_eq; apply: bpow_gt_0. }
 move/(Zdigits_le_Zpower radix2) in Hf2.
 apply/Z.leb_le.
-rewrite -/(Z.succ _) -Zdigits_div_ulp; last by rewrite Hm; case: (s).
+rewrite -/(Z.succ _) -Zdigits_div_ulp; first by rewrite Hm; case: (s).
 apply: Z.le_trans _ Hf2.
 rewrite /Zdigits2 -Zdigits_abs -(Zdigits_abs _ f1).
 apply Zdigits_le; first exact: Z.abs_nonneg.
@@ -233,15 +234,15 @@ have Hlte : (bpow radix2 (BigZ.to_Z e) < bpow radix2 (Fexp f))%Re.
   rewrite !abs_IZR in Hlt.
   rewrite -/f1 in Hmf.
   move/(congr1 (Rdiv ^~ (bpow radix2 (BigZ.to_Z e)))) in Hmf.
-  rewrite /Rdiv Rinv_r_simpl_l in Hmf; last exact/Rgt_not_eq/bpow_gt_0.
+  rewrite /Rdiv Rinv_r_simpl_l in Hmf; first exact/Rgt_not_eq/bpow_gt_0.
   rewrite {}Hmf in Hlt.
   rewrite !Rabs_mult in Hlt.
   apply/Rdiv_gt_1; first exact: bpow_gt_0.
   move/Rdiv_gt_1: Hlt.
-  rewrite (_ : ?[a] * Rabs ?[b] * Rabs ?[c] / ?a = ?b * ?c)%Re; last first.
-    rewrite (Rabs_pos_eq (bpow _ _)); last exact: bpow_ge_0.
+  rewrite (_ : ?[a] * Rabs ?[b] * Rabs ?[c] / ?a = ?b * ?c)%Re.
+    rewrite (Rabs_pos_eq (bpow _ _)); first exact: bpow_ge_0.
     rewrite (Rabs_pos_eq (/ bpow _ _));
-      last exact/Rlt_le/Rinv_0_lt_compat/bpow_gt_0.
+      first exact/Rlt_le/Rinv_0_lt_compat/bpow_gt_0.
     field.
     split; last by apply/Rabs_no_R0; exact: eq_IZR_contrapositive.
     exact/Rgt_not_eq/bpow_gt_0.
@@ -253,7 +254,7 @@ have {}Hmf : (BigZ.to_Z m = f1 * 2 ^ (Fexp f - BigZ.to_Z e))%Z.
   rewrite /F2R - /f1 in Hmf.
   move/(congr1 (Rmult ^~ (bpow radix2 (- BigZ.to_Z e)))) in Hmf.
   rewrite !Rmult_assoc -!bpow_plus Z.add_opp_diag_r /= Rmult_1_r in Hmf.
-  rewrite -IZR_Zpower in Hmf; last lia.
+  rewrite -IZR_Zpower in Hmf; first lia.
   rewrite -mult_IZR in Hmf.
   exact: eq_IZR. }
 have Hdiv : (Z.abs (BigZ.to_Z m / Zulp (BigZ.to_Z m)) | BigZ.to_Z m)%Z.
@@ -590,11 +591,11 @@ unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fiplus; simpl; rewrite F.add_slow_correct.
 set (z := Xadd _ _); case_eq z; [now simpl|]; intros r Hr _; simpl.
 rewrite round_generic //.
-{ apply f_equal; revert Hr; unfold z.
-  case_eq (F.toX x); [now simpl|]; intros rx Hrx.
-  case_eq (F.toX y); [now simpl|]; intros ry Hry.
-  by case =><-. }
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+{ now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]. }
+apply f_equal; revert Hr; unfold z.
+case_eq (F.toX x); [now simpl|]; intros rx Hrx.
+case_eq (F.toX y); [now simpl|]; intros ry Hry.
+by case=> <-.
 Qed.
 
 Definition fiminus (x y : FI) : FI := fiplus x (fiopp y).
@@ -667,11 +668,11 @@ unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fimult; simpl; rewrite F.mul_correct.
 set (z := Xmul _ _); case_eq z; [now simpl|]; intros r Hr _; simpl.
 rewrite round_generic.
-{ apply f_equal; revert Hr; unfold z.
-  case_eq (F.toX x); [now simpl|]; intros rx Hrx.
-  case_eq (F.toX y); [now simpl|]; intros ry Hry.
-  by case => <-. }
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+{ now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]. }
+apply f_equal; revert Hr; unfold z.
+case_eq (F.toX x); [now simpl|]; intros rx Hrx.
+case_eq (F.toX y); [now simpl|]; intros ry Hry.
+by case=> <-.
 Qed.
 
 Lemma fidiv_proof rm (x y : F.type) : is_mantissa_bounded (F.div rm 53%bigZ x y).
@@ -717,11 +718,11 @@ unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fidiv; simpl; rewrite F.div_correct.
 set (z := Xdiv _ _); case_eq z; [now simpl|]; intros r Hr _; simpl.
 rewrite round_generic.
-{ apply f_equal; revert Hr; unfold z.
-  case_eq (F.toX x); [now simpl|]; intros rx Hrx.
-  case_eq (F.toX y); [now simpl|]; intros ry Hry.
-  by rewrite /Xdiv /Xdiv'; case: ifP =>// _ [->]. }
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+{ now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]. }
+apply f_equal; revert Hr; unfold z.
+case_eq (F.toX x); [now simpl|]; intros rx Hrx.
+case_eq (F.toX y); [now simpl|]; intros ry Hry.
+by rewrite /Xdiv /Xdiv'; case: ifP =>// _ [->].
 Qed.
 
 Lemma fidiv_spec x y : finite (fidiv x y) -> finite y ->
@@ -766,10 +767,10 @@ unfold finite; rewrite (FI2FS_X2F_FtoX _) FtoX_real.
 unfold fisqrt; simpl; rewrite F.sqrt_correct.
 set (z := Xsqrt_nan _); case_eq z; [now simpl|]; intros r Hr _; simpl.
 rewrite round_generic.
-{ apply f_equal; revert Hr; unfold z.
-  case_eq (F.toX x); [now simpl|]; intros rx Hrx.
-  by rewrite /= /Xsqrt_nan'; case: is_negative_spec =>// _ [->]. }
-now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N].
+{ now apply generic_format_round; [apply FLX_exp_valid|apply valid_rnd_N]. }
+apply f_equal; revert Hr; unfold z.
+case_eq (F.toX x); [now simpl|]; intros rx Hrx.
+by rewrite /= /Xsqrt_nan'; case: is_negative_spec =>// _ [->].
 Qed.
 
 Definition ficompare (x y : FI) : float_comparison :=
@@ -792,11 +793,11 @@ rewrite real_FtoX_toR // => H.
 rewrite real_FtoX_toR // => H'.
 rewrite Hx1 Hy1 /X2F.
 case: Rcompare_spec =>//= H0.
-- do 2![rewrite round_generic; last exact: generic_format_FLX].
+- do 2![rewrite round_generic; first exact: generic_format_FLX].
   by rewrite Rcompare_Lt.
-- do 2![rewrite round_generic; last exact: generic_format_FLX].
+- do 2![rewrite round_generic; first exact: generic_format_FLX].
   by rewrite Rcompare_Eq.
-- do 2![rewrite round_generic; last exact: generic_format_FLX].
+- do 2![rewrite round_generic; first exact: generic_format_FLX].
   by rewrite Rcompare_Gt.
 Qed.
 
@@ -906,9 +907,9 @@ caseFI y Hy Hy1 Hy2.
 set (z := Xadd _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
 rewrite Hx1 Hy1 /=.
 rewrite !round_generic.
-2: exact/generic_format_round/FLX_exp_valid.
-2: exact: generic_format_FLX.
-2: exact: generic_format_FLX.
+- exact: generic_format_FLX.
+- exact: generic_format_FLX.
+- exact/generic_format_round/FLX_exp_valid.
 apply: (Rle_trans _ r).
 by right; apply Xreal_inj; rewrite -Hr /z Hx1 Hy1.
 now apply round_UP_pt, FLX_exp_valid.
@@ -940,9 +941,9 @@ caseFI y Hy Hy1 Hy2.
 set (z := Xmul _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
 rewrite Hx1 Hy1 /=.
 rewrite !round_generic.
-2: exact/generic_format_round/FLX_exp_valid.
-2: exact: generic_format_FLX.
-2: exact: generic_format_FLX.
+- exact: generic_format_FLX.
+- exact: generic_format_FLX.
+- exact/generic_format_round/FLX_exp_valid.
 apply: (Rle_trans _ r).
 by right; apply Xreal_inj; rewrite -Hr /z Hx1 Hy1.
 now apply round_UP_pt, FLX_exp_valid.
@@ -969,15 +970,15 @@ caseFI y Hy Hy1 Hy2.
 set (z := Xdiv _ _); case_eq z; [now simpl|]; intros r Hr _ _ _; simpl.
 rewrite Hx1 Hy1 /=.
 rewrite !round_generic.
-2: exact/generic_format_round/FLX_exp_valid.
-2: exact: generic_format_FLX.
-2: exact: generic_format_FLX.
-apply: (Rle_trans _ r).
-{ right; apply Xreal_inj; rewrite -Hr /z Hx1 Hy1.
-  rewrite /z Hx1 Hy1 in Hr.
-  rewrite /Xdiv /Xdiv' in Hr *.
-  by case: is_zero_spec Hr. }
-now apply round_UP_pt, FLX_exp_valid.
+- exact: generic_format_FLX.
+- exact: generic_format_FLX.
+- exact/generic_format_round/FLX_exp_valid.
+apply: (Rle_trans _ r); last first.
+{ now apply round_UP_pt, FLX_exp_valid. }
+right; apply Xreal_inj; rewrite -Hr /z Hx1 Hy1.
+rewrite /z Hx1 Hy1 in Hr.
+rewrite /Xdiv /Xdiv' in Hr *.
+by case: is_zero_spec Hr.
 Qed.
 
 Definition coqinterval_round_up_infnan : Float_round_up_infnan_spec :=

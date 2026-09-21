@@ -13,6 +13,7 @@ From mathcomp Require Import Rstruct.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 Open Scope R_scope.
 Open Scope ring_scope.
@@ -151,14 +152,14 @@ Lemma cholesky_spec_infnan_cholesky_spec :
 Proof.
 move=> Hjj H; destruct H as (H, H'); split.
 { move=> j i Hij.
-  rewrite mxE H // ytilded_infnan_eq_ytilded //.
+  rewrite mxE H // ytilded_infnan_eq_ytilded //; last first.
   { by do 2 f_equal; [|apply ffunP=> i'..|]; try rewrite !ffunE; rewrite !mxE. }
   move: (Hjj j); rewrite H' => H2.
   move: (ytildes_infnan_fa (FIS2FS_spec H2) (Ordinal Hij)).
   rewrite -H // ffunE => H3.
   have H4 : i = inord (Ordinal Hij); [by rewrite inord_val|by rewrite H4]. }
 move=> j.
-rewrite mxE H' ytildes_infnan_eq_ytildes; [|by rewrite -H'; apply FIS2FS_spec].
+rewrite mxE H' ytildes_infnan_eq_ytildes; [by rewrite -H'; apply FIS2FS_spec|].
 by do 2 f_equal; [|apply ffunP=> i; rewrite !ffunE]; rewrite mxE.
 Qed.
 

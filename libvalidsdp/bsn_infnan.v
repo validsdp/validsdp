@@ -17,6 +17,8 @@ Require float_infnan_spec.
 Import Defs SpecFloat Float_prop.
 Require Import float_infnan_spec float_spec flocq_float.
 
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
+
 Section Flocq_infnan.
 
 Context {precp: positive}.
@@ -98,7 +100,7 @@ set (ex := cexp radix2 fexp x).
 assert (H := binary_normalize_correct prec emax _ _ mode_NE mx ex false).
 revert H; simpl; case (Rlt_bool (Rabs _) _).
 { unfold mx, round_mode; intro H; destruct H as (H, _); rewrite H.
-  rewrite round_generic; [now unfold round|].
+  rewrite round_generic; last now unfold round.
   now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N]. }
 unfold binary_overflow, overflow_to_inf.
 change (BinarySingleNaN.binary_normalize _ _ _ _ _ _ _ _) with (firnd x).
@@ -116,7 +118,7 @@ assert (H := binary_normalize_correct
 revert H; simpl.
 replace (round _ _ _ _) with (float_spec.frnd fis x : R).
 rewrite (Rlt_bool_true _ _ Hm); intros [? [? ?]]; auto.
-rewrite round_generic; [now unfold round|].
+rewrite round_generic; last now unfold round.
 now apply generic_format_round; [apply FLT_exp_valid|apply valid_rnd_N].
 Qed.
 

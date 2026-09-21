@@ -20,6 +20,7 @@ From libValidSDP Require Import cholesky cholesky_infnan.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 Open Scope R_scope.
 Open Scope ring_scope.
@@ -312,7 +313,7 @@ Lemma dotmulB0_ssr_eq k (i : 'I_k)
 Proof.
 case: k i c1 a1 b1 c2 a2 b2 => //= k i c1 a1 b1 c2 a2 b2 Hc Ha Hb.
 apply fsum_l2r_rec_eq => // j; rewrite !ffunE Ha ?Hb //;
-  (rewrite inordK; [ |apply (ltn_trans (ltn_ord j))]); apply ltn_ord.
+  (rewrite inordK; [apply (ltn_trans (ltn_ord j))|]); apply ltn_ord.
 Qed.
 
 Lemma ytilded_ssr_eq (k : 'I_n.+1)
@@ -540,7 +541,7 @@ case: k => //= k Hk; elim: k Hk c a b => //= k IHk Hk c a b.
 pose a' := \row_(i < n.+1) a ord0 (inord (lift ord0 i)).
 pose b' := \row_(i < n.+1) b ord0 (inord (lift ord0 i)).
 rewrite (@fsum_l2r_rec_eq _ _ _ _ _ _
-  [ffun i : 'I_k => (a' ord0 (inord i) * b' ord0 (inord i))%C] erefl).
+  [ffun i : 'I_k => (a' ord0 (inord i) * b' ord0 (inord i))%C] erefl); last first.
 { by rewrite (IHk (ltnW Hk)); f_equal; [|apply ffunP => i..];
     rewrite !ffunE // mxE /=;
     do 3 apply f_equal; apply /inordK /(ltn_trans (ltn_ord i)) /ltnW. }
@@ -831,7 +832,7 @@ set At := map_diag _ _; set Rt := cholesky _.
 move/andP => [Had Hpd].
 suff: forall i j : 'I_n.+1, (i <= j)%N -> finite (A i j).
 { move=> H i j; case (ltnP j i); [ |by apply H]; move=> Hij.
-  rewrite -(@fieq_spec_f _ (A^T i j)); [by rewrite mxE; apply H, ltnW| ].
+  rewrite -(@fieq_spec_f _ (A^T i j)); last by rewrite mxE; apply H, ltnW.
   by apply is_sym_correct_aux. }
 move=> i j Hij; suff: finite (At i j).
 { case_eq (i == j :> nat) => Hij'.

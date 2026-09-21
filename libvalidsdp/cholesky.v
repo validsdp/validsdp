@@ -29,6 +29,7 @@ Import GRing.Theory.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+Unset SsrOldRewriteGoalsOrder.  (* remove the line when requiring MathComp >= 2.6 *)
 
 Open Scope R_scope.
 Open Scope ring_scope.
@@ -88,7 +89,7 @@ replace (\sum__ Rabs _) with (\sum_i Rabs ([ffun i => (a i * b i)%Re] i));
 apply fcmsum_l2r_err.
 { by apply Rmult_le_pos; [apply Rabs_pos|apply eta_pos]. }
 rewrite Rmult_1_l Rabs_mult -Rmult_assoc (Rmult_comm _ (Rabs bk)) Rmult_assoc.
-rewrite RmaxRmult; [|by apply Rabs_pos].
+rewrite RmaxRmult; first by apply Rabs_pos.
 set shat := fcmsum_l2r _ _.
 have ->: (shat = bk * (shat / bk) :> R)%Re;
   [by rewrite Rmult_comm /Rdiv Rmult_assoc Rinv_l // Rmult_1_r|].
@@ -128,8 +129,8 @@ Proof.
 rewrite -(addn2 k) (Rmult_assoc _ _ eta).
 replace (\sum__ _) with (\sum_i [ffun i => (a i * a i)%Re] i);
   [|by apply eq_bigr => i _; rewrite ffunE].
-rewrite -{2}big_Rabs_pos_eq => [|i]; [|by rewrite ffunE; apply sqr_ge_0].
-rewrite -{2}(Rabs_pos_eq (_ ^ 2)); [|by apply pow2_ge_0].
+rewrite -{2}big_Rabs_pos_eq => [i|]; first by rewrite ffunE; apply sqr_ge_0.
+rewrite -{2}(Rabs_pos_eq (_ ^ 2)); first by apply pow2_ge_0.
 apply fcmsum_l2r_err_aux.
 set shat := fcmsum_l2r _ _.
 set yhat := fsqrt shat.
@@ -147,12 +148,12 @@ apply (Rle_trans _ ((sqrt (1 + 2 * eps) + 1) * (sqrt (1 + 2 * eps) - 1))).
 { apply Rmult_le_compat; [by apply Rabs_pos|by apply Rabs_pos| |].
   { apply (Rle_trans _ _ _ (Rabs_triang _ _)).
     apply (Rle_trans _ (2 + (sqrt (1 + 2 * eps) - 1))); [|by right; ring].
-    rewrite Rabs_pos_eq; [|lra]; apply Rplus_le_compat_l, bounded_prop. }
+    rewrite Rabs_pos_eq; first lra; apply Rplus_le_compat_l, bounded_prop. }
   by apply bounded_prop. }
-ring_simplify; rewrite /pow Rmult_1_r sqrt_def; [right; simpl; ring|].
+ring_simplify; rewrite /pow Rmult_1_r sqrt_def; [|right; simpl; ring].
 apply Rplus_le_le_0_compat; move: (eps_pos fs); lra.
 Qed.
-  
+
 Lemma lemma_2_2_1 k (a : F^k) (c : F) (Hst : 0 <= stilde c a a) :
   Rabs (ytildes c a ^ 2 - (c - \sum_i (a i * a i)%Re))
   < INR k.+2 * eps * (ytildes c a ^ 2 + \sum_i (a i * a i)%Re)
@@ -295,17 +296,17 @@ have H : ((\sum_(i.+1 <= k < n.+1) (rt i (inord k) ord0
                                     * rt j (inord k) ord0)) = 0)%Re.
 { rewrite (@big_addn _ _ _ 0 n.+1 i.+1) big_mkord.
   apply big_rec => [//|k x _ ->]; rewrite GRing.addr0.
-  rewrite !mxE ifF; [by rewrite GRing.mul0r|].
-  rewrite inordK; [by rewrite /leq -addSnnS addnK|].
+  rewrite !mxE ifF; last by rewrite GRing.mul0r.
+  rewrite inordK; last by rewrite /leq -addSnnS addnK.
   move: k; case i => iv ip /=; case=> kv kp /=.
   by rewrite -(subnK ip) ltn_add2r. }
 rewrite H {H} GRing.addr0 big_mkord big_ord_recr /= Rplus_comm; apply f_equal2.
 { apply eq_bigr => k _; rewrite !mxE !ffunE.
   suff H : (@inord n k <= i)%N.
-  { by rewrite ifT; [rewrite ifT; [|apply (leq_trans H)]|]. }
-  rewrite inordK; [apply ltnW|apply ltn_trans with i]; apply ltn_ord. }
+  { by rewrite ifT; [|rewrite ifT; [apply (leq_trans H)|]]. }
+  rewrite inordK; [apply ltn_trans with i|apply ltnW]; apply ltn_ord. }
 have H : (@inord n i = i)%N by rewrite inord_val.
-by rewrite !mxE ifT; [rewrite ifT|]; rewrite H.
+by rewrite !mxE ifT; [|rewrite ifT]; rewrite H.
 Qed.
 
 Lemma dotprod_Mabs_rt_i_j (i j : 'I_n.+1) : (i <= j)%N ->
@@ -326,17 +327,17 @@ have H : ((\sum_(i.+1 <= k < n.+1) ((Mabs (rt i)) (inord k) ord0
                                     * (Mabs (rt j)) (inord k) ord0)) = 0)%Re.
 { rewrite (@big_addn _ _ _ 0 n.+1 i.+1) big_mkord.
   apply big_rec => [//|k x _ ->]; rewrite GRing.addr0.
-  rewrite !mxE ifF; [by rewrite Rabs_R0 GRing.mul0r|].
-  rewrite inordK; [by rewrite /leq -addSnnS addnK|].
+  rewrite !mxE ifF; last by rewrite Rabs_R0 GRing.mul0r.
+  rewrite inordK; last by rewrite /leq -addSnnS addnK.
   move: k; case i => iv ip /=; case=> kv kp /=.
   by rewrite -(subnK ip) ltn_add2r. }
 rewrite H {H} GRing.addr0 big_mkord big_ord_recr /= Rplus_comm; apply f_equal2.
 { apply eq_bigr => k _; rewrite !mxE !ffunE.
   suff H : (@inord n k <= i)%N.
-  { by rewrite Rabs_mult ifT; [rewrite ifT; [|apply (leq_trans H)]|]. }
-  rewrite inordK; [apply ltnW|apply ltn_trans with i]; apply ltn_ord. }
+  { by rewrite Rabs_mult ifT; [|rewrite ifT; [apply (leq_trans H)|]]. }
+  rewrite inordK; [apply ltn_trans with i|apply ltnW]; apply ltn_ord. }
 have H : (@inord n i = i)%N by rewrite inord_val.
-by rewrite Rabs_mult !mxE ifT; [rewrite ifT|]; rewrite H.
+by rewrite Rabs_mult !mxE ifT; [|rewrite ifT]; rewrite H.
 Qed.
 
 Lemma Mmul_abs_lr (x : 'cV_n.+1) (B C : 'M_n.+1) :
@@ -364,9 +365,9 @@ have Hsaa : (0 <= stilde (A j j) a a)%Re.
 { apply Rlt_le, fsqrt_spec2.
   rewrite -/(ytildes (A j j) a) -(proj2 (proj1 HAR)); apply HAR. }
 apply (Rle_trans _ _ _ (lemma_2_2_2 Hj Hsaa)).
-rewrite -(@alpha_iltj j j) //= Rmult_1_r /d sqrt_def; [by right|].
+rewrite -(@alpha_iltj j j) //= Rmult_1_r /d sqrt_def; last by right.
 apply Rmult_le_pos; [|apply Rplus_le_le_0_compat].
-{ have H : (alpha j j < 1)%Re; [by rewrite alpha_iltj; [apply Hj|by []]|].
+{ have H : (alpha j j < 1)%Re; [by rewrite alpha_iltj; [by []|apply Hj]|].
   apply (Rmult_le_reg_r (1 - alpha j j)); field_simplify; lra. }
 { by apply (Rle_trans _ _ _ Hsaa), stilde_le_c. }
 apply Rmult_le_pos;
@@ -381,7 +382,7 @@ Lemma th_2_3_aux2_aux1 (i j : 'I_n.+1) : (i < j)%N ->
      + (1 + INR n.+2 * eps) * eta * (INR n.+1 + maxdiag'))%Re.
 Proof.
 move=> Hij maxdiag' Hmaxdiag'.
-rewrite 3!mxE mulmx_dotprod trmxK dotprod_rt_i_j; [|by apply ltnW].
+rewrite 3!mxE mulmx_dotprod trmxK dotprod_rt_i_j; first exact: ltnW.
 set (c := A i j).
 set (a := [ffun k : 'I_i => Rt (inord k) i]).
 set (b := [ffun k : 'I_i => Rt (inord k) j]).
@@ -392,12 +393,12 @@ rewrite Hrtij.
 have Hbk : (bk <> 0 :> R)%Re.
 { rewrite /bk; apply Rgt_not_eq, Rlt_gt, (proj2 HAR). }
 rewrite [X in Rabs X](_ : _ =
-    (c - (\sum_k (a k * b k)%Re) - bk * ytilded c a b bk)%Re); last first.
+    (c - (\sum_k (a k * b k)%Re) - bk * ytilded c a b bk)%Re).
   by rewrite /GRing.add /GRing.opp /c /= -[FS_of (format fs)]/F; ring.
 rewrite Rabs_minus_sym; apply (Rlt_le_trans _ _ _ (lemma_2_1 a b c Hbk)).
 rewrite /bk -Hrtij; apply Rplus_le_compat.
-{ rewrite alpha_iltj; [|by apply ltnW].
-  rewrite dotprod_Mabs_rt_i_j; [|by apply ltnW].
+{ rewrite alpha_iltj; first by apply ltnW.
+  rewrite dotprod_Mabs_rt_i_j; first by apply ltnW.
   rewrite Rplus_comm /a /b; apply Rmult_le_compat_r.
   { by apply Rplus_le_le_0_compat; [apply big_sum_Rabs_pos|apply Rabs_pos]. }
   rewrite !S_INR /GRing.mul /=; move: (eps_pos fs); lra. }
@@ -408,7 +409,7 @@ apply Rmult_le_compat; try apply Rplus_le_le_0_compat;
 { apply Rplus_le_compat_l, Rmult_le_compat_r; [by apply eps_pos|].
   by apply /le_INR /leP; rewrite ltnS; apply ltnW. }
 apply Rplus_le_compat; [by apply /le_INR /leP /ltn_ord|].
-rewrite Rabs_pos_eq; [apply Hmaxdiag'|apply Rlt_le, (proj2 HAR)].
+rewrite Rabs_pos_eq; [apply Rlt_le, (proj2 HAR)|apply Hmaxdiag'].
 Qed.
 
 Lemma th_2_3_aux2_aux2 (i : 'I_n.+1) :
@@ -418,7 +419,7 @@ Lemma th_2_3_aux2_aux2 (i : 'I_n.+1) :
      + (1 + INR n.+2 * eps) * eta * (INR n.+1 + maxdiag'))%Re.
 Proof.
 move=> maxdiag' Hmaxdiag'.
-rewrite 3!mxE mulmx_dotprod trmxK dotprod_rt_i_j; [|by apply leqnn].
+rewrite 3!mxE mulmx_dotprod trmxK dotprod_rt_i_j; first by apply leqnn.
 set (c := A i i).
 set (a := [ffun k : 'I_i => Rt (inord k) i]).
 have Hrtij : Rt i i = ytildes c a :> R by rewrite (proj2 (proj1 HAR)).
@@ -426,14 +427,14 @@ rewrite Hrtij.
 have Hst : (0 <= stilde c a a)%Re.
 { apply Rlt_le, fsqrt_spec2; rewrite -Hrtij; apply HAR. }
 rewrite [X in Rabs X](_ : _ =
-    (c - (\sum_k (a k * a k)%Re) - ytildes c a ^ 2)%Re); last first.
+    (c - (\sum_k (a k * a k)%Re) - ytildes c a ^ 2)%Re).
   by rewrite /GRing.add /GRing.opp /c /= -[FS_of (format fs)]/F; ring.
 rewrite Rabs_minus_sym; apply (Rlt_le_trans _ _ _ (lemma_2_2_1 Hst)).
 apply Rplus_le_compat.
 { rewrite alpha_iltj //; apply Rmult_le_compat_l; [by apply INR_eps_pos|].
   rewrite dotprod_Mabs_rt_i_j // Rplus_comm /= Rmult_1_r -Hrtij; right.
-  rewrite Rplus_comm Rabs_pos_eq; [|by apply sqr_ge_0]; f_equal.
-  by apply eq_bigr => k; rewrite !ffunE Rabs_pos_eq; [|apply sqr_ge_0]. }
+  rewrite Rplus_comm Rabs_pos_eq; [by apply sqr_ge_0|]; f_equal.
+  by apply eq_bigr => k; rewrite !ffunE Rabs_pos_eq; [apply sqr_ge_0|]. }
 rewrite (Rmult_assoc _ eta) (Rmult_comm eta) -Rmult_assoc.
 apply Rmult_le_compat_r; [by apply eta_pos|].
 apply Rmult_le_compat; try apply Rplus_le_le_0_compat;
@@ -600,7 +601,7 @@ Proof.
 have H : (0 < sqrt (INR n.+1))%Re.
 { apply sqrt_lt_R0; rewrite S_INR; move: (pos_INR n); lra. }
 apply (Rmult_eq_reg_l (sqrt (INR n.+1))); [rewrite Rmult_1_r|lra].
-rewrite -{3}norm2_const -norm2_scale_pos; [|lra]; apply f_equal.
+rewrite -{3}norm2_const -norm2_scale_pos; [lra|]; apply f_equal.
 rewrite -matrixP => i j; rewrite !mxE; apply Rinv_r; lra.
 Qed.
 
@@ -844,7 +845,7 @@ have H : forall y : 'cV_n.+1, (y^T *m Mabs x)^T *m (y^T *m Mabs x)
                               <=m: (`||y||_2^2)%:M => [y|].
 { rewrite [X in X *m _]mx11_scalar [X in _ *m X]mx11_scalar -scalar_mxM.
   rewrite mx11_tr Mle_scalar_mx /GRing.mul /= Rmult_1_r.
-  apply Rsqr_le_abs_1; rewrite (Rabs_pos_eq (norm2 _)); [|by apply norm2_pos].
+  apply Rsqr_le_abs_1; rewrite (Rabs_pos_eq (norm2 _)); first exact: norm2_pos.
   rewrite -(Rmult_1_r (norm2 _)) -Hx -(norm2_mabs x).
   apply cauchy_schwarz_Rabs. }
 apply Madd_le_compat.
@@ -881,11 +882,11 @@ apply Rplus_le_compat; [|right; apply Rmult_eq_compat_l].
   have H2 : (0 <= A i i + 2 * INR i * eta)%Re.
   { move: (Rmult_le_pos _ _ (pos_INR i) (eta_pos fs)) (Pdiag i).
     rewrite Rmult_assoc; lra. }
-  rewrite /dv !mxE /In1 /d sqrt_def; [|by apply Rmult_le_pos].
+  rewrite /dv !mxE /In1 /d sqrt_def; first exact: Rmult_le_pos.
   apply Rmult_le_compat => //; [apply Rinv_le; [rewrite /In2|]; lra|].
   apply Rplus_le_compat_l, Rmult_le_compat_r; [move: (eta_pos fs); lra|].
   apply Rmult_le_compat_l; [lra|apply /le_INR /leP /ltnW /ltn_ord]. }
-by rewrite /In1 norm2_const sqrt_def; [|by apply pos_INR].
+by rewrite /In1 norm2_const sqrt_def; first exact: pos_INR.
 Qed.
 
 Lemma c_upper_bound_aux3 (x : 'cV_n.+1) : (`||x||_2 = 1)%Re ->
@@ -938,7 +939,7 @@ rewrite Hcr mulmxA -mulmxA -{1}(trmxK (\col__ _)) -trmx_mul.
 apply Mle_trans with (`||\col_(_ < n.+1) sqrt r||_2^2)%:M.
 { rewrite [X in X *m _]mx11_scalar [X in _ *m X]mx11_scalar -scalar_mxM.
   rewrite mx11_tr Mle_scalar_mx /GRing.mul /= Rmult_1_r.
-  apply Rsqr_le_abs_1; rewrite (Rabs_pos_eq (norm2 _)); [|by apply norm2_pos].
+  apply Rsqr_le_abs_1; rewrite (Rabs_pos_eq (norm2 _)); first exact: norm2_pos.
   rewrite -(Rmult_1_r (norm2 _)) -Hx -(norm2_mabs x).
   apply cauchy_schwarz_Rabs. }
 apply Mle_scalar_mx; right; rewrite /= Rmult_1_r -/(INR n.+1) -/(Rsqr _).
