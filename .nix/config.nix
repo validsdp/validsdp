@@ -76,7 +76,7 @@
         coq.override.version = "9.2";
         coquelicot.override.version = "master";
         interval.override.version = "master";
-        mathcomp.override.version = "proux01:ringunivpoly";
+        mathcomp.override.version = "master";
         mathcomp.job = false;
         mathcomp-finmap.override.version = "master";
         mathcomp-finmap.job = false;
@@ -93,8 +93,8 @@
         rocq-core.override.version = "9.3";
         coq.override.version = "9.3";
         coquelicot.override.version = "master";
-        interval.override.version = "rocq93";
-        mathcomp.override.version = "proux01:ringunivpoly";
+        interval.override.version = "master";
+        mathcomp.override.version = "master";
         mathcomp.job = false;
         mathcomp-finmap.override.version = "master";
         mathcomp-finmap.job = false;
